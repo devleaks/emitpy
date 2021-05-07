@@ -1,0 +1,9 @@
+name: Munich Airport
+name_local: Flughafen München
+icao: EDDM
+iata: MUC
+location: [48°21′14″N 011°47′10″E]
+altitude: 453
+airlines:
+  - DLH
+  - QTR

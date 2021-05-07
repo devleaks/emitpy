@@ -1,0 +1,75 @@
+Part One: AODB Schedule
+========
+
+Arrival
+Random airport FROM.
+Choose airline operating from there.
+Choose aircraft type (from distance, availability in airline pool)
+
+Almost random TO (airport served by airline, range within aircraft type's range)
+
+From aircraft type, almost random service times for
+Cleaning
+Catering
+Fuel
+Water
+Cargo
+
+
+Schedule service time from time of arrival
+
+Schedule parking from pool
+Schedule service vehicle for each service from pool
+
+Determine minimum departure time.
+Set scheduled departure time.
+
+
+Spit formal flightboard and calendar for each service/service vehicle.
+SCHEDULED are set for all vehicle.
+
+
+
+Part Two: Fly!
+========
+
+Make arrival of flights, advance/retard randomly (parametrized)
+
+Move schedule of services accordingly.
+
+Estimate departure time.
+
+
+Fly departure from estimated departure time.
+
+
+
+Note on flights:
+---------------
+Always schedule relative to either touch down or take off (= time 0).
+Perform navigation and vertical navigation.
+
+Use STAR on arrival, SID on departure.
+If no STAR: Go from last point to "approach" fix (straight line), from approach to final to (flare to ) touch down.
+If no SID: Go from takeoff point to initial climb (straight line), turn torwards next fix and climb are reasonable rate.
+
+If possible have a (timed) "mark" at each flight phase.
+
+Two types of point: EMIT point where a position is emitted. MARK point where a new flight phase starts.
+
+do_departure(aircraft, airport, sid, parking)
+do_arrival(aircraft, airport, star, parking)
+
+
+Takeoff Queue
+-------------
+(There is no "takeoff" queue. Plane is put in a precise runway queue depending on take off direction.)
+
+After taxiing, the planed is queued for take off in the runway queue.
+
+Take off are "played" in order of runway takoff queue.
+
+
+
+Landing Queue
+-------------

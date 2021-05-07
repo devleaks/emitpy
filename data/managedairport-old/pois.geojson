@@ -1,0 +1,188 @@
+{
+    "type": "FeatureCollection",
+    "orgId": "OTHH",
+    "classId": "Airport",
+    "typeId": "Infrastructure",
+    "name": "POI",
+    "features": [
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#aa7942",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "BAGGAGE1"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.61441326141357,
+                25.263074267740823
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#aa7942",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "BAGGAGE2"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.61153793334961,
+                25.26202637092761
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#ff9300",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "CATERING1"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.60774528980255,
+                25.27553190350319
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#ff9300",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "CATERING2"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.60784721374511,
+                25.275323316545656
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#ff2600",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "FUEL_TRUCK_PARK"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.60187125205994,
+                25.27913118475802
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#aa7942",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "SEWAGE"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.605916023254395,
+                25.279354317277857
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#00f900",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "CARGOF"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.59745633602142,
+                25.28320571392174
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#00f900",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "CARGOQ"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.59951090812683,
+                25.278165889346624
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#00f900",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "CARGO4"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.60124897956848,
+                25.278694619945302
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "marker-color": "#00f900",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "CARGO5"
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.60274565219879,
+                25.278830440277606
+            ]
+        }
+    }]
+}

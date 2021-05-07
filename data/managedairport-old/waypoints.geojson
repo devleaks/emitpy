@@ -1,0 +1,1965 @@
+{
+  "type": "FeatureCollection",
+  "orgId": "OTHH",
+  "classId": "Airway",
+  "typeId": "Waypoint",
+  "name": "Waypoint",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "AFNAN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.999700000000004,
+          25.050222222222224
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ALKAG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.58006666666667,
+          25.678586111111112
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ALKOR"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.507333333333335,
+          25.630194444444445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ALNAK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.56719166666667,
+          25.848191666666665
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ALSEM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.72278888888889,
+          25.450958333333332
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ALVEN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.88758333333333,
+          25.905052777777776
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ASNOS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          50.88229166666667,
+          25.382944444444444
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ASTIM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.850966666666665,
+          25.36635
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ASTOG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.84027777777778,
+          25.472777777777775
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ASTOP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.15016388888889,
+          24.993816666666667
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BATHA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.451969444444444,
+          24.215844444444443
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BAYAN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.81361111111111,
+          25.490555555555556
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BONAN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.918169444444445,
+          26.0335
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BONEL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.55923611111111,
+          24.899130555555555
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BOSUP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.76450555555556,
+          25.269783333333333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BOVIP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.5264,
+          25.265233333333335
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BOXED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.45906388888889,
+          25.017699999999998
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BUBEN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.15218888888889,
+          25.075494444444445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BUDAS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.37189722222222,
+          25.345613888888888
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BUDEB"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.69505833333333,
+          25.100186111111114
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BUNDU"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.49,
+          25.006666666666668
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DAMOP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.01275,
+          25.689041666666668
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DANIK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.620247222222226,
+          24.996802777777777
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DASIB"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.2535,
+          25.387341666666668
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DASIK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.587988888888894,
+          24.984319444444445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DATMO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.444111111111106,
+          25.396208333333334
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DATRI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.56868888888889,
+          24.710938888888887
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DEBIL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.62399722222222,
+          25.726688888888887
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DEBKO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.370805555555556,
+          25.040661111111113
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DEBOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.01734722222222,
+          25.293433333333336
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DEKTO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.282513888888886,
+          25.063566666666667
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DEMBO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.65903611111111,
+          25.581477777777778
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DEMTA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.59245277777778,
+          24.323894444444445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DENSI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.499808333333334,
+          24.42191111111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DENVO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.08583333333333,
+          26.08111111111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DEPLA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.51555555555556,
+          25.459072222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "DERNO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.374233333333336,
+          25.471441666666664
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "EGNUG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.70098333333333,
+          25.31195
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "EGSAL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.16145,
+          25.38633888888889
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "EGSUN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.49021388888889,
+          25.30378888888889
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ELEDA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.57465277777778,
+          25.373722222222224
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ELOBI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.289408333333334,
+          25.131294444444446
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "EMEXA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.60109166666667,
+          24.84768611111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "EMISA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.70185555555556,
+          25.782875
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "EMUMO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.28794722222222,
+          25.192208333333333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ENANO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.43296111111111,
+          25.396691666666666
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ENELI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.41726111111111,
+          25.499847222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GETAM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.49805555555556,
+          25.40212222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GIBIN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.73829166666667,
+          25.66839722222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GINTO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.07107777777778,
+          25.26821111111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GOBLU"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.204797222222226,
+          25.353797222222223
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GOLSI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.49162777777778,
+          25.513102777777778
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "GOMTO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.87051666666667,
+          25.709594444444445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "IMKAT"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.70566111111111,
+          25.027380555555556
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "IMRED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.67315277777777,
+          24.817341666666668
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ITOVI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.62155555555555,
+          25.132858333333335
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ITSET"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.812916666666666,
+          25.786836111111114
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "IVANI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.595797222222224,
+          25.55061388888889
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "IVAVA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.52381388888889,
+          24.521147222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "IVIBO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.837925000000006,
+          25.6152
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "KAPAX"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.855108333333334,
+          25.704894444444445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "KATED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.373841666666664,
+          25.469277777777776
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "KEDEN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.993830555555554,
+          25.672897222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "KOBEN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.559552777777775,
+          25.656105555555555
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "KUPSA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.1975,
+          25.079166666666666
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LABOV"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.92258333333333,
+          25.569908333333334
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LADEM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.62045277777778,
+          24.92920555555556
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LADSO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.70073611111111,
+          25.08732222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LAGMA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.72382777777778,
+          25.03461666666667
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LAGNO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.255,
+          25.27027777777778
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LOSEN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.41483888888889,
+          25.37675
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LOVAN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.77555833333333,
+          25.142133333333334
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LOXUL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.77831388888889,
+          25.05148611111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LUBAK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.935449999999996,
+          25.61818611111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LUBET"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.06292777777777,
+          26.244630555555556
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LUDOS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.00539166666667,
+          24.98810277777778
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MAXMO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.45914166666667,
+          25.50086111111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MEBTI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.64864444444444,
+          25.400644444444442
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MEKMA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.41833333333333,
+          24.90833333333333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MIREX"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.51736944444444,
+          25.73268611111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MUSAN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.51788055555556,
+          25.229266666666664
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MUSIG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.53468888888889,
+          25.464194444444445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MUVEX"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.90954444444444,
+          25.19073611111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MUXED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.809105555555554,
+          25.065583333333333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "MUXOP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.596358333333335,
+          25.500475
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NABIS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.06903888888889,
+          25.32804722222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NABKI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.79246944444444,
+          25.84081111111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NAJMA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.6729,
+          25.016011111111112
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NAKAB"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.769191666666664,
+          24.978480555555553
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NAMLA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.555,
+          25.092222222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NOPLI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.59868055555556,
+          25.06761388888889
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NOSBI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.06275833333333,
+          25.093574999999998
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NOVDA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.47723611111111,
+          25.235641666666666
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NOVLA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.160491666666665,
+          25.272769444444442
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "OBVER"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.638397222222224,
+          25.00464722222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ORBIV"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.39898888888889,
+          24.92833888888889
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ORMAL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.36693611111111,
+          25.384372222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ORSIS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.276666666666664,
+          25.466944444444444
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "OTIDA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.559688888888886,
+          25.134438888888887
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "OTINO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.25721111111111,
+          25.46139722222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "OVENO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.49261111111111,
+          25.380341666666666
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "OVONA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.79416666666666,
+          25.411944444444444
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PASAV"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.93069722222222,
+          25.265425
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PASID"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.67918611111111,
+          25.087691666666665
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PATOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.3101,
+          25.972613888888887
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PEGEM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.11105,
+          25.323644444444444
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PURIN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.55405833333333,
+          25.061430555555557
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PUSNO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.920094444444445,
+          25.299636111111113
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PUTAN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.633491666666664,
+          25.465197222222223
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PUXEL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.586600000000004,
+          25.073316666666667
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "RASDI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.40204722222222,
+          26.073716666666666
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "RESAR"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.39111111111111,
+          25.61861111111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "RIKET"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.165,
+          26.33111111111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SALWA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          50.513333333333335,
+          25.260555555555555
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SENKI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.157777777777774,
+          25.776944444444442
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SIDMU"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.75365277777778,
+          25.192066666666665
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SITAL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.15775,
+          25.586166666666667
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SODER"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.547288888888886,
+          24.99468888888889
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SOKEN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.54038611111111,
+          25.45133611111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SOLAL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.58175833333333,
+          24.76616111111111
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "SOMAP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.535380555555555,
+          25.103833333333334
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TABKI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.84310555555556,
+          25.64172222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TANDO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.4063,
+          25.481577777777776
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TANLA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.90161111111111,
+          25.671325
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TONBI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.56245,
+          24.684633333333334
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TORKO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.660941666666666,
+          25.177825000000002
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TOSNA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.687777777777775,
+          25.27
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TOTIS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.174141666666664,
+          26.188641666666665
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TOVAN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.51029166666667,
+          25.519391666666667
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TUKEN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.52128888888889,
+          25.614138888888892
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "TULUB"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.01138888888889,
+          26.112222222222222
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "UKILA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.829888888888895,
+          25.574030555555556
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "UKPUX"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.54311666666666,
+          24.602891666666668
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ULBEK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.269305555555555,
+          25.457113888888887
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ULELO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.024202777777774,
+          25.595502777777778
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "ULIKA"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          50.64688611111111,
+          25.262580555555555
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "VATEK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.71848333333334,
+          25.790744444444446
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "VAXIN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.36333333333334,
+          25.678611111111113
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "VEDED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.77441944444444,
+          26.099516666666666
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "VELAM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.729758333333336,
+          25.907255555555555
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "VUTAN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.871775,
+          25.837752777777776
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "VUVAN"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.74590833333333,
+          24.90435833333333
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "XABAB"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          51.9733,
+          25.11160277777778
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "XALTO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          52.058505555555556,
+          24.99021666666667
+        ]
+      }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "name": "MODED",
+            "note": "added manually"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                51.9997,
+                25.0502222222222
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "name": "DETGU",
+            "note": "added manually"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                51.4916277777778,
+                25.5131027777778
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "name": "LAKMO",
+            "note": "added manually"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                51.7056611111111,
+                25.0273805555556
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "name": "KIROS",
+            "note": "added manually"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                51.8875833333333,
+                25.9050527777778
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "name": "GEXOB",
+            "note": "added manually"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                51.5671916666667,
+                25.8481916666667
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties": {
+            "name": "PASOM",
+            "note": "added manually"
+        },
+        "geometry": {
+            "type": "Point",
+            "coordinates": [
+                51.6204527777778,
+                24.9292055555556
+            ]
+        }
+    }
+  ]
+}

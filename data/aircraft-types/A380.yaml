@@ -1,0 +1,25 @@
+icao: A380
+sizecode: F
+length: 73
+width: 80
+weight: 42
+taxi: 30
+takeoff: 150
+initial_climb: 180
+climb: 200
+cruise: 450
+descend: 270
+descend_expedite: 300
+approach: 190
+final: 180
+landing: 160
+vs_initial_climb: 2000
+vs_climb: 2000
+vs_descend: 2000
+vs_descend_expedite: 3000
+vs_approach: 1500
+range: 9000
+pax: 555
+fuel: 26.7
+alike:
+simulation: 1.0

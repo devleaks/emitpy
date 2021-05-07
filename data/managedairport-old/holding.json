@@ -1,0 +1,62 @@
+{
+    "type": "FeatureCollection",
+    "orgId": "OTHH",
+    "classId": "Airway",
+    "typeId": "Holding",
+    "name": "Holding",
+    "features": [
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "name": "HP:GINTO",
+            "pattern": "TR:CW",
+            "alt": 8000,
+            "heading": 87
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.07107777777778,
+                25.26821111111111
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "name": "HP:MODED",
+            "pattern": "BL:CW",
+            "heading": 268,
+            "alt": 8000
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.9997,
+                25.0502222222222
+            ]
+        }
+    },
+    {
+        "type": "Feature",
+        "properties":
+        {
+            "name": "HP:BAYAN",
+            "pattern": "TL:CCW",
+            "heading": 229,
+            "alt": 8000
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": [
+                51.81361111111111,
+                25.490555555555556
+            ]
+        }
+    }]
+}

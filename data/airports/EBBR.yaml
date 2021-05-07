@@ -1,0 +1,10 @@
+name: Brussels Airport
+name_local: Luchthaven Brussel-Nationaal
+icao: EBBR
+iata: BRU
+location: [50°54′05″N 004°29′04″E]
+altitude: 56
+airlines:
+  - BEL
+  - QTR
+  - DLH

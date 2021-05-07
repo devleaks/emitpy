@@ -1,0 +1,10 @@
+name: Ngurah Rai International Airport
+name_local: Bandar Udara Internasional Ngurah Rai
+icao: WADD
+iata: DPS
+location: [08°44′53″S 115°10′03″E]
+altitude: 4
+airlines:
+  - DLH
+  - QTR
+  - GIA

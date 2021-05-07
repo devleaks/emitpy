@@ -1,0 +1,17 @@
+icao: GIA
+iata: GA
+acar: INDONESIA
+name: Garuda Indonesia
+home: WIII
+type: PAX
+parent:
+related:
+registration: PK
+aircrafts:
+  A330: 27
+  B737: 74
+  B777: 10
+airports:
+  - CGK
+  - DOH
+  - FRA

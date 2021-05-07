@@ -1,0 +1,19 @@
+icao: DLH
+iata: LH
+acar: LUFTHANSA
+name: Lufthansa
+home: EDDF
+type: PAX
+parent:
+related:
+registration: D
+aircrafts:
+  A380: 8
+  A320: 180
+  A350: 17
+airports:
+  - FRA
+  - MUC
+  - BRU
+  - DOH
+  - CGK

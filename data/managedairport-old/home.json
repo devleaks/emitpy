@@ -1,0 +1,22 @@
+{
+    "orgId": "GIPSJS",
+    "classId": "Airport",
+    "typeId": "Airport",
+    "name": "OTHH",
+    "value":
+    {
+        "title": "Hamad Airport",
+        "center": [25.2733, 51.6079],
+        "zoom": 14,
+        "zoom_overview": 9,
+        "overlay": [[25.2298, 51.5822],[25.3142, 51.6318]],
+        "background-color": "#ffffff",
+        "color": "#740F35",
+        "color_alt": "#DD1656",
+        "tower": [
+            25.27479093309257,
+            51.609129309654236
+        ],
+        "windy": "https://www.windy.com/?25.273,51.608,14"
+    }
+}

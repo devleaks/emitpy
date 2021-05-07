@@ -1,0 +1,20 @@
+icao: BEL
+iata: QR
+acar: BEELINE
+name: Brussels Airlines
+home: EBBR
+type: PAX
+parent: DLH
+related:
+  - AUA
+  - SWR
+  - EWG
+  - DLA
+  - VEX
+registration: OO
+aircrafts:
+  A320: 4
+  B737: 2
+airports:
+  - BRU
+  - DOH
