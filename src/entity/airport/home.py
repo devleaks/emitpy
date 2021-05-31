@@ -14,18 +14,18 @@ import random
 from datetime import timedelta
 
 import logging
-logger = logging.getLogger("Airport")
+logger = logging.getLogger("ManagedAirport")
 
-from .metar import Metar
+from ..metar import Metar
 from .runway import Runway
 from .airport import Airport, DetailedAirport
-from .clearance import Clearance
-from .aircraft import AircraftType
+from ..clearance import Clearance
+from ..aircraft import AircraftType
 
-from .constants import PASSENGER, CARGO, DEPARTURE, ARRIVAL
-from .constants import MANAGED_AIRPORT, GEOMETRY_DATABASE
+from ..constants import PASSENGER, CARGO, DEPARTURE, ARRIVAL
+from ..constants import MANAGED_AIRPORT, GEOMETRY_DATABASE
 
-from .parameters import DATA_DIR
+from ..parameters import DATA_DIR
 
 WIND_SPEED = 1
 WIND_DIRECTION = 0
@@ -55,7 +55,9 @@ class ManagedAirport(DetailedAirport):
 
 
     def init_ma(self):
-
+        """
+        Additional initialisation for ManagedAirport
+        """
         super().init()
 
         # Loads additional info for managed airport
@@ -68,7 +70,6 @@ class ManagedAirport(DetailedAirport):
             self._rawparams = a
             # logger.debug(yaml.dump(a, indent=4))
 
-
         self.loadRunways()
         self.loadParking()
 
@@ -77,7 +78,7 @@ class ManagedAirport(DetailedAirport):
         # wind = self.metar.wind()
         # self.setQFU(wind)
 
-        logger.debug("ManagedAirport::inited")
+        logger.debug("ManagedAirport::inited: %s", self.icao)
 
 
     def loadRunways(self):
@@ -106,7 +107,7 @@ class ManagedAirport(DetailedAirport):
             file = open(filename, "r")
             self.parkings = json.load(file)
             file.close()
-        logger.debug("loaded %d parkings", len(self.parkings["features"]))
+        logger.debug("ManagedAirport::loadParking: %d parkings", len(self.parkings["features"]))
 
         # for name in self.parkings["features"]:
         #     self.parkings[name] = Parking.fromGeoJSON(self.parkings["features"][name])

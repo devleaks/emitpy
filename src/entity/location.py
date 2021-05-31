@@ -2,10 +2,10 @@
 A location is a named geographic point (lat, lon, alt).
 
 """
-from .geojson import Point
+from geojson import Point
 
 
-class Location(Point):
+class Location:
 
     def __init__(self, name: str, city: str, country: str, lat: float, lon: float, alt: float):
         """
@@ -24,7 +24,10 @@ class Location(Point):
         :param      alt:      The alternate
         :type       alt:      float
         """
-        Point.__init__(self, lat, lon, alt)
         self.name = name
         self.city = city
         self.country = country
+        if alt is not None:
+            self.point = Point((lat, lon, alt))
+        else:
+            self.point = Point((lat, lon))

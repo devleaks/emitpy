@@ -5,7 +5,7 @@ logger = logging.getLogger("Clearance")
 
 
 from .resource import Resource
-from .runway import Runway
+from .airport.runway import Runway
 
 
 class Availability:
@@ -16,6 +16,7 @@ class Availability:
         self.name = name
         self.moment = moment
         self.slot = slot
+        self.reservation = None
 
 
 class Clearance:

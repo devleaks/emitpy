@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
+tests/
+
 # C extensions
 *.so
 
@@ -112,3 +115,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+data/x-plane/*

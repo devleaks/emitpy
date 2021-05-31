@@ -12,7 +12,7 @@ airlines:
   - QTR
   - DLH
   - GIA
-routes:
+connections:
   pax:
     - EBBR
     - EDDF

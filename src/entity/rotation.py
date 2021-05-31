@@ -6,7 +6,7 @@ logger = logging.getLogger("Rotation")
 from .airline import Airline
 from .aircraft import AircraftType
 from .flight import Flight
-from .parking import Parking
+from .airport import Parking
 
 
 class Rotation:

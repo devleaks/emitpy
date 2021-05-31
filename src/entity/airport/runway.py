@@ -3,7 +3,7 @@ Runways.
 
 """
 
-from .constants import DEPARTURE, ARRIVAL, PAX, CARGO
+from ..constants import DEPARTURE, ARRIVAL, PAX, CARGO
 
 
 class Runway:  # Line, Calendar

@@ -27,6 +27,7 @@ HANDLER = "handler"  # GSE, etc.
 # 3. Airports (detailed and managed)
 AIRLINES = "airlines"
 AIRPORTS = "airports"
+CONNECTIONS = "connections"
 ROUTES = "routes"
 PASSENGER = "pax"
 CARGO = "cargo"

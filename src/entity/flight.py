@@ -1,10 +1,12 @@
+from datetime import datetime, timedelta
 import logging
 logger = logging.getLogger("Flight")
 
 from .airport import Airport
 from .airline import Airline
 from .aircraft import Aircraft
-from .parking import Parking
+from .info import Info
+from .airport import Parking
 
 FLIGHT_PHASE = [
     "UNKNOWN",
@@ -27,9 +29,10 @@ FLIGHT_PHASE = [
 ]
 
 
-class Flight:
+class Flight(Info):
 
     def __init__(self, name: str, scheduled: str, departure: Airport, arrival: Airport, operator: Airline, aircraft: Aircraft, gate: Parking):
+        Info.__init__(self)
         self.name = name
         self.apt_departure = departure
         self.apt_arrival = arrival
@@ -38,8 +41,24 @@ class Flight:
         self.aircraft = aircraft
         self.gate = gate
         self.codeshare = None
-        logger.debug("init: %s from %s to %s by %s on %s at %s gate %s", self.name, self.apt_departure.icao, self.apt_arrival.icao, self.operator.orgId,
-            self.aircraft.name, self.scheduled, self.gate)
+        logger.debug(self)
+
+    @staticmethod
+    def roundTime(dt: datetime, roundTo: int = 300):
+       """Round a datetime object to any time lapse in seconds
+       dt : datetime.datetime object, default now.
+       roundTo : Closest number of seconds to round to, default 5 minutes.
+       Author: Thierry Husson 2012 - Use it as you want but don't blame me.
+       """
+       if dt == None: dt = datetime.now()
+       seconds = (dt.replace(tzinfo=None) - dt.min).seconds
+       rounding = (seconds + roundTo / 2) // roundTo * roundTo
+       return dt + timedelta(0, rounding-seconds, -dt.microsecond)
+
+    def __str__(self):
+        return "%s %s: %s>%s %s gate %s (%s %s)" % (self.operator.orgId, self.name, self.apt_departure.icao, self.apt_arrival.icao,
+               Flight.roundTime(self.scheduled), self.gate, self.aircraft.aircraft_type.icao, self.aircraft.name)
+
 
 
     def departure(self, apt: Airport):

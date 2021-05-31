@@ -46,14 +46,42 @@ class Constant:
             logger.error("init: cannot find %s", filename)
             self._rawdata = {}
 
+    # def monoget(self, name):
+    #     """
+    #     Returns the value of the name constant supplied.
+
+    #     :param      name:  The name
+    #     :type       name:  { type_description }
+    #     """
+    #     if name in self._rawdata.keys():
+    #         return self._rawdata[name]
+    #     return None
+
+    # def deepget(self, dotted_key):
+    #     """
+    #     Returns the value of the nested named constant. Constant's name is supplied either
+    #     as a dot-separated string "a.b.c" or an array of elements ["a", "b", "c"].
+
+    #     :param      dotted_key:  The dotted key
+    #     :type       dotted_key:  { type_description }
+    #     """
+    #     s = dotted_key if type(dotted_key) == str else ".".join(dotted_key)
+
+    #     return dpath.util.get(self._rawdata, s, separator=".")
+
     def get(self, name):
-        if name in self._rawdata.keys():
-            return self._rawdata[name]
+        """
+        Returns the value of the named constant. Constant's name is supplied either
+        as a single name, or a dot-separated string "a.b.c", or an array of elements ["a", "b", "c"].
+
+        :param      dotted_key:  The dotted key
+        :type       dotted_key:  { type_description }
+        """
+        s = name if type(name) == str else ".".join(name)  # else, assumed to be array/list of strings
+        if len(s.split(".")) > 1:  # dotted string
+            return dpath.util.get(self._rawdata, s, separator=".")
+        elif s in self._rawdata.keys():
+            return self._rawdata[s]
         return None
-
-    def deepget(self, dotted_key):
-        s = dotted_key if type(dotted_key) == str else ".".join(dotted_key)
-
-        return dpath.util.get(self._rawdata, s, separator=".")
         # keys = dotted_key.split('.')
         # return functools.reduce(lambda d, key: d.get(key) if d else None, keys, self._rawdata)

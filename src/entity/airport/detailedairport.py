@@ -13,12 +13,11 @@ import csv
 import logging
 logger = logging.getLogger("Airport")
 
-from .location import Location
-from .airline import Airline
-from .geo import distance, toNm
+from ..location import Location
+from ..airline import Airline
 
-from .constants import AIRLINES, ROUTES, PASSENGER, CARGO, AIRPORT_DATABASE
-from .parameters import DATA_DIR
+from ..constants import AIRLINES, CONNECTIONS, PASSENGER, CARGO, AIRPORT_DATABASE
+from ..parameters import DATA_DIR
 
 
 """ ********************************************************************** """
@@ -61,7 +60,7 @@ class Airport(Location):
         self._rawdata = data
 
     def init(self):
-        pass
+        logger.debug("Airport::inited: %s", self.icao)
 
 
     def distance_to(self, icao: str) -> float:
@@ -143,33 +142,36 @@ class DetailedAirport(Airport):
             PASSENGER: {},
             CARGO: {}
         }
-        filename = os.path.join(DATA_DIR, AIRPORT_DATABASE, icao + ".yaml")
-        if os.path.isfile(filename):
-            file = open(filename, "r")
-            a = yaml.safe_load(file)
-            file.close()
-            Airport.__init__(self, icao=a["icao"], iata=a["iata"], name=a["name"], city=a["city"], country=a["country"], region=a["region"], lat=a["latitude"], lon=a["longitude"], alt=a["altitude"], data=a)
-            self.init()
-            self._inited = True
-        else:
-            logger.critical("__init__: filename %s does not exist", filename)
+        self.init()
 
 
     def init(self):
+        super().init()
+
+        filename = os.path.join(DATA_DIR, AIRPORT_DATABASE, self.icao + ".yaml")
+        if os.path.isfile(filename):
+            logger.critical("__init__: filename %s does not exist", filename)
+            return
+
+        file = open(filename, "r")
+        a = yaml.safe_load(file)
+        file.close()
+        Airport.__init__(self, icao=a["icao"], iata=a["iata"], name=a["name"], city=a["city"], country=a["country"], region=a["region"], lat=a["latitude"], lon=a["longitude"], alt=a["altitude"], data=a)
         # 1. Load airlines
         if AIRLINES in self._rawdata.keys():
             for icao in self._rawdata[AIRLINES]:
                 self.airlines[icao] = Airline(icao)
 
         # 2. Load airports this airport is connected to (routes)
-        if ROUTES in self._rawdata.keys():
-            if PASSENGER in self._rawdata[ROUTES]:
-                for icao in self._rawdata[ROUTES][PASSENGER]:
+        if CONNECTIONS in self._rawdata.keys():
+            if PASSENGER in self._rawdata[CONNECTIONS]:
+                for icao in self._rawdata[CONNECTIONS][PASSENGER]:
                     self.routes[PASSENGER][icao] = Airport.find_by_icao(icao)
                 logger.debug("DetailedAirport::init: PAX routes: %s", self.routes[PASSENGER].keys())
-            if CARGO in self._rawdata[ROUTES]:
-                for icao in self._rawdata[ROUTES][CARGO]:
+            if CARGO in self._rawdata[CONNECTIONS]:
+                for icao in self._rawdata[CONNECTIONS][CARGO]:
                     self.routes[CARGO][icao] = Airport.find_by_icao(icao)
                 logger.debug("DetailedAirport::init: Cargo routes: %s", self.routes[CARGO].keys())
+        self._inited = True
+        logger.debug("DetailedAirport::inited: %s", self.icao)
 
-        logger.debug("DetailedAirport::inited")

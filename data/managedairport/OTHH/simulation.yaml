@@ -64,3 +64,16 @@ movements:
         - 21
         - 22
         - 23
+terminals:
+    PAX:
+        type: pax
+        concourse:
+            - A
+            - B
+            - C
+            - D
+            - E
+    CARGO:
+        type: cargo
+        concourse:
+            - F

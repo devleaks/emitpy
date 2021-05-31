@@ -1,0 +1,12 @@
+{
+    "orgId": "EMITPY",
+    "classId": "Parameters",
+    "typeId": "Simulation",
+    "name": "Simulation",
+    "type": "ParameterCollection",
+    "parameters": [{
+        "name": "hours-of-operation",
+        "value": [[0, 23]],
+        "note": "24 operations"
+    }]
+}

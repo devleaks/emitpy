@@ -4,13 +4,13 @@ import logging
 
 logger = logging.getLogger("Flightboard")
 
-from .airline import Airline
 from .flight import Flight
 from .rotation import Rotation
+from .clearance import Availability
 
 from .constants import PASSENGER, CARGO, DEPARTURE, ARRIVAL
 
-from .home import ManagedAirport
+from .airport.home import ManagedAirport
 
 
 class Flightboard:
@@ -25,36 +25,96 @@ class Flightboard:
         """
         Generates a random flightboard
         """
-        logger.debug("start time: %s", self.options.get("starttime"))
         simstart = datetime.fromisoformat(self.options.get("starttime"))
-        current_hour = simstart.timetuple().tm_hour
 
-        # numpax = int(self.options._rawdata["movements"]["pax"][current_hour] / 2)
-        numpax = int(self.options.deepget(["movements", PASSENGER, str(current_hour)]) / 2)
-        slotspax_avail = self.manageairport.clearance.available_slots(simstart, ARRIVAL, PASSENGER)
-        slotspax = random.sample(slotspax_avail, numpax)
-        ## block them
-        for a in slotspax:
-            a.reservation = self.manageairport.clearance.book(a)
+        simend = simstart + timedelta(days=28)
+        maxflights = 999999
+        flightcount = 0
 
-        numcargo = int(self.options.deepget(["movements", CARGO, str(current_hour)]) / 2)
-        # numcargo = int(self.options._rawdata["movements"]["cargo"][current_hour] / 2)
-        slotscargo_avail = self.manageairport.clearance.available_slots(simstart, ARRIVAL, CARGO)
-        slotscargo = random.sample(slotscargo_avail, numcargo)
+        endtime = self.options.get("endtime")
+        if endtime is not None:
+            simend = datetime.fromisoformat(endtime)
+            logger.debug("start time: %s, end time: %s", self.options.get("starttime"), simend)
+        else:
+            maxflights = self.options.get("flightcount")
+            logger.debug("start time: %s, count: %d", self.options.get("starttime"), maxflights)
 
-        logger.debug("slots for pax: %s, cargo: %s", slotspax, slotscargo)
-        for a in slotspax:
-            self.mkFlights(PASSENGER, self.manageairport.clearance.time(a))
-        for a in slotscargo:
-            self.mkFlights(CARGO, self.manageairport.clearance.time(a))
+        # THIS PORTION SCHEDULE FLIGHT. Flights not necessarily be played according to this schedule
+        # since we will introduce random delays at all stage of operations.
+        # Hour per hour (since max number of movements is given per hour), we schedule all arrivals.
+        # We only take "half" the slots for arrival, leaving half of them for departure.
+        # Arrivals take random slots from all slots. (they are all available since no departure is scheduled when we do this.)
+        # When all arrivals are scheduled, each departure will take the first available slot after its minimal turnaround time completes.
+        # When numerous arrival are scheduled in an hour, room will be made for departure after that hour.
+        # So less arrival will occur (since slots are taken for departure.)
+        # (@todo: split #movements for #departures and #arrivals.)
+        #
+        simhour = simstart.replace(minute=0, second=0, microsecond=0)
+        slotspax = []
+        slotscargo = []
+
+        while simhour < simend and flightcount < maxflights:
+            current_hour = simhour.timetuple().tm_hour
+            numpax = int(self.options.get(["movements", PASSENGER, str(current_hour)]) / 2)
+            numcargo = int(self.options.get(["movements", CARGO, str(current_hour)]) / 2)
+            nummoves = numpax + numcargo
+
+            if nummoves > (maxflights - flightcount):  # flights left to generate is less than all flights this hour
+                paxratio = numpax / nummoves
+                nummoves = maxflights - flightcount
+                numpax = round(nummoves * paxratio)
+                numcargo = nummoves - numpax
+
+            if numpax > 0:
+                slotspax_avail = self.manageairport.clearance.available_slots(simhour, ARRIVAL, PASSENGER)
+                if numpax <= len(slotspax_avail):
+                    slotspax_this_hour = random.sample(slotspax_avail, numpax)
+                    slotspax += slotspax_this_hour
+                    # reserve them o they are no longer available for cargo
+                    for slot in slotspax_this_hour:
+                        slot.reservation = self.manageairport.clearance.book(slot)
+                        slot.reservation.set_info("payload", PASSENGER)
+                        slot.reservation.set_info("move", ARRIVAL)
+                        flightcount += 1
+                else:
+                    logger.warning("mkFlights: PAX: Request %d flights: only %d available", numpax, len(slotspax_avail))
+                    numpax = len(slotspax_avail)
+                    slotspax_this_hour = slotspax_avail
+
+            if numcargo > 0:
+                slotscargo_avail = self.manageairport.clearance.available_slots(simhour, ARRIVAL, CARGO)
+                if numcargo <= len(slotscargo_avail):
+                    slotscargo_this_hour = random.sample(slotscargo_avail, numcargo)
+                    slotscargo += slotscargo_this_hour
+                    for slot in slotscargo_this_hour:
+                        slot.reservation = self.manageairport.clearance.book(slot)
+                        slot.reservation.set_info("payload", CARGO)
+                        slot.reservation.set_info("move", ARRIVAL)
+                        flightcount += 1
+                else:
+                    logger.warning("mkFlights: CARGO: Request %d flights: only %d available", numcargo, len(slotscargo_avail))
+                    numcargo = len(slotscargo_avail)
+                    slotscargo_this_hour = slotscargo_avail
+
+            simhour += timedelta(seconds=3600)
+
+        logger.debug("slots for pax: %s, cargo: %s", len(slotspax), len(slotscargo))
+
+        # schedule actual flight
+        for slot in slotspax:
+            self.mkFlights(PASSENGER, slot)
+        for slot in slotscargo:
+            self.mkFlights(CARGO, slot)
 
         return "Flightboard::generate"
 
 
-    def mkFlights(self, payload: str, moment: datetime):
-        logger.debug("mkFlights: creating %s: %s...", payload, moment)
+    def mkFlights(self, payload: str, slot: Availability):
+        moment = self.manageairport.clearance.time(slot)
+        # logger.debug("mkFlights: creating %s: %s...", payload, moment)
 
         # Select airport "FROM", get distance
+        logger.debug("mkFlights: %s", self.manageairport.routes[payload].values())
         afrom = random.choice(list(self.manageairport.routes[payload].values()))
         airln = random.choice(list(self.manageairport.airlines.values()))
         adist = self.manageairport.distance_to(afrom)
@@ -75,7 +135,7 @@ class Flightboard:
 
         dto = False
         while not dto:
-            ato  = random.choice(list(self.manageairport.routes[payload].values()))
+            ato = random.choice(list(self.manageairport.routes[payload].values()))
             ddist = self.manageairport.distance_to(ato)
             if ddist < plane.aircraft_type.range():
                 dto = ato
@@ -89,7 +149,7 @@ class Flightboard:
         tentative_takeoff_time = departure_time + taxi_out_time
         # We need to find a slot:
         # reservation = self.manageairport.clearance.reserve_next_slot(DEPARTURE, tentative_takeoff_time)
-        takeoff_time = tentative_takeoff_time # reservation.moment
+        takeoff_time = tentative_takeoff_time  # reservation.moment
 
         ddiff = tentative_takeoff_time - takeoff_time
         if ddiff.seconds > (10 * 60):
@@ -98,7 +158,6 @@ class Flightboard:
 
         departure = Flight(name=dname, scheduled=departure_time, departure=self.manageairport, arrival=dto, operator=airln, aircraft=plane, gate=parking)
         self.movements[dname] = departure
-
 
 
 """
