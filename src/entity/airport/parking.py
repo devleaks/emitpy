@@ -3,6 +3,7 @@ Entities for aircraft parking on the ground.
 
 """
 from ..identity import Identity
+from ..constants import PAX, CARGO
 
 
 class Terminal(Identity):
@@ -42,7 +43,20 @@ class Parking(Identity):
     """
     def __init__(self, orgId: str, classId: str, typeId: str, name: str):
         Identity.__init__(self, orgId, classId, typeId, name)
-        self.category = None  # PAX or CARGO
+        self.usage = [CARGO, PAX]  # PAX or CARGO
+
+
+    def use(self, what: str, mode: bool = None):
+        if mode is None:  # Query
+            return what in self.usage
+
+        # Else: set what
+        if mode and what not in self.usage:
+            self.usage.append(what)
+        elif mode and what in self.usage:
+            self.usage.remove(what)
+
+        return what in self.usage
 
     @staticmethod
     def fromGeoJSON(json):

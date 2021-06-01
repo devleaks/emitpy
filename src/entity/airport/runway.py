@@ -17,25 +17,21 @@ class Runway:  # Line, Calendar
             self.heading = float(10 * int(name[0:2]))
         else:
             self.heading = heading
-        self.uses = [DEPARTURE, ARRIVAL, CARGO, PAX]
+        self.usage = [DEPARTURE, ARRIVAL, CARGO, PAX]
         self.qfu = None
 
 
     def use(self, what: str, mode: bool = None):
         if mode is None:  # Query
-            return self.used(what)
+            return what in self.usage
 
         # Else: set what
-        if mode and what not in self.uses:
-            self.uses.append(what)
-        elif what in self.uses:
-            self.uses.remove(what)
+        if mode and what not in self.usage:
+            self.usage.append(what)
+        elif mode and what in self.usage:
+            self.usage.remove(what)
 
-        return self.used(what)
-
-
-    def used(self, what: str):
-        return what in self.uses
+        return what in self.usage
 
     # Aliases shortcuts
     def departure(self, mode: bool = None):

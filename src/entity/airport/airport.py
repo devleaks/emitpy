@@ -9,6 +9,7 @@ Different types of airports, depending on their status in the simulation.
 import os
 import yaml
 import csv
+from turfpy import measurement
 
 import logging
 logger = logging.getLogger("Airport")
@@ -16,6 +17,7 @@ logger = logging.getLogger("Airport")
 from ..location import Location
 from ..airline import Airline
 
+from ..utils.units import toNm
 from ..constants import AIRLINES, CONNECTIONS, PASSENGER, CARGO, AIRPORT_DATABASE
 from ..parameters import DATA_DIR
 
@@ -61,20 +63,21 @@ class Airport(Location):
 
     def init(self):
         Airport._DB[self.icao] = self  # register itself in database
-        # logger.debug("Airport::inited: %s", self.icao)
+        # if type(self) != Airport:
+        #     logger.debug("Airport::inited: %s, %s", self.icao, str(type(self)))
 
 
     def distance_to(self, icao: str) -> float:
         """
-        Returns the distance from this airport to the supplied airport.
+        Returns the distance from this airport to the supplied airport in nautical miles.
 
         :param      icao:  The icao
         :type       icao:  str
         """
         destination = Airport.find_by_icao(icao)
         if destination is not None:
-            #logger.debug("destination %s: %f,%f", destination.name, destination.lat, destination.lon)
-            return toNm(distance(self, destination))
+            # logger.debug("destination %s: %f,%f", destination.name, destination.lat, destination.lon)
+            return toNm(measurement.distance(self.feature, destination.feature))
 
         return 0.0
 
@@ -92,7 +95,7 @@ class Airport(Location):
             for a in csvdata:
                 if a["ident"] not in Airport._DB:
                     elev = float(a["elevation_ft"])*0.3048 if a["elevation_ft"] != '' else None
-                    Airport._DB[a["ident"]] = Airport(icao=a["ident"], iata=a["iata_code"], name=a["name"], city=a["municipality"], country=a["iso_country"], region=a["iso_region"], lat=float(a["latitude_deg"]), lon=float(a["longitude_deg"]), alt=elev, data=a)
+                    apt = Airport(icao=a["ident"], iata=a["iata_code"], name=a["name"], city=a["municipality"], country=a["iso_country"], region=a["iso_region"], lat=float(a["latitude_deg"]), lon=float(a["longitude_deg"]), alt=elev, data=a)
                     cnt += 1
             file.close()
             logger.debug("Airport::load: %d airports added", cnt)
@@ -161,7 +164,6 @@ class DetailedAirport(Airport):
         file.close()
         self._rawdata = a
         Airport.__init__(self, icao=a["icao"], iata=a["iata"], name=a["name"], city=a["city"], country=a["country"], region=a["region"], lat=a["latitude"], lon=a["longitude"], alt=a["altitude"], data=a)
-        self.init()
 
 
     def init(self):

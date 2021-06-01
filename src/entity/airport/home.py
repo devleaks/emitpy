@@ -1,9 +1,6 @@
 """
-Different types of airports, depending on their status in the simulation.
-
-- Airport: Regular destination
-- DetailedAirport: Destination with some added information (airlines)
-- ManagedAirport: Main airport in simulation.
+A ManagedAirport is the «Home» airport in the simulation.
+There should only be one Home airport.
 
 """
 import os
@@ -16,9 +13,9 @@ from datetime import timedelta
 import logging
 logger = logging.getLogger("ManagedAirport")
 
-from ..metar import Metar
+# from ..metar import Metar
+from .airport import DetailedAirport
 from .runway import Runway
-from .airport import Airport, DetailedAirport
 from ..clearance import Clearance
 from ..aircraft import AircraftType
 
@@ -39,22 +36,17 @@ class ManagedAirport(DetailedAirport):
     """
 
     def __init__(self, icao: str):
-        DetailedAirport.__init__(self, icao)
         self._rawparams = None
-
         self.runways = {}
         self.clearance = None
-
         self.parkings = None
-
         self.metar = None
-        self.QFU = None
+        self.qfu = None
 
-        self.init_ma()
-        self._inited = True
+        DetailedAirport.__init__(self, icao)
 
 
-    def init_ma(self):
+    def init(self):
         """
         Additional initialisation for ManagedAirport
         """
@@ -76,8 +68,9 @@ class ManagedAirport(DetailedAirport):
         # # Conditions of the day
         # self.metar = Metar(self.icao)
         # wind = self.metar.wind()
-        # self.setQFU(wind)
+        # self.setqfu(wind)
 
+        self._inited = True
         logger.debug("ManagedAirport::inited: %s", self.icao)
 
 
@@ -121,16 +114,16 @@ class ManagedAirport(DetailedAirport):
     def taxi_time(self, mode:str, payload:str , parking:str, landing_time:str, aplty: str):
         return timedelta(seconds=15*60)
 
-    def setQFU(self, wind):
+    def setqfu(self, wind):
         """
-        Sets QFU from wind conditions.
+        Sets qfu from wind conditions.
 
         :param      wind:  The wind
         :type       wind:  { type_description }
         """
         if self.metar:
             self.metar.update()
-            logger.debug("ManagedAirport::setQFU: metar updated")
+            logger.debug("ManagedAirport::setqfu: metar updated")
 
         all_runways = self.runways.values()
         valid_runways = []
@@ -163,13 +156,13 @@ class ManagedAirport(DetailedAirport):
         if len(valid_runways) > 0:
             # Mark runways as valid for now
             for r in self.runways.values():
-                r.use("QFU", False)
+                r.use("qfu", False)
             for r in valid_runways:
-                r.use("QFU", True)
+                r.use("qfu", True)
             # Remember first one's heading (on very large airport there might be a lot of valid runways...)
             rwy = valid_runways[0]  # first one is prefered
-            self.QFU = rwy.name[0:2]
+            self.qfu = rwy.name[0:2]
         else:
-            logger.critical("setQFU: no valid runways?")
+            logger.critical("setqfu: no valid runways?")
 
-        logger.debug("Wind: %.0f° %.2f m/s, QFU: %s", wind[WIND_DIRECTION], wind[WIND_SPEED], self.QFU)
+        logger.debug("Wind: %.0f° %.2f m/s, qfu: %s", wind[WIND_DIRECTION], wind[WIND_SPEED], self.qfu)

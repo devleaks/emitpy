@@ -2,7 +2,7 @@
 A location is a named geographic point (lat, lon, alt).
 
 """
-from geojson import Point
+from geojson import Feature, Point
 
 
 class Location:
@@ -28,6 +28,6 @@ class Location:
         self.city = city
         self.country = country
         if alt is not None:
-            self.point = Point((lat, lon, alt))
+            self.feature = Feature(geometry=Point((lon, lat, alt)))
         else:
-            self.point = Point((lat, lon))
+            self.feature = Feature(geometry=Point((lon, lat)))
