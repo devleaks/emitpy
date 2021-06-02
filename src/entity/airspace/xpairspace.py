@@ -474,11 +474,11 @@ class XPAirspace(Graph):
         return True
 
 
-    def nearest_vertex_not_airport(self, point: Feature):
+    def nearest_connected_vertex_not_airport(self, point: Feature):
         closest = None
         dist = float(math.inf)
         for p in self.vert_dict.values():
-            if p.navtype != "APT":
+            if p.navtype != "APT" and len(p.adjacent) > 0:
                 d = distance(point, p)
                 if d < dist:
                     dist = d
@@ -525,11 +525,13 @@ class XPAirspace(Graph):
         :type       dst:  { type_description }
         """
 
+        # self.cleanup()
+
         asrc = self.find_waypoint("WORLD", src, -1)
         if not asrc:
             return [False, "Could not find departure airport"]
 
-        vsrc = self.nearest_vertex_not_airport(asrc)
+        vsrc = self.nearest_connected_vertex_not_airport(asrc)
         if not vsrc[0]:
             return [False, "Could not find vertex close to departure"]
         logger.debug("XPAirspace::mkRoute: from %s", vsrc[0].id)
@@ -538,7 +540,7 @@ class XPAirspace(Graph):
         if not adst:
             return [False, "Could not find arrival airport"]
 
-        vdst = self.nearest_vertex_not_airport(adst)
+        vdst = self.nearest_connected_vertex_not_airport(adst)
         if not vdst[0]:
             return [False, "Could not find vertex close to arrival"]
         logger.debug("XPAirspace::mkRoute: to %s", vdst[0].id)
@@ -554,7 +556,7 @@ class XPAirspace(Graph):
             return (True, route)
 
         return (False, "We could not find a route to your destination.")
-# Algorithm:
+# Algorithm:0
 # Flight needs: AIRPORT, runway, procedure name (departure and arrival)
 # Touch down zone
 # Nice to have: Parking/ramp (departure and arrival)

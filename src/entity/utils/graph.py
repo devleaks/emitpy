@@ -21,6 +21,7 @@ class Vertex(Feature):
         self.name = name
         self.usage = usage
         self.adjacent = {}
+        self.connected = False
 
     def add_neighbor(self, neighbor, weight=0):
         self.adjacent[neighbor] = weight
@@ -67,35 +68,39 @@ class Graph:  # Graph(FeatureCollection)?
         self.vert_dict = {}
         self.edges_arr = []
 
-    # Vertices
+
     def add_vertex(self, vertex: Vertex):
         self.vert_dict[vertex.id] = vertex
         return vertex
+
 
     def get_vertex(self, ident: str):
         if ident in self.vert_dict:
             return self.vert_dict[ident]
         return None
 
-    def get_vertices(self, bbox: Feature = None):
+
+    def get_vertices(self, connected_only: bool = False, bbox: Feature = None):
+        varr = filter(lambda x: x.connected, self.vert_dict.values()) if connected_only else self.vert_dict.values()
         if bbox is not None:
-            ret = list(map(lambda x: x.id, filter(lambda x: boolean_point_in_polygon(Feature(geometry=Point(x["geometry"]["coordinates"])), bbox), self.vert_dict.values())))
+            ret = list(map(lambda x: x.id, filter(lambda x: boolean_point_in_polygon(Feature(geometry=Point(x["geometry"]["coordinates"])), bbox), varr)))
             logging.debug("Graph::get_vertices: box bounded from %d to %d.", len(self.vert_dict), len(ret))
             return ret
-        return list(self.vert_dict.keys())
+        return list(varr)
 
-    # Options taxiwayOnly = True|False, minSizeCode = {A,B,C,D,E,F}
+
     def get_connections(self, src, options={}):
         """
         Returns connected vertices with optional condition on connecting edge.
-        "taxiwayOnly": edge.usage must contain taxiway or taxiway_x
-        "minSizeCode": edge.usage must contain either runway or taxiway_x with x > minsizecode.
+        "taxiwayOnly": edge.usage must contain taxiway or taxiway_x. taxiwayOnly = True|False.
+        "minSizeCode": edge.usage must contain either runway or taxiway_x with x > minsizecode.minSizeCode = {A,B,C,D,E,F}.
         "bbox": src adjacent vertices must be within supplied bounding box.
         """
         if len(options) > 0:
             connectionKeys = []
             for dst in src.adjacent.keys():
                 v = self.get_edge(src.id, dst)
+                d = self.get_vertex(dst)
                 txyOk = True
                 if "taxiwayOnly" in options:
                     txyOk = ("taxiwayOnly" in options and options["taxiwayOnly"] and not v.use("runway")) or ("taxiwayOnly" not in options)
@@ -119,11 +124,13 @@ class Graph:  # Graph(FeatureCollection)?
 
         return src.adjacent.keys()
 
-    # Edges
+
     def add_edge(self, edge: Edge):
         if edge.start.id in self.vert_dict and edge.end.id in self.vert_dict:
             self.edges_arr.append(edge)
             self.vert_dict[edge.start.id].add_neighbor(self.vert_dict[edge.end.id].id, edge.weight)
+            self.vert_dict[edge.start.id].connected = True
+            self.vert_dict[edge.end.id].connected = True
 
             if not edge.directed:
                 self.vert_dict[edge.end.id].add_neighbor(self.vert_dict[edge.start.id].id, edge.weight)
@@ -141,27 +148,6 @@ class Graph:  # Graph(FeatureCollection)?
             return arr[0]
 
         return None
-
-
-    def get_connected_vertices(self, options={}):
-        # List of vertices may contain unconnected vertices.
-        # Same options as get_connections
-        connected = []
-
-        for edge in self.edges_arr:
-            code = edge.widthCode("F")  # default all ok.
-            txyOk = ("taxiwayOnly" not in options) or ("taxiwayOnly" in options and options["taxiwayOnly"] and not edge.use("runway"))
-            scdOk = ("minSizeCode" not in options) or ("minSizeCode" in options and options["minSizeCode"] <= code)
-            bbOk = ("bbox" not in options) or ("bbox" in options and boolean_point_in_polygon(edge.start, options["bbox"]) and boolean_point_in_polygon(edge.end, options["bbox"]))
-
-            # logging.debug("%s %s %s %s %s" % (dst, v.usage, code, txyOk, scdOk))
-            if txyOk and scdOk and bbOk:
-                if edge.start not in connected:
-                    connected.append(edge.start)
-                if edge.end not in connected:
-                    connected.append(edge.end)
-
-        return connected
 
 
     def nearest_point_on_edges(self, point: Feature):  # @todo: construct array of lines on "add_edge"
@@ -204,7 +190,7 @@ class Graph:  # Graph(FeatureCollection)?
         # These are all the nodes which have not been visited yet
         unvisited_nodes = None
         if "bbox" in options:
-            unvisited_nodes = list(self.get_vertices(options["bbox"]))
+            unvisited_nodes = list(self.get_vertices(bbox=options["bbox"]))
         else:
             unvisited_nodes = list(self.get_vertices())
 
@@ -223,7 +209,7 @@ class Graph:  # Graph(FeatureCollection)?
         shortest_distance[str(source)] = 0
 
         # Running the loop while all the nodes have been visited
-        while(unvisited_nodes):
+        while unvisited_nodes:
             # setting the value of min_node as None
             min_node = None
             # iterating through all the unvisited node
@@ -240,9 +226,9 @@ class Graph:  # Graph(FeatureCollection)?
             # Iterating through the connected nodes of current_node (for
             # example, a is connected with b and c having values 10 and 3
             # respectively) and the weight of the edges
-            connected = self.get_connections(self.get_vertex(min_node), options)
-            logging.debug("connected %s %d", min_node, len(connected))
-            # logging.debug("connected %s %s", min_node, connected)
+            min_vertex = self.get_vertex(min_node)
+            connected = self.get_connections(min_vertex, options)
+            # logging.debug("connected %s: %f %d/%d", min_node, shortest_distance[min_node], len(min_vertex.adjacent), len(connected))
             for child_node in connected:
                 e = self.get_edge(min_node, child_node) # should always be found...
                 cost = e.weight
@@ -252,7 +238,6 @@ class Graph:  # Graph(FeatureCollection)?
                 # is lesser than the value that distance between current nodes
                 # and its connections
                 #
-                logging.debug("test %s: %f < %f", child_node, cost + shortest_distance[min_node], shortest_distance[child_node])
                 if (cost + shortest_distance[min_node]) < shortest_distance[child_node]:
                     # If true  set the new value as the minimum distance of that connection
                     shortest_distance[child_node] = cost + shortest_distance[min_node]
@@ -267,7 +252,7 @@ class Graph:  # Graph(FeatureCollection)?
         node = target
         # Starting from the goal node, we will go back to the source node and
         # see what path we followed to get the smallest distance
-        logging.debug("Graph::Dijkstra: predecessor %s", predecessor)
+        # logging.debug("Graph::Dijkstra: predecessor %s", predecessor)
         while node and node != source and len(predecessor.keys()) > 0:
             # As it is not necessary that the target node can be reached from # the source node, we must enclose it in a try block
             route.insert(0, node)
