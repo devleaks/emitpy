@@ -43,7 +43,7 @@ class Edge(Feature):
         self.usage = usage      # type of vertex: runway or taxiway or taxiway_X where X is width code (A-F)
         self.widthCode = None
         for s in self.usage:
-            if str.lower(self.usage[:8]) == "taxiway_" and len(self.usage) == 9:
+            if str.lower(str(self.usage[:8])) == "taxiway_" and len(self.usage) == 9:
                 self.widthCode = str.upper(self.usage[8])  # should check for A-F return...
 
     def use(self, what: str, mode: bool = None):

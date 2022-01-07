@@ -1,7 +1,7 @@
 """
 Make a random flight board from startdate to enddate.
 Usage:
-    mkfb -s "20210505T10:06:23+02:00" -e "20210505T18:00:00+02:00"
+    python mkfb.py count "2021-05-05T10:06:23+02:00" 4
 
 """
 import argparse

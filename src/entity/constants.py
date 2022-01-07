@@ -66,6 +66,11 @@ AIRCRAFT_DATABASE = "aircrafts"
 MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation parameters
 
 
+########################################
+# Keywords
+ARRIVAL = "arrival"
+DEPARTURE = "departure"
+
 
 ########################################
 # Aeronautics constant
@@ -114,48 +119,7 @@ TAXIWAY_ACTIVE_DEPARTURE = "departure"
 TAXIWAY_ACTIVE_ARRIVAL = "arrival"
 TAXIWAY_ACTIVE_ILS = "ils"
 
-# Follow The Green constants
+########################################
+# Units, etc
 #
-MAINWINDOW_AUTOHIDE = True
-ARRIVAL = TAXIWAY_ACTIVE_ARRIVAL
-DEPARTURE = TAXIWAY_ACTIVE_DEPARTURE
-
-DISTANCE_TO_RAMPS = 100             # meters, if closer that this to a ramp, assume departure, otherwise, assume arrival
-TOO_FAR = 500                       # meters, if further than this from a taxiway, does not kick in.
-WARNINGDISTANCE = 150               # When getting close to a STOP BAR, show main window.
-MARSHALL_ACTIVE = 100               # Marshall starts to be alert
-TRACKING_ACTIVE = 60                # Tracking
-TRACKING_CLOSE = 6                  # Precision tracking
-
-PLANE_MONITOR_DURATION = 3          # sec, flight loop to monitor plane movements. No need to rush. Mainly turns lights off behind plane.
-
-MINSEGMENTSBEFOREHOLD = 3           # on arrival, number of segments to travel before getting potential stop bar
-DISTANCEBETWEENGREENLIGHTS = 20     # 20 meter, distance between lights on ground. I *think* that the standard for taxi cetner line lights is 60 meters.
-DISTANCEBETWEENSTOPLIGHTS = 2       # meter, distance between lights on ground.
-ADDLIGHTATVERTEX = False            # Add a light at each taxiway network vertex on the path
-ADDLIGHTATLASTVERTEX = False        # Add a light at the last vertex, even if it is closer than DISTANCEBETWEENGREENLIGHTS
-ADDSTOPBARATLASTVERTEX = False      # Add a stop bar at the end (artificial)
-
-RABBIT_TIMEON = 0.4                 # sec, set to 0 to cancel rabbit
-RABBIT_TIMEOFF = 2                  # sec
-RABBIT_PHASE = 0.3                  # sec
-RABBIT_INTENSITY = 2.0              # ratio to current value
-RABBIT_LENGTH = 12                  # number of lights
-RABBIT_DURATION = 0.10              # sec
-
-ATC = {
-    "None",
-    "Delivery",
-    "Ground",
-    "Tower",
-    "Tracon",
-    "Center"
-}
-
-GOOD = {
-    "morning": 4,
-    "day": 9,
-    "afternoon": 12,
-    "evening": 17,
-    "night": 20
-}
+FOOT = 0.3048

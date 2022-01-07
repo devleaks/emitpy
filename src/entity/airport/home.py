@@ -40,6 +40,8 @@ class ManagedAirport(DetailedAirport):
         self.runways = {}
         self.clearance = None
         self.parkings = None
+        self.taxiways = None
+        self.service_roads = None
         self.metar = None
         self.qfu = None
 
@@ -113,6 +115,7 @@ class ManagedAirport(DetailedAirport):
 
     def taxi_time(self, mode:str, payload:str , parking:str, landing_time:str, aplty: str):
         return timedelta(seconds=15*60)
+
 
     def setqfu(self, wind):
         """
