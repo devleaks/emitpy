@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger("Flightboard")
 
 from .flight import Flight
-from .rotation import Rotation
+from .turnaround import Turnaround
 from .clearance import Availability
 
 from .constants import PASSENGER, CARGO, DEPARTURE, ARRIVAL
@@ -140,7 +140,7 @@ class Flightboard:
             if ddist < plane.aircraft_type.range():
                 dto = ato
 
-        rotation_duration = Rotation.template(airln, aplty)
+        rotation_duration = Turnaround.template(airln, aplty)
 
         dname = airln.randomFlightname()
         departure_time = arrival_time + rotation_duration

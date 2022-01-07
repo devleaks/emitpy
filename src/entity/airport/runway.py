@@ -11,8 +11,9 @@ class Runway:  # Line, Calendar
     Represents a runway with its details and its calendar for reservation
     """
 
-    def __init__(self, name: str, heading: float = None):
+    def __init__(self, name: [str], heading: float = None, width: int = None):
         self.name = name
+        self.width = width
         if heading is None:
             self.heading = float(10 * int(name[0:2]))
         else:

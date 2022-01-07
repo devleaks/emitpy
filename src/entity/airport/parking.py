@@ -44,6 +44,7 @@ class Parking(Identity):
     def __init__(self, orgId: str, classId: str, typeId: str, name: str):
         Identity.__init__(self, orgId, classId, typeId, name)
         self.usage = [CARGO, PAX]  # PAX or CARGO
+        self.type = None  # {JETWAY|TIEDOWN}
 
 
     def use(self, what: str, mode: bool = None):
