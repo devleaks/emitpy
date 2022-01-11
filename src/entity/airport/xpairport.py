@@ -1,21 +1,26 @@
-# Airport Utility Class
-# Airport information container: name, taxi routes, runways, ramps, etc.
+# Airport as defined in X-Plane
 #
 import os.path
 import re
-import math
 import logging
 
-from geojson import Point, Feature
-from turfpy.measurement import distance
+from geojson import Point, Polygon, Feature
+from turfpy.measurement import distance, destination, bearing
 
-from entity.parameters import DATA_DIR
-from entity.utils.graph import Vertex, Edge, Graph
-from entity.utils.geoline import Line
-
+from .airport import Airport
+from ..graph import Vertex, Edge
+from ..geo import Ramp, ServiceParking, Runway
+from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
+logger = logging.getLogger("XPAirport")
+
+
+# ################################@
+# APT LINE
+#
+#
 class AptLine:
     # APT.DAT line for this airport
     def __init__(self, line):
@@ -33,64 +38,26 @@ class AptLine:
             return " ".join(self.arr[1:])
         return None  # line has no content
 
-
-SID = "SID"
-STAR = "STAR"
-APPROACH = "APPCH"
-RUNWAY = "RWY"
-PROCDATA = "PRDAT"
-
-class CIFPLine:
-    # CIFP line for this airport
-    def __init__(self, line):
-        self.procedure = None
-        self.params = []
-        a = line.split(":")
-        if len(a) == 0:
-            logging.debug("CIFPLine::CIFPLine: invalid line '%s'", line)
-        self.procedure = a[0]
-        self.params = a[1].split(",")
-        if len(self.params) == 0:
-            logging.debug("CIFPLine::CIFPLine: invalid line '%s'", line)
-
-    def proc(self):
-        return self.procedure
-
-    def name(self):
-        if self.proc() == RUNWAY:
-            return self.params[0]
-        return self.params[2]
-
-    def seq(self):
-        return int(self.params[0])
-
-    def rwy(self):
-        return int(self.params[3])
-
-    def content(self):
-        return self.params.join(",")
+    def __str__(self):
+        return " ".join(self.arr)
 
 
-
-class XPAirport:
-    """Airport represetation (limited to FTG needs)"""
-    # Should be split with generic non dependant airport and airport with routing, dependant on Graph
-
-    def __init__(self, icao):
-        self.icao = icao
-        self.name = ""
-        self.atc_ground = None
-        self.altitude = 0  # ASL, in meters
-        self.loaded = False
+# ################################@
+# XP AIRPORT
+#
+#
+class XPAirport(Airport):
+    """
+    Airport represetation
+    """
+    def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
+        Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.scenery_pack = False
         self.lines = []
-        self.runways = {}
-        self.ramps = {}
-        self.cifp = {}
-        self.taxiways = Graph()
+        self.atc_ground = None
+        self.loaded = False
 
-
-    def load(self):
+    def loadFromFile(self):
         SCENERY_PACKS = os.path.join(SYSTEM_DIRECTORY, "Custom Scenery", "scenery_packs.ini")
         scenery_packs = open(SCENERY_PACKS, "r")
         scenery = scenery_packs.readline()
@@ -115,7 +82,7 @@ class XPAirport:
                                 self.name = " ".join(newparam[5:])
                                 self.altitude = newparam[1]
                                 # Info 4.a
-                                logging.info("XPAirport::load: Found airport %s '%s' in '%s'.", newparam[4], self.name, scenery_pack_apt)
+                                logging.info("XPAirport::loadFromFile: Found airport %s '%s' in '%s'.", newparam[4], self.name, scenery_pack_apt)
                                 self.scenery_pack = scenery_pack_apt  # remember where we found it
                                 self.lines.append(AptLine(line))  # keep first line
                                 line = apt_dat.readline()  # next line in apt.dat
@@ -124,10 +91,10 @@ class XPAirport:
                                     if testline.linecode() is not None:
                                         self.lines.append(testline)
                                     else:
-                                        logging.debug("XPAirport::load: did not load empty line '%s'" % line)
+                                        logging.debug("XPAirport::loadFromFile: did not load empty line '%s'" % line)
                                     line = apt_dat.readline()  # next line in apt.dat
                                 # Info 4.b
-                                logging.info("XPAirport::load: Read %d lines for %s." % (len(self.lines), self.name))
+                                logging.info("XPAirport::loadFromFile: Read %d lines for %s." % (len(self.lines), self.name))
                                 self.loaded = True
 
                         if(line):  # otherwize we reached the end of file
@@ -138,101 +105,70 @@ class XPAirport:
             scenery = scenery_packs.readline()
 
         scenery_packs.close()
-        return self.loaded
+        return [True, "XPAirport::loadFromFile: loaded"]
 
-
-    def ldRunways(self):
+    def loadRunways(self):
         #     0     1 2 3    4 5 6 7    8            9               10 11  1213141516   17           18              19 20  21222324
         # 100 60.00 1 1 0.25 1 3 0 16L  25.29609337  051.60889908    0  300 2 2 1 0 34R  25.25546269  051.62677745    0  306 3 2 1 0
+        def mkPolygon(lat1, lon1, lat2, lon2, width):
+            p1 = Feature(geometry=Point((lon1, lat1)))
+            p2 = Feature(geometry=Point((lon2, lat2)))
+            brng = bearing(p1, p2)
+            # one side of centerline
+            brng = brng + 90
+            a0 = destination(p1, brng, width / 2)
+            a2 = destination(p2, brng, width / 2)
+            # other side of centerline
+            brng = brng - 90
+            a1 = destination(p1, brng, width / 2)
+            a3 = destination(p2, brng, width / 2)
+            # join
+            return Polygon(list(map(lambda x: x["geometry"]["coordinates"], [a0, a1, a3, a2])))
+
+
         runways = {}
 
         for aptline in self.lines:
             if aptline.linecode() == 100:  # runway
                 args = aptline.content().split()
-                # runway = Polygon.mkPolygon(args[8], args[9], args[17], args[18], float(args[0]))
-                # runways[args[7]] = Runway(args[7], args[0], args[8], args[9], args[17], args[18], runway)
-                # runways[args[16]] = Runway(args[16], args[0], args[17], args[18], args[8], args[9], runway)
+                runway = mkPolygon(float(args[8]), float(args[9]), float(args[17]), float(args[18]), float(args[0]))
+                runways[args[7]] = Runway(args[7], float(args[0]), float(args[8]), float(args[9]), float(args[17]), float(args[18]), runway)
+                runways[args[16]] = Runway(args[16], float(args[0]), float(args[17]), float(args[18]), float(args[8]), float(args[9]), runway)
 
         self.runways = runways
-        logging.debug("ldRunways: added %d runways", len(runways.keys()))
-        return runways
+        logging.debug("XPAirport::loadRunways: added %d runways", len(runways.keys()))
+        return [True, "XPAirport::loadRunways loaded"]
 
-
-    def ldRamps(self):
+    def loadParkings(self):
         # 1300  25.26123160  051.61147754 155.90 gate heavy|jets|turboprops A1
         # 1301 E airline
         # 1202 ignored.
         ramps = {}
 
-        ramp = False
+        ramp = None
         for aptline in self.lines:
-            if aptline.linecode() == 1300: # ramp
+            if aptline.linecode() == 1300: # ramp  name: str, ramptype: str, position: [float], orientation: float, size: str
                 args = aptline.content().split()
-                # if args[3] != "misc":
-                #     rampName = " ".join(args[5:])
-                #     ramp = Ramp(rampName, args[2], args[0], args[1])
-                #     ramp.locationType = args[3]
-                #     ramp.aircrafts = args[4].split("|")
-                #     ramps[rampName] = ramp
-            elif ramp and aptline.linecode() == 1301: # ramp details
+                name = " ".join(args[5:])
+                ramp = Ramp(name=name, ramptype=args[3], position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[4])
+                ramps[name] = ramp
+            elif ramp is not None and aptline.linecode() == 1301: # ramp details
                 args = aptline.content().split()
-                # ramp.icaoType = args[0]
-                # ramp.operationType = args[1]
-                # if len(args) > 2 and args[2] != "":
-                #     ramp.airlines = args[2].split(",")
+                if len(args) > 0:
+                    ramp.addProp("icao-width", args[0])
+                if len(args) > 1:
+                    ramp.addProp("operation-type", args[1])
+                if len(args) > 2:
+                    ramp.addProp("airline", args[2])
             else:
-                ramp = False
+                ramp = None
 
-        self.ramps = ramps
-        logging.debug("ldRamps: added %d ramps", len(ramps.keys()))
-        return ramps
+        self.parkings = ramps
+        logging.debug("XPAirport::loadParkings: added %d ramps", len(ramps.keys()))
+        return [True, "XPAirport::loadParkings loaded"]
 
-
-    def ldCIFP(self):
-        """
-        Loads Coded Instrument Flight Procedures
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        CIFP = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data", "CIFP", self.icao + ".dat")
-        cifp_file = open(CIFP, "r")
-        line = cifp_file.readline()
-
-        while line:
-            cifpline = CIFPLine(line.strip())
-            procty = cifpline.proc()
-            procname = cifpline.name()
-
-            if not procty in self.cifp:
-                self.cifp[procty] = {}
-
-            if not procname in self.cifp[procty]:
-                self.cifp[procty][procname] = []
-
-            self.cifp[procty][procname].append(cifpline)
-
-            # if arr[0] == "SID":
-            #     idx[0] = i-1
-            # elif line[:5] == "STAR":
-            #     idx[1] = i-1
-            # elif line[:6] == "APPCH":
-            #     idx[2] = i-1
-            # elif line[:4] == "RWY":
-            #     idx[3] = i-1
-            # else:
-            #     logging.warning("invalid start of line in CIFP", line)
-
-            line = cifp_file.readline()
-
-        logging.debug("XPAirport::ldCIFP: SID: %s", self.cifp["SID"].keys())
-        logging.debug("XPAirport::ldCIFP: STAR: %s", self.cifp["STAR"].keys())
-        logging.debug("XPAirport::ldCIFP: Approaches: %s", self.cifp["APPCH"].keys())
-        logging.debug("XPAirport::ldCIFP: Runways: %s", self.cifp["RWY"].keys())
-
-
-    # Collect 1201 and (102,1204) line codes and create routing network (graph) of taxiways
-    def ldTaxiwayNetwork(self):
+    def loadTaxiways(self):
+        # Collect 1201 and (102,1204) line codes and create routing network (graph) of taxiways
         # 1201  25.29549372  051.60759816 both 16 unnamed entity(split)
         def addVertex(aptline):
             args = aptline.content().split()
@@ -240,7 +176,7 @@ class XPAirport:
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
-        logging.debug("mkRoutingNetwork: added %d vertices" % len(v))
+        logging.debug("XPAirport::loadTaxiways: added %d vertices" % len(v))
 
         # 1202 20 21 twoway runway 16L/34R
         # 1204 departure 16L,34R
@@ -255,7 +191,6 @@ class XPAirport:
                 if len(args) >= 4:
                     src = self.taxiways.get_vertex(args[0])
                     dst = self.taxiways.get_vertex(args[1])
-                    print(src.geometry, dst.geometry)
                     cost = distance(src.geometry, dst.geometry)
                     edge = None
                     if len(args) == 5:
@@ -266,7 +201,7 @@ class XPAirport:
                     self.taxiways.add_edge(edge)
                     edgeCount += 1
                 else:
-                    logging.debug("Airport::mkRoutingNetwork: not enough params %d %s.", aptline.linecode(), aptline.content())
+                    logging.debug("XPAirport::loadTaxiways: not enough params %d %s.", aptline.linecode(), aptline.content())
             elif aptline.linecode() == 1204 and edge:
                 args = aptline.content().split()
                 if len(args) >= 2:
@@ -274,13 +209,64 @@ class XPAirport:
                     edge.use(args[1], True)
                     edgeActiveCount += 1
                 else:
-                    logging.debug("Airport::mkRoutingNetwork: not enough params %d %s.", aptline.linecode(), aptline.content())
+                    logging.debug("XPAirport::loadTaxiways: not enough params %d %s.", aptline.linecode(), aptline.content())
             else:
                 edge = False
 
         # Info 6
-        logging.info("Airport::mkRoutingNetwork: added %d nodes, %d edges (%d enhanced).", len(vertexlines), edgeCount, edgeActiveCount)
-        return True
+        logging.info("XPAirport::loadTaxiways: added %d nodes, %d edges (%d enhanced).", len(vertexlines), edgeCount, edgeActiveCount)
+        return [True, "XPAirport::loadTaxiways loaded"]
 
+    def loadServiceRoads(self):
+        # Collect 1201 and 1206 line codes and create routing network (graph) of service roads
+        # 1201  25.29549372  051.60759816 both 16 unnamed entity(split)
+        def addVertex(aptline):
+            args = aptline.content().split()
+            return self.service_roads.add_vertex(Vertex(node=args[3], point=Point((float(args[0]), float(args[1]))), usage=[ args[2]], name=" ".join(args[3:])))
 
+        vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
+        v = list(map(addVertex, vertexlines))
+        logging.debug("XPAirport::loadServiceNetwork: added %d vertices" % len(v))
+
+        # 1206 107 11 twoway C
+        edgeCount = 0   # just for info
+        edge = False
+        for aptline in self.lines:
+            if aptline.linecode() == 1206: # edge for ground vehicle
+                args = aptline.content().split()
+                if len(args) >= 4:
+                    src = self.service_roads.get_vertex(args[0])
+                    dst = self.service_roads.get_vertex(args[1])
+                    cost = distance(src.geometry, dst.geometry)
+                    edge = None
+                    if len(args) == 5:
+                        # args[2] = {oneway|twoway}
+                        edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=["ground"], name=args[4])
+                    else:
+                        edge = Edge(src, dst, cost, args[2], args[3], "")
+                    self.service_roads.add_edge(edge)
+                    edgeCount += 1
+                else:
+                    logging.debug("XPAirport::loadServiceNetwork: not enough params %d %s.", aptline.linecode(), aptline.content())
+            else:
+                edge = False
+
+        # Info 6
+        logging.info("XPAirport::loadServiceNetwork: added %d nodes, %d edges.", len(vertexlines), edgeCount)
+        return [True, "XPAirport::loadServiceNetwork loaded"]
+
+    def loadServiceDestinations(self):
+        # 1400 47.44374472 -122.30463464 88.1 baggage_train 3 Svc Baggage
+        # 1401 47.44103438 -122.30382493 0.0 baggage_train Luggage Train Destination South 2
+        service_destinations = {}
+
+        for aptline in self.lines:
+            if aptline.linecode() in [1400, 1401]:  # service vehicle paarking or destination
+                args = aptline.content().split()
+                name = " ".join(args[4:])
+                service_destinations[name] = ServiceParking(name=name, parking_type=aptline.linecode(), position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[3])
+
+        self.service_destinations = service_destinations
+        logging.debug("XPAirport::loadServiceDestination: added %d service_destinations", len(service_destinations.keys()))
+        return [True, "XPAirport::loadServiceDestination loaded"]
 

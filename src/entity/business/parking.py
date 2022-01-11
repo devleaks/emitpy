@@ -4,7 +4,7 @@ Entities for aircraft parking on the ground.
 """
 from ..identity import Identity
 from ..constants import PAX, CARGO
-
+from types import Union
 
 class Terminal(Identity):
     """
@@ -41,10 +41,13 @@ class Parking(Identity):
     A Parking uis a place to store an airport when it is on the ground.
 
     """
-    def __init__(self, orgId: str, classId: str, typeId: str, name: str):
+    def __init__(self, orgId: str, classId: str, typeId: str, name: str, size: str, shared: Union[ [str], [Parking]] = None):
         Identity.__init__(self, orgId, classId, typeId, name)
-        self.usage = [CARGO, PAX]  # PAX or CARGO
+        self.usage = [CARGO, PAX]  # PAX or CARGO or both
         self.type = None  # {JETWAY|TIEDOWN}
+        self.size = size  # A-F code
+        self.shared = shared    # List of overlaping parking to mark as busy when this one is busy. NB
+                                # Freeing this one does not mean the other shared are free.
 
 
     def use(self, what: str, mode: bool = None):

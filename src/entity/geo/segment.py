@@ -9,12 +9,12 @@ logger = logging.getLogger("GeoJSON")
 
 
 
-class Line(LineString):
+class Segment(LineString):
     """
     Utility class for 2 point LineString.
     """
 
-def __init__(self, start: Point, end: Point, width: float=None):
+def __init__(self, start: Point, end: Point, width: float = None):
     LineString.__init__(self, ((start.coordinates, end.coordinates)))
     self.start = start
     self.end = end
