@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger("ManagedAirport")
 
 # from ..metar import Metar
-from .airport import DetailedAirport
+from .airport import ManagedAirport
 from .runway import Runway
 from ..clearance import Clearance
 from ..aircraft import AircraftType
@@ -29,30 +29,19 @@ WIND_DIRECTION = 0
 
 PARAM_MOVEMENTS = "movements"
 
-class ManagedAirport(DetailedAirport):
+class XPManagedAirport(ManagedAirport):
     """
     The ManagerAirport is the main airport we simulate.
     It is built, loaded from a single config YAML file like a DetailedAirport.
     """
 
     def __init__(self, icao: str):
-        self._rawparams = None
-        self.runways = {}
-        self.clearance = None
-        self.parkings = None
-        self.taxiways = None
-        self.service_roads = None
         self.metar = None
         self.qfu = None
 
-        DetailedAirport.__init__(self, icao)
 
 
     def init(self):
-        """
-        Additional initialisation for ManagedAirport
-        """
-        super().init()
 
         # Loads additional info for managed airport
         filename = os.path.join(DATA_DIR, MANAGED_AIRPORT, self.icao, "simulation.yaml")
@@ -74,6 +63,28 @@ class ManagedAirport(DetailedAirport):
 
         self._inited = True
         logger.debug("ManagedAirport::inited: %s", self.icao)
+
+
+
+    def loadAirport(self):
+        """
+        Loads main geographical airport components: Runways, taxiways, service roads, aprons, and parkings.
+        """
+        pass
+
+
+    def loadBusiness(self):
+        """
+        Loads airport commercial components: Airlines, Airroutes, etc.
+        """
+        pass
+
+
+    def loadServices(self):
+        """
+        Loads airport services components: Service types, Service vehicles, etc.
+        """
+        pass
 
 
     def loadRunways(self):
@@ -106,6 +117,14 @@ class ManagedAirport(DetailedAirport):
 
         # for name in self.parkings["features"]:
         #     self.parkings[name] = Parking.fromGeoJSON(self.parkings["features"][name])
+
+
+    def loadTaxiways(self):
+        pass
+
+
+    def loadServiceRoads(self):
+        pass
 
 
     def findParking(self, payload: str, acType: AircraftType):

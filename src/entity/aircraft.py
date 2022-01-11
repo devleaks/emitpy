@@ -5,7 +5,7 @@ import os
 import csv
 import random
 
-from .identity import Identity
+from .business.identity import Identity
 
 from .constants import AIRCRAFT, PAX, CARGO, AIRCRAFT_TYPE_DATABASE
 from .parameters import DATA_DIR

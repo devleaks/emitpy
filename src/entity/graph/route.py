@@ -1,5 +1,6 @@
-# Route Utility Class
-#
+"""
+A Route is a collection of graph vertices.
+"""
 import logging
 logger = logging.getLogger("Route")
 
@@ -19,7 +20,7 @@ class Route:
 
     def __str__(self):
         if self.found():
-            return "-".join(self.route)
+            return ">" + "-".join(self.route) + "."
         return ""
 
     def find(self):

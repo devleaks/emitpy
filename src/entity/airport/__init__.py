@@ -1,4 +1,3 @@
-from .airport import Airport, DetailedAirport
+from .airport import Airport
 from .xpairport import XPAirport
-from .home import ManagedAirport
-from .parking import Parking
+from .gjairport import GeoJSONAirport

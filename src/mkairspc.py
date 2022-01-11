@@ -7,10 +7,8 @@ logger = logging.getLogger("Airspace")
 def main():
 
     a = XPAirspace()
+    logger.debug("loading..")
     a.load()
-
-    logger.debug("finding route..")
-    a.mkRoute("OMDB", "OTHH")
     logger.debug("..done")
 
 main()

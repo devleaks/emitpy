@@ -12,6 +12,7 @@ from entity.private import FLIGHT_PLAN_DATABASE_APIKEY
 
 FP_DIR = os.path.join("..", "data", "metar")
 
+
 def main():
     parser = argparse.ArgumentParser(description="Get flight plan.")
     parser.add_argument("--icao", "-i", nargs="?", type=str, help="departure")
@@ -41,4 +42,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

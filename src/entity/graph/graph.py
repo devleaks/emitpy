@@ -11,7 +11,7 @@ from functools import reduce
 from geojson import Point, LineString, Feature, FeatureCollection
 from turfpy.measurement import distance, nearest_point, boolean_point_in_polygon, point_to_line_distance
 
-from .geoline import Line
+from ..geo import Line
 
 
 class Vertex(Feature):
