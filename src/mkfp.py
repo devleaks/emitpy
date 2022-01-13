@@ -5,6 +5,7 @@ Test API for flightplandatabase with request caching.
 import argparse
 from entity.airspace import FlightPlan
 
+
 def main():
     parser = argparse.ArgumentParser(description="Get flight plan.")
     parser.add_argument("--fromICAO", "-f", nargs="?", type=str, help="departure")
@@ -26,4 +27,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -399,4 +399,4 @@ class Graph:  # Graph(FeatureCollection)?
 
         logging.warning("Graph::AStar: visited=%s, #connections=%d, heuristic distance=%d", visited, num_connection, self._heurcalc)
 
-        return None
+        return -1

@@ -8,6 +8,7 @@ import logging
 logger = logging.getLogger("Airline")
 
 from .aircraft import AircraftType, Aircraft
+from ..airport import Airport
 from .company import Company
 from .constants import AIRLINE, AIRLINE_DATABASE, CARGO
 from .parameters import DATA_DIR
@@ -23,6 +24,7 @@ class Airline(Company):
     def __init__(self, icao: str):
         self.icao = icao
         self.airroutes = []
+        self.hubs = {}
         self._rawdata = None
         filename = os.path.join(DATA_DIR, AIRLINE_DATABASE, icao + ".yaml")
         file = open(filename, "r")
@@ -37,6 +39,10 @@ class Airline(Company):
 
     def addAirroute(self, route: Airroute):
         self.routes.append(route)
+
+
+    def addHub(self, airport: Airport):
+        self.hubs[airport.icao] = airport
 
 
     def randomFlightname(self, reglen: int = 4):

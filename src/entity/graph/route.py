@@ -1,5 +1,5 @@
 """
-A Route is a collection of graph vertices.
+A Route is a collection of ordered graph vertices.
 """
 import logging
 logger = logging.getLogger("Route")
