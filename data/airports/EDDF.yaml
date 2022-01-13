@@ -1,9 +1,0 @@
-name: Frankfurt Airport
-name_local: Flughafen Frankfurt am Main
-icao: EDDF
-iata: FRA
-location: [50°02′00″N,008°34′14″E]
-altitude: 111
-airlines:
-  - DLH
-  - QTR
