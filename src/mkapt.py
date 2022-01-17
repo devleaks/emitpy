@@ -4,9 +4,19 @@ from entity.airport import XPAirport, GeoJSONAirport
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("mkApt")
 
+from entity.parameters import MANAGED_AIRPORT
+
 def main():
 
-    a = GeoJSONAirport(icao="OTHH", iata="DOH", name="Hamad International Airport", city="Doha", country="Qatar", region="OT", lat=0, lon=0, alt=0)
+    a = GeoJSONAirport(icao=MANAGED_AIRPORT["ICAO"],
+                       iata=MANAGED_AIRPORT["IATA"],
+                       name=MANAGED_AIRPORT["name"],
+                       city=MANAGED_AIRPORT["city"],
+                       country=MANAGED_AIRPORT["country"],
+                       region=MANAGED_AIRPORT["regionName"],
+                       lat=MANAGED_AIRPORT["lat"],
+                       lon=MANAGED_AIRPORT["lon"],
+                       alt=MANAGED_AIRPORT["elevation"])
     logger.debug("loading..")
     a.load()
     logger.debug("..done")

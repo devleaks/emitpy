@@ -1,5 +1,9 @@
 from geojson import Point
 from graph import Graph, Vertex, Edge
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("Test Graph")
 
 g = Graph()
 
@@ -20,5 +24,5 @@ g.add_edge(Edge(a1, a4, 5.6, True))
 g.add_edge(Edge(a3, a5, 2.8, True))
 g.add_edge(Edge(a4, a5, 2.8, True))
 
-r = g.AStar("0", "5")
+r = g.AStar("2", "5")
 print(r)

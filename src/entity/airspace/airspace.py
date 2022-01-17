@@ -14,16 +14,16 @@ class ControlledPoint(Vertex):
     """
     A ControlledPoint is a named point in a controlled airspace region.
     """
-    def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float):
-        name = ControlledPoint.mkId(region, airport, ident)
+    def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
+        name = ControlledPoint.mkId(region, airport, ident, pointtype)
         Vertex.__init__(self, node=name, point=Point((lon, lat)))
         self.ident = ident
         self.region = region
         self.airport = airport
 
     @staticmethod
-    def mkId(region, airport, ident):
-        return region + ":" + airport + ":" + ident
+    def mkId(region, airport, ident, pointtype = None):
+        return region + ":" + ident + ":" + pointtype + ":" + airport
 
 
 ################################
@@ -34,7 +34,8 @@ class ControlledPoint(Vertex):
 class NavAid(ControlledPoint):
     # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
-        ControlledPoint.__init__(self, ident, region, airport, lat, lon)
+        # for marker beacons, we use their "name"/type (OM/MM/IM) rather than a generic MB (marker beacon)
+        ControlledPoint.__init__(self, ident, region, airport, type(self).__name__ if type(self).__name__ != "MB" else name, lat, lon)
         self.elev = elev
         self.freq = freq
         self.ndb_class = ndb_class
@@ -110,7 +111,7 @@ class LTPFTP(ControlledPoint):  # 16
 class Fix(ControlledPoint):
     # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
     def __init__(self, ident, region, airport, lat, lon, waypoint_type: str):
-        ControlledPoint.__init__(self, ident, region, airport, lat, lon)
+        ControlledPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.waypoint_type = waypoint_type
 
 
@@ -124,7 +125,7 @@ class Apt(ControlledPoint):
     This airport is a ControlledPoint airport.
     """
     def __init__(self, name: str, lat: float, lon: float, iata: str, longname: str, country: str, city: str):
-        ControlledPoint.__init__(self, name, "WORLD", name, lat, lon)
+        ControlledPoint.__init__(self, name, "WORLD", name, type(self).__name__, lat, lon)
         self.iata = iata
         self.country = country
         self.city = city
@@ -140,7 +141,8 @@ class Apt(ControlledPoint):
 class Waypoint(ControlledPoint):  # same as fix
 
     def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float, navtype: str):
-        ControlledPoint.__init__(self, ident, region, airport, lat, lon)
+        # we may be should use navtype instead of "Waypoint" as point type
+        ControlledPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.navtype = navtype
 
 

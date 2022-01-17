@@ -20,13 +20,18 @@ logger = logging.getLogger("FlightRoute")
 
 class AirportManager:
 
-    def __init__(self):
+    def __init__(self, icao):
+        self.icao = icao
         self.airline_locals = {}
         self.airlines = {}
         self.airline_cargos = {}
         self.airport_paxs = {}
         self.airport_cargos = {}
         self.airroutes = []
+
+
+    def load(self):
+        return [False, "AirportManager::load: not implemented"]
 
 
     def loadFromFile(self):
