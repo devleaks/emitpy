@@ -5,7 +5,10 @@
 #
 import logging
 import math
+import time
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("Graph")
 
 from geojson import Point, LineString, Feature
 from turfpy.measurement import distance, boolean_point_in_polygon, point_to_line_distance
@@ -26,6 +29,8 @@ class Vertex(Feature):
     def get_connections(self):
         return self.adjacent.keys()
 
+    def get_neighbors(self):
+        return list(map(lambda a: (a, self.adjacent[a]), self.adjacent))
 
 class Edge(Feature):
 
@@ -65,15 +70,11 @@ class Graph:  # Graph(FeatureCollection)?
         self.vert_dict = {}
         self.edges_arr = []
 
-        self.graph = None
-        self._heuristic = None
-        self._heurcalc = 0
-        self._heurcalc2 = 0
-
 
     def add_vertex(self, vertex: Vertex):
+        if vertex.id in self.vert_dict.keys():
+            logging.warning("Graph::add_vertex: duplicate %s" % vertex.id)
         self.vert_dict[vertex.id] = vertex
-        self.resetAStarMatrices()
         return vertex
 
 
@@ -138,7 +139,6 @@ class Graph:  # Graph(FeatureCollection)?
             if not edge.directed:
                 self.vert_dict[edge.end.id].add_neighbor(self.vert_dict[edge.start.id].id, edge.weight)
 
-            self.resetAStarMatrices()
         else:
             logging.critical("Graph::add_edge: vertex not found when adding edges %s,%s", edge.start, edge.end)
 
@@ -155,28 +155,33 @@ class Graph:  # Graph(FeatureCollection)?
         return None
 
 
-    def nearest_point_on_edges(self, point: Feature):  # @todo: construct array of lines on "add_edge"
+    def nearest_point_on_edge(self, point: Feature, with_connection: bool = False):  # @todo: construct array of lines on "add_edge"
         closest = None
-        e = None
+        edge = None
+        nconn = (0, 0)
         dist = math.inf
-        for edge in self.edges_arr:
-            print(edge["geometry"])
-            d = point_to_line_distance(point, Feature(geometry=edge["geometry"]))
-            if d < dist:
-                dist = d
-                e = edge
-        return [closest, dist, e]
+        for e in self.edges_arr:
+            if (not with_connection) or (with_connection and (len(e.start.adjacent) > 0 or len(e.end.adjacent) > 0)):
+                d = point_to_line_distance(point, Feature(geometry=e["geometry"]))
+                if d < dist:
+                    dist = d
+                    edge = e
+                    nconn = (len(e.start.adjacent), len(e.end.adjacent))
+        return [closest, dist, edge, nconn]
 
 
-    def nearest_vertex(self, point: Feature):
+    def nearest_vertex(self, point: Feature, with_connection: bool = False):
         closest = None
-        dist = float(math.inf)
+        nconn = 0
+        dist = math.inf
         for p in self.vert_dict.values():
-            d = distance(point, p)
-            if d < dist:
-                dist = d
-                closest = p
-        return [closest, dist]
+            if (not with_connection) or (with_connection and len(p.adjacent) > 0):
+                d = distance(point, p)
+                if d < dist:
+                    dist = d
+                    closest = p
+                    nconn = len(p.adjacent)
+        return [closest, dist, nconn]
 
         # fc = list(map(lambda x: Feature(geometry=x.geometry, id=x.id), self.vert_dict.values()))
         # print(len(fc))
@@ -185,6 +190,11 @@ class Graph:  # Graph(FeatureCollection)?
         # return nearest_point(point, FeatureCollection(features=fc))
 
 
+# #################
+#
+# DIJKSTRA ROUTING ALGORITHM
+#
+#
     def Dijkstra(self, source, target, options={}):
         # This will store the Shortest path between source and target node
         route = []
@@ -267,136 +277,109 @@ class Graph:  # Graph(FeatureCollection)?
                 node = False
 
         if len(route) == 0:
-            logging.debug("Graph::Dijkstra: could not find route from %s to %s", source, target)
+            logger.debug("Graph::Dijkstra: could not find route from %s to %s", source, target)
             return None
         else:
             # Including the source in the path
             route.insert(0, source)
-            logging.debug("Graph::Dijkstra: route: %s", "-".join(route))
+            logger.debug("Graph::Dijkstra: route: %s", "-".join(route))
             return route
 
 
-    def mkAStarMatrices(self, vertices):
-        if self.graph is None or self._heuristic is None:
-            numvtx = len(vertices)
-
-            self._heuristic = [0] * numvtx
-            self.graph = [0] * numvtx
-            for i in range(numvtx):
-                self.graph[i] = [0] * numvtx
-                self._heuristic[i] = [None] * numvtx
-                for j in range(numvtx):
-                    e = self.get_edge(vertices[i], vertices[j])
-                    self.graph[i][j] = e.weight if e is not None else 0
-
-    def resetAStarMatrices(self):
-        self.graph = None
-        self._heuristic = None
-
-
-    def heuristic(self, vertices, i, j):  # On demand
-        if self._heuristic[i][j] is None:
-            src = self.get_vertex(vertices[i])
-            dst = self.get_vertex(vertices[j])
-            d = distance(src, dst)
-            self._heuristic[i][j] = d
-            if self.get_edge(dst, src) is not None:
-                self._heuristic[j][i] = d
-                self._heurcalc2 = self._heurcalc2 + 1
-            self._heurcalc = self._heurcalc + 1
-        return self._heuristic[i][j]
-
-
-    def AStar(self, source, target, options={}):
-    # def a_star(graph, heuristic, start, goal):
+# #################
+#
+# A * STAR ROUTING ALGORITHM
+#
+#
+    def heuristic(self, a, b):  # On demand
         """
-        Finds the shortest distance between two nodes using the A-star (A*) algorithm
-        :param graph: an adjacency-matrix-representation of the graph where (x,y) is the weight of the edge or 0 if there is no edge.
-        :param heuristic: an estimation of distance from node x to y that is guaranteed to be lower than the actual distance. E.g. straight-line distance
-        :param start: the node to start from.
-        :param goal: the node we're searching for
-        :return: The shortest distance to the goal node. Can be easily modified to return the path.
-
-        MODIFIED FROM https://www.algorithms-and-technologies.com/a_star/python
-        Algorithm would loop infinitely on reaching nodes with no outgoing connection.
-        I modified algorithm so that it stops searching in this case, which is wrong.
-        It should backtrack to the last node with outgoing connections and visit other nodes.
-        Best implementation: https://github.com/anvaka/ngraph.path
+        Heuristic function is straight distance (to goal)
         """
-        def numTrues(arr):
-            return sum(map(lambda x: 1 if x else 0, arr))
-        loop = 30
-        path = []
-        vertices = list(self.vert_dict.keys())
-        self.mkAStarMatrices(vertices)
+        return distance(self.get_vertex(a), self.get_vertex(b))
 
-        start = vertices.index(source)
-        goal = vertices.index(target)
 
-        # This contains the distances from the start node to all other nodes, initialized with a distance of "Infinity"
-        distances = [float("inf")] * len(self.graph)
+    def get_neighbors(self, a):
+        """
+        Returns a vertex's neighbors with weight to reach.
+        """
+        return self.get_vertex(a).get_neighbors()
 
-        # The distance from the start node to itself is of course 0
-        distances[start] = 0
 
-        # This contains the priorities with which to visit the nodes, calculated using the heuristic.
-        priorities = [float("inf")] * len(self.graph)
+    def AStar(self, start_node, stop_node):
+        # open_list is a list of nodes which have been visited, but who's neighbors
+        # haven't all been inspected, starts off with the start node
+        # closed_list is a list of nodes which have been visited
+        # and who's neighbors have been inspected
+        #
+        # Stolen here: https://stackabuse.com/basic-ai-concepts-a-search-algorithm/
+        # Heuristics adjusted for geography (direct distance to target, necessarily smaller or equal to goal)
+        #
+        # Returns list of vertices (path) or None
+        #
+        ss = time.perf_counter()
+        open_list = set([start_node])
+        closed_list = set([])
 
-        # start node has a priority equal to straight line distance to goal. It will be the first to be expanded.
-        priorities[start] = self.heuristic(vertices, start, goal)
+        # g contains current distances from start_node to all other nodes
+        # the default value (if it's not found in the map) is +infinity
+        g = {}
 
-        # This contains whether a node was already visited
-        visited = [False] * len(self.graph)
+        g[start_node] = 0
 
-        # While there are nodes left to visit...
-        num_connection = numTrues(self.graph[start])
-        while num_connection > 0:  # loop > 0 and num_connection > 0:
-            loop = loop - 1
-            # ... find the node with the currently lowest priority...
-            lowest_priority = float("inf")
-            lowest_priority_index = -1
-            for i in range(len(priorities)):
-                # ... by going through all nodes that haven't been visited yet
-                if priorities[i] < lowest_priority and not visited[i]:
-                    lowest_priority = priorities[i]
-                    lowest_priority_index = i
+        # parents contains an adjacency map of all nodes
+        parents = {}
+        parents[start_node] = start_node
 
-            if lowest_priority_index == -1:
-                # There was no node not yet visited --> Node not found
-                logging.warning("Graph::AStar: destination unreachable")
+        while len(open_list) > 0:
+            n = None
+
+            # find a node with the lowest value of f() - evaluation function
+            for v in open_list:
+                if n == None or g[v] + self.heuristic(v, stop_node) < g[n] + self.heuristic(n, stop_node):
+                    n = v
+
+            if n == None:
+                logger.warning("Graph::AStart: path not found")
                 return None
 
-            elif lowest_priority_index == goal:
-                # Goal node found
-                # print("Goal node found!")
-                path.append(goal)
-                return list(map(lambda x: self.get_vertex(vertices[x]).id, path))
+            # if the current node is the stop_node
+            # then we begin reconstructin the path from it to the start_node
+            if n == stop_node:
+                reconst_path = []
+                while parents[n] != n:
+                    reconst_path.append(n)
+                    n = parents[n]
+                reconst_path.append(start_node)
+                reconst_path.reverse()
 
-            # print("Visiting node %d with currently lowest priority of %d" % (lowest_priority_index, lowest_priority))
-            path.append(lowest_priority_index)
+                logger.debug("Graph::AStart: path found: %s (%f sec)" % (reconst_path, (time.perf_counter() - ss)))
+                return reconst_path
 
-            # ...then, for all neighboring nodes that haven't been visited yet....
-            for i in range(len(self.graph[lowest_priority_index])):
-                if self.graph[lowest_priority_index][i] != 0 and not visited[i]:
-                    # ...if the path over this edge is shorter...
-                    if distances[lowest_priority_index] + self.graph[lowest_priority_index][i] < distances[i]:
-                        # ...save this path as new shortest path
-                        distances[i] = distances[lowest_priority_index] + self.graph[lowest_priority_index][i]
-                        # ...and set the priority with which we should continue with this node
-                        priorities[i] = distances[i] + self.heuristic(vertices, i, goal)
-                        print("Updating distance of node %d to %f and priority to %f, heuristic distance=%d" % (i, distances[i], priorities[i], self._heurcalc))
+            # for all neighbors of the current node do
+            for (m, weight) in self.get_neighbors(n):
+                # if the current node isn't in both open_list and closed_list
+                # add it to open_list and note n as it's parent
+                if m not in open_list and m not in closed_list:
+                    open_list.add(m)
+                    parents[m] = n
+                    g[m] = g[n] + weight
 
-                    # Lastly, note that we are finished with this node.
-                    visited[lowest_priority_index] = True
-                    print("Visited nodes: %s" % visited)
-                    # print("Currently lowest distances: %s" % distances)
+                # otherwise, check if it's quicker to first visit n, then m
+                # and if it is, update parent data and g data
+                # and if the node was in the closed_list, move it to open_list
+                else:
+                    if g[m] > g[n] + weight:
+                        g[m] = g[n] + weight
+                        parents[m] = n
 
-                # we reached an end node, it has no more connection
-                # shouldn't we backtrack?
-                # for now we stop the algorithm with a failure
-                num_connection = numTrues(self.graph[lowest_priority_index])
-                # print("number of connections of lowest_priority_index node is %d" % num_connection)
+                        if m in closed_list:
+                            closed_list.remove(m)
+                            open_list.add(m)
 
-        logging.warning("Graph::AStar: visited=%s, #connections=%d, heuristic distance=%d", visited, num_connection, self._heurcalc)
+            # remove n from the open_list, and add it to closed_list
+            # because all of his neighbors were inspected
+            open_list.remove(n)
+            closed_list.add(n)
 
+        logger.warning("Graph::AStart: path not found")
         return None

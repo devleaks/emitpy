@@ -5,15 +5,16 @@ import os
 import yaml
 import random
 import logging
-logger = logging.getLogger("Airline")
+from turfpy import measurement
 
-from .aircraft import AircraftType, Aircraft
+from ..aircraft import AircraftType, Aircraft
 from ..airport import Airport
 from .company import Company
-from .constants import AIRLINE, AIRLINE_DATABASE, CARGO
-from .parameters import DATA_DIR
-from turfpy import measurement
-from ..utils.units import toNm
+from ..constants import AIRLINE, AIRLINE_DATABASE, CARGO
+from ..parameters import DATA_DIR
+from ..geo.units import toNm
+
+logger = logging.getLogger("Airline")
 
 
 class Airline(Company):
@@ -35,10 +36,6 @@ class Airline(Company):
         self.iata = self._rawdata["iata"]
         # logging.debug(yaml.dump(a, indent=4))
         Company.__init__(self, icao, AIRLINE, a["type"], self.iata)
-
-
-    def addAirroute(self, route: Airroute):
-        self.routes.append(route)
 
 
     def addHub(self, airport: Airport):

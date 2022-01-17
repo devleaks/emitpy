@@ -3,6 +3,7 @@
 import os.path
 import re
 import logging
+import time
 
 from ..graph import Graph
 
@@ -12,6 +13,7 @@ from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("XPAirspace")
 
 AIRWAYS = {
@@ -41,6 +43,12 @@ NAVAIDS = {
     "LTPFTP": 16
 }
 
+# For airways
+FIX_TYPE = {
+    2: "NDB",
+    3: "VHF",
+    11: "Fix"
+}
 
 ##########################
 #
@@ -52,7 +60,7 @@ class XPAirspace(Airspace):
     def __init__(self, bbox=None):
         Airspace.__init__(self, bbox)
         self.basename = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data")
-        self.vertex_ids = None
+        self._cached_vectex_ids = None
 
 
     def load(self):
@@ -226,27 +234,54 @@ class XPAirspace(Airspace):
         return [True, "XPXPAirspace::Navaids loaded"]
 
 
-    def findControlledPoint(self, region, ident, navtype):
-        lr = len(region+":")
-        li = len(":"+ident)
+    def createIndex(self):
+        ss = time.perf_counter()
+        if self._cached_vectex_ids is None:
+            self._cached_vectex_ids = {}
+            self._cached_vectex_ids["Fix"] = 0
+            self._cached_vectex_ids["VHF"] = 0
+            for v in self.vert_dict.keys():
+                a = v.split(":")
+                if not a[0] in self._cached_vectex_ids.keys():
+                    self._cached_vectex_ids[a[0]] = {}
+                if not a[1] in self._cached_vectex_ids[a[0]].keys():
+                    self._cached_vectex_ids[a[0]][a[1]] = {}
+                if a[2] == "Fix":
+                    self._cached_vectex_ids[a[0]][a[1]]["Fix"] = []
+                    self._cached_vectex_ids[a[0]][a[1]]["Fix"].append(v)
+                    self._cached_vectex_ids["Fix"] = self._cached_vectex_ids["Fix"] + 1
+                else:
+                    self._cached_vectex_ids[a[0]][a[1]]["VHF"] = []
+                    self._cached_vectex_ids[a[0]][a[1]]["VHF"].append(v)
+                    self._cached_vectex_ids["VHF"] = self._cached_vectex_ids["VHF"] + 1
+            logging.debug("XPAirspace::createIndex: created (%f sec)." % (time.perf_counter() - ss))
 
-        def findRI(s):
-            # print(s, lr, li, region, s[0:lr], ident, s[-li:])
-            return (s[0:lr] == (region+":")) and (s[-li:] == (":"+ident))
 
-        if self.vertex_ids is not None:
-            res = list(filter(findRI, self.vertex_ids))
+    def dropIndex(self):
+        logging.debug("XPAirspace::dropIndex: %d fixes, %d navaids" % (self._cached_vectex_ids["Fix"], self._cached_vectex_ids["VHF"]))
+        self._cached_vectex_ids = None
+        logging.debug("XPAirspace::dropIndex: done")
 
-            if len(res) == 1:  # should always be like this...
-                return self.vert_dict[res[0]]
 
-            if len(res) > 1:  # which should discriminate by navtype...
-                logger.warning("XPAirspace::findControlledPoint: more than one match for %s %s: %s" % (region, ident, res))
-        else:
-            logger.warning("XPAirspace::findControlledPoint: self.vertex_ids not initialized")
-
-        logger.warning("XPAirspace::findControlledPoint: not found %s %s" % (region, ident))
+    def findControlledPoint(self, region, ident, navtypeid):
+        if region in self._cached_vectex_ids:
+            if ident in self._cached_vectex_ids[region]:
+                i = self._cached_vectex_ids[region][ident]["Fix"] if int(navtypeid) == 11 else self._cached_vectex_ids[region][ident]["VHF"]
+                return self.vert_dict[i[0]]
         return None
+
+        """
+        s = region + ":" + ident + (":Fix" if int(navtypeid) == 11 else "") + ":"
+        candidates = [key for key in self.vert_dict.keys() if key.startswith(s)]
+
+        if len(candidates) > 0:
+            # if len(candidates) > 1:
+            #    logging.warning("XPAirspace::findControlledPoint: %d matches on '%s': %s" % (len(candidates), s, candidates))
+            return self.vert_dict[candidates[0]]
+
+        logging.debug("XPAirspace::findControlledPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
+        return None
+        """
 
 
     def loadAirwaySegments(self):
@@ -255,14 +290,12 @@ class XPAirspace(Airspace):
         #   LAS K2  3 SUVIE K2 11 N 2 180 450 J100-J9
         #
         #
-        if self.vertex_ids is None:
-            self.vertex_ids = self.vert_dict.keys()
-
         filename = os.path.join(self.basename, "earth_awy.dat")
         file = open(filename, "r")
         line = file.readline()
         line.strip()
         count = 0
+        self.createIndex()  # special to located fixes for airways
         while line:
             if line == "":
                 pass
@@ -275,9 +308,9 @@ class XPAirspace(Airspace):
             else:
                 args = line.split()
                 if len(args) == 11:  # names, start, end, direction, lowhigh, fl_floor, fl_ceil
-                    src = self.findControlledPoint(region=args[1], ident=args[0], navtype=args[2])
+                    src = self.findControlledPoint(region=args[1], ident=args[0], navtypeid=args[2])
                     if src:
-                        dst = self.findControlledPoint(region=args[4], ident=args[3], navtype=args[5])
+                        dst = self.findControlledPoint(region=args[4], ident=args[3], navtypeid=args[5])
                         if dst:
                             if args[6] == DIRECTION["FORWARD"]:
                                 self.add_edge(AirwaySegment(args[10], src, dst, True, args[7], args[8], args[9]))
@@ -286,6 +319,8 @@ class XPAirspace(Airspace):
                             else:
                                 self.add_edge(AirwaySegment(args[10], src, dst, False, args[7], args[8], args[9]))
                             count += 1
+                            if count % 10000 == 0:
+                                logging.debug("XPAirspace::loadAirwaySegments: %d segments loaded.", count)
                         else:
                             logging.debug("could not find end of segment %s, %s, %s, %s", args[10], args[4], args[3], args[5])
                     else:
@@ -298,7 +333,7 @@ class XPAirspace(Airspace):
             line.strip()
 
         file.close()
-        self.vertex_ids = None
+        self.dropIndex()
 
         logging.debug("XPAirspace::loadAirwaySegments: %d segments loaded.", len(self.edges_arr))
         return [True, "XPXPAirspace::AirwaySegments loaded"]

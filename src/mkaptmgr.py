@@ -1,14 +1,16 @@
 import logging
-from entity.business import airportmanager as Airport
+from entity.business import AirportManager
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("mkApt")
 
+from entity.parameters import MANAGED_AIRPORT
+
 def main():
 
-    a = Airport(icao="OTHH")
+    a = AirportManager(icao=MANAGED_AIRPORT["ICAO"])
     logger.debug("loading..")
-    a.load()
+    print(a.load())
     logger.debug("..done")
 
 main()

@@ -32,6 +32,9 @@ ROUTES = "routes"
 PASSENGER = "pax"
 CARGO = "cargo"
 
+LOCAL = "local"
+REMOTE = "remote"
+
 #
 # TYPES
 #
