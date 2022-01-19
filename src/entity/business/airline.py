@@ -5,11 +5,13 @@ import os
 import yaml
 import random
 import logging
+import csv
+
 from turfpy import measurement
 
-from ..aircraft import AircraftType, Aircraft
-from ..airport import Airport
 from .company import Company
+from ..aircraft import AircraftType
+from ..airport import Airport
 from ..constants import AIRLINE, AIRLINE_DATABASE, CARGO
 from ..parameters import DATA_DIR
 from ..geo.units import toNm
@@ -22,20 +24,37 @@ class Airline(Company):
     An Airline is an operator of Airroute
     """
 
-    def __init__(self, icao: str):
+    _DB = {}
+
+    def __init__(self, name: str, iata: str, icao: str):
+        Company.__init__(self, name, AIRLINE, "", iata)
         self.icao = icao
         self.airroutes = []
         self.hubs = {}
         self._rawdata = None
-        filename = os.path.join(DATA_DIR, AIRLINE_DATABASE, icao + ".yaml")
-        file = open(filename, "r")
-        a = yaml.safe_load(file)
-        file.close()
 
-        self._rawdata = a
-        self.iata = self._rawdata["iata"]
-        # logging.debug(yaml.dump(a, indent=4))
-        Company.__init__(self, icao, AIRLINE, a["type"], self.iata)
+
+    @staticmethod
+    def loadAll():
+        filename = os.path.join(DATA_DIR, AIRLINE_DATABASE, "airlines.csv")
+        file = open(filename, "r")
+        csvdata = csv.DictReader(file)
+        for row in csvdata:
+            Airline._DB[row["ICAO"]] = Airline(name=row["Airline"], icao=row["ICAO"], iata=row["IATA"])
+        file.close()
+        logger.debug("Airline::loadAll: loaded %d airlines" % len(Airline._DB))
+
+
+    @staticmethod
+    def find(icao: str):
+        return Airline._DB[icao] if icao in Airline._DB else None
+
+
+    def loadFromFile(self):
+        filename = os.path.join(DATA_DIR, AIRLINE_DATABASE, self.icao + ".yaml")
+        file = open(filename, "r")
+        self._rawdata = yaml.safe_load(file)
+        file.close()
 
 
     def addHub(self, airport: Airport):
@@ -51,14 +70,6 @@ class Airline(Company):
         """
         s = "0123456789"
         return self.iata + "-" + "".join(random.sample(s, reglen)).lstrip("0") # no SN-0010, SN-10
-
-
-    def plane_type_for(self, payload: str, range: float) -> AircraftType:
-        return AircraftType.find_by_icao("A320")
-
-    def plane(self, acType: AircraftType) -> Aircraft:
-        r = Aircraft.randomRegistration(self._rawdata["registration"])
-        return Aircraft(operator=self.name, acType=acType, registration=r)
 
 
 class Airroute:

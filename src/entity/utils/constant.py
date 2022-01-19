@@ -4,7 +4,6 @@ Dictionary for YAML file.
 import os
 import yaml
 import logging
-import functools
 import dpath.util
 
 logger = logging.getLogger("Constant")

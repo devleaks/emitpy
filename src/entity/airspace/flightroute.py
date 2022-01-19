@@ -1,5 +1,5 @@
 """
-FlightPlan
+FlightRoute
 """
 # curl -u vMzb5J3qtRnIo4CgdCqiGUsRhWEXpAHLMJj04Rds: -i https://api.flightplandatabase.com/
 import os
@@ -17,11 +17,9 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("FlightRoute")
 
-FP_DIR = os.path.join("..", "data", "flightplans")
 
-
-class FlightPlan:
-    def __init__(self, fromICAO: str, toICAO: str,
+class FlightRoute:
+    def __init__(self, managedAirport: str, fromICAO: str, toICAO: str,
                  useNAT: bool = True, usePACOT: bool = True, useAWYLO: bool = True, useAWYHI: bool = True,
                  cruiseAlt: float = 35000, cruiseSpeed: float = 420,
                  ascentRate: float = 2500, ascentSpeed: float = 250,
@@ -36,15 +34,17 @@ class FlightPlan:
         self.descentRate = descentRate
         self.descentSpeed = descentSpeed
 
+        self.flightroute_cache = os.path.join("..", "data", managedAirport, "flightroutes")
+
         self.flight_plan = None
         self.route = None
         self.routeLS = None
 
         # creates file cache
-        if not os.path.exists(FP_DIR):
+        if not os.path.exists(self.flightroute_cache):
             logger.warn("no file plan directory")
             #print("create new fpdb file cache")
-            #os.mkdir(FP_DIR)
+            #os.mkdir(self.flightroute_cache)
 
         self.filename = "%s-%s" % (fromICAO.lower(), toICAO.lower())
         self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
@@ -86,7 +86,7 @@ class FlightPlan:
         if self.flight_plan is not None:
             return self.flight_plan
 
-        ffp = os.path.join(FP_DIR, self.filename + ".json")
+        ffp = os.path.join(self.flightroute_cache, self.filename + ".json")
 
         if os.path.exists(ffp):
             with open(ffp, "r") as file:
@@ -121,14 +121,14 @@ class FlightPlan:
 
 
     def cacheFlightPlan(self, geojson: bool = True):
-        fn = os.path.join(FP_DIR, self.filename + ".json")
+        fn = os.path.join(self.flightroute_cache, self.filename + ".json")
         with open(fn, "w") as outfile:
             json.dump(self.flight_plan, outfile)
             logger.debug("%d now cached in file %s" % (self.flight_plan["id"], fn))
         if geojson:
             self.to_geojson()
             geo = self.getGeoJSON(include_ls=True)
-            fngeo = os.path.join(FP_DIR, self.filename + ".geojson")
+            fngeo = os.path.join(self.flightroute_cache, self.filename + ".geojson")
             with open(fngeo, "w") as outfile:
                 json.dump(geo, outfile)
                 logger.debug("geojson %d now cached in file %s" % (self.flight_plan["id"], fngeo))
@@ -141,7 +141,7 @@ class FlightPlan:
         plan_data = GenerateQuery(
             fromICAO=self.fromICAO,
             toICAO=self.toICAO
-            #, # not used...
+            #, # not used anyway...
             #cruiseAlt=self.cruiseAlt,
             #cruiseSpeed=self.cruiseSpeed,
             #ascentRate=self.ascentRate,
@@ -167,7 +167,7 @@ class FlightPlan:
         We cache airport data because it contains interesting information like elevation.
         """
         for f in [self.fromICAO, self.toICAO]:
-            fn = os.path.join(FP_DIR, "airports", f + ".json")
+            fn = os.path.join(self.flightroute_cache, "airports", f + ".json")
             if not os.path.exists(fn) or os.stat(fn).st_size == 0:
                 aptresp = self.api.nav.airport(icao=f)
                 apt = aptresp._to_api_dict()

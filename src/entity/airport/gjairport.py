@@ -5,7 +5,7 @@ import json
 import yaml
 import logging
 
-from .airport import Airport
+from .airport import AirportBase
 from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
@@ -17,12 +17,12 @@ logger = logging.getLogger("GeoJSONAirport")
 # GEOJSON AIRPORT
 #
 #
-class GeoJSONAirport(Airport):
+class GeoJSONAirport(AirportBase):
     """
     Airport represetation
     """
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
-        Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+        AirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.airport_base = None
         self.taxiways_geo = None
         self.parkings_geo = None

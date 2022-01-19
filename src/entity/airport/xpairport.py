@@ -7,9 +7,10 @@ import logging
 from geojson import Point, Polygon, Feature
 from turfpy.measurement import distance, destination, bearing
 
-from .airport import Airport
+from .airport import AirportBase
+from ..airspace import Procedures
 from ..graph import Vertex, Edge
-from ..geo import Ramp, ServiceParking, Runway
+from ..geo import Ramp, ServiceParking, Runway, mkPolygon
 from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
@@ -46,16 +47,17 @@ class AptLine:
 # XP AIRPORT
 #
 #
-class XPAirport(Airport):
+class XPAirport(AirportBase):
     """
     Airport represetation
     """
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
-        Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+        AirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.scenery_pack = False
         self.lines = []
         self.atc_ground = None
         self.loaded = False
+        self.procedures
 
     def loadFromFile(self):
         SCENERY_PACKS = os.path.join(SYSTEM_DIRECTORY, "Custom Scenery", "scenery_packs.ini")
@@ -107,27 +109,16 @@ class XPAirport(Airport):
         scenery_packs.close()
         return [True, "XPAirport::loadFromFile: loaded"]
 
+
+    def loadProcedures(self):
+        self.procedures = Procedures(self.icao)
+        return [True, "XPAirport::loadProcedures: loaded"]
+
+
     def loadRunways(self):
         #     0     1 2 3    4 5 6 7    8            9               10 11  1213141516   17           18              19 20  21222324
         # 100 60.00 1 1 0.25 1 3 0 16L  25.29609337  051.60889908    0  300 2 2 1 0 34R  25.25546269  051.62677745    0  306 3 2 1 0
-        def mkPolygon(lat1, lon1, lat2, lon2, width):
-            p1 = Feature(geometry=Point((lon1, lat1)))
-            p2 = Feature(geometry=Point((lon2, lat2)))
-            brng = bearing(p1, p2)
-            # one side of centerline
-            brng = brng + 90
-            a0 = destination(p1, brng, width / 2)
-            a2 = destination(p2, brng, width / 2)
-            # other side of centerline
-            brng = brng - 90
-            a1 = destination(p1, brng, width / 2)
-            a3 = destination(p2, brng, width / 2)
-            # join
-            return Polygon(list(map(lambda x: x["geometry"]["coordinates"], [a0, a1, a3, a2])))
-
-
         runways = {}
-
         for aptline in self.lines:
             if aptline.linecode() == 100:  # runway
                 args = aptline.content().split()
@@ -269,4 +260,3 @@ class XPAirport(Airport):
         self.service_destinations = service_destinations
         logging.debug("XPAirport::loadServiceDestination: added %d service_destinations", len(service_destinations.keys()))
         return [True, "XPAirport::loadServiceDestination loaded"]
-

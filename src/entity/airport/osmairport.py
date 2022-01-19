@@ -8,7 +8,7 @@ import logging
 from geojson import Point, Feature
 from turfpy.measurement import distance, bearing
 
-from .airport import Airport
+from .airport import AirportBase
 from ..parameters import DATA_DIR
 from ..graph import Vertex, Edge
 from ..geo import Runway, Ramp
@@ -22,12 +22,12 @@ logger = logging.getLogger("OSMAirport")
 # GEOJSON AIRPORT
 #
 #
-class OSMAirport(Airport):
+class OSMAirport(AirportBase):
     """
     Airport represetation extracted from OSM overpass queries
     """
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
-        Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+        AirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.airport_base = None
         self.taxiways_geo = None
         self.taxiways_net = None

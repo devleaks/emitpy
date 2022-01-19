@@ -1,3 +1,4 @@
 from .airspace import Airspace
 from .xpairspace import XPAirspace
-from .flightplan import FlightPlan
+from .flightroute import FlightRoute
+from .procedure import Procedures
