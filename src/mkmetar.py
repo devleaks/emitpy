@@ -10,7 +10,7 @@ from entity.private import FLIGHT_PLAN_DATABASE_APIKEY
 
 # import requests_cache
 
-FP_DIR = os.path.join("..", "data", "metar")
+FP_DIR = os.path.join("..", "data", "_db", "metar")
 
 
 def main():

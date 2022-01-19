@@ -7,6 +7,10 @@ from turfpy.measurement import bearing
 from ..business.identity import Identity
 
 
+# ################################@
+# IDENTIFIED FEATURE (=GEOJSON FEATURE WITH COMPLEX ID)
+#
+#
 class IdentifiedFeature(Feature, Identity):  # Alt: FeatureWithId?
     """
     A IdentifiedFeature is a Feature with mandatory identification data.

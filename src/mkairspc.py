@@ -24,8 +24,7 @@ def main():
     print(e[0]["id"], "[ " + e1[2].start["id"] + " -> " + e1[2].end["id"] + " ]")
 
     if s[0] is not None and e[0] is not None:
-        r = a.AStar(s[0].id, e[0].id)
-        print(r)
+        r = a.AStar(s[0].id, e[0].id)  # debug prints route inside routine
 
 main()
 

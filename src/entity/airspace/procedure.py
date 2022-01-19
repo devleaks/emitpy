@@ -5,7 +5,9 @@ A ProcedurePoint is either a waypoint or just a coordinate with mandatory proper
 import os
 import logging
 
-from ..constants import SYSTEM_DIRECTORY
+from ..parameters import DATA_DIR
+
+SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
 logger = logging.getLogger("Airport")
 
@@ -119,7 +121,7 @@ class Procedures:
                 else:
                     logging.warning("Procedures::loadCIFP: received PRDAT but no current procedure")
             else:
-                if (currproc is None) or ((currproc.proc() != cifpline.proc()) or (currproc.name() != cifpline.name())):  # new proc
+                if (currproc is None) or ((type(currproc).__name__ != cifpline.proc()) or (type(currproc).__name__ != cifpline.name())):  # new proc
                     currproc = None
                     if procty == "SID":
                         currproc = SID(procname)

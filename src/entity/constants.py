@@ -67,7 +67,8 @@ AIRCRAFT_TYPE_DATABASE = "aircraft-types"
 AIRCRAFT_DATABASE = "aircrafts"
 
 MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation parameters
-
+FLIGHTROUTE_DATABASE = "flightroutes"
+AODB = "aodb"
 
 ########################################
 # Keywords

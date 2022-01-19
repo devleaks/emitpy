@@ -2,9 +2,11 @@
 Entities for aircraft parking on the ground.
 
 """
+from typing import Union
+
 from ..identity import Identity
 from ..constants import PAX, CARGO
-from types import Union
+
 
 class Terminal(Identity):
     """
@@ -37,11 +39,14 @@ class Apron(Identity):
 
 
 class Parking(Identity):
-    """
-    A Parking uis a place to store an airport when it is on the ground.
+    # ugly but perfectly works.
+    pass
 
+class Parking(Identity):
     """
-    def __init__(self, orgId: str, classId: str, typeId: str, name: str, size: str, shared: Union[ [str], [Parking]] = None):
+    A Parking uis a place to store an airplane when it is on the ground.
+    """
+    def __init__(self, orgId: str, classId: str, typeId: str, name: str, size: str, shared: Union[[str], [Parking]] = None):
         Identity.__init__(self, orgId, classId, typeId, name)
         self.usage = [CARGO, PAX]  # PAX or CARGO or both
         self.type = None  # {JETWAY|TIEDOWN}
@@ -61,16 +66,3 @@ class Parking(Identity):
             self.usage.remove(what)
 
         return what in self.usage
-
-    @staticmethod
-    def fromGeoJSON(json):
-        """
-        Creates a parking entity and related objects from a GeoJSON structure (properties)
-
-        :param      json:  The json
-        :type       json:  { type_description }
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        return None
