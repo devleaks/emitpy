@@ -14,7 +14,7 @@ from ..aircraft import AircraftType
 from ..airport import Airport
 from ..constants import AIRLINE, AIRLINE_DATABASE, CARGO
 from ..parameters import DATA_DIR
-from ..geo.units import toNm
+from ..utils import toNm
 
 logger = logging.getLogger("Airline")
 

@@ -61,6 +61,7 @@ class XPAirspace(Airspace):
         Airspace.__init__(self, bbox)
         self.basename = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data")
         self._cached_vectex_ids = None
+        self.simairspacetype = "X-Plane"
 
 
     def load(self):
@@ -77,7 +78,7 @@ class XPAirspace(Airspace):
         if not status[0]:
             return [False, status[1]]
 
-        status = self.loadAirwaySegments()
+        #status = self.loadAirwaySegments()
         if not status[0]:
             return [False, status[1]]
 

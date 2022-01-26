@@ -55,17 +55,22 @@ class Flight:
         self.aircraft = aircraft
         self.ramp = None
         self.codeshare = None
-        self.phase = "SCHEDULED"
+        self.phase = "SCHEDULED" if scheduled else "UNKNOWN"
         self.flightroute = None
         self.procedure = None
 
 
     def setRamp(self, ramp):
-        self.ramp = ramp
+        if ramp in self.managedAirport.parkings.keys():
+            self.ramp = ramp
+            logger.debug("Flight::setRamp: %s" % self.ramp)
+        else:
+            logger.warning("Flight::setRamp: %s not found" % self.ramp)
 
 
     def setGate(self, gate):
         self.gate = gate
+        logger.debug("Flight::setGate: %s" % self.ramp)
 
 
     def setProcedure(self):
@@ -114,8 +119,8 @@ class Arrival(Flight):
 
     def getProcedure(self):
         # should select for origin airport, random for now
-        procname = random.choice(list(self.managedAirport.procedures.stars.keys()))
-        return self.managedAirport.procedures.stars[procname]
+        procname = random.choice(list(self.managedAirport.procedures.procs["STAR"].keys()))
+        return self.managedAirport.procedures.procs["STAR"][procname]
 
 
 class Departure(Flight):
@@ -125,5 +130,5 @@ class Departure(Flight):
 
     def getProcedure(self):
         # should select for destination airport, random for now
-        procname = random.choice(list(self.managedAirport.procedures.sids.keys()))
-        return self.managedAirport.procedures.sids[procname]
+        procname = random.choice(list(self.managedAirport.procedures.procs["SID"].keys()))
+        return self.managedAirport.procedures.procs["SID"][procname]

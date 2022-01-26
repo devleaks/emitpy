@@ -38,20 +38,6 @@ class Location(Feature):  # Location(Feature)
 
 
 # ################################@
-# AIRSPACE RESTRICTION (RESTRICTED AREA)
-#
-#
-class RestrictedAirspace(Feature):
-
-    def __init__(self, polygon: Polygon, altmin: float, altmax: float):
-        Feature.__init__(self, geometry=polygon, properties={
-            "type": "airspace",
-            "sub-type": "restricted",
-            "altmin": altmin,           # must specify ABG, ASL...
-            "altmax": altmax})
-
-
-# ################################@
 # RAMP
 #
 #
