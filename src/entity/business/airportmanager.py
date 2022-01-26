@@ -45,11 +45,11 @@ class AirportManager:
                 else:  # JSON or GeoJSON
                     self.data = json.load(fp)
         else:
-            logger.warning("GeoJSONAirport::file: %s not found" % df)
-            return [False, "GeoJSONAirport::loadRunways file %s not found", df]
+            logger.warning("AirportManager::file: %s not found" % df)
+            return [False, "AirportManager::loadRunways file %s not found", df]
 
-        logging.debug("GeoJSONAirport::loadFromFile: loaded")
-        return [True, "GeoJSONAirport::loadFromFile: loaded"]
+        logging.debug("AirportManager::loadFromFile: loaded")
+        return [True, "AirportManager::loadFromFile: loaded"]
 
     def addAirline(self, airline: Airline, location: Union[LOCAL, REMOTE] = REMOTE):
         if location == LOCAL:

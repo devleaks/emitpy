@@ -10,6 +10,68 @@ from ..graph import Vertex, Edge, Graph
 logger = logging.getLogger("Airspace")
 
 
+
+class Restriction:
+    """
+    A Restriction is an altitude and/or speed restriction.
+    If a altitude restriction is set, an aircraft must fly above alt_min and/or below alt_max.
+    If a speed restriction is set, the aircraft must fly fater than speed_min and/or slower than speed_max.
+    If there is no restriction, use None for restriction.
+    """
+    def __init__(self):
+        self.altmin = None
+        self.altmax = None
+        self.speedmin = None
+        self.speedmax = None
+
+    def setAltitudeRestriction(self, altmin: float, altmax: float):
+        self.altmin = altmin
+        self.altmax = altmax
+
+    def getAltitudeRestriction(self):
+        return (self.altmin, self.altmax)
+
+    def checkAltitude(self, point: Point):
+        if len(point.coordinates) < 3:  # no alt, must be ok ;-)
+            return True
+        alt = point.coordinates[2]
+        retok = True
+        if self.altmin is not None:
+            retok = alt > self.altmin
+        if self.altmax is not None:
+            retok = retok and alt < self.altmax
+        return retok
+
+    def setSpeedRestriction(self, speedmin: float, speedmax: float):
+        """
+        If there is no restriction, set speed to None.
+        """
+        self.speedmin = speedmin
+        self.speedmax = speedmax
+
+    def getSpeedRestriction(self):
+        return (self.speedmin, self.speedmax)
+
+    def checkSpeed(self, feature: Feature, propname: str = "speed"):
+        """
+        Note: We assume same units for feature speed and constrains.
+        We also assume feature has properties dict set.
+        """
+        retok = True
+        if propname in feature.properties:
+            speed = feature["properties"][propname]
+            if self.speedmin is not None:
+                retok = speed > self.speedmin
+            if self.speedmax is not None:
+                retok = retok and speed < self.speedmax
+        return retok
+
+
+################################
+#
+# CONTROLLED POINTS (ABSTRACT CLASSES)
+#
+#
 class ControlledPoint(Vertex):
     """
     A ControlledPoint is a named point in a controlled airspace region.
@@ -22,8 +84,18 @@ class ControlledPoint(Vertex):
         self.airport = airport
 
     @staticmethod
-    def mkId(region, airport, ident, pointtype = None):
-        return region + ":" + ident + ":" + pointtype + ":" + airport
+    def mkId(region: str, airport: str, ident: str, pointtype = None) -> str:
+        return region + ":" + ident + ":" + ("" if pointtype is None else pointtype) + ":" + airport
+
+
+
+class RestrictedControlledPoint(ControlledPoint, Restriction):
+    """
+    """
+    def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float):
+        ControlledPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
+        Restriction.__init__(self)
+
 
 
 ################################
@@ -139,67 +211,16 @@ class Apt(ControlledPoint):
 # AND OTHER SPECIAL POINTS
 #
 class Waypoint(ControlledPoint):  # same as fix
-
+    """
+    A Waypoint is a fix materialised by a VHF beacon of type navtype.
+    """
     def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float, navtype: str):
         # we may be should use navtype instead of "Waypoint" as point type
         ControlledPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.navtype = navtype
 
 
-class AltitudeRestrictedWaypoint(Waypoint):
-    """
-    A RestrictedControlledPoint is a ControlledPoint with altitude restriction.
-    An aircraft must fly above alt_min and/or below alt_max.
-    If a speed restriction is set, the aircraft must fly fater than speed_min and/or slower than speed_max.
-    If there is no restriction, use None for altitude.
-    """
-    def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float, navtype: str, altmin: float, altmax: float):
-        Waypoint.__init__(self, ident, region, airport, lat, lon, navtype)
-        self.altmin = altmin
-        self.altmax = altmax
-        self.speedmin = None
-        self.speedmax = None
-
-    def getAltitudeRestriction(self):
-        return (self.altmin, self.altmax)
-
-    def checkAltitude(self, point: Point):
-        if len(point.coordinates) < 3:  # no alt, must be ok ;-)
-            return True
-        alt = point.coordinates[2]
-        retok = True
-        if self.altmin is not None:
-            retok = alt > self.altmin
-        if self.altmax is not None:
-            retok = retok and alt < self.altmax
-        return retok
-
-    def setSpeedRestriction(self, speedmin: float, speedmax: float):
-        """
-        If there is no restriction, set speed to None.
-        """
-        self.speedmin = speedmin
-        self.speedmax = speedmax
-
-    def getSpeedRestriction(self):
-        return (self.speedmin, self.speedmax)
-
-    def checkSpeed(self, feature: Feature, propname: str = "speed"):
-        """
-        Note: We assume same units for feature speed and constrains.
-        We also assume feature has properties dict set.
-        """
-        retok = True
-        if propname in feature.properties:
-            speed = feature["properties"][propname]
-            if self.speedmin is not None:
-                retok = speed > self.speedmin
-            if self.speedmax is not None:
-                retok = retok and speed < self.speedmax
-        return retok
-
-
-class Hold(AltitudeRestrictedWaypoint):
+class Hold(RestrictedControlledPoint):
     """
     A Holding position.
         The course if the course (magnetic) of the inbound leg.
@@ -210,17 +231,23 @@ class Hold(AltitudeRestrictedWaypoint):
     """
     def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float, navtype: str, altmin: float, altmax: float,
                  course: float, turn: str, leg_time: float, leg_length: float, speed: float):
-        AltitudeRestrictedWaypoint.__init__(self, ident, region, airport, lat, lon, navtype, altmin, altmax)
+        RestrictedControlledPoint.__init__(self, ident, region, airport, lat, lon, navtype, altmin, altmax)
+        self.navtype = navtype
+        self.setAltitudeRestriction(altmin, altmax)
+        if speed is not None:
+            self.setSpeedRestriction(speed, speed)
+
         self.course = course
         self.turn = turn
         self.leg_time = leg_time
         self.leg_length = leg_length
-        self.speed = speed
 
 
 ##########################
 #
 # S E G M E N T S
+#
+# AND COLLECION OF SEGMENTS
 #
 #
 class AirwaySegment(Edge):
@@ -261,6 +288,8 @@ class Airspace(Graph):
         self.bbox = bbox
         self.all_points = {}
         self.loaded = False
+        self.simairspacetype = "Generic"
+
 
     def load(self):
         """

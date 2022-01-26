@@ -4,6 +4,8 @@ Different types of airports, depending on their status in the simulation.
 - AirportBase: Simple, regular destination
 - Airport: Main airport in simulation.
 """
+from __future__ import annotations
+
 import os
 import csv
 import logging
@@ -38,6 +40,7 @@ class Airport(Location):
         self._rawdata = {}
         self.airlines = {}
         self.routes = {}
+        self.simairporttype = "Generic"
 
     @staticmethod
     def loadAll():
@@ -81,6 +84,8 @@ class AirportBase(Airport):
         self.parkings = {}
         self.service_roads = Graph()
         self.service_destinations = {}
+        self.qfu = None
+        self.qnh = None
 
     def load(self):
         status = self.loadFromFile()
@@ -135,3 +140,43 @@ class AirportBase(Airport):
 
     def loadServiceDestinations(self):
         return [False, "no load implemented"]
+
+
+    def setQFU(self, qfu: float):
+        self.qfu = qfu
+
+    def setQNH(self, qnh: float):
+        self.qnh = qnh
+
+    def getRunway(self, flight: 'Flight'):
+        """
+        Gets a valid runway for flight, depending on QFU, flight type (pax, cargo), destination, etc.
+
+        :param      flight:  The flight
+        :type       flight:  Flight
+
+        :returns:   The runway.
+        :rtype:     { return_type_description }
+        """
+        rwy = list(self.runways)[0]  ## formally
+        return self.procedures.procs["RWY"]["RW"+rwy]
+
+
+    def getProcedure(self, flight: 'Flight', runway: str):
+        logger.debug("Airport::getProcedure: direction: %s" % type(flight).__name__)
+        procs = self.procedures.procs["STAR"] if type(flight).__name__ == 'Arrival' else self.procedures.procs["SID"]
+        validprocs = list(filter(lambda x: x.runway == runway.name, procs.values()))
+        if len(validprocs) > 0:
+            return validprocs[0]
+        logger.warning("Airport::getProcedure: no procedure found for runway %s" % runway)
+        return None
+
+    def getApproach(self, procedure: 'Procedure', runway: str):
+        procs = self.procedures.procs["APPCH"]
+        validappchs = list(filter(lambda x: x.runway == runway.name, procs.values()))
+        if len(validappchs) > 0:
+            return validappchs[0]
+        logger.warning("Airport::getApproach: no aproach found for runway %s" % runway)
+        return None
+
+

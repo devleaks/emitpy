@@ -3,13 +3,14 @@ Dictionary for YAML file.
 """
 import os
 import yaml
-import logging
 import dpath.util
+import logging
+
+from ..constants import MANAGED_AIRPORT
+from ..parameters import DATA_DIR
+
 
 logger = logging.getLogger("Constant")
-
-from .constants import MANAGED_AIRPORT
-from .parameters import DATA_DIR
 
 
 class Constant:

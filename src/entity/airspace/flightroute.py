@@ -34,7 +34,7 @@ class FlightRoute:
         self.descentRate = descentRate
         self.descentSpeed = descentSpeed
 
-        self.flightroute_cache = os.path.join("..", "data", managedAirport, "flightroutes")
+        self.flightroute_cache = os.path.join("..", "data", "managedairport", managedAirport, "flightroutes")
 
         self.flight_plan = None
         self.route = None

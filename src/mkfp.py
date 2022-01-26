@@ -15,7 +15,7 @@ def main():
     args = parser.parse_args()
 
     plan = FlightRoute(
-        managedAirport=MANAGED_AIRPORT,
+        managedAirport=MANAGED_AIRPORT["ICAO"],
         fromICAO=args.fromICAO.upper(),
         toICAO=args.toICAO.upper(),
         cruiseAlt=30000,

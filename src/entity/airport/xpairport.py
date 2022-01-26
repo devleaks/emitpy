@@ -8,7 +8,7 @@ from geojson import Point, Polygon, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from .airport import AirportBase
-from ..airspace import Procedures
+from ..airspace import CIFP
 from ..graph import Vertex, Edge
 from ..geo import Ramp, ServiceParking, Runway, mkPolygon
 from ..parameters import DATA_DIR
@@ -58,6 +58,7 @@ class XPAirport(AirportBase):
         self.atc_ground = None
         self.loaded = False
         self.procedures
+        self.simairporttype = "X-Plane"
 
     def loadFromFile(self):
         SCENERY_PACKS = os.path.join(SYSTEM_DIRECTORY, "Custom Scenery", "scenery_packs.ini")
@@ -111,7 +112,7 @@ class XPAirport(AirportBase):
 
 
     def loadProcedures(self):
-        self.procedures = Procedures(self.icao)
+        self.procedures = CIFP(self.icao)
         return [True, "XPAirport::loadProcedures: loaded"]
 
 
@@ -155,7 +156,7 @@ class XPAirport(AirportBase):
                 ramp = None
 
         self.parkings = ramps
-        logging.debug("XPAirport::loadParkings: added %d ramps", len(ramps.keys()))
+        logging.debug("XPAirport::loadParkings: added %d ramps: %s" % (len(ramps.keys()), ramps.keys()))
         return [True, "XPAirport::loadParkings loaded"]
 
     def loadTaxiways(self):
