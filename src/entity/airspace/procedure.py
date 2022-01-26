@@ -136,7 +136,7 @@ class SID(Procedure):
                 # logger.debug("Approach::getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
-                    a.append(vtxs[0])
+                    a.append(airspace.vert_dict[vtxs[0]])
                 else:
                     logger.warning("SID::getRoute: vertex not found %s", vid)
         return a
@@ -161,7 +161,7 @@ class STAR(Procedure):
                 # logger.debug("Approach::getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
-                    a.append(vtxs[0])
+                    a.append(airspace.vert_dict[vtxs[0]])
                 else:
                     logger.warning("SID::getRoute: vertex not found %s", vid)
         return a
@@ -187,7 +187,7 @@ class Approach(Procedure):
                 # logger.debug("Approach::getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
-                    a.append(vtxs[0])
+                    a.append(airspace.vert_dict[vtxs[0]])
                 else:
                     logger.warning("Approach::getRoute: vertex not found %s", vid)
             else:
@@ -223,7 +223,7 @@ class Runway(Procedure):
 
 
     def add(self, line: ProcedureData):
-        if self.runway is not None:
+        if self.point is not None:
             logger.warning("Runway::add: Cannot add to an already defined runway")
             return
 
@@ -258,6 +258,7 @@ class Runway(Procedure):
         return self.point
 
     def getRoute(self):
+        logger.debug("Runway::getRoute: point %s" % self.point)
         return [self.point]
 
 
