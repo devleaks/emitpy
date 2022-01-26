@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import csv
 import logging
+import random
 
 from ..graph import Graph
 from ..geo import Location
@@ -78,6 +79,7 @@ class AirportBase(Airport):
     """
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
         Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+        self.airspace = None
         self.procedures = None
         self.runways = {}
         self.taxiways = Graph()
@@ -86,6 +88,9 @@ class AirportBase(Airport):
         self.service_destinations = {}
         self.qfu = None
         self.qnh = None
+
+    def setAirspace(self, airspace):
+        self.airspace = airspace
 
     def load(self):
         status = self.loadFromFile()
@@ -148,6 +153,23 @@ class AirportBase(Airport):
     def setQNH(self, qnh: float):
         self.qnh = qnh
 
+    def getProcedure(self, flight: 'Flight', runway: str):
+        logger.debug("Airport::getProcedure: direction: %s" % type(flight).__name__)
+        procs = self.procedures.procs["STAR"] if type(flight).__name__ == 'Arrival' else self.procedures.procs["SID"]
+        validprocs = list(filter(lambda x: x.runway == runway.name, procs.values()))
+        if len(validprocs) > 0:
+            return random.choice(validprocs)
+        logger.warning("Airport::getProcedure: no procedure found for runway %s" % runway)
+        return None
+
+    def getApproach(self, procedure: 'Procedure', runway: str):  # Procedure should be a STAR
+        procs = self.procedures.procs["APPCH"]
+        validappchs = list(filter(lambda x: x.runway == runway.name, procs.values()))
+        if len(validappchs) > 0:
+            return random.choice(validappchs)
+        logger.warning("Airport::getApproach: no aproach found for runway %s" % runway)
+        return None
+
     def getRunway(self, flight: 'Flight'):
         """
         Gets a valid runway for flight, depending on QFU, flight type (pax, cargo), destination, etc.
@@ -158,25 +180,18 @@ class AirportBase(Airport):
         :returns:   The runway.
         :rtype:     { return_type_description }
         """
-        rwy = list(self.runways)[0]  ## formally
+        rwy = random.choice(list(self.runways))  ## formally random.choice(list(self.procedures.procs["RWY"])) is faster
         return self.procedures.procs["RWY"]["RW"+rwy]
 
+    def getRamp(self, flight: 'Flight'):
+        """
+        Gets a valid ramp for flight depending on its attibutes.
 
-    def getProcedure(self, flight: 'Flight', runway: str):
-        logger.debug("Airport::getProcedure: direction: %s" % type(flight).__name__)
-        procs = self.procedures.procs["STAR"] if type(flight).__name__ == 'Arrival' else self.procedures.procs["SID"]
-        validprocs = list(filter(lambda x: x.runway == runway.name, procs.values()))
-        if len(validprocs) > 0:
-            return validprocs[0]
-        logger.warning("Airport::getProcedure: no procedure found for runway %s" % runway)
-        return None
+        :param      flight:  The flight
+        :type       flight:  Flight
 
-    def getApproach(self, procedure: 'Procedure', runway: str):
-        procs = self.procedures.procs["APPCH"]
-        validappchs = list(filter(lambda x: x.runway == runway.name, procs.values()))
-        if len(validappchs) > 0:
-            return validappchs[0]
-        logger.warning("Airport::getApproach: no aproach found for runway %s" % runway)
-        return None
-
-
+        :returns:   The runway.
+        :rtype:     { return_type_description }
+        """
+        ramp = random.choice(list(self.parkings))  ## formally random.choice(list(self.procedures.procs["RWY"])) is faster
+        return ramp

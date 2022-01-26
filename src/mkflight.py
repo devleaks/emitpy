@@ -38,6 +38,7 @@ def main():
         alt=MANAGED_AIRPORT["elevation"])
     logger.debug("loading airport..")
     managed.load()
+    managed.setAirspace(airspace)
     logger.debug("..done")
 
     logger.debug("loading airlines..")
@@ -56,37 +57,23 @@ def main():
     aircraft = Aircraft(registration="A7-PMA", actype=acperf, operator=airline)
     logger.debug("..done")
 
-    ramp = "A 7"  # Plane won't get towed
-    gate = "A7"
-
     logger.debug("creating arrival..")
 
     arr = Arrival(operator=airline, number="4", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
+
+    ramp = managed.getRamp(arr)  # "A 7"  # Plane won't get towed
     arr.setRamp(ramp)
+
+    gate = "C99"
+    if ramp[0] in "A,B,C,D,E".split(","):  # does now work for "Cargo Ramp F5" ;-)
+        gate = ramp
     arr.setGate(gate)
 
     logger.debug("..planning..")
-    arrpts = ["ENRT"]
-
-    rwy = managed.getRunway(arr)
-    print("RWY> ", rwy.name)
-    star = managed.getProcedure(arr, rwy)
-    print("STAR> ", star.name)
-    ret = managed.procedures.getRoute(star, airspace)
-    arrpts = arrpts + ret
-
-    apprch = managed.getApproach(star, rwy)
-    print("APPCH> ", apprch.name)
-    ret = managed.procedures.getRoute(apprch, airspace)
-    arrpts = arrpts + ret
-
-    arrpts = arrpts + [rwy.name]
-    logger.debug("mkFlight: arrival: %s", arrpts)
-
+    arr.plan()
+    print(arr.flightroute)
     ap = ArrivalPath(arr)
     pa = ap.mkPath()
-    arr.plan()
-
     logger.debug("..done")
 
 
@@ -96,27 +83,15 @@ def main():
     dep.setGate(gate)
 
     logger.debug("..planning..")
-
-    rwy = managed.getRunway(dep)
-    print("RWY> ", rwy.name)
-    deppts = [rwy.name]
-
-    sid = managed.getProcedure(dep, rwy)
-    print("SID> ", sid.name)
-    ret = managed.procedures.getRoute(sid, airspace)
-    deppts = deppts + ret
-
-    deppts = deppts + ["ENRT"]
-    logger.debug("mkFlight: departure: %s", deppts)
     dep.plan()
-    dp = DeparturePath(a)
+    dp = DeparturePath(dep)
     pd = dp.mkPath()
     logger.debug("..done")
 
 
     logger.debug("flying..")
-    a.fly()
-    d.fly()
+    arr.fly()
+    dep.fly()
     logger.debug("..done")
 
 main()
