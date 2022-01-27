@@ -10,13 +10,13 @@ from ..graph import Vertex, Edge, Graph
 logger = logging.getLogger("Airspace")
 
 
-
 class Restriction:
     """
     A Restriction is an altitude and/or speed restriction.
     If a altitude restriction is set, an aircraft must fly above alt_min and/or below alt_max.
     If a speed restriction is set, the aircraft must fly fater than speed_min and/or slower than speed_max.
     If there is no restriction, use None for restriction.
+    Consider this as a mixin.
     """
     def __init__(self):
         self.altmin = None
@@ -92,8 +92,8 @@ class ControlledPoint(Vertex):
 class RestrictedControlledPoint(ControlledPoint, Restriction):
     """
     """
-    def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float):
-        ControlledPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
+    def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
+        ControlledPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
         Restriction.__init__(self)
 
 
@@ -197,7 +197,7 @@ class Apt(ControlledPoint):
     This airport is a ControlledPoint airport.
     """
     def __init__(self, name: str, lat: float, lon: float, iata: str, longname: str, country: str, city: str):
-        ControlledPoint.__init__(self, name, "WORLD", name, type(self).__name__, lat, lon)
+        ControlledPoint.__init__(self, name, name[0:2], name, type(self).__name__, lat, lon)
         self.iata = iata
         self.country = country
         self.city = city
@@ -231,12 +231,9 @@ class Hold(RestrictedControlledPoint):
     """
     def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float, navtype: str, altmin: float, altmax: float,
                  course: float, turn: str, leg_time: float, leg_length: float, speed: float):
-        RestrictedControlledPoint.__init__(self, ident, region, airport, lat, lon, navtype, altmin, altmax)
-        self.navtype = navtype
+        RestrictedControlledPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=navtype, lat=lat, lon=lon)
         self.setAltitudeRestriction(altmin, altmax)
-        if speed is not None:
-            self.setSpeedRestriction(speed, speed)
-
+        self.setSpeedRestriction(speed, speed)
         self.course = course
         self.turn = turn
         self.leg_time = leg_time

@@ -1,2 +1,2 @@
 from .flight import Flight, Arrival, Departure
-from .flightpath import ArrivalPath, DeparturePath
+from .aircraftpath import ArrivalPath, DeparturePath

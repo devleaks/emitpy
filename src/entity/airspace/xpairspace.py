@@ -61,6 +61,7 @@ class XPAirspace(Airspace):
         Airspace.__init__(self, bbox)
         self.basename = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data")
         self._cached_vectex_ids = None
+        self._cached_vectex_idents = None
         self.simairspacetype = "X-Plane"
 
 
@@ -236,11 +237,13 @@ class XPAirspace(Airspace):
 
 
     def createIndex(self):
-        ss = time.perf_counter()
         if self._cached_vectex_ids is None:
+            ss = time.perf_counter()
             self._cached_vectex_ids = {}
+            self._cached_vectex_idents = {}
             self._cached_vectex_ids["Fix"] = 0
             self._cached_vectex_ids["VHF"] = 0
+            self._cached_vectex_ids["IDENT"] = 0
             for v in self.vert_dict.keys():
                 a = v.split(":")
                 if not a[0] in self._cached_vectex_ids.keys():
@@ -255,21 +258,35 @@ class XPAirspace(Airspace):
                     self._cached_vectex_ids[a[0]][a[1]]["VHF"] = []
                     self._cached_vectex_ids[a[0]][a[1]]["VHF"].append(v)
                     self._cached_vectex_ids["VHF"] = self._cached_vectex_ids["VHF"] + 1
+                name = a[1]
+                if not name in self._cached_vectex_idents.keys():
+                    self._cached_vectex_idents[name] = []
+                self._cached_vectex_idents[name].append(v)
+
             logging.debug("XPAirspace::createIndex: created (%f sec)." % (time.perf_counter() - ss))
 
 
     def dropIndex(self):
         logging.debug("XPAirspace::dropIndex: %d fixes, %d navaids" % (self._cached_vectex_ids["Fix"], self._cached_vectex_ids["VHF"]))
         self._cached_vectex_ids = None
+        self._cached_vectex_idents = None
         logging.debug("XPAirspace::dropIndex: done")
 
 
     def findControlledPoint(self, region, ident, navtypeid):
+        self.createIndex()
         if region in self._cached_vectex_ids:
             if ident in self._cached_vectex_ids[region]:
                 i = self._cached_vectex_ids[region][ident]["Fix"] if int(navtypeid) == 11 else self._cached_vectex_ids[region][ident]["VHF"]
                 return self.vert_dict[i[0]]
         return None
+
+
+    def findControlledPointByName(self, ident):
+        self.createIndex()
+        if ident in self._cached_vectex_idents:
+            return self._cached_vectex_idents[ident]
+        return []
 
         """
         s = region + ":" + ident + (":Fix" if int(navtypeid) == 11 else "") + ":"

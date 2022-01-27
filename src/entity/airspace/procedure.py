@@ -232,6 +232,7 @@ class Runway(Procedure):
             ident=line.params[0],
             region=self.airport[0:2],
             airport=self.airport,
+            pointtype="RWY",
             lat=self.getLatitude(),
             lon=self.getLongitude()
         )
