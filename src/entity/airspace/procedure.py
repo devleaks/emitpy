@@ -15,6 +15,7 @@ SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
 logger = logging.getLogger("Airport")
 
+
 class PROC_DATA(Enum):
     SEQ_NR = 0
     RT_TYPE = 1
@@ -257,7 +258,7 @@ class Runway(Procedure):
         return self.point
 
     def getRoute(self):
-        logger.debug("Runway::getRoute: point %s" % self.point)
+        # logger.debug("Runway::getRoute: point %s" % self.point)
         return [self.point]
 
 

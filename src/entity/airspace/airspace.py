@@ -1,9 +1,10 @@
 # Airspace Utility Classes
 #
 import logging
+import math
 
 from geojson import Point, Feature
-from turfpy.measurement import distance
+from turfpy.measurement import distance, destination
 
 from ..graph import Vertex, Edge, Graph
 
@@ -220,7 +221,7 @@ class Waypoint(ControlledPoint):  # same as fix
         self.navtype = navtype
 
 
-class Hold(RestrictedControlledPoint):
+class Hold(Restriction):
     """
     A Holding position.
         The course if the course (magnetic) of the inbound leg.
@@ -229,15 +230,57 @@ class Hold(RestrictedControlledPoint):
         Leg length is the length of the leg for DME leg or 0 for timed leg.
         Speed is the holding speed.
     """
-    def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float, navtype: str, altmin: float, altmax: float,
-                 course: float, turn: str, leg_time: float, leg_length: float, speed: float):
-        RestrictedControlledPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=navtype, lat=lat, lon=lon)
-        self.setAltitudeRestriction(altmin, altmax)
-        self.setSpeedRestriction(speed, speed)
+    def __init__(self, fix: ControlledPoint, altmin: float, altmax: float, course: float, turn: str, leg_time: float, leg_length: float, speed: float):
+        Restriction.__init__(self)
+        self.fix = fix
         self.course = course
         self.turn = turn
         self.leg_time = leg_time
         self.leg_length = leg_length
+        self.setAltitudeRestriction(altmin, altmax)
+        self.setSpeedRestriction(speed, speed)
+
+
+    def mkHold(self, speed: float, finesse: int = 8):
+        """
+        Make path from Hold data and aircraft speed.
+        Returns an array of Feature<Point>
+
+        :param      speed:  The speed
+        :type       speed:  float
+        """
+        length = (speed/60) * self.leg_time if self.leg_time > 0 else self.leg_length
+        # circle radius:
+        radius = length / math.pi
+        step = 180 / finesse
+
+        # 4 corners and 2 arc centers p1 -> p2 -> p3 -> p4 -> p1
+        p1 = self.fix
+        p2 = destination(p1, self.course, length)
+
+        arc = [p1, p2]
+
+        perpendicular = self.course + 90 * (1 if self.turn == "L" else -1)
+        c23 = destination(p2, perpendicular, length/2)
+        curr = perpendicular - 180
+        for i in range(0, finesse - 1):
+            curr = curr + step
+            p = destination(c23, curr, radius)
+            arc.append(p)
+
+        p3 = destination(p2, perpendicular, length)
+        p4 = destination(p1, perpendicular, length)
+        arc.append(p3)
+        arc.append(p4)
+
+        c41 = destination(p1, perpendicular, length/2)
+        curr = perpendicular
+        for i in range(0, finesse - 1):
+            curr = curr + step
+            p = destination(c41, curr, radius)
+            arc.append(p)
+
+        return arc
 
 
 ##########################
@@ -284,15 +327,34 @@ class Airspace(Graph):
         Graph.__init__(self)
         self.bbox = bbox
         self.all_points = {}
+        self.holds = {}
         self.loaded = False
         self.simairspacetype = "Generic"
 
 
     def load(self):
-        """
-        Chains loadAirports, loadFixes, loadNavaids, and loadAirwaySegments
-        """
-        return [False, "no load implemented"]
+        status = self.loadAirports()
+
+        if not status[0]:
+            return [False, status[1]]
+
+        status = self.loadNavaids()
+        if not status[0]:
+            return [False, status[1]]
+
+        status = self.loadFixes()
+        if not status[0]:
+            return [False, status[1]]
+
+        #status = self.loadAirwaySegments()
+        if not status[0]:
+            return [False, status[1]]
+
+        status = self.loadHolds()
+        if not status[0]:
+            return [False, status[1]]
+
+        return [True, "Airspace loaded (%s)" % self.simairspacetype]
 
 
     def loadAirports(self):
@@ -309,3 +371,8 @@ class Airspace(Graph):
 
     def loadAirwaySegments(self):
         return [False, "no load implemented"]
+
+
+    def loadHolds(self):
+        return [False, "no load implemented"]
+
