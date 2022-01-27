@@ -19,13 +19,13 @@ def main():
     airspace.load()
     logger.debug("..done")
 
-
     logger.debug("loading airport..")
     Airport.loadAll()
     logger.debug("..done")
 
     other_airport = Airport.find(icao="OMDB")
 
+    logger.debug("loading airport..")
     managed = XPAirport(
         icao=MANAGED_AIRPORT["ICAO"],
         iata=MANAGED_AIRPORT["IATA"],
@@ -36,7 +36,6 @@ def main():
         lat=MANAGED_AIRPORT["lat"],
         lon=MANAGED_AIRPORT["lon"],
         alt=MANAGED_AIRPORT["elevation"])
-    logger.debug("loading airport..")
     managed.load()
     managed.setAirspace(airspace)
     logger.debug("..done")
@@ -49,44 +48,37 @@ def main():
     logger.debug("loading aircrafts..")
     AircraftType.loadAll()
     logger.debug("..done")
+
     logger.debug("loading aircraft..")
     actype = AircraftType.find("A320")
     acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name)
     acperf.loadPerformance()
-
     aircraft = Aircraft(registration="A7-PMA", actype=acperf, operator=airline)
     logger.debug("..done")
 
     logger.debug("creating arrival..")
-
     arr = Arrival(operator=airline, number="4", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
-
     ramp = managed.getRamp(arr)  # "A 7"  # Plane won't get towed
     arr.setRamp(ramp)
-
     gate = "C99"
     if ramp[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
         gate = ramp
     arr.setGate(gate)
-
     logger.debug("..planning..")
     arr.plan()
     ap = ArrivalPath(arr)
     pa = ap.mkPath()
     logger.debug("..done")
 
-
     logger.debug("creating departure..")
     dep = Departure(operator=airline, number="3", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft)
     dep.setRamp(ramp)
     dep.setGate(gate)
-
     logger.debug("..planning..")
     dep.plan()
     dp = DeparturePath(dep)
     pd = dp.mkPath()
     logger.debug("..done")
-
 
     logger.debug("flying..")
     arr.fly()

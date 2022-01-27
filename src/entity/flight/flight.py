@@ -55,7 +55,7 @@ class Flight:
         self.aircraft = aircraft
         self.ramp = None
         self.codeshare = None
-        self.phase = "SCHEDULED" if scheduled else "UNKNOWN"
+        self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
         self.flightroute = None
         self.procedure = None
 
