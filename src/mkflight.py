@@ -4,7 +4,7 @@ from entity.business import Airline
 from entity.airspace import XPAirspace
 from entity.airport import Airport, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
-from entity.flight import Flight, Arrival, Departure
+from entity.flight import Arrival, Departure
 from entity.flight import ArrivalPath, DeparturePath
 from entity.parameters import MANAGED_AIRPORT
 
