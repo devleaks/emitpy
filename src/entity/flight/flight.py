@@ -1,45 +1,44 @@
 import os
 import logging
 import json
-import random
-
-from datetime import datetime, timedelta
+from enum import Enum, auto
+from geojson import Feature
 
 from ..airport import Airport
 from ..business import Airline
 from ..aircraft import Aircraft
 
 from ..parameters import DATA_DIR
-from ..constants import AODB, MANAGED_AIRPORT, FLIGHTROUTE_DATABASE
+from ..constants import MANAGED_AIRPORT, FLIGHTROUTE_DATABASE
 
 logger = logging.getLogger("Flight")
 
-FLIGHT_PHASE = [
-    "SCHEDULED",
-    "UNKNOWN",
-    "OFFBLOCK",
-    "PUSHBACK",
-    "TAXI",
-    "TAXIHOLD",
-    "TAKE_OFF",
-    "TAKEOFF_ROLL",
-    "ROTATE",
-    "LIFT_OFF",
-    "INITIAL_CLIMB",
-    "CLIMB",
-    "CRUISE",
-    "DESCEND",
-    "APPROACH",
-    "FINAL",
-    "LANDING",
-    "FLARE",
-    "TOUCH_DOWN",
-    "ROLL_OUT",
-    "STOPPED_ON_RWY",
-    "STOPPED_ON_TAXIWAY",
-    "ONBLOCK",
-    "TERMINATED"
-]
+
+class FLIGHT_PHASE(Enum):
+    SCHEDULED = auto()
+    UNKNOWN = auto()
+    OFFBLOCK = auto()
+    PUSHBACK = auto()
+    TAXI = auto()
+    TAXIHOLD = auto()
+    TAKE_OFF = auto()
+    TAKEOFF_ROLL = auto()
+    ROTATE = auto()
+    LIFT_OFF = auto()
+    INITIAL_CLIMB = auto()
+    CLIMB = auto()
+    CRUISE = auto()
+    DESCEND = auto()
+    APPROACH = auto()
+    FINAL = auto()
+    LANDING = auto()
+    FLARE = auto()
+    TOUCH_DOWN = auto()
+    ROLL_OUT = auto()
+    STOPPED_ON_RWY = auto()
+    STOPPED_ON_TAXIWAY = auto()
+    ONBLOCK = auto()
+    TERMINATED = auto()
 
 
 class Flight:
@@ -71,7 +70,7 @@ class Flight:
 
     def setGate(self, gate):
         self.gate = gate
-        logger.debug("Flight::setGate: %s" % self.ramp)
+        logger.debug("Flight::setGate: %s" % self.gate)
 
 
     def loadFlightRoute(self):
@@ -86,6 +85,34 @@ class Flight:
             logger.warning("Flight::loadFlightRoute: file not found %s" % filename)
 
 
+    def transformFlightRoute(self, route):
+        """
+        Transform FeatureCollection<Feature<Point>> from FlightPlanDatabase into FeatureCollection<Feature<Vertex>>
+        where Vertex in Airspace.
+        """
+        def isPoint(f):
+            return ("geometry" in f) and ("type" in f["geometry"]) and (f["geometry"]["type"] == "Point")
+
+        wpts = []
+        errs = 0
+        for f in route:
+            if isPoint(f):
+                fty = f["properties"]["type"] if "type" in f["properties"] else None
+                fid = f["properties"]["ident"] if "ident" in f["properties"] else None
+                if fid is not None:
+                    wid = self.managedAirport.airspace.findControlledPointByName(fid)
+                    if len(wid) == 1:
+                        v = self.managedAirport.airspace.vert_dict[wid[0]]
+                        wpts.append(v)
+                        logger.debug("Flight::transformFlightRoute: added %s %s as %s" % (fty, fid, v.id))
+                    else:
+                        errs = errs + 1
+                        logger.warning("Flight::transformFlightRoute: ambiguous ident %s has %d entries" % (fid, len(wid)))
+                else:
+                    errs = errs + 1
+                    logger.warning("Flight::transformFlightRoute: no ident for feature %s" % (fid))
+        return (wpts, errs)
+
     def taxi(self):
         pass
 
@@ -97,6 +124,7 @@ class Flight:
 
 
 class Arrival(Flight):
+
     def __init__(self, number: str, scheduled: str, managedAirport: Airport, origin: Airport, operator: Airline, aircraft: Aircraft):
         Flight.__init__(self, number=number, scheduled=scheduled, departure=origin, arrival=managedAirport, operator=operator, aircraft=aircraft)
         self.managedAirport = managedAirport
@@ -105,8 +133,19 @@ class Arrival(Flight):
     def trimFlightRoute(self):
         """
         Remove last point for now, which is arrival airport
+
+        Later algorithm: Create mini graph.
+        Add vertex for each point within 100NM (50?) from arrival back to departure.
+        Add each STAR+APPCH combination (directed graph) towards RWY.
+        Choose shortest path (A*).
+        Return:
+           Last point in flightplan (ie. trim flight plan to that point)
+           STAR
+           APPCH
         """
-        return self.flightroute["features"][0:-1]
+        features = list(filter(lambda f: ("geometry" in f) and ("type" in f["geometry"]) and (f["geometry"]["type"] == "Point"), self.flightroute))
+        return features[0:-1]  # remove arrival airport
+
 
     def plan(self):
         #
@@ -118,6 +157,12 @@ class Arrival(Flight):
             logger.warning("Arrival::plan: flightroute is too short %d" % len(self.flightroute["features"]))
 
         arrpts = self.trimFlightRoute()
+        rt = self.transformFlightRoute(arrpts)
+        if rt[1] > 0 or len(arrpts) != len(rt[0]):
+            logger.warning("Arrival::plan: flightroute is too short %d" % len(self.flightroute["features"]))
+        else:
+            logger.warning("Arrival::plan: route transformed successfully")
+            arrpts = rt[0]
 
         rwy = self.managedAirport.getRunway(self)
         logger.debug("Arrival::plan: runway %s" % rwy.name)
@@ -133,6 +178,15 @@ class Arrival(Flight):
 
         arrpts = arrpts + rwy.getRoute()
         self.procedure = (star, appch, rwy)
+
+        i = 0
+        for f in arrpts:
+            if not isinstance(f, Feature):
+                logger.warning("Arrival::plan: not a feature: %d: %s: %s" % (i, type(f), f))
+                i = i + 1
+        if i == 0:
+            logger.warning("Arrival::plan: %d features", len(arrpts))
+
         self.flightroute = arrpts
 
         self.taxi()  # Runway exit to Ramp
@@ -143,15 +197,19 @@ class Arrival(Flight):
 
 
 class Departure(Flight):
+
     def __init__(self, number: str, scheduled: str, managedAirport: Airport, destination: Airport, operator: Airline, aircraft: Aircraft):
         Flight.__init__(self, number=number, scheduled=scheduled, departure=managedAirport, arrival=destination, operator=operator, aircraft=aircraft)
         self.managedAirport = managedAirport
+
 
     def trimFlightRoute(self):
         """
         Remove first point for now, which is departure airport
         """
-        return self.flightroute["features"][1:]
+        features = list(filter(lambda f: ("geometry" in f) and ("type" in f["geometry"]) and (f["geometry"]["type"] == "Point"), self.flightroute))
+        return features[1:]  # remove departure airport
+
 
     def plan(self):
         #
@@ -164,7 +222,7 @@ class Departure(Flight):
 
         rwy = self.managedAirport.getRunway(self)
         logger.debug("Departure::plan: runway %s" % rwy.name)
-        deppts = [rwy.getRoute()]
+        deppts = rwy.getRoute()
 
         self.taxi()  # Ramp to runway hold
 
@@ -173,9 +231,26 @@ class Departure(Flight):
         ret = self.managedAirport.procedures.getRoute(sid, self.managedAirport.airspace)
         deppts = deppts + ret
 
-        deppts = deppts + self.trimFlightRoute()
+        temp = self.trimFlightRoute()
+        rt = self.transformFlightRoute(temp)
+        if rt[1] > 0 or len(temp) != len(rt[0]):
+            logger.warning("Departure::plan: flightroute is too short %d" % len(self.flightroute["features"]))
+            deppts = deppts + temp
+        else:
+            logger.warning("Departure::plan: route transformed successfully")
+            deppts = deppts + rt[0]
+
 
         self.procedure = (rwy, sid)
+
+        i = 0
+        for f in deppts:
+            if not isinstance(f, Feature):
+                logger.warning("Departure::plan: not a feature: %d: %s: %s" % (i, type(f), f))
+                i = i + 1
+        if i == 0:
+            logger.warning("Departure::plan: %d features", len(deppts))
+
         self.flightroute = deppts
         return (True, "Departure::plan: planned")
         # dp = DeparturePath(dep)

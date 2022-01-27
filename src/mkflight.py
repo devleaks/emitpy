@@ -65,13 +65,12 @@ def main():
     arr.setRamp(ramp)
 
     gate = "C99"
-    if ramp[0] in "A,B,C,D,E".split(","):  # does now work for "Cargo Ramp F5" ;-)
+    if ramp[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
         gate = ramp
     arr.setGate(gate)
 
     logger.debug("..planning..")
     arr.plan()
-    print(arr.flightroute)
     ap = ArrivalPath(arr)
     pa = ap.mkPath()
     logger.debug("..done")

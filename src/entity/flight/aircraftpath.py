@@ -2,7 +2,9 @@
 A succession of positions where the aircraft passes.
 """
 import logging
-from geojson import Feature, Point
+from functools import reduce
+
+from geojson import Point, LineString, Feature, FeatureCollection
 
 from ..flight import Flight
 from ..airspace import Restriction
@@ -34,14 +36,31 @@ class PathPoint(Feature, Restriction):
         return self["geometry"]["coordinates"][2]
 
 
-class FlightPath:
+class AircraftPath:
     """
-    Flightpath build the detailed path of the flight.
+    AircraftPath build the detailed path of the aircraft, both on the ground and in the air.
     """
-
     def __init__(self, flight: Flight):
         self.flight = flight
-        self.route = None
+        self.route = []  # Array of Features<Point>
+
+
+    def asFeatureCollection(self):
+        return FeatureCollection(features=self.route)
+
+
+    def asLineString(self):
+        # reduce(lambda num1, num2: num1 * num2, my_numbers, 0)
+        coords = reduce(lambda x, coords: coords + x["geometry"]["corrdinates"], self.route, [])
+        return LineString(coords)
+
+
+    @staticmethod
+    def cleanFeatures(fa):
+        c = []
+        for f in fa:
+            c.append(Feature(geometry=f["geometry"], properties=f["properties"]))
+        return c
 
 
     def mkPath(self):
@@ -59,35 +78,35 @@ class FlightPath:
         if not status[0]:
             return (False, status[1])
 
-        return (True, "FlightPath::mkPath done")
+        return (True, "AircraftPath::mkPath done")
 
 
     def lnav(self):
         """
         Perform lateral navigation for route
         """
-        # logging.debug("FlightPath::lnav: ", len(self.vert_dict.keys()) - startLen, count)
-        return (False, "FlightPath::lnav not implemented")
+        # logging.debug("AircraftPath::lnav: ", len(self.vert_dict.keys()) - startLen, count)
+        return (False, "AircraftPath::lnav not implemented")
 
 
     def vnav(self):
         """
         Perform vertical navigation for route
         """
-        return (False, "FlightPath::vnav not implemented")
+        return (False, "AircraftPath::vnav not implemented")
 
 
     def snav(self):
         """
         Perform speed calculation, control, and adjustments for route
         """
-        return (False, "FlightPath::snav not implemented")
+        return (False, "AircraftPath::snav not implemented")
 
 
-class ArrivalPath(FlightPath):
+class ArrivalPath(AircraftPath):
 
     def __init__(self, flight: "Flight"):
-        FlightPath.__init__(self, flight=flight)
+        AircraftPath.__init__(self, flight=flight)
 
 
     def lnav(self):
@@ -138,10 +157,10 @@ class ArrivalPath(FlightPath):
         return (False, "ArrivalPath::snav not implemented")
 
 
-class DeparturePath(FlightPath):
+class DeparturePath(AircraftPath):
 
     def __init__(self, flight: Flight):
-        FlightPath.__init__(self, flight=flight)
+        AircraftPath.__init__(self, flight=flight)
 
 
     def lnav(self):

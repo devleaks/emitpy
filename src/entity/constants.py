@@ -1,5 +1,7 @@
 # Global application constants
 #
+from enum import Enum
+
 SYSTEM_DIRECTORY = "."
 
 ########################################
@@ -38,9 +40,10 @@ REMOTE = "remote"
 #
 # TYPES
 #
-# 1. plane types
-PAX = "pax"
-CARGO = "cargo"
+# 1. load types
+class PAYLOAD(Enum):
+    PAX = "pax"
+    CARGO = "cargo"
 
 # 2. freit type
 BULK = "bulk"
