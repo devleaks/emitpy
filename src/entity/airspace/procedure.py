@@ -4,6 +4,7 @@ A ProcedurePoint is either a waypoint or just a coordinate with mandatory proper
 """
 import os
 import logging
+from enum import Enum
 
 from .airspace import Airspace, RestrictedControlledPoint
 from ..utils import ConvertDMSToDD
@@ -14,47 +15,45 @@ SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
 logger = logging.getLogger("Airport")
 
-PROC_DATA = {
-    "SEQ NR": 0,
-    "RT TYPE": 1,
-    "SID/STAR IDENT": 2,
-    "TRANS IDENT": 3,
-    "FIX IDENT": 4,
-    "ICAO CODE": 5,
-    "SEC CODE": 6,
-    "SUB CODE": 7,
-    "DESC CODE": 8,
-    "TURN DIR": 9,
-    "RNP": 10,
-    "PATH TERM": 11,
-    "TDV": 12,
-    "RECD NAV": 13,
-    "ICAO CODE2": 14,
-    "SEC CODE2": 15,
-    "SUB CODE2": 16,
-    "ARC RAD": 17,
-    "THETA": 18,
-    "RHO": 19,
-    "OB MAG CRS": 20,
-    "HOLD DIST/TIME": 21,
-    "ALT DESC": 22,
-    "_MIN ALT 1": 23,
-    "_MIN ALT 2": 24,
-    "TRANS ALTITUDE/LEVEL": 25,
-    "_SPEED LIM DESC": 26,
-    "SPEED LIMIT": 27,
-    "VERT ANGLE": 28,
-    "_5_293": 29,
-    "CENTER FIX/PROC TURN": 30,
-    "ICAO CODE3": 31,
-    "SEC CODE3": 32,
-    "SUB CODE3": 33,
-    "MULTI CD": 34,
-    "GPS/FMS IND": 35,
-    "RT TYPE2": 36,
-    "RT TYPE3": 37
-}
-PROC_DATA_REV = {v: k for k, v in PROC_DATA.items()}
+class PROC_DATA(Enum):
+    SEQ_NR = 0
+    RT_TYPE = 1
+    PROCEDURE_IDENT = 2
+    TRANS_IDENT = 3
+    FIX_IDENT = 4
+    ICAO_CODE = 5
+    SEC_CODE = 6
+    SUB_CODE = 7
+    DESC_CODE = 8
+    TURN_DIR = 9
+    RNP = 10
+    PATH_TERM = 11
+    TDV = 12
+    RECD_NAV = 13
+    ICAO_CODE2 = 14
+    SEC_CODE2 = 15
+    SUB_CODE2 = 16
+    ARC_RAD = 17
+    THETA = 18
+    RHO = 19
+    OB_MAG_CRS = 20
+    HOLD_DIST_TIME = 21
+    ALT_DESC = 22
+    _MIN_ALT1 = 23
+    _MIN_ALT2 = 24
+    TRANS_ALTITUDE_LEVEL = 25
+    _SPEED_LIM_DESC = 26
+    SPEED_LIMIT = 27
+    VERT_ANGLE = 28
+    _5_293 = 29
+    CENTER_FIX_PROC_TURN = 30
+    ICAO_CODE3 = 31
+    SEC_CODE3 = 32
+    SUB_CODE3 = 33
+    MULTI_CD = 34
+    GPS_FMS_IND = 35
+    RT_TYPE2 = 36
+    RT_TYPE3 = 37
 
 
 class ProcedureData:
@@ -89,11 +88,10 @@ class ProcedureData:
         return int(self.params[0])
 
     def line(self):
-        return self.params.join(",")
+        return ",".join(self.params)
 
-    def param(self, name):
-        if name in PROC_DATA:
-            return self.params[PROC_DATA[name]]
+    def param(self, name: PROC_DATA):
+        return self.params[name.value]
 
 
 class Procedure:
@@ -111,9 +109,9 @@ class Procedure:
             if line.proc() == "RWY":
                 self.runway = self.name
             elif line.proc() == "APPCH":
-                self.runway = "RW" + line.param("SID/STAR IDENT")[-3:]
+                self.runway = "RW" + line.param(PROC_DATA.PROCEDURE_IDENT)[-3:]
             else:
-                self.runway = line.param("TRANS IDENT")
+                self.runway = line.param(PROC_DATA.TRANS_IDENT)
         self.route[line.seq()] = line
 
 
@@ -130,9 +128,9 @@ class SID(Procedure):
     def getRoute(self, airspace: Airspace):
         a = []
         for v in self.route.keys():
-            fid = self.route[v].param("FIX IDENT").strip()
+            fid = self.route[v].param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
-                vid = self.route[v].param("ICAO CODE") + ":" + self.route[v].param("FIX IDENT")
+                vid = self.route[v].param(PROC_DATA.ICAO_CODE) + ":" + self.route[v].param(PROC_DATA.FIX_IDENT)
                 # logger.debug("Approach::getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
@@ -155,9 +153,9 @@ class STAR(Procedure):
     def getRoute(self, airspace: Airspace):
         a = []
         for v in self.route.keys():
-            fid = self.route[v].param("FIX IDENT").strip()
+            fid = self.route[v].param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
-                vid = self.route[v].param("ICAO CODE") + ":" + self.route[v].param("FIX IDENT")
+                vid = self.route[v].param(PROC_DATA.ICAO_CODE) + ":" + self.route[v].param(PROC_DATA.FIX_IDENT)
                 # logger.debug("Approach::getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
@@ -181,9 +179,9 @@ class Approach(Procedure):
         interrupted = False
         a = []
         for v in self.route.keys():
-            code = self.route[v].param("DESC CODE")[0]
+            code = self.route[v].param(PROC_DATA.DESC_CODE)[0]
             if code == "E" and not interrupted:
-                vid = self.route[v].param("ICAO CODE") + ":" + self.route[v].param("FIX IDENT")
+                vid = self.route[v].param(PROC_DATA.ICAO_CODE) + ":" + self.route[v].param(PROC_DATA.FIX_IDENT)
                 # logger.debug("Approach::getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
@@ -192,7 +190,7 @@ class Approach(Procedure):
                     logger.warning("Approach::getRoute: vertex not found %s", vid)
             else:
                 if not interrupted:
-                    logger.debug("Approach::getRoute: interrupted%s", "" if len(self.route[v].param("FIX IDENT").strip()) == 0 else (" at %s " % self.route[v].param("FIX IDENT")))
+                    logger.debug("Approach::getRoute: interrupted%s", "" if len(self.route[v].param(PROC_DATA.FIX_IDENT).strip()) == 0 else (" at %s " % self.route[v].param(PROC_DATA.FIX_IDENT)))
                 interrupted = True
 
             # print("%s %s: %d: %s [%s], A: %s [%s,%s], S: %s %s " % (type(self).__name__, self.name, v,
