@@ -1,5 +1,5 @@
 """
-A succession of positions where the aircraft passes.
+A succession of positions where the aircraft passes. Includes taxi and takeoff or landing and taxi.
 """
 import logging
 from functools import reduce
@@ -9,7 +9,7 @@ from geojson import Point, LineString, Feature, FeatureCollection
 from ..flight import Flight
 from ..airspace import Restriction
 
-logger = logging.getLogger("Flight")
+logger = logging.getLogger("FlightPath")
 
 
 class PathPoint(Feature, Restriction):
@@ -85,7 +85,7 @@ class AircraftPath:
         """
         Perform lateral navigation for route
         """
-        # logging.debug("AircraftPath::lnav: ", len(self.vert_dict.keys()) - startLen, count)
+        # logger.debug(":lnav: ", len(self.vert_dict.keys()) - startLen, count)
         return (False, "AircraftPath::lnav not implemented")
 
 

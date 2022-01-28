@@ -23,7 +23,7 @@ def main():
     Airport.loadAll()
     logger.debug("..done")
 
-    other_airport = Airport.find(icao="OMDB")
+    other_airport = Airport.find(icao="LTBA")
 
     logger.debug("loading airport..")
     managed = XPAirport(
@@ -57,7 +57,7 @@ def main():
     logger.debug("..done")
 
     logger.debug("creating arrival..")
-    arr = Arrival(operator=airline, number="4", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
+    arr = Arrival(operator=airline, number="4L", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
     ramp = managed.getRamp(arr)  # "A 7"  # Plane won't get towed
     arr.setRamp(ramp)
     gate = "C99"

@@ -44,6 +44,8 @@ REMOTE = "remote"
 class PAYLOAD(Enum):
     PAX = "pax"
     CARGO = "cargo"
+    TECH = "tech"
+    PRIVATE = "priv"
 
 # 2. freit type
 BULK = "bulk"
@@ -70,13 +72,14 @@ AIRCRAFT_TYPE_DATABASE = "aircraft-types"
 AIRCRAFT_DATABASE = "aircrafts"
 
 MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation parameters
-FLIGHTROUTE_DATABASE = "flightroutes"
+FLIGHTROUTE_DATABASE = "flightplans"
 AODB = "aodb"
 
 ########################################
 # Keywords
-ARRIVAL = "arrival"
-DEPARTURE = "departure"
+class MOVEMENT(Enum):
+    ARRIVAL = "arrival"
+    DEPARTURE = "departure"
 
 
 ########################################

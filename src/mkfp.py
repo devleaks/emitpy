@@ -3,7 +3,7 @@ Test API for flightplandatabase with request caching.
 
 """
 import argparse
-from entity.airspace import FlightRoute
+from entity.airspace import FlightPlan
 from entity.parameters import MANAGED_AIRPORT
 
 
@@ -14,7 +14,7 @@ def main():
 
     args = parser.parse_args()
 
-    plan = FlightRoute(
+    plan = FlightPlan(
         managedAirport=MANAGED_AIRPORT["ICAO"],
         fromICAO=args.fromICAO.upper(),
         toICAO=args.toICAO.upper(),

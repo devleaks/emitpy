@@ -16,7 +16,7 @@ from turfpy.measurement import distance, boolean_point_in_polygon, point_to_line
 
 class Vertex(Feature):
 
-    def __init__(self, node: str, point: Point, usage: [str]=[], name: str=None):
+    def __init__(self, node: str, point: Point, usage: [str] = [], name: str = None):
         Feature.__init__(self, geometry=point, id=node)
         self.name = name
         self.usage = usage
@@ -31,6 +31,15 @@ class Vertex(Feature):
 
     def get_neighbors(self):
         return list(map(lambda a: (a, self.adjacent[a]), self.adjacent))
+
+    def getProp(self, propname: str):
+        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
+        return self["properties"][propname] if propname in self["properties"] else None
+
+    def setProp(self, name: str, value):
+        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
+        self["properties"][name] = value
+
 
 class Edge(Feature):
 
@@ -73,7 +82,7 @@ class Graph:  # Graph(FeatureCollection)?
 
     def add_vertex(self, vertex: Vertex):
         if vertex.id in self.vert_dict.keys():
-            logging.warning("Graph::add_vertex: duplicate %s" % vertex.id)
+            logger.warning(":add_vertex: duplicate %s" % vertex.id)
         self.vert_dict[vertex.id] = vertex
         return vertex
 
@@ -88,7 +97,7 @@ class Graph:  # Graph(FeatureCollection)?
         varr = filter(lambda x: x.connected, self.vert_dict.values()) if connected_only else self.vert_dict.values()
         if bbox is not None:
             ret = list(map(lambda x: x.id, filter(lambda x: boolean_point_in_polygon(Feature(geometry=Point(x["geometry"]["coordinates"])), bbox), varr)))
-            logging.debug("Graph::get_vertices: box bounded from %d to %d.", len(self.vert_dict), len(ret))
+            logger.debug(":get_vertices: box bounded from %d to %d.", len(self.vert_dict), len(ret))
             return ret
         return list(varr)
 
@@ -118,11 +127,11 @@ class Graph:  # Graph(FeatureCollection)?
                         if "bbox" in options:
                             dstp = self.get_vertex(dst)
                             bbOk = boolean_point_in_polygon(dstp, options["bbox"])
-                        # logging.debug("%s %s %s %s %s" % (dst, v.usage, code, txyOk, scdOk))
+                        # logger.debug("%s %s %s %s %s" % (dst, v.usage, code, txyOk, scdOk))
                         if bbOk:
                             connectionKeys.append(dst)
                         # else:
-                        #     logging.debug("Graph::get_connections: excluded.")
+                        #     logger.debug(":get_connections: excluded.")
 
             return connectionKeys
 
@@ -140,7 +149,7 @@ class Graph:  # Graph(FeatureCollection)?
                 self.vert_dict[edge.end.id].add_neighbor(self.vert_dict[edge.start.id].id, edge.weight)
 
         else:
-            logging.critical("Graph::add_edge: vertex not found when adding edges %s,%s", edge.start, edge.end)
+            logging.critical(":add_edge: vertex not found when adding edges %s,%s", edge.start, edge.end)
 
 
     def get_edge(self, src: str, dst: str):
@@ -199,7 +208,7 @@ class Graph:  # Graph(FeatureCollection)?
         # This will store the Shortest path between source and target node
         route = []
         if not source or not target:
-            logging.debug("Graph::Dijkstra: source or target missing")
+            logger.debug(":Dijkstra: source or target missing")
             return route
 
         # These are all the nodes which have not been visited yet
@@ -209,7 +218,7 @@ class Graph:  # Graph(FeatureCollection)?
         else:
             unvisited_nodes = list(self.get_vertices())
 
-        # logging.debug("Unvisited nodes", unvisited_nodes)
+        # logger.debug("Unvisited nodes", unvisited_nodes)
         # It will store the shortest distance from one node to another
         shortest_distance = {}
         # It will store the predecessors of the nodes
@@ -243,7 +252,7 @@ class Graph:  # Graph(FeatureCollection)?
             # respectively) and the weight of the edges
             min_vertex = self.get_vertex(min_node)
             connected = self.get_connections(min_vertex, options)
-            # logging.debug("connected %s: %f %d/%d", min_node, shortest_distance[min_node], len(min_vertex.adjacent), len(connected))
+            # logger.debug("connected %s: %f %d/%d", min_node, shortest_distance[min_node], len(min_vertex.adjacent), len(connected))
             for child_node in connected:
                 e = self.get_edge(min_node, child_node) # should always be found...
                 cost = e.weight
@@ -267,7 +276,7 @@ class Graph:  # Graph(FeatureCollection)?
         node = target
         # Starting from the goal node, we will go back to the source node and
         # see what path we followed to get the smallest distance
-        # logging.debug("Graph::Dijkstra: predecessor %s", predecessor)
+        # logger.debug(":Dijkstra: predecessor %s", predecessor)
         while node and node != source and len(predecessor.keys()) > 0:
             # As it is not necessary that the target node can be reached from # the source node, we must enclose it in a try block
             route.insert(0, node)
@@ -277,12 +286,12 @@ class Graph:  # Graph(FeatureCollection)?
                 node = False
 
         if len(route) == 0:
-            logger.debug("Graph::Dijkstra: could not find route from %s to %s", source, target)
+            logger.debug(":Dijkstra: could not find route from %s to %s", source, target)
             return None
         else:
             # Including the source in the path
             route.insert(0, source)
-            logger.debug("Graph::Dijkstra: route: %s", "-".join(route))
+            logger.debug(":Dijkstra: route: %s", "-".join(route))
             return route
 
 
@@ -339,7 +348,7 @@ class Graph:  # Graph(FeatureCollection)?
                     n = v
 
             if n == None:
-                logger.warning("Graph::AStart: path not found")
+                logger.warning(":AStart: path not found")
                 return None
 
             # if the current node is the stop_node
@@ -352,7 +361,7 @@ class Graph:  # Graph(FeatureCollection)?
                 reconst_path.append(start_node)
                 reconst_path.reverse()
 
-                logger.debug("Graph::AStart: path found: %s (%f sec)" % (reconst_path, (time.perf_counter() - ss)))
+                logger.debug(":AStart: path found: %s (%f sec)" % (reconst_path, (time.perf_counter() - ss)))
                 return reconst_path
 
             # for all neighbors of the current node do
@@ -381,5 +390,5 @@ class Graph:  # Graph(FeatureCollection)?
             open_list.remove(n)
             closed_list.add(n)
 
-        logger.warning("Graph::AStart: path not found")
+        logger.warning(":AStart: path not found")
         return None

@@ -41,7 +41,7 @@ class AircraftType:
             if row["ICAO Code"] != "tbd":
                 AircraftType._DB[row["ICAO Code"]] = AircraftType(orgId=row["Manufacturer"], classId=row["Wake Category"], typeId=row["ICAO Code"], name=row["Model"])
         file.close()
-        logger.debug("AircraftType::loadAll: loaded %d aircraft types" % len(AircraftType._DB))
+        logger.debug(":loadAll: loaded %d aircraft types" % len(AircraftType._DB))
 
 
     @staticmethod
@@ -67,19 +67,19 @@ class AircraftPerformance(AircraftType):
                 self.perfdata = yaml.safe_load(file)
                 self.perfdatafile = file
                 file.close()
-                logger.debug("AircraftPerformance::loadPerformance: load %d perfs for %s" % (len(self.perfdata), self.typeId.upper()))
+                logger.debug(":loadPerformance: load %d perfs for %s" % (len(self.perfdata), self.typeId.upper()))
             else:  # fall back on aircraft performance category (A-F)
-                logger.warning("AircraftPerformance::loadPerformance: file not found %s" % filename)
+                logger.warning(":loadPerformance: file not found %s" % filename)
                 filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.classId.upper()+".yaml")
                 if os.path.exists(filename):
                     file = open(filename, "r")
                     self.perfdata = yaml.safe_load(file)
                     self.perfdatafile = file
                     file.close()
-                    logger.debug("AircraftPerformance::loadPerformance: load %d perfs for %s" % (len(self.perfdata), self.typeId.upper()))
+                    logger.debug(":loadPerformance: load %d perfs for %s" % (len(self.perfdata), self.typeId.upper()))
                 else:
-                    logger.warning("AircraftPerformance::loadPerformance: file not found %s" % filename)
-                    logger.warning("AircraftPerformance::loadPerformance: no performance data file for %s" % self.typeId.upper())
+                    logger.warning(":loadPerformance: file not found %s" % filename)
+                    logger.warning(":loadPerformance: no performance data file for %s" % self.typeId.upper())
 
 
 
