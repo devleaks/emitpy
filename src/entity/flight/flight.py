@@ -101,48 +101,11 @@ class Flight:
 
         logger.debug(":loadFlightPlan: identified %d waypoints" % len(self.flightplan_cp))
 
-        logger.debug(":loadFlightPlan: loaded %d waypoints" % len(self.flightplan.nodes()))
+        fplen = len(self.flightplan.nodes())
+        logger.debug(":loadFlightPlan: loaded %d waypoints" % fplen)
 
-    # def toVertices(self, route):
-    #     """
-    #     Transform FeatureCollection<Feature<Point>> from FlightPlanDatabase into FeatureCollection<Feature<Vertex>>
-    #     where Vertex is in Airspace.
-    #     """
-    #     def isPoint(f):
-    #         return ("geometry" in f) and ("type" in f["geometry"]) and (f["geometry"]["type"] == "Point")
-
-    #     wpts = []
-    #     errs = 0
-    #     idx = 0
-    #     for f in route:
-    #         if isPoint(f):
-    #             fty = f["properties"]["type"] if "type" in f["properties"] else None
-    #             fid = f["properties"]["ident"] if "ident" in f["properties"] else None
-    #             if fid is not None:
-    #                 wid = self.managedAirport.airspace.findControlledPointByName(fid)
-    #                 if len(wid) == 1:
-    #                     v = self.managedAirport.airspace.vert_dict[wid[0]]
-    #                     wpts.append(v)
-    #                     logger.debug(":toVertices: added %s %s as %s" % (fty, fid, v.id))
-    #                 else:
-    #                     errs = errs + 1
-    #                     if len(wid) == 0:
-    #                         logger.warning(":toVertices: ident %s not found" % fid)
-    #                     else:
-    #                         logger.warning(":toVertices: ambiguous ident %s has %d entries" % (fid, len(wid)))
-    #                         # @todo use proximity to previous point, choose closest. Use navaid rather than fix.
-    #                         # if len(wpts) > 0:
-    #                         #     logger.warning(":toVertices: will search for closest to previous %s" % wpts[-1])
-    #                         #     wid2 = self.managedAirport.airspace.findClosestControlledPoint(wid, wpts[-1])  # returns (wpt, dist)
-    #                         #     v = self.managedAirport.airspace.vert_dict[wid2[0]]
-    #                         #     wpts.append(v)
-    #                         #     logger.debug(":toVertices: added %s %s as %s (closest waypoint at %f)" % (fty, fid, v.id, wid2[1]))
-    #                         # else
-    #                         #     logger.warning(":toVertices: cannot eliminate ambiguous ident %s has %d entries" % (fid, len(wid)))
-    #             else:
-    #                 errs = errs + 1
-    #                 logger.warning(":toVertices: no ident for feature %s" % (fid))
-    #     return (wpts, errs)
+        if fplen < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
+            logger.warning(":loadFlightPlan: flight_plan is too short %d" % fplen)
 
     def taxi(self):
         pass
@@ -185,9 +148,6 @@ class Arrival(Flight):
         if self.flightplan is None:
             self.loadFlightPlan()
 
-        if len(self.flightplan_features) < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
-            logger.warning(":plan: flight_plan is too short %d" % len(self.flightplan_features))
-
         arrpts = self.trimFlightPlan()
 
         rwy = self.managedAirport.getRunway(self)
@@ -204,14 +164,6 @@ class Arrival(Flight):
         arrpts = arrpts + ret
 
         arrpts = arrpts + rwy.getRoute()
-
-        i = 0
-        for f in arrpts:
-            if not isinstance(f, Feature):
-                logger.warning(":plan: not a feature: %d: %s: %s" % (i, type(f), f))
-                i = i + 1
-        if i == 0:
-            logger.warning(":plan: %d features", len(arrpts))
 
         self.procedure = (star, appch, rwy)
         self.flightplan_cp = arrpts
@@ -243,8 +195,6 @@ class Departure(Flight):
         #
         if self.flightplan is None:
             self.loadFlightPlan()
-        if len(self.flightplan_features) < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
-            logger.warning(":plan: flight_plan is too short %d" % len(self.flightplan["features"]))
 
         rwy = self.managedAirport.getRunway(self)
         logger.debug(":plan: runway %s" % rwy.name)
@@ -261,16 +211,8 @@ class Departure(Flight):
         deppts = deppts + temp
 
         self.procedure = (rwy, sid)
-        # little control on point types. they should all be Features, montly through Vertex
-        i = 0
-        for f in deppts:
-            if not isinstance(f, Feature):
-                logger.warning(":plan: not a feature: %d: %s: %s" % (i, type(f), f))
-                i = i + 1
-        if i == 0:
-            logger.warning(":plan: %d features", len(deppts))
-
         self.flightplan = deppts
+
         return (True, "Departure::plan: planned")
         # dp = DeparturePath(dep)
         # pd = dp.mkPath()

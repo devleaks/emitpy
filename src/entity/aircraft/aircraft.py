@@ -3,7 +3,7 @@
 """
 import os
 import csv
-import yaml
+import json
 import logging
 
 from ..business import Company
@@ -61,25 +61,34 @@ class AircraftPerformance(AircraftType):
 
     def loadPerformance(self):
         if self.perfdata is None:
-            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.typeId.upper()+".yaml")
+            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.typeId.upper()+".json")
             if os.path.exists(filename):
                 file = open(filename, "r")
-                self.perfdata = yaml.safe_load(file)
+                self.perfdata = json.load(file)
                 self.perfdatafile = file
                 file.close()
-                logger.debug(":loadPerformance: load %d perfs for %s" % (len(self.perfdata), self.typeId.upper()))
+                logger.debug(":loadPerformance: loaded %d perfs for aircraft type %s" % (len(self.perfdata), self.typeId.upper()))
             else:  # fall back on aircraft performance category (A-F)
                 logger.warning(":loadPerformance: file not found %s" % filename)
-                filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.classId.upper()+".yaml")
+                filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.classId.upper()+".json")
                 if os.path.exists(filename):
                     file = open(filename, "r")
-                    self.perfdata = yaml.safe_load(file)
+                    self.perfdata = json.load(file)
                     self.perfdatafile = file
                     file.close()
-                    logger.debug(":loadPerformance: load %d perfs for %s" % (len(self.perfdata), self.typeId.upper()))
+                    logger.debug(":loadPerformance: loaded average %d perfs for aircraft class %s" % (len(self.perfdata), self.classId.upper()))
                 else:
                     logger.warning(":loadPerformance: file not found %s" % filename)
-                    logger.warning(":loadPerformance: no performance data file for %s" % self.typeId.upper())
+                    filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "STD.json")
+                    if os.path.exists(filename):
+                        file = open(filename, "r")
+                        self.perfdata = json.load(file)
+                        self.perfdatafile = file
+                        file.close()
+                        logger.debug(":loadPerformance: loaded %d standard perfs data for aircraft, ignoring model" % (len(self.perfdata)))
+                    else:
+                        logger.warning(":loadPerformance: average perfs file %s for aircraft not found" % (filename))
+                        logger.warning(":loadPerformance: no performance data file for %s" % self.typeId.upper())
 
 
 
