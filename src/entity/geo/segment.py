@@ -49,7 +49,7 @@ def __init__(self, start: Point, end: Point, width: float = None):
         w = width
         if w is None:
             if self.width is None:
-                logger.warning("Line::surface: no width")
+                logger.warning(":surface: no width")
                 return None
             w = self.width
 

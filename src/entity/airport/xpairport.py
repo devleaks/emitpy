@@ -27,7 +27,7 @@ class AptLine:
     def __init__(self, line):
         self.arr = line.split()
         if len(self.arr) == 0:
-            logging.debug("AptLine::linecode: empty line? '%s'", line)
+            logger.debug(":linecode: empty line? '%s'", line)
 
     def linecode(self):
         if len(self.arr) > 0:
@@ -68,10 +68,10 @@ class XPAirport(AirportBase):
 
         while not self.loaded and scenery:  # while we have not found our airport and there are more scenery packs
             if re.match("^SCENERY_PACK", scenery, flags=0):
-                logging.debug("SCENERY_PACK %s", scenery.rstrip())
+                logger.debug("SCENERY_PACK %s", scenery.rstrip())
                 scenery_pack_dir = scenery[13:-1]
                 scenery_pack_apt = os.path.join(SYSTEM_DIRECTORY, scenery_pack_dir, "Earth nav data", "apt.dat")
-                logging.debug("APT.DAT %s", scenery_pack_apt)
+                logger.debug("APT.DAT %s", scenery_pack_apt)
 
                 if os.path.isfile(scenery_pack_apt):
                     apt_dat = open(scenery_pack_apt, "r", encoding='utf-8')
@@ -80,12 +80,12 @@ class XPAirport(AirportBase):
                     while not self.loaded and line:  # while we have not found our airport and there are more lines in this pack
                         if re.match("^1 ", line, flags=0):  # if it is a "startOfAirport" line
                             newparam = line.split()  # if no characters supplied to split(), multiple space characters as one
-                            # logging.debug("airport: %s" % newparam[4])
+                            # logger.debug("airport: %s" % newparam[4])
                             if newparam[4] == self.icao:  # it is the airport we are looking for
                                 self.name = " ".join(newparam[5:])
                                 self.altitude = newparam[1]
                                 # Info 4.a
-                                logging.info("XPAirport::loadFromFile: Found airport %s '%s' in '%s'.", newparam[4], self.name, scenery_pack_apt)
+                                logger.info(":loadFromFile: Found airport %s '%s' in '%s'.", newparam[4], self.name, scenery_pack_apt)
                                 self.scenery_pack = scenery_pack_apt  # remember where we found it
                                 self.lines.append(AptLine(line))  # keep first line
                                 line = apt_dat.readline()  # next line in apt.dat
@@ -94,10 +94,10 @@ class XPAirport(AirportBase):
                                     if testline.linecode() is not None:
                                         self.lines.append(testline)
                                     else:
-                                        logging.debug("XPAirport::loadFromFile: did not load empty line '%s'" % line)
+                                        logger.debug(":loadFromFile: did not load empty line '%s'" % line)
                                     line = apt_dat.readline()  # next line in apt.dat
                                 # Info 4.b
-                                logging.info("XPAirport::loadFromFile: Read %d lines for %s." % (len(self.lines), self.name))
+                                logger.info(":loadFromFile: Read %d lines for %s." % (len(self.lines), self.name))
                                 self.loaded = True
 
                         if(line):  # otherwize we reached the end of file
@@ -128,7 +128,7 @@ class XPAirport(AirportBase):
                 runways[args[16]] = Runway(args[16], float(args[0]), float(args[17]), float(args[18]), float(args[8]), float(args[9]), runway)
 
         self.runways = runways
-        logging.debug("XPAirport::loadRunways: added %d runways", len(runways.keys()))
+        logger.debug(":loadRunways: added %d runways", len(runways.keys()))
         return [True, "XPAirport::loadRunways loaded"]
 
     def loadParkings(self):
@@ -156,7 +156,7 @@ class XPAirport(AirportBase):
                 ramp = None
 
         self.parkings = ramps
-        logging.debug("XPAirport::loadParkings: added %d ramps: %s" % (len(ramps.keys()), ramps.keys()))
+        logger.debug(":loadParkings: added %d ramps: %s" % (len(ramps.keys()), ramps.keys()))
         return [True, "XPAirport::loadParkings loaded"]
 
     def loadTaxiways(self):
@@ -168,7 +168,7 @@ class XPAirport(AirportBase):
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
-        logging.debug("XPAirport::loadTaxiways: added %d vertices" % len(v))
+        logger.debug(":loadTaxiways: added %d vertices" % len(v))
 
         # 1202 20 21 twoway runway 16L/34R
         # 1204 departure 16L,34R
@@ -193,7 +193,7 @@ class XPAirport(AirportBase):
                     self.taxiways.add_edge(edge)
                     edgeCount += 1
                 else:
-                    logging.debug("XPAirport::loadTaxiways: not enough params %d %s.", aptline.linecode(), aptline.content())
+                    logger.debug(":loadTaxiways: not enough params %d %s.", aptline.linecode(), aptline.content())
             elif aptline.linecode() == 1204 and edge:
                 args = aptline.content().split()
                 if len(args) >= 2:
@@ -201,12 +201,12 @@ class XPAirport(AirportBase):
                     edge.use(args[1], True)
                     edgeActiveCount += 1
                 else:
-                    logging.debug("XPAirport::loadTaxiways: not enough params %d %s.", aptline.linecode(), aptline.content())
+                    logger.debug(":loadTaxiways: not enough params %d %s.", aptline.linecode(), aptline.content())
             else:
                 edge = False
 
         # Info 6
-        logging.info("XPAirport::loadTaxiways: added %d nodes, %d edges (%d enhanced).", len(vertexlines), edgeCount, edgeActiveCount)
+        logger.info(":loadTaxiways: added %d nodes, %d edges (%d enhanced).", len(vertexlines), edgeCount, edgeActiveCount)
         return [True, "XPAirport::loadTaxiways loaded"]
 
     def loadServiceRoads(self):
@@ -218,7 +218,7 @@ class XPAirport(AirportBase):
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
-        logging.debug("XPAirport::loadServiceNetwork: added %d vertices" % len(v))
+        logger.debug(":loadServiceNetwork: added %d vertices" % len(v))
 
         # 1206 107 11 twoway C
         edgeCount = 0   # just for info
@@ -239,12 +239,12 @@ class XPAirport(AirportBase):
                     self.service_roads.add_edge(edge)
                     edgeCount += 1
                 else:
-                    logging.debug("XPAirport::loadServiceNetwork: not enough params %d %s.", aptline.linecode(), aptline.content())
+                    logger.debug(":loadServiceNetwork: not enough params %d %s.", aptline.linecode(), aptline.content())
             else:
                 edge = False
 
         # Info 6
-        logging.info("XPAirport::loadServiceNetwork: added %d nodes, %d edges.", len(vertexlines), edgeCount)
+        logger.info(":loadServiceNetwork: added %d nodes, %d edges.", len(vertexlines), edgeCount)
         return [True, "XPAirport::loadServiceNetwork loaded"]
 
     def loadServiceDestinations(self):
@@ -259,5 +259,5 @@ class XPAirport(AirportBase):
                 service_destinations[name] = ServiceParking(name=name, parking_type=aptline.linecode(), position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[3])
 
         self.service_destinations = service_destinations
-        logging.debug("XPAirport::loadServiceDestination: added %d service_destinations", len(service_destinations.keys()))
+        logger.debug(":loadServiceDestination: added %d service_destinations", len(service_destinations.keys()))
         return [True, "XPAirport::loadServiceDestination loaded"]

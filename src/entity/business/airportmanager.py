@@ -17,7 +17,7 @@ from ..parameters import DATA_DIR
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("FlightRoute")
+logger = logging.getLogger("AirportManager")
 
 
 class AirportManager:
@@ -45,10 +45,10 @@ class AirportManager:
             with open(business, "r") as fp:
                 self.data = yaml.safe_load(fp)
         else:
-            logger.warning("AirportManager::file: %s not found" % df)
+            logger.warning(":file: %s not found" % df)
             return [False, "AirportManager::loadRunways file %s not found", df]
 
-        logging.debug("AirportManager::loadFromFile: loaded")
+        logger.debug(":loadFromFile: loaded")
         return [True, "AirportManager::loadFromFile: loaded"]
 
     def addAirline(self, airline: Airline, location: Union[LOCAL, REMOTE] = REMOTE):

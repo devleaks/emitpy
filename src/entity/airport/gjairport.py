@@ -35,7 +35,7 @@ class GeoJSONAirport(AirportBase):
         self.airport_base = os.path.join(SYSTEM_DIRECTORY, self.icao)
         airport_df = os.path.join(self.airport_base, "airport.yaml")
 
-        logging.debug("GeoJSONAirport::loadFromFile: loaded")
+        logger.debug(":loadFromFile: loaded")
         return [True, "GeoJSONAirport::loadFromFile: loaded"]
 
 
@@ -49,7 +49,7 @@ class GeoJSONAirport(AirportBase):
                 else:  # JSON or GeoJSON
                     self.data = json.load(fp)
         else:
-            logger.warning("GeoJSONAirport::file: %s not found" % df)
+            logger.warning(":file: %s not found" % df)
             return [False, "GeoJSONAirport::loadRunways file %s not found", df]
 
         return [True, "GeoJSONAirport::file %s loaded" % name]
@@ -60,7 +60,7 @@ class GeoJSONAirport(AirportBase):
         if self.data is not None:  # parse runways
             pass
 
-        logging.debug("GeoJSONAirport::loadRunways: added %d runways", len(self.runways.keys()))
+        logger.debug(":loadRunways: added %d runways", len(self.runways.keys()))
         return [True, "GeoJSONAirport::loadRunways loaded"]
 
     def loadParkings(self):
@@ -69,9 +69,9 @@ class GeoJSONAirport(AirportBase):
         if self.data is not None:
             self.parkings_geo = self.data
             self.data = None
-            logging.info("GeoJSONAirport::loadParkings: added %d features.", len(self.parkings_geo["features"]))
+            logger.info(":loadParkings: added %d features.", len(self.parkings_geo["features"]))
 
-        logging.debug("GeoJSONAirport::loadParkings: added %d parkings", len(self.parkings.keys()))
+        logger.debug(":loadParkings: added %d parkings", len(self.parkings.keys()))
         return [True, "GeoJSONAirport::loadParkings loaded"]
 
     def loadTaxiways(self):
@@ -80,9 +80,9 @@ class GeoJSONAirport(AirportBase):
         if self.data is not None:
             self.taxiways_geo = self.data
             self.data = None
-            logging.info("GeoJSONAirport::loadTaxiways: added %d features.", len(self.taxiways_geo["features"]))
+            logger.info(":loadTaxiways: added %d features.", len(self.taxiways_geo["features"]))
 
-        logging.info("GeoJSONAirport::loadTaxiways: added %d nodes, %d edges.", len(self.taxiways.vert_dict), len(self.taxiways.edges_arr))
+        logger.info(":loadTaxiways: added %d nodes, %d edges.", len(self.taxiways.vert_dict), len(self.taxiways.edges_arr))
         return [True, "GeoJSONAirport::loadTaxiways loaded"]
 
     def loadServiceRoads(self):
@@ -91,9 +91,9 @@ class GeoJSONAirport(AirportBase):
         if self.data is not None:  # parse runways
             self.service_roads_geo = self.data
             self.data = None
-            logging.info("GeoJSONAirport::loadServiceRoads: added %d features.", len(self.service_roads_geo["features"]))
+            logger.info(":loadServiceRoads: added %d features.", len(self.service_roads_geo["features"]))
 
-        logging.info("GeoJSONAirport::loadServiceRoads: added %d nodes, %d edges.", len(self.service_roads.vert_dict), len(self.service_roads.edges_arr))
+        logger.info(":loadServiceRoads: added %d nodes, %d edges.", len(self.service_roads.vert_dict), len(self.service_roads.edges_arr))
         return [True, "GeoJSONAirport::loadServiceNetwork loaded"]
 
     def loadServiceDestinations(self):
@@ -102,8 +102,8 @@ class GeoJSONAirport(AirportBase):
         if self.data is not None:  # parse runways
             self.service_stops_geo = self.data
             self.data = None
-            logging.info("GeoJSONAirport::loadServiceDestinations: added %d features.", len(self.service_stops_geo["features"]))
+            logger.info(":loadServiceDestinations: added %d features.", len(self.service_stops_geo["features"]))
 
 
-        logging.debug("GeoJSONAirport::loadServiceDestinations: added %d service destinations", len(self.service_destinations.keys()))
+        logger.debug(":loadServiceDestinations: added %d service destinations", len(self.service_destinations.keys()))
         return [True, "GeoJSONAirport::loadServiceDestination loaded"]

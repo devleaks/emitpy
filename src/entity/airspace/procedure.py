@@ -13,7 +13,7 @@ from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
-logger = logging.getLogger("Airport")
+logger = logging.getLogger("Procedure")
 
 
 class PROC_DATA(Enum):
@@ -65,12 +65,12 @@ class ProcedureData:
         self.params = []
         a = line.split(":")
         if len(a) < 2:
-            logging.debug("ProcedureData::__init__: invalid line '%s'", line)
+            logger.debug(":__init__: invalid line '%s'", line)
         else:
             self.procedure = a[0]
             self.params = a[1].split(",")
         if len(self.params) == 0:
-            logging.debug("ProcedureData::__init__: invalid line '%s'", line)
+            logger.debug(":__init__: invalid line '%s'", line)
 
     def proc(self):
         return self.procedure
@@ -132,12 +132,12 @@ class SID(Procedure):
             fid = self.route[v].param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
                 vid = self.route[v].param(PROC_DATA.ICAO_CODE) + ":" + self.route[v].param(PROC_DATA.FIX_IDENT)
-                # logger.debug("Approach::getRoute: searching %s" % vid)
+                # logger.debug(":getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
                     a.append(airspace.vert_dict[vtxs[0]])
                 else:
-                    logger.warning("SID::getRoute: vertex not found %s", vid)
+                    logger.warning(":getRoute: vertex not found %s", vid)
         return a
 
 
@@ -157,12 +157,12 @@ class STAR(Procedure):
             fid = self.route[v].param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
                 vid = self.route[v].param(PROC_DATA.ICAO_CODE) + ":" + self.route[v].param(PROC_DATA.FIX_IDENT)
-                # logger.debug("Approach::getRoute: searching %s" % vid)
+                # logger.debug(":getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
                     a.append(airspace.vert_dict[vtxs[0]])
                 else:
-                    logger.warning("SID::getRoute: vertex not found %s", vid)
+                    logger.warning(":getRoute: vertex not found %s", vid)
         return a
 
 
@@ -183,15 +183,15 @@ class Approach(Procedure):
             code = self.route[v].param(PROC_DATA.DESC_CODE)[0]
             if code == "E" and not interrupted:
                 vid = self.route[v].param(PROC_DATA.ICAO_CODE) + ":" + self.route[v].param(PROC_DATA.FIX_IDENT)
-                # logger.debug("Approach::getRoute: searching %s" % vid)
+                # logger.debug(":getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
                     a.append(airspace.vert_dict[vtxs[0]])
                 else:
-                    logger.warning("Approach::getRoute: vertex not found %s", vid)
+                    logger.warning(":getRoute: vertex not found %s", vid)
             else:
                 if not interrupted:
-                    logger.debug("Approach::getRoute: interrupted%s", "" if len(self.route[v].param(PROC_DATA.FIX_IDENT).strip()) == 0 else (" at %s " % self.route[v].param(PROC_DATA.FIX_IDENT)))
+                    logger.debug(":getRoute: interrupted%s", "" if len(self.route[v].param(PROC_DATA.FIX_IDENT).strip()) == 0 else (" at %s " % self.route[v].param(PROC_DATA.FIX_IDENT)))
                 interrupted = True
 
             # print("%s %s: %d: %s [%s], A: %s [%s,%s], S: %s %s " % (type(self).__name__, self.name, v,
@@ -223,7 +223,7 @@ class Runway(Procedure):
 
     def add(self, line: ProcedureData):
         if self.point is not None:
-            logger.warning("Runway::add: Cannot add to an already defined runway")
+            logger.warning(":add: Cannot add to an already defined runway")
             return
 
         self.route[0] = line
@@ -258,7 +258,7 @@ class Runway(Procedure):
         return self.point
 
     def getRoute(self):
-        # logger.debug("Runway::getRoute: point %s" % self.point)
+        # logger.debug(":getRoute: point %s" % self.point)
         return [self.point]
 
 
@@ -295,7 +295,7 @@ class CIFP:
                 if prevline is not None:
                     prevline.addData(cifpline)
                 else:
-                    logging.warning("Procedures::loadCIFP: received PRDAT but no procedure to add to")
+                    logger.warning(":loadCIFP: received PRDAT but no procedure to add to")
             else:
                 if procname not in self.procs[procty].keys():
                     if procty == "SID":
@@ -307,18 +307,18 @@ class CIFP:
                     elif procty == "RWY":
                         self.procs[procty][procname] = Runway(procname, self.icao)
                     else:
-                        logging.warning("Procedures::loadCIFP: invalid procedure %s", procty)
+                        logger.warning(":loadCIFP: invalid procedure %s", procty)
                 if procname in self.procs[procty].keys():
                     self.procs[procty][procname].add(cifpline)
                 else:
-                    logging.warning("Procedures::loadCIFP: procedure not created %s", procty)
+                    logger.warning(":loadCIFP: procedure not created %s", procty)
 
             prevline = cifpline
             line = cifp_fp.readline()
 
         ## Print result
         for procty in self.procs.keys():
-            logging.debug("Procedures:: %s: %s" % (procty, self.procs[procty].keys()))
+            logger.debug(": %s: %s" % (procty, self.procs[procty].keys()))
 
 
     def getRoute(self, procedure: Procedure, airspace: Airspace):

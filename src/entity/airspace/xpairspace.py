@@ -71,7 +71,7 @@ class XPAirspace(Airspace):
         count = 0
         filename = os.path.join(SYSTEM_DIRECTORY, "GlobalAirportDatabase.txt")
         file = open(filename, "r")
-        logger.info("XPAirspace::loadAirports: from %s.", filename)
+        logger.info(":loadAirports: from %s.", filename)
         line = file.readline()
         line.strip()
 
@@ -84,14 +84,14 @@ class XPAirspace(Airspace):
                 if lat != 0.0 or lon != 0.0:
                     self.add_vertex(Apt(args[0], lat, lon, args[1], args[2], args[3], args[4]))
             else:
-                logger.warning("XPAirspace::loadAirports: invalid airport data %s.", line)
+                logger.warning(":loadAirports: invalid airport data %s.", line)
             line = file.readline()
             line.strip()
             count += 1
 
         file.close()
 
-        logger.info("XPAirspace::loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.info(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPXPAirspace::Airport loaded"]
 
 
@@ -122,14 +122,14 @@ class XPAirspace(Airspace):
 
                 else:
                     if len(line) > 1:
-                        logger.warning("XPAirspace::loadFixes: invalid fix data %s.", line)
+                        logger.warning(":loadFixes: invalid fix data %s.", line)
 
             line = file.readline()
             line.strip()
 
         file.close()
 
-        logger.debug("XPAirspace::loadFixes: %d/%d fixes loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.debug(":loadFixes: %d/%d fixes loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPXPAirspace::Fixes loaded"]
 
 
@@ -200,10 +200,10 @@ class XPAirspace(Airspace):
                         self.add_vertex(LTPFTP(ident=args[7], region=args[9], airport=args[8], lat=lat, lon=lon, elev=alt, freq=args[4], ndb_class=args[5], ndb_ident=args[6], runway=args[10], name=" ".join(args[11:])))
                     else:
                         count -= 1
-                        logger.warning("XPAirspace::loadNavaids: invalid navaid code %d.", lineCode)
+                        logger.warning(":loadNavaids: invalid navaid code %d.", lineCode)
                 else:
                     if len(line) > 1:
-                        logger.warning("XPAirspace::loadNavaids: invalid navaid data %s.", line)
+                        logger.warning(":loadNavaids: invalid navaid data %s.", line)
 
 
             line = file.readline()
@@ -211,7 +211,7 @@ class XPAirspace(Airspace):
 
         file.close()
 
-        logger.debug("XPAirspace::loadNavaids: %d/%d navaids loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.debug(":loadNavaids: %d/%d navaids loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPXPAirspace::Navaids loaded"]
 
 
@@ -242,14 +242,14 @@ class XPAirspace(Airspace):
                     self._cached_vectex_idents[name] = []
                 self._cached_vectex_idents[name].append(v)
 
-            logger.debug("XPAirspace::createIndex: created (%f sec)." % (time.perf_counter() - ss))
+            logger.debug(":createIndex: created (%f sec)." % (time.perf_counter() - ss))
 
 
     def dropIndex(self):
-        logger.debug("XPAirspace::dropIndex: %d fixes, %d navaids" % (self._cached_vectex_ids["Fix"], self._cached_vectex_ids["VHF"]))
+        logger.debug(":dropIndex: %d fixes, %d navaids" % (self._cached_vectex_ids["Fix"], self._cached_vectex_ids["VHF"]))
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
-        logger.debug("XPAirspace::dropIndex: done")
+        logger.debug(":dropIndex: done")
 
 
     def findControlledPoint(self, region, ident, navtypeid):
@@ -273,10 +273,10 @@ class XPAirspace(Airspace):
 
         if len(candidates) > 0:
             # if len(candidates) > 1:
-            #    logger.warning("XPAirspace::findControlledPoint: %d matches on '%s': %s" % (len(candidates), s, candidates))
+            #    logger.warning(":findControlledPoint: %d matches on '%s': %s" % (len(candidates), s, candidates))
             return self.vert_dict[candidates[0]]
 
-        logger.debug("XPAirspace::findControlledPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
+        logger.debug(":findControlledPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
         return None
         """
 
@@ -317,14 +317,14 @@ class XPAirspace(Airspace):
                                 self.add_edge(AirwaySegment(args[10], src, dst, False, args[7], args[8], args[9]))
                             count += 1
                             if count % 10000 == 0:
-                                logger.debug("XPAirspace::loadAirwaySegments: %d segments loaded.", count)
+                                logger.debug(":loadAirwaySegments: %d segments loaded.", count)
                         else:
                             logger.debug("could not find end of segment %s, %s, %s, %s", args[10], args[4], args[3], args[5])
                     else:
                         logger.debug("could not find start of segment %s, %s, %s, %s", args[10], args[0], args[1], args[2])
                 else:
                     if len(line) > 1:
-                        logger.warning("XPAirspace::loadAirwaySegments: invalid segment data %s (%d).", line, count)
+                        logger.warning(":loadAirwaySegments: invalid segment data %s (%d).", line, count)
 
             line = file.readline()
             line.strip()
@@ -332,7 +332,7 @@ class XPAirspace(Airspace):
         file.close()
         self.dropIndex()
 
-        logger.debug("XPAirspace::loadAirwaySegments: %d segments loaded.", len(self.edges_arr))
+        logger.debug(":loadAirwaySegments: %d segments loaded.", len(self.edges_arr))
         return [True, "XPXPAirspace::AirwaySegments loaded"]
 
 
@@ -359,21 +359,21 @@ class XPAirspace(Airspace):
                 if len(args) >= 6:
                     fix = self.findControlledPoint(region=args[1], ident=args[0], navtypeid=args[3])
                     if fix is None:
-                        logger.warning("XPAirspace::loadHolds: fix not found %s.", line)
+                        logger.warning(":loadHolds: fix not found %s.", line)
                     else:
                         hid = ControlledPoint.mkId(region=args[1], airport=args[2], ident=args[0], pointtype="HLD")
                         self.holds[hid] = Hold(fix=fix, altmin=args[8], altmax=args[9],
                             course=args[4], turn=args[7], leg_time=args[5], leg_length=args[6], speed=args[10])
                 else:
                     if len(line) > 1:
-                        logger.warning("XPAirspace::loadHolds: invalid fix data %s.", line)
+                        logger.warning(":loadHolds: invalid fix data %s.", line)
 
             line = file.readline()
             line.strip()
 
         file.close()
 
-        logger.debug("XPAirspace::loadHolds: %d holds loaded.", len(self.holds))
+        logger.debug(":loadHolds: %d holds loaded.", len(self.holds))
         return [True, "XPXPAirspace::Holds loaded"]
 
 

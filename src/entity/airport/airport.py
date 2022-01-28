@@ -57,7 +57,7 @@ class Airport(Location):
                                                     city=row["municipality"], country=row["iso_country"], region=row["iso_region"],
                                                     lat=float(row["latitude_deg"]), lon=float(row["longitude_deg"]), alt=float(row["elevation_ft"])*FOOT)
         file.close()
-        logger.debug("Airport::loadAll: loaded %d airports" % len(Airport._DB))
+        logger.debug(":loadAll: loaded %d airports" % len(Airport._DB))
 
 
     @staticmethod
@@ -154,12 +154,12 @@ class AirportBase(Airport):
         self.qnh = qnh
 
     def getProcedure(self, flight: 'Flight', runway: str):
-        logger.debug("Airport::getProcedure: direction: %s" % type(flight).__name__)
+        logger.debug(":getProcedure: direction: %s" % type(flight).__name__)
         procs = self.procedures.procs["STAR"] if type(flight).__name__ == 'Arrival' else self.procedures.procs["SID"]
         validprocs = list(filter(lambda x: x.runway == runway.name, procs.values()))
         if len(validprocs) > 0:
             return random.choice(validprocs)
-        logger.warning("Airport::getProcedure: no procedure found for runway %s" % runway)
+        logger.warning(":getProcedure: no procedure found for runway %s" % runway)
         return None
 
     def getApproach(self, procedure: 'Procedure', runway: str):  # Procedure should be a STAR
@@ -167,7 +167,7 @@ class AirportBase(Airport):
         validappchs = list(filter(lambda x: x.runway == runway.name, procs.values()))
         if len(validappchs) > 0:
             return random.choice(validappchs)
-        logger.warning("Airport::getApproach: no aproach found for runway %s" % runway)
+        logger.warning(":getApproach: no aproach found for runway %s" % runway)
         return None
 
     def getRunway(self, flight: 'Flight'):

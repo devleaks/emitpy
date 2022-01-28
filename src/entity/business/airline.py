@@ -42,7 +42,7 @@ class Airline(Company):
         for row in csvdata:
             Airline._DB[row["ICAO"]] = Airline(name=row["Airline"], icao=row["ICAO"], iata=row["IATA"])
         file.close()
-        logger.debug("Airline::loadAll: loaded %d airlines" % len(Airline._DB))
+        logger.debug(":loadAll: loaded %d airlines" % len(Airline._DB))
 
 
     @staticmethod
