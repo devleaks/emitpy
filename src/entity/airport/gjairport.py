@@ -39,23 +39,8 @@ class GeoJSONAirport(AirportBase):
         return [True, "GeoJSONAirport::loadFromFile: loaded"]
 
 
-    def loadFromFile2(self, name):
-        df = os.path.join(self.airport_base, "geometries", name)
-
-        if os.path.exists(df):
-            with open(df, "r") as fp:
-                if name[-5:] == ".yaml":
-                    self.data = yaml.safe_load(fp)
-                else:  # JSON or GeoJSON
-                    self.data = json.load(fp)
-        else:
-            logger.warning(":file: %s not found" % df)
-            return [False, "GeoJSONAirport::loadRunways file %s not found", df]
-
-        return [True, "GeoJSONAirport::file %s loaded" % name]
-
     def loadRunways(self):
-        self.loadFromFile2("runways.yaml")
+        self.loadGeometries("runways.yaml")
 
         if self.data is not None:  # parse runways
             pass
@@ -64,7 +49,7 @@ class GeoJSONAirport(AirportBase):
         return [True, "GeoJSONAirport::loadRunways loaded"]
 
     def loadParkings(self):
-        self.loadFromFile2("parkings.geojson")
+        self.loadGeometries("parkings.geojson")
 
         if self.data is not None:
             self.parkings_geo = self.data
@@ -75,7 +60,7 @@ class GeoJSONAirport(AirportBase):
         return [True, "GeoJSONAirport::loadParkings loaded"]
 
     def loadTaxiways(self):
-        self.loadFromFile2("taxiways.geojson")
+        self.loadGeometries("taxiways.geojson")
 
         if self.data is not None:
             self.taxiways_geo = self.data
@@ -86,7 +71,7 @@ class GeoJSONAirport(AirportBase):
         return [True, "GeoJSONAirport::loadTaxiways loaded"]
 
     def loadServiceRoads(self):
-        self.loadFromFile2("serviceroads.geojson")
+        self.loadGeometries("serviceroads.geojson")
 
         if self.data is not None:  # parse runways
             self.service_roads_geo = self.data
@@ -96,8 +81,19 @@ class GeoJSONAirport(AirportBase):
         logger.info(":loadServiceRoads: added %d nodes, %d edges.", len(self.service_roads.vert_dict), len(self.service_roads.edges_arr))
         return [True, "GeoJSONAirport::loadServiceNetwork loaded"]
 
+
+    def loadPOIS(self):
+        status = self.loadServiceDestinations()
+
+        if not status[0]:
+            return [False, status[1]]
+
+        logger.debug(":loadPOIS: loaded")
+        return [True, "GeoJSONAirport::loadPOIS loaded"]
+
+
     def loadServiceDestinations(self):
-        self.loadFromFile2("servicepois.geojson")
+        self.loadGeometries("servicepois.geojson")
 
         if self.data is not None:  # parse runways
             self.service_stops_geo = self.data

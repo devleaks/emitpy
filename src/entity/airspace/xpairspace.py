@@ -4,11 +4,12 @@ import os.path
 import re
 import logging
 import time
-
-from ..graph import Graph
+from math import inf
+from turfpy.measurement import distance
 
 from .airspace import Airspace, Apt, Fix, ControlledPoint, AirwaySegment
 from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
+
 from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
@@ -279,6 +280,18 @@ class XPAirspace(Airspace):
         logger.debug(":findControlledPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
         return None
         """
+
+    def findClosestControlledPoint(self, reference, vertlist):
+        closest = None
+        refvtx = self.get_vertex(reference)
+        dist = inf
+        for v in vertlist:
+            vtx = self.get_vertex(v)
+            d = distance(refvtx, vtx)
+            if d < dist:
+                dist = d
+                closest = v
+        return [closest, dist]
 
 
     def loadAirwaySegments(self):

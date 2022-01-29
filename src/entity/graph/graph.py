@@ -4,7 +4,7 @@
 # Dijkstra stolen at https://www.bogotobogo.com/python/python_graph_data_structures.php
 #
 import logging
-import math
+from math import inf
 import time
 
 logging.basicConfig(level=logging.DEBUG)
@@ -168,7 +168,7 @@ class Graph:  # Graph(FeatureCollection)?
         closest = None
         edge = None
         nconn = (0, 0)
-        dist = math.inf
+        dist = inf
         for e in self.edges_arr:
             if (not with_connection) or (with_connection and (len(e.start.adjacent) > 0 or len(e.end.adjacent) > 0)):
                 d = point_to_line_distance(point, Feature(geometry=e["geometry"]))
@@ -182,7 +182,7 @@ class Graph:  # Graph(FeatureCollection)?
     def nearest_vertex(self, point: Feature, with_connection: bool = False):
         closest = None
         nconn = 0
-        dist = math.inf
+        dist = inf
         for p in self.vert_dict.values():
             if (not with_connection) or (with_connection and len(p.adjacent) > 0):
                 d = distance(point, p)
@@ -227,7 +227,7 @@ class Graph:  # Graph(FeatureCollection)?
         # Iterating through all the unvisited nodes
         for nodes in unvisited_nodes:
             # Setting the shortest_distance of all the nodes as infinty
-            shortest_distance[nodes] = math.inf
+            shortest_distance[nodes] = inf
 
         # The distance of a point to itself is 0.
         shortest_distance[str(source)] = 0

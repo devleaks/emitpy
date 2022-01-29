@@ -155,6 +155,16 @@ class OSMAirport(AirportBase):
         return self.loadOSM("overpass-highway.json", self.service_roads)
 
 
+    def loadPOIS(self):
+        status = self.loadServiceDestinations()
+
+        if not status[0]:
+            return [False, status[1]]
+
+        logger.debug(":loadPOIS: loaded")
+        return [True, "GeoJSONAirport::loadPOIS loaded"]
+
+
     def loadServiceDestinations(self):
         self.loadFromFile2("servicepois.geojson")
 
