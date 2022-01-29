@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import csv
+import json
 import logging
 import random
 
@@ -118,7 +119,7 @@ class AirportBase(Airport):
         if not status[0]:
             return [False, status[1]]
 
-        status = self.loadServiceDestinations()
+        status = self.loadPOIS()
         if not status[0]:
             return [False, status[1]]
 
@@ -127,6 +128,16 @@ class AirportBase(Airport):
 
     def loadFromFile(self):
         return [False, "no load implemented"]
+
+    def loadGeometries(self, name):
+        df = os.path.join(self.airport_base, "geometries", name)
+        if os.path.exists(df):
+            with open(df, "r") as fp:
+                self.data = json.load(fp)
+        else:
+            logger.warning(":file: %s not found" % df)
+            return [False, "GeoJSONAirport::loadRunways file %s not found", df]
+        return [True, "GeoJSONAirport::file %s loaded" % name]
 
     def loadProcedures(self):
         return [False, "no load implemented"]
@@ -143,9 +154,8 @@ class AirportBase(Airport):
     def loadServiceRoads(self):
         return [False, "no load implemented"]
 
-    def loadServiceDestinations(self):
+    def loadPOIS(self):
         return [False, "no load implemented"]
-
 
     def setQFU(self, qfu: float):
         self.qfu = qfu

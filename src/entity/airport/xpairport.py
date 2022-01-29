@@ -57,8 +57,11 @@ class XPAirport(AirportBase):
         self.lines = []
         self.atc_ground = None
         self.loaded = False
-        self.procedures
+        self.procedures = None
+        self.aeroway_pois = None
+        self.service_pois = None
         self.simairporttype = "X-Plane"
+        self.airport_base = os.path.join(DATA_DIR, "managedairport", icao)
 
     def loadFromFile(self):
         SCENERY_PACKS = os.path.join(SYSTEM_DIRECTORY, "Custom Scenery", "scenery_packs.ini")
@@ -247,6 +250,21 @@ class XPAirport(AirportBase):
         logger.info(":loadServiceNetwork: added %d nodes, %d edges.", len(vertexlines), edgeCount)
         return [True, "XPAirport::loadServiceNetwork loaded"]
 
+
+    def loadPOIS(self):
+        status = self.loadServiceDestinations()
+        if not status[0]:
+            return [False, status[1]]
+        status = self.loadAerowaysPOIS()
+        if not status[0]:
+            return [False, status[1]]
+        status = self.loadServicePOIS()
+        if not status[0]:
+            return [False, status[1]]
+        logger.debug(":loadPOIS: loaded")
+        return [True, "GeoJSONAirport::loadPOIS loaded"]
+
+
     def loadServiceDestinations(self):
         # 1400 47.44374472 -122.30463464 88.1 baggage_train 3 Svc Baggage
         # 1401 47.44103438 -122.30382493 0.0 baggage_train Luggage Train Destination South 2
@@ -261,3 +279,46 @@ class XPAirport(AirportBase):
         self.service_destinations = service_destinations
         logger.debug(":loadServiceDestination: added %d service_destinations", len(service_destinations.keys()))
         return [True, "XPAirport::loadServiceDestination loaded"]
+
+    def loadAerowaysPOIS(self):
+        self.loadGeometries("aeroway-pois.geojson")
+        self.aeroway_pois = {}
+        if self.data is not None:  # parse runways
+            for f in self.data["features"]:
+                n = f["properties"]["name"] if "name" in f["properties"] else None
+                if n is not None:
+                    self.aeroway_pois[n] = f
+                else:
+                    logger.warning(":loadAerowaysPOIS: feature with no name. cannot index %s." % f)
+            logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))
+            self.data = None
+
+        logger.debug(":loadAerowaysPOIS: added %d points of interest: %s" % (len(self.aeroway_pois), self.aeroway_pois.keys()))
+        return [True, "XPAirport::loadAerowaysPOIS loaded"]
+
+    def loadServicePOIS(self):
+        self.loadGeometries("service-pois.geojson")
+        self.service_pois = {}
+        if self.data is not None:  # parse runways
+            for f in self.data["features"]:
+                n = f["properties"]["name"] if "name" in f["properties"] else None
+                if n is not None:
+                    self.service_pois[n] = f
+                else:
+                    logger.warning(":loadServicePOIS: feature with no name. cannot index %s." % f)
+            logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))
+            self.data = None
+
+        logger.debug(":loadServicePOIS: added %d points of interest: %s" % (len(self.service_pois), self.service_pois.keys()))
+        return [True, "XPAirport::loadServicePOIS loaded"]
+
+    def getAerowayPOI(self, name):
+        res = list(filter(lambda f: f.name == name, self.aeroway_pois))
+        return res[0] if len(res) == 1 else None
+
+    def getServicePOI(self, name):
+        res = list(filter(lambda f: f.name == name, self.service_pois))
+        return res[0] if len(res) == 1 else None
+
+    def getParking(self, name):
+        return self.parkings[name] if name in self.parkings.keys() else None

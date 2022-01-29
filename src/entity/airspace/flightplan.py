@@ -188,10 +188,10 @@ class FlightPlan:
     def nodes(self):
         return self.flight_plan["route"]["nodes"]
 
+
     def toAirspace(self, airspace: Airspace):
         """
-        Transform FeatureCollection<Feature<Point>> from FlightPlanDatabase into FeatureCollection<Feature<Vertex>>
-        where Vertex is in Airspace.
+        Transform [<Feature<Point>>] from FlightPlanDatabase into [<<Vertex>>] where Vertex is in Airspace.
         """
         def isPoint(f):
             return ("geometry" in f) and ("type" in f["geometry"]) and (f["geometry"]["type"] == "Point")
@@ -208,22 +208,23 @@ class FlightPlan:
                     if len(wid) == 1:
                         v = airspace.vert_dict[wid[0]]
                         wpts.append(v)
-                        logger.debug(":toAirspace: added %s %s as %s" % (fty, fid, v.id))
+                        # logger.debug(":toAirspace: added %s %s as %s" % (fty, fid, v.id))
                     else:
-                        errs = errs + 1
                         if len(wid) == 0:
+                            errs = errs + 1
                             logger.warning(":toAirspace: ident %s not found" % fid)
                         else:
                             logger.warning(":toAirspace: ambiguous ident %s has %d entries" % (fid, len(wid)))
                             # @todo use proximity to previous point, choose closest. Use navaid rather than fix.
-                            # if len(wpts) > 0:
-                            #     logger.warning(":toVertices: will search for closest to previous %s" % wpts[-1])
-                            #     wid2 = airspace.findClosestControlledPoint(wid, wpts[-1])  # returns (wpt, dist)
-                            #     v = airspace.vert_dict[wid2[0]]
-                            #     wpts.append(v)
-                            #     logger.debug(":toVertices: added %s %s as %s (closest waypoint at %f)" % (fty, fid, v.id, wid2[1]))
-                            # else
-                            #     logger.warning(":toVertices: cannot eliminate ambiguous ident %s has %d entries" % (fid, len(wid)))
+                            if len(wpts) > 0:
+                                logger.warning(":toVertices: will search for closest to previous %s" % wpts[-1].id)
+                                wid2 = airspace.findClosestControlledPoint(reference=wpts[-1].id, vertlist=wid)  # returns (wpt, dist)
+                                v = airspace.vert_dict[wid2[0]]
+                                wpts.append(v)
+                                logger.debug(":toVertices: added %s %s as %s (closest waypoint at %f)" % (fty, fid, v.id, wid2[1]))
+                            else:
+                                errs = errs + 1
+                                logger.warning(":toVertices: cannot eliminate ambiguous ident %s has %d entries" % (fid, len(wid)))
                 else:
                     errs = errs + 1
                     logger.warning(":toAirspace: no ident for feature %s" % (fid))

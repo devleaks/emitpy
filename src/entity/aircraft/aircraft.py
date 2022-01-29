@@ -49,7 +49,6 @@ class AircraftType:
         return AircraftType._DB[icao] if icao in AircraftType._DB else None
 
 
-
 class AircraftPerformance(AircraftType):
     """
     """
