@@ -5,10 +5,12 @@ import os
 import csv
 import json
 import logging
+from math import inf
 
 from ..business import Company
 from ..constants import AIRCRAFT_TYPE_DATABASE
 from ..parameters import DATA_DIR
+from ..utils import NAUTICAL_MILE
 
 logger = logging.getLogger("Aircraft")
 
@@ -52,10 +54,56 @@ class AircraftType:
 class AircraftPerformance(AircraftType):
     """
     """
+    _DB_PERF = {}
+
     def __init__(self, orgId: str, classId: str, typeId: str, name: str):
         AircraftType.__init__(self, orgId, classId, typeId, name)
         self.perfdatafile = None
         self.perfdata = None
+
+
+    @staticmethod
+    def loadAll():
+        """
+        "Date Completed","Manufacturer","Model","Physical Class (Engine)","# Engines","AAC","ADG","TDG",
+        "Approach Speed (Vref)","Wingtip Configuration","Wingspan- ft","Length- ft","Tail Height- ft(@ OEW)",
+        "Wheelbase- ft","Cockpit to Main Gear (CMG)","MGW (Outer to Outer)","MTOW","Max Ramp Max Taxi",
+        "Main Gear Config","ICAO Code","Wake Category","ATCT Weight Class","Years Manufactured",
+        "Note","Parking Area (WS x Length)- sf"
+        """
+        filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "aircraft-performances.json")
+        file = open(filename, "r")
+        jsondata = json.load(file)
+        for ac in jsondata.keys():
+            actype = AircraftType.find(ac)
+            if actype is not None:
+                acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name)
+                acperf.perfdata = jsondata[ac]
+                AircraftPerformance._DB_PERF[ac] = acperf
+            else:
+                logger.warning(":loadAll: AircraftType %s not found" % ac)
+        file.close()
+        logger.debug(":loadAll: loaded %d aircraft types with their performances" % len(AircraftPerformance._DB_PERF))
+
+
+    @staticmethod
+    def find(icao: str):
+        return AircraftPerformance._DB_PERF[icao] if icao in AircraftPerformance._DB_PERF else None
+
+
+    @staticmethod
+    def findAircraft(reqrange: int, pax: int = 0, load: int = 0):
+        rdiff = inf
+        best = None
+        for ac in AircraftPerformance._DB_PERF.keys():
+            if "cruise_range" in AircraftPerformance._DB_PERF[ac].perfdata:
+                r = int(AircraftPerformance._DB_PERF[ac].perfdata["cruise_range"]) * NAUTICAL_MILE
+                if r > reqrange:
+                    rd = reqrange - r
+                    if rd < rdiff:
+                        rdiff = rd
+                        best = ac
+        return AircraftPerformance._DB_PERF[best]
 
 
     def loadPerformance(self):

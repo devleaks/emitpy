@@ -27,3 +27,5 @@ MANAGED_AIRPORT = {
     "lat": 25.2745,
     "lon": 51.6077
 }
+
+LOAD_AIRWAYS=False  # to speedup developments

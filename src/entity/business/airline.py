@@ -25,10 +25,12 @@ class Airline(Company):
     """
 
     _DB = {}
+    _DB_IATA = {}
 
     def __init__(self, name: str, iata: str, icao: str):
         Company.__init__(self, name, AIRLINE, "", iata)
         self.icao = icao
+        self.iata = iata
         self.airroutes = []
         self.hubs = {}
         self._rawdata = None
@@ -40,7 +42,9 @@ class Airline(Company):
         file = open(filename, "r")
         csvdata = csv.DictReader(file)
         for row in csvdata:
-            Airline._DB[row["ICAO"]] = Airline(name=row["Airline"], icao=row["ICAO"], iata=row["IATA"])
+            a = Airline(name=row["Airline"], icao=row["ICAO"], iata=row["IATA"])
+            Airline._DB[row["ICAO"]] = a
+            Airline._DB_IATA[row["IATA"]] = a
         file.close()
         logger.debug(":loadAll: loaded %d airlines" % len(Airline._DB))
 
@@ -48,6 +52,10 @@ class Airline(Company):
     @staticmethod
     def find(icao: str):
         return Airline._DB[icao] if icao in Airline._DB else None
+
+    @staticmethod
+    def findIATA(iata: str):
+        return Airline._DB_IATA[iata] if iata in Airline._DB_IATA else None
 
 
     def loadFromFile(self):

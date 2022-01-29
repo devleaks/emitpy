@@ -322,3 +322,6 @@ class XPAirport(AirportBase):
 
     def getParking(self, name):
         return self.parkings[name] if name in self.parkings.keys() else None
+
+    def miles(self, airport):
+        return distance(self, airport)

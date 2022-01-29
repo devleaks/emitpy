@@ -16,7 +16,7 @@ from ..graph import Graph
 from ..geo import Location
 
 from ..constants import AIRPORT_DATABASE, FOOT
-from ..parameters import DATA_DIR
+from ..parameters import DATA_DIR, LOAD_AIRWAYS
 
 logger = logging.getLogger("Airport")
 
@@ -32,6 +32,7 @@ class Airport(Location):
     """
 
     _DB = {}
+    _DB_IATA = {}
 
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
         Location.__init__(self, name, city, country, lat, lon, alt)
@@ -54,9 +55,11 @@ class Airport(Location):
         csvdata = csv.DictReader(file)
         for row in csvdata:
             if row["longitude_deg"] != "" and row["elevation_ft"] != "":
-                Airport._DB[row["ident"]] = Airport(icao=row["ident"], iata=row["iata_code"], name=row["name"],
+                a = Airport(icao=row["ident"], iata=row["iata_code"], name=row["name"],
                                                     city=row["municipality"], country=row["iso_country"], region=row["iso_region"],
                                                     lat=float(row["latitude_deg"]), lon=float(row["longitude_deg"]), alt=float(row["elevation_ft"])*FOOT)
+                Airport._DB[row["ident"]] = a
+                Airport._DB_IATA[row["iata_code"]] = a
         file.close()
         logger.debug(":loadAll: loaded %d airports" % len(Airport._DB))
 
@@ -64,6 +67,11 @@ class Airport(Location):
     @staticmethod
     def find(icao: str):
         return Airport._DB[icao] if icao in Airport._DB else None
+
+
+    @staticmethod
+    def findIATA(iata: str):
+        return Airport._DB_IATA[iata] if iata in Airport._DB_IATA else None
 
 
     def loadFromFile(self):
