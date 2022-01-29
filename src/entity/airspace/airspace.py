@@ -7,6 +7,7 @@ from geojson import Point, Feature
 from turfpy.measurement import distance, destination
 
 from ..graph import Vertex, Edge, Graph
+from ..parameters import LOAD_AIRWAYS
 
 logger = logging.getLogger("Airspace")
 
@@ -346,9 +347,10 @@ class Airspace(Graph):
         if not status[0]:
             return [False, status[1]]
 
-        #status = self.loadAirwaySegments()
-        if not status[0]:
-            return [False, status[1]]
+        if LOAD_AIRWAYS:
+            status = self.loadAirwaySegments()
+            if not status[0]:
+                return [False, status[1]]
 
         status = self.loadHolds()
         if not status[0]:
