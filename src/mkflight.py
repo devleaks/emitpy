@@ -58,10 +58,10 @@ def main():
 
     logger.debug("creating arrival..")
     arr = Arrival(operator=airline, number="4L", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
-    ramp = managed.getRamp(arr)  # "A 7"  # Plane won't get towed
+    ramp = managed.getRamp(arr)
     arr.setRamp(ramp)
     gate = "C99"
-    if ramp[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
+    if ramp[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # first letter only does now work for "Cargo Ramp F5" ;-)
         gate = ramp
     arr.setGate(gate)
     logger.debug("..planning..")

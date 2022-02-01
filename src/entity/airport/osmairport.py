@@ -41,7 +41,7 @@ class OSMAirport(AirportBase):
         self.airport_base = os.path.join(SYSTEM_DIRECTORY, self.icao)
         return [True, "do nothing"]
 
-    def loadFromFile2(self, name):
+    def loadJSONOrYAMLFromFile(self, name):
         fname = os.path.join(self.airport_base, "osm", name)
 
         if os.path.exists(fname):
@@ -52,12 +52,12 @@ class OSMAirport(AirportBase):
                     self.data = json.load(fptr)
         else:
             logger.warning(":file: %s not found" % fname)
-            return [False, "OSMAirport::loadRunways file %s not found", fname]
+            return [False, "OSMAirport::loadJSONOrYAMLFromFile file %s not found", fname]
 
         return [True, "OSMAirport::file %s loaded" % name]
 
     def loadRunways(self):
-        self.loadFromFile2("overpass-runway.json")
+        self.loadJSONOrYAMLFromFile("overpass-runway.json")
         if self.data is None:
             return [False, "OSMAirport::loadRunways: could not load %s" % fn1]
 
@@ -89,7 +89,7 @@ class OSMAirport(AirportBase):
 
 
     def loadParkings(self):
-        self.loadFromFile2("overpass-parking_position.json")
+        self.loadJSONOrYAMLFromFile("overpass-parking_position.json")
         if self.data is None:
             return [False, "OSMAirport::loadParkings: could not load %s" % fn1]
 
@@ -120,7 +120,7 @@ class OSMAirport(AirportBase):
 
 
     def loadOSM(self, filename, graph):
-        self.loadFromFile2(filename)
+        self.loadJSONOrYAMLFromFile(filename)
         if self.data is None:
             return [False, "OSMAirport::loadOSM: could not load %s" % fn1]
 
@@ -166,7 +166,7 @@ class OSMAirport(AirportBase):
 
 
     def loadServiceDestinations(self):
-        self.loadFromFile2("servicepois.geojson")
+        self.loadJSONOrYAMLFromFile("servicepois.geojson")
 
         if self.data is not None:  # parse runways
             self.service_stops_geo = self.data

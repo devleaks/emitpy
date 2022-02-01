@@ -60,6 +60,7 @@ class Flight:
         self.codeshare = None
         self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
         self.flightplan = None
+        self.flight_level = 0
         self.flightplan_features = []
         self.flightplan_cp = []
         self.procedure = None
@@ -73,6 +74,11 @@ class Flight:
                     self.flight_type = PAYLOAD.CARGO
         except ValueError:
             self.flight_type = PAYLOAD.PAX
+
+    def setFL(self, flight_level: int):
+        self.flight_level = flight_level
+        logger.debug(":setFL: %d" % self.flight_level)
+
 
     def setRamp(self, ramp):
         if ramp in self.managedAirport.parkings.keys():
@@ -90,22 +96,18 @@ class Flight:
     def loadFlightPlan(self):
         self.flightplan = FlightPlan(managedAirport=self.managedAirport.icao, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
 
-        fc = self.flightplan.getGeoJSON()  # we need this call to provoke load flight plan
-        self.flightplan_features = list(filter(lambda f: ("geometry" in f) and ("type" in f["geometry"]) and (f["geometry"]["type"] == "Point"), fc["features"]))
-        logger.debug(":loadFlightPlan: %d GeoJSON Point features" % len(self.flightplan_features))
-
-        temp = self.flightplan.toAirspace(self.managedAirport.airspace)
-        self.flightplan_cp = temp[0]
-        if temp[1] > 0:
-            logger.warning(":loadFlightPlan: unidentified %d waypoints" % temp[1])
-
-        logger.debug(":loadFlightPlan: identified %d waypoints" % len(self.flightplan_cp))
-
         fplen = len(self.flightplan.nodes())
         logger.debug(":loadFlightPlan: loaded %d waypoints" % fplen)
 
         if fplen < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
             logger.warning(":loadFlightPlan: flight_plan is too short %d" % fplen)
+
+        temp = self.flightplan.toAirspace(self.managedAirport.airspace)
+        self.flightplan_cp = temp[0]
+        if temp[1] > 0:
+            logger.warning(":loadFlightPlan: unidentified %d waypoints" % temp[1])
+        logger.debug(":loadFlightPlan: identified %d waypoints" % len(self.flightplan_cp))
+
 
     def taxi(self):
         pass
@@ -167,6 +169,8 @@ class Arrival(Flight):
 
         self.procedure = (star, appch, rwy)
         self.flightplan_cp = arrpts
+
+        self.flightplan.vnav(isArrival=True, ac=self.aircraft)
 
         self.taxi()  # Runway exit to Ramp
 

@@ -39,15 +39,6 @@ class GeoJSONAirport(AirportBase):
         return [True, "GeoJSONAirport::loadFromFile: loaded"]
 
 
-    def loadRunways(self):
-        self.loadGeometries("runways.yaml")
-
-        if self.data is not None:  # parse runways
-            pass
-
-        logger.debug(":loadRunways: added %d runways", len(self.runways.keys()))
-        return [True, "GeoJSONAirport::loadRunways loaded"]
-
     def loadParkings(self):
         self.loadGeometries("parkings.geojson")
 

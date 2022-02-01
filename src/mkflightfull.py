@@ -17,7 +17,7 @@ def main():
 
     airspace = XPAirspace()
     logger.debug("loading airspace..")
-    # airspace.load()
+    airspace.load()
     logger.debug("..done")
 
     logger.debug("loading airport..")
@@ -57,22 +57,32 @@ def main():
 
     logger.debug("..done")
 
-    # Create a pair of flights
-    airline = None  # Airline.findIATA(iata="QR")
-    (airline, other_airport) = airportManager.getRandomDestination(airline=airline)
-    logger.info("***** Flying from/to %s %s(%s) with %s(%s)" % (other_airport["properties"]["city"], other_airport.iata, other_airport.icao, airline.iata, airline.icao))
+    # Prepare airport for each movement
+    metar = "OTHH 041200Z 26113KT 9999 FEW030 20/08 Q1017 NOSIG"
+    managed.setMETAR(metar=metar)  # calls prepareRunways()
 
+    # Add pure commercial stuff
+    qr = Airline.findIATA(iata="QR")
+    airportManager.hub(managed, qr)
+
+    # Create a pair of flights
+    airline = None
+    (airline, other_airport) = airportManager.getRandomAirport(airline=airline)
     reqrange = managed.miles(other_airport)
+
     logger.debug("loading aircraft..")
     acperf = AircraftPerformance.findAircraft(reqrange=reqrange)
-    logger.info("***** range is %dkm, aircraft will be %s" % (reqrange, acperf.typeId))
-    # acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name)
-    # acperf.loadPerformance()
+    reqfl = acperf.FLFor(reqrange)
+
+    logger.info("***** Flying from/to %s (%dkm)(%s, %s) with %s (%s, %s)" % (other_airport["properties"]["city"], reqrange, other_airport.iata, other_airport.icao, airline.orgId, airline.iata, airline.icao))
+    logger.info("***** range is %dkm, aircraft will be %s at FL%d" % (reqrange, acperf.typeId, reqfl))
+
     aircraft = Aircraft(registration="A7-PMA", actype=acperf, operator=airline)
     logger.debug("..done")
 
     logger.debug("creating arrival..")
     arr = Arrival(operator=airline, number="4L", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
+    arr.setFL(reqfl)
     ramp = managed.getRamp(arr)  # Plane won't get towed
     arr.setRamp(ramp)
     gate = "C99"
@@ -81,23 +91,24 @@ def main():
     arr.setGate(gate)
     logger.debug("..planning..")
     arr.plan()
-    ap = ArrivalPath(arr)
-    pa = ap.mkPath()
     logger.debug("..done")
 
     logger.debug("creating departure..")
     dep = Departure(operator=airline, number="3", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft)
+    arr.setFL(reqfl)
     dep.setRamp(ramp)
     dep.setGate(gate)
     logger.debug("..planning..")
     dep.plan()
-    dp = DeparturePath(dep)
-    pd = dp.mkPath()
     logger.debug("..done")
 
     logger.debug("flying..")
     arr.fly()
+
+    # metar may change between the two
+    managed.setMETAR(metar=metar)  # calls prepareRunways()
     dep.fly()
     logger.debug("..done")
 
 main()
+

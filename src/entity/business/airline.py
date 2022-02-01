@@ -10,9 +10,8 @@ import csv
 from turfpy import measurement
 
 from .company import Company
-from ..aircraft import AircraftType
 from ..airport import Airport
-from ..constants import AIRLINE, AIRLINE_DATABASE, CARGO
+from ..constants import AIRLINE, AIRLINE_DATABASE
 from ..parameters import DATA_DIR
 from ..utils import toNm
 
@@ -31,8 +30,8 @@ class Airline(Company):
         Company.__init__(self, name, AIRLINE, "", iata)
         self.icao = icao
         self.iata = iata
-        self.airroutes = []
-        self.hubs = {}
+        self.routes = {}  # airports
+        self.hub = {}    # airports
         self._rawdata = None
 
 
@@ -65,8 +64,12 @@ class Airline(Company):
         file.close()
 
 
+    def addRoute(self, airport: Airport):
+        self.routes[airport.icao] = airport
+
+
     def addHub(self, airport: Airport):
-        self.hubs[airport.icao] = airport
+        self.hub[airport.icao] = airport
 
 
     def randomFlightname(self, reglen: int = 4):
