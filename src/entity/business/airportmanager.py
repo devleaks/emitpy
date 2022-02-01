@@ -12,7 +12,6 @@ from typing import Union
 from .airline import Airline
 from ..airport import Airport
 
-
 from ..constants import PAYLOAD, LOCAL, REMOTE
 from ..parameters import DATA_DIR
 
@@ -26,21 +25,19 @@ class AirportManager:
 
     def __init__(self, icao):
         self.icao = icao
-        self.airline_locals = {}
         self.airlines = {}
-        self.airline_cargos = {}
-        self.airport_paxs = {}
-        self.airport_cargos = {}
-        self.airroutes = {
-            "BY AIRLINE": {},
-            "BY AIRPORT": {}
-        }
+
         self.airport_base = None
         self.data = None
+        self.airline_route_frequencies = None
+        self.airline_frequencies = None
 
 
     def load(self):
         status = self.loadFromFile()
+        if not status[0]:
+            return [False, status[1]]
+        status = self.loadAirRoutes()
         if not status[0]:
             return [False, status[1]]
         return [False, "AirportManager::loaded"]
@@ -55,59 +52,86 @@ class AirportManager:
                 self.data = yaml.safe_load(fp)
         else:
             logger.warning(":file: %s not found" % business)
-            return [False, "AirportManager::loadRunways file %s not found", business]
+            return [False, "AirportManager::loadFromFile file %s not found", business]
+        return [True, "AirportManager::loadFromFile: loaded"]
 
 
+    def loadAirRoutes(self):
         routes = os.path.join(self.airport_base, "airline-routes.csv")
         file = open(routes, "r")
         csvdata = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
         cnt = 0
         for row in csvdata:
-            aln = Airline.findIATA(row["AIRLINE CODE"])
-            if aln is not None:
-                self.addAirline(aln)
-                apt = Airport.findIATA(row["AIRPORT"])
-                if apt is not None:
-                    self.addAirport(apt)
-                    self.addAirroute(airline=aln, airport=apt)
+            airline = Airline.findIATA(row["AIRLINE CODE"])
+            if airline is not None:
+                if airline.iata not in self.airlines.keys():
+                    self.airlines[airline.icao] = airline
+                airport = Airport.findIATA(row["AIRPORT"])
+                if airport is not None:
+                    airline.addRoute(airport)
+                    airport.addAirline(airline)
                     cnt = cnt + 1
                 else:
-                    logger.warning(":loadFromFile: airport %s not found" % row["AIRPORT"])
+                    logger.warning(":loadAirRoutes: airport %s not found" % row["AIRPORT"])
             else:
-                logger.warning(":loadFromFile: airline %s not found" % row["AIRLINE CODE"])
+                logger.warning(":loadAirRoutes: airline %s not found" % row["AIRLINE CODE"])
         file.close()
-        logger.debug(":loadAll: loaded %d airline routes" % cnt)
+        logger.debug(":loadAirRoutes: loaded %d airline routes for %d airlines" % (cnt, len(self.airlines)))
 
-        logger.debug(":loadFromFile: loaded")
-        return [True, "AirportManager::loadFromFile: loaded"]
+        fn = os.path.join(self.airport_base, "airline-frequencies.csv")
+        if os.path.exists(fn):
+            self.airline_frequencies = {}
+            with open(fn, "r") as file:
+                data = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
+                for row in data:
+                    self.airline_frequencies[row["AIRLINE CODE"]] = int(row["COUNT"])
+                logger.debug(":loadAirRoutes: airline-frequencies loaded")
 
+        fn = os.path.join(self.airport_base, "airline-route-frequencies.csv")
+        if os.path.exists(fn):
+            self.airline_route_frequencies = {}
+            with open(fn, "r") as file:
+                data = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
+                for row in data:
+                    if row["AIRLINE CODE"] not in self.airline_route_frequencies:
+                        self.airline_route_frequencies[row["AIRLINE CODE"]] = {}
 
-    def addAirline(self, airline: Airline, location: Union[LOCAL, REMOTE] = REMOTE):
-        if location == LOCAL:
-            self.airline_locals[airline.icao] = airline
-        else:
-            self.airlines[airline.icao] = airline
+                    if row["AIRPORT"] not in self.airline_route_frequencies[row["AIRLINE CODE"]]:
+                        self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] = 0
+                    self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] = self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] + int(row["COUNT"])
+                logger.debug(":loadAirRoutes: airline-route-frequencies loaded")
 
-    def addAirport(self, airport: Airport, load: PAYLOAD = PAYLOAD.PAX):
-        if load == PAYLOAD.PAX:
-            self.airport_paxs[airport.icao] = airport
-        else:
-            self.airport_paxs[airport.icao] = airport
+        logger.debug(":loadAirRoutes: loaded")
+        return [True, "AirportManager::loadAirRoutes: loaded"]
 
-    def addAirroute(self, airline: Airline, airport: Airport, load: PAYLOAD = PAYLOAD.PAX):
-        if airline.icao not in self.airroutes["BY AIRLINE"]:
-            self.airroutes["BY AIRLINE"][airline.icao] = []
-        self.airroutes["BY AIRLINE"][airline.icao].append(airport.icao)
-
-        if airport.icao not in self.airroutes["BY AIRPORT"]:
-            self.airroutes["BY AIRPORT"][airport.icao] =[]
-        self.airroutes["BY AIRPORT"][airport.icao].append(airline.icao)
 
     def getRandomAirline(self):
-        a = random.choice(list(self.airlines.keys()))
-        return self.airlines[a]
+        aln = None
+        if self.airline_frequencies is not None:
+            a = a = random.choices(population=list(self.airline_frequencies.keys()), weights=list(self.airline_frequencies.values()))
+            aln = Airline.findIATA(a[0])
+            logger.debug(":getRandomAirline: with density: %s" % a[0])
+        else:
+            a = random.choice(list(self.airlines.keys()))
+            aln = Airline.find(a)
+            logger.debug(":getRandomAirline: %s" % a)
+        return aln
 
-    def getRandomDestination(self, airline: Airline = None):
+
+    def getRandomAirport(self, airline: Airline = None):
         aln = airline if airline is not None else self.getRandomAirline()
-        apt = random.choice(list(self.airroutes["BY AIRLINE"][aln.icao]))
-        return (aln, Airport.find(apt))
+        apt = None
+        if self.airline_route_frequencies is not None:
+            aptlist = self.airline_route_frequencies[aln.iata]
+            a = random.choices(population=list(aptlist.keys()), weights=list(aptlist.values()))
+            apt = Airport.findIATA(a[0])
+            logger.debug(":getRandomAirport: with density: %s" % a[0])
+        else:
+            a = random.choice(list(aln.routes.keys()))
+            apt = Airport.find(a)
+            logger.debug(":getRandomAirport: %s" % a)
+        return (aln, apt)
+
+    def hub(self, airport, airline):
+        airport.addHub(airline)
+        airline.addHub(airport)

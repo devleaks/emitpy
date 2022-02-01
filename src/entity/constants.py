@@ -129,7 +129,4 @@ TAXIWAY_ACTIVE_DEPARTURE = "departure"
 TAXIWAY_ACTIVE_ARRIVAL = "arrival"
 TAXIWAY_ACTIVE_ILS = "ils"
 
-########################################
-# Units, etc
-#
-FOOT = 0.3048
+

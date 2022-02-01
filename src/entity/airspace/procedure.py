@@ -166,7 +166,7 @@ class STAR(Procedure):
         return a
 
 
-class Approach(Procedure):
+class APPCH(Procedure):
     """
     Approach procedure to runway.
 
@@ -206,9 +206,10 @@ class Approach(Procedure):
         return a
 
 
-class Runway(Procedure):
+class RWY(Procedure):
     """
     A runway for starting a SID or terminating a STAR.
+    We distinguish the "aeronautical" RWY (in Airspace.Procedure) from the gegraphical/geometrical Runway (in Geo.Runway)
 
         0     1     2      3     4 5    6 7             8          9
     RWY:RW16L,     ,      ,00013, ,IDE ,3,   ;N25174597,E051363196,0000;
@@ -254,11 +255,10 @@ class Runway(Procedure):
     def getAltitude(self):
         return self.point["geometry"]["coordinates"][2]
 
-    def getRunway(self):
+    def getPoint(self):
         return self.point
 
     def getRoute(self):
-        # logger.debug(":getRoute: point %s" % self.point)
         return [self.point]
 
 
@@ -266,12 +266,10 @@ class CIFP:
 
     def __init__(self, icao: str):
         self.icao = icao
-        self.procs = {
-            "SID": {},
-            "STAR": {},
-            "APPCH": {},
-            "RWY": {}
-        }
+        self.SIDS = {}
+        self.STARS = {}
+        self.APPCHS = {}
+        self.RWYS = {}
         self.loadFromFile()
 
     def loadFromFile(self):
@@ -285,6 +283,12 @@ class CIFP:
         cifp_fp = open(cipf_filename, "r")
         line = cifp_fp.readline()
         prevline = None
+        procedures = {
+            "SID": {},
+            "STAR": {},
+            "APPCH": {},
+            "RWY": {}
+        }
 
         while line:
             cifpline = ProcedureData(line.strip())
@@ -297,19 +301,19 @@ class CIFP:
                 else:
                     logger.warning(":loadCIFP: received PRDAT but no procedure to add to")
             else:
-                if procname not in self.procs[procty].keys():
+                if procname not in procedures[procty].keys():
                     if procty == "SID":
-                        self.procs[procty][procname] = SID(procname)
+                        procedures[procty][procname] = SID(procname)
                     elif procty == "STAR":
-                        self.procs[procty][procname] = STAR(procname)
+                        procedures[procty][procname] = STAR(procname)
                     elif procty == "APPCH":
-                        self.procs[procty][procname] = Approach(procname)
+                        procedures[procty][procname] = APPCH(procname)
                     elif procty == "RWY":
-                        self.procs[procty][procname] = Runway(procname, self.icao)
+                        procedures[procty][procname] = RWY(procname, self.icao)
                     else:
                         logger.warning(":loadCIFP: invalid procedure %s", procty)
-                if procname in self.procs[procty].keys():
-                    self.procs[procty][procname].add(cifpline)
+                if procname in procedures[procty].keys():
+                    procedures[procty][procname].add(cifpline)
                 else:
                     logger.warning(":loadCIFP: procedure not created %s", procty)
 
@@ -317,8 +321,13 @@ class CIFP:
             line = cifp_fp.readline()
 
         ## Print result
-        for procty in self.procs.keys():
-            logger.debug(": %s: %s" % (procty, self.procs[procty].keys()))
+        for procty in procedures.keys():
+            logger.debug(": %s: %s" % (procty, procedures[procty].keys()))
+        # User friendlier:
+        self.SIDS = procedures["SID"]
+        self.STARS = procedures["STAR"]
+        self.APPCHS = procedures["APPCH"]
+        self.RWYS = procedures["RWY"]
 
 
     def getRoute(self, procedure: Procedure, airspace: Airspace):

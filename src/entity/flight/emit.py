@@ -1,10 +1,7 @@
 """
 Emit
 """
-import os
-import json
 from geojson import Feature, LineString, Point, FeatureCollection
-from ..constants import FOOT
 
 
 class EmitPoint(Feature):
