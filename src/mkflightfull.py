@@ -104,9 +104,11 @@ def main():
 
     logger.debug("flying..")
     am = Movement.create(arr, managed)
-    am.vnav()
+    am.make()
     # metar may change between the two
     managed.setMETAR(metar=metar)  # calls prepareRunways()
+    dm = Movement.create(dep, managed)
+    dm.make()
     logger.debug("..done")
 
 main()
