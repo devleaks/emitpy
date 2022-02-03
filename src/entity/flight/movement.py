@@ -205,14 +205,14 @@ class ArrivalPath(Movement):
         #
         groundmv = 0
         fcidx = 0
-        apt = fc[fcidx]
-        alt = apt.altitude()
+        deptapt = fc[fcidx]
+        alt = deptapt.altitude()
         if alt is None:
-            logger.debug(":vnav: departure airport has no altitude: %s" % apt)
+            logger.debug(":vnav: departure airport has no altitude: %s" % deptapt)
             alt = 0
 
-        logger.debug(":vnav: departure airport: %s: %s, %d" % (type(apt).__name__, apt, alt))
-        currpos = MovePoint(geometry=apt["geometry"], properties=apt["properties"])
+        logger.debug(":vnav: departure airport: %s: %s, %d" % (type(deptapt).__name__, deptapt, alt))
+        currpos = MovePoint(geometry=deptapt["geometry"], properties=deptapt["properties"])
         currpos.setProp("_mark", "departure")
         currpos.setSpeed(actype.getSI(ACPERF.takeoff_speed))
         ac.setPosition(currpos)
@@ -314,7 +314,9 @@ class ArrivalPath(Movement):
         self.moves.append(currpos)
 
         top_of_ascent_idx = fcidx  # we reach top of ascent between idx and idx+1
+        cruise_start = currpos
         logger.debug(":vnav: cruise at %d after %f" % (top_of_ascent_idx, groundmv))
+        logger.debug(":VNAV: ascent added (+%d %d)" % (len(self.moves), len(self.moves)))
         # cruise until top of descent
 
         # PART 2: (REVERSE): From brake on runway to top of descent
@@ -325,14 +327,14 @@ class ArrivalPath(Movement):
         fc = self.flight.flightplan_cp
         fc.reverse()
         fcidx = 0
-        rwy = fc[fcidx]
-        alt = rwy.altitude()
+        arrrwy = fc[fcidx]
+        alt = arrrwy.altitude()
         if alt is None:
-            logger.debug(":vnav: arrival runway has no altitude: %s" % rwy)
+            logger.debug(":vnav: arrival runway has no altitude: %s" % arrrwy)
             alt = 0
 
-        logger.debug(":vnav: arrival runway: %s: %s, %d" % (type(rwy).__name__, rwy, alt))
-        currpos = MovePoint(geometry=apt["geometry"], properties=apt["properties"])
+        logger.debug(":vnav: arrival runway: %s: %s, %d" % (type(arrrwy).__name__, arrrwy, alt))
+        currpos = MovePoint(geometry=arrrwy["geometry"], properties=arrrwy["properties"])
         currpos.setSpeed(actype.getSI(ACPERF.landing_speed))
         currpos.setProp("_mark", "runway_threshold")
         tempmoves.append(currpos)
@@ -349,7 +351,7 @@ class ArrivalPath(Movement):
         currpos.setSpeed(actype.getSI(ACPERF.approach_speed))
         currpos.setVSpeed(actype.getSI(ACPERF.approach_vspeed))
         currpos.setProp("_mark", "start_of_final")
-        self.moves.append(currpos)
+        tempmoves.append(currpos)
 
         # go at 3000 AGL to last point of star
 
@@ -365,7 +367,7 @@ class ArrivalPath(Movement):
             currpos.setSpeed(actype.getSI(ACPERF.approach_speed))
             currpos.setVSpeed(actype.getSI(ACPERF.approach_vspeed))
             currpos.setProp("_mark", "descent_fl100_reached")
-            self.moves.append(currpos)
+            tempmoves.append(currpos)
 
             if self.flight.flight_level > 240:
                 logger.debug(":vnav: descent to FL100")
@@ -377,7 +379,7 @@ class ArrivalPath(Movement):
                 currpos.setSpeed(actype.getSI(ACPERF.descentFL100_speed))
                 currpos.setVSpeed(actype.getSI(ACPERF.descentFL100_vspeed))
                 currpos.setProp("_mark", "descent_fl240_reached")
-                self.moves.append(currpos)
+                tempmoves.append(currpos)
 
                 # climb from  FL240 to cruise
                 if self.flight.flight_level > 240:
@@ -390,7 +392,7 @@ class ArrivalPath(Movement):
                     currpos.setSpeed(actype.getSI(ACPERF.descentFL240_mach))
                     currpos.setVSpeed(actype.getSI(ACPERF.descentFL240_vspeed))
                     currpos.setProp("_mark", "top_of_descent")
-                    self.moves.append(currpos)
+                    tempmoves.append(currpos)
             else:
                 logger.debug(":vnav: descent from under FL240")
                 step = actype.descentToFL100(self.flight.getCruiseAltitude())  # (t, d, altend)
@@ -401,7 +403,7 @@ class ArrivalPath(Movement):
                 currpos.setSpeed(actype.getSI(ACPERF.initial_climb_speed))
                 currpos.setVSpeed(actype.getSI(ACPERF.initial_climb_vspeed))
                 currpos.setProp("_mark", "top_of_descent")  # !
-                self.moves.append(currpos)
+                tempmoves.append(currpos)
         else:
             logger.debug(":vnav: descent from under FL100")
             step = actype.descentApproach(self.flight.getCruiseAltitude(), alt+(3000*FT))  # (t, d, altend)
@@ -412,8 +414,7 @@ class ArrivalPath(Movement):
             currpos.setSpeed(actype.getSI(ACPERF.initial_climb_speed))
             currpos.setVSpeed(actype.getSI(ACPERF.initial_climb_vspeed))
             currpos.setProp("_mark", "top_of_descent")  # !
-            self.moves.append(currpos)
-
+            tempmoves.append(currpos)
 
         # decelerate to descent speed smoothly
         acceldist = 5000  # we reach cruise speed after 5km horizontal flight
@@ -424,7 +425,7 @@ class ArrivalPath(Movement):
         currpos.setSpeed(cruise_speed)  # computed when climbing
         currpos.setVSpeed(0)
         currpos.setProp("_mark", "end_of_cruise_speed")
-        self.moves.append(currpos)
+        tempmoves.append(currpos)
 
         top_of_decent_idx = fcidx  # we reach top of ascent between idx and idx+1
         logger.debug(":vnav: cruise at %d after %f" % (top_of_decent_idx, groundmv))
@@ -432,17 +433,29 @@ class ArrivalPath(Movement):
 
         # PART 3: Join top of ascent to top of descent at cruise speed
         #
-        #
+        # We copy waypoints from start of cruise to end of cruise
+        for i in range(top_of_ascent_idx, top_of_decent_idx):
+            wpt = self.flight.flightplan_cp[i]
+            p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
+            p.setAltitude(self.flight.getCruiseAltitude())
+            p.setSpeed(cruise_speed)
+            self.moves.append(p)
+        logger.debug(":VNAV: cruise added (+%d %d)" % (top_of_decent_idx-top_of_ascent_idx, len(self.moves)))
 
-        # PART 4: Stick together 3 pieces
+        # PART 4: Add descent and final
         #
         #
+        tempmoves.reverse()
+        self.moves = self.moves + tempmoves
+        logger.debug(":VNAV: descent added (+%d %d)" % (len(tempmoves), len(self.moves)))
 
-        return (False, "ArrivalPath::vnav not implemented")
+        print(FeatureCollection(features=Movement.cleanFeatures(self.moves)))
+
+        return (True, "ArrivalPath::vnav completed without restriction")
 
     def snav(self):
         # ### SNAV: "Speed" nav for speed constraints not added through LNAV or VNAV.
-        return (False, "ArrivalPath::snav not implemented")
+        return (False, "ArrivalPath::vnav not implemented")
 
 
 class DeparturePath(Movement):
