@@ -56,12 +56,12 @@ def __init__(self, start: Point, end: Point, width: float = None):
         brng = self.bearing()
         # one side of centerline
         brng = brng + 90
-        a0 = destination(self.start, brng, w / 2)
-        a2 = destination(self.end, brng, w / 2)
+        a0 = destination(self.start, w / 2, brng)
+        a2 = destination(self.end, w / 2, brng)
         # other side of centerline
         brng = brng - 90
-        a1 = destination(self.start, brng, w / 2)
-        a3 = destination(self.end, brng, w / 2)
+        a1 = destination(self.start, w / 2, brng)
+        a3 = destination(self.end, w / 2, brng)
         # join
         if closed:
             return Feature(geometry=Polygon([a0, a1, a3, a2, a0]))

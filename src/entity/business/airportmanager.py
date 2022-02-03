@@ -110,7 +110,10 @@ class AirportManager:
         if self.airline_frequencies is not None:
             a = a = random.choices(population=list(self.airline_frequencies.keys()), weights=list(self.airline_frequencies.values()))
             aln = Airline.findIATA(a[0])
-            logger.debug(":getRandomAirline: with density: %s" % a[0])
+            if aln is not None:
+                logger.debug(":getRandomAirline: with density: %s(%s)" % (aln.icao, aln.iata))
+            else:
+                logger.warning(":getRandomAirline: with density: %s not found" % (a[0]))
         else:
             a = random.choice(list(self.airlines.keys()))
             aln = Airline.find(a)
@@ -125,7 +128,10 @@ class AirportManager:
             aptlist = self.airline_route_frequencies[aln.iata]
             a = random.choices(population=list(aptlist.keys()), weights=list(aptlist.values()))
             apt = Airport.findIATA(a[0])
-            logger.debug(":getRandomAirport: with density: %s" % a[0])
+            if apt is None:
+                logger.debug(":getRandomAirport: with density: %s(%s)" % (apt.icao, apt.iata))
+            else:
+                logger.warning(":getRandomAirport: with density: %s not found" % (a[0]))
         else:
             a = random.choice(list(aln.routes.keys()))
             apt = Airport.find(a)

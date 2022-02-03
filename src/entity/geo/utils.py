@@ -2,7 +2,7 @@ import random
 import logging
 
 from geojson import Point, LineString, Polygon, Feature
-from turfpy.measurement import destination, bearing, bbox
+from turfpy.measurement import distance, destination, bearing, bbox
 
 logger = logging.getLogger("geoutils")
 
@@ -39,12 +39,12 @@ def mkPolygon(lat1, lon1, lat2, lon2, width):
     brng = bearing(p1, p2)
     # one side of centerline
     brng = brng + 90
-    a0 = destination(p1, brng, width / 2)
-    a2 = destination(p2, brng, width / 2)
+    a0 = destination(p1, width / 2, brng)
+    a2 = destination(p2, width / 2, brng)
     # other side of centerline
     brng = brng - 90
-    a1 = destination(p1, brng, width / 2)
-    a3 = destination(p2, brng, width / 2)
+    a1 = destination(p1, width / 2, brng)
+    a3 = destination(p2, width / 2, brng)
     # join
     return Polygon(list(map(lambda x: x["geometry"]["coordinates"], [a0, a1, a3, a2])))
 
@@ -57,3 +57,29 @@ def jitter(point: Point, r: float = 0):
     if len(j["geometry"]["coordinates"]) == 3:  # alt = alt ± jitter
         j["geometry"]["coordinates"][2] = j["geometry"]["coordinates"][2] + ((random.random() * abs(r) / 1000) * (-1 if random.random() > 0.5 else 1))
     return j["geometry"]["coordinates"]
+
+
+def moveOn(arr, idx, currpos, dist):
+    # are we at the end of the line string?
+    if idx == len(arr) - 1:
+        logger.debug(":moveOn: arrived")
+        return (arr[-1], len(arr) - 1)
+    if idx == len(arr) - 2:
+        logger.debug(":moveOn: last segment %d, %f left" % (idx, dist))
+        # do we reach destination?
+        left = distance(currpos, arr[-1], 'm')
+        if left < dist:  # we reached destination
+            logger.debug(":moveOn: destination reached")
+            return (arr[-1], len(arr) - 1)
+        # we do not reach destination, so we move towards it
+        # we can continue with regular algorithm
+    nextp = arr[idx + 1]
+    left = distance(currpos, nextp, 'm') # distance returns km
+    if left < dist:  # we reach the next point at least. Move to it, then continue.
+        logger.debug(":moveOn: completed segment %d, move on segment %d, %f left to run" % (idx, idx + 1, dist - left))
+        return moveOn(arr, idx + 1, nextp, dist - left)
+    # we progress towards next point without reaching it
+    brng = bearing(arr[idx], nextp)
+    dest = destination(currpos, dist, brng, {"units": "m"})  # dist in m
+    logger.debug(":moveOn: distance to run reached, %f left on segment %d" % (left - dist, idx + 1))
+    return (dest, idx)

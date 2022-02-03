@@ -2,6 +2,7 @@
 #
 import logging
 import math
+from enum import Enum
 
 from geojson import Point, Feature
 from turfpy.measurement import distance, destination
@@ -10,6 +11,12 @@ from ..graph import Vertex, Edge, Graph
 from ..parameters import LOAD_AIRWAYS
 
 logger = logging.getLogger("Airspace")
+
+class CPIDENT(Enum):
+    REGION = "region"
+    AIRPORT = "airport"
+    IDENT = "ident"
+    POINTTYPE = "pointtype"
 
 
 class Restriction:
@@ -68,6 +75,11 @@ class Restriction:
                 retok = retok and speed < self.speedmax
         return retok
 
+    def hasAltitudeRestriction(self):
+        return self.altmin is not None or self.altmax is not None
+
+    def hasSpeedRestriction(self):
+        return self.speedmin is not None or self.speedmax is not None
 
 ################################
 #
@@ -75,6 +87,9 @@ class Restriction:
 #
 #
 class ControlledPoint(Vertex):
+
+    identsep = ":"
+
     """
     A ControlledPoint is a named point in a controlled airspace region.
     """
@@ -86,9 +101,18 @@ class ControlledPoint(Vertex):
         self.airport = airport
 
     @staticmethod
-    def mkId(region: str, airport: str, ident: str, pointtype = None) -> str:
-        return region + ":" + ident + ":" + ("" if pointtype is None else pointtype) + ":" + airport
+    def mkId(region: str, airport: str, ident: str, pointtype: str = None) -> str:
+        return region + ControlledPoint.identsep + ident + ControlledPoint.identsep + ("" if pointtype is None else pointtype) + ControlledPoint.identsep + airport
 
+    @staticmethod
+    def parseId(ident: str):
+        arr = ident.split(ControlledPoint.identsep)
+        return {
+            CPIDENT.REGION: arr[0],
+            CPIDENT.IDENT: arr[1],
+            CPIDENT.POINTTYPE: arr[2],
+            CPIDENT.AIRPORT: arr[3]
+        } if len(arr) == 4 else None
 
 
 class RestrictedControlledPoint(ControlledPoint, Restriction):
@@ -198,12 +222,16 @@ class Apt(ControlledPoint):
     """
     This airport is a ControlledPoint airport.
     """
-    def __init__(self, name: str, lat: float, lon: float, iata: str, longname: str, country: str, city: str):
-        ControlledPoint.__init__(self, name, name[0:2], name, type(self).__name__, lat, lon)
+    def __init__(self, name: str, lat: float, lon: float, alt: int, iata: str, longname: str, country: str, city: str):
+        ControlledPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)
         self.iata = iata
         self.country = country
         self.city = city
         self.name = longname
+        if len(self["geometry"]["coordinates"]) > 2:
+            self["geometry"]["coordinates"][2] = alt
+        else:
+            self["geometry"]["coordinates"].append(alt)
 
 
 ################################
@@ -257,28 +285,28 @@ class Hold(Restriction):
 
         # 4 corners and 2 arc centers p1 -> p2 -> p3 -> p4 -> p1
         p1 = self.fix
-        p2 = destination(p1, self.course, length)
+        p2 = destination(p1, length, self.course)
 
         arc = [p1, p2]
 
         perpendicular = self.course + 90 * (1 if self.turn == "L" else -1)
-        c23 = destination(p2, perpendicular, length/2)
+        c23 = destination(p2, length/2, perpendicular)
         curr = perpendicular - 180
         for i in range(0, finesse - 1):
             curr = curr + step
-            p = destination(c23, curr, radius)
+            p = destination(c23, radius, curr)
             arc.append(p)
 
-        p3 = destination(p2, perpendicular, length)
-        p4 = destination(p1, perpendicular, length)
+        p3 = destination(p2, length, perpendicular)
+        p4 = destination(p1, length, perpendicular)
         arc.append(p3)
         arc.append(p4)
 
-        c41 = destination(p1, perpendicular, length/2)
+        c41 = destination(p1, length/2, perpendicular)
         curr = perpendicular
         for i in range(0, finesse - 1):
             curr = curr + step
-            p = destination(c41, curr, radius)
+            p = destination(c41, radius, curr)
             arc.append(p)
 
         return arc
