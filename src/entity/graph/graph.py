@@ -40,6 +40,19 @@ class Vertex(Feature):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
         self["properties"][name] = value
 
+    def setAltitude(self, alt):
+        # ALtitude in meters above sea level.
+        if len(self["geometry"]["coordinates"]) > 2:
+            self["geometry"]["coordinates"][2] = alt
+        else:
+            self["geometry"]["coordinates"].append(alt)
+
+    def altitude(self):
+        if len(self["geometry"]["coordinates"]) > 2:
+            return self["geometry"]["coordinates"][2]
+        else:
+            return None
+
 
 class Edge(Feature):
 
@@ -49,9 +62,9 @@ class Edge(Feature):
         self.start = src
         self.end = dst
         self.name = name        # segment name, not unique!
+        self.usage = usage      # type of vertex: runway or taxiway or taxiway_X where X is width code (A-F)
         self.weight = weight    # weight = distance to next vertext
         self.directed = directed  # if edge is directed src to dst, False = twoway
-        self.usage = usage      # type of vertex: runway or taxiway or taxiway_X where X is width code (A-F)
         self.widthCode = None
         for s in self.usage:
             if str.lower(str(self.usage[:8])) == "taxiway_" and len(self.usage) == 9:

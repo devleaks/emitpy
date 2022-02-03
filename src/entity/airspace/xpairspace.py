@@ -7,7 +7,7 @@ import time
 from math import inf
 from turfpy.measurement import distance
 
-from .airspace import Airspace, Apt, Fix, ControlledPoint, AirwaySegment
+from .airspace import Airspace, Apt, Fix, ControlledPoint, AirwaySegment, CPIDENT
 from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 
 from ..parameters import DATA_DIR
@@ -82,8 +82,9 @@ class XPAirspace(Airspace):
             if len(args) == 16:       # name, lat, lon, alt, IATA, name, country, city
                 lat = float(args[14])
                 lon = float(args[15])
+                alt = int(args[13])
                 if lat != 0.0 or lon != 0.0:
-                    self.add_vertex(Apt(args[0], lat, lon, args[1], args[2], args[3], args[4]))
+                    self.add_vertex(Apt(args[0], lat, lon, alt, args[1], args[2], args[3], args[4]))
             else:
                 logger.warning(":loadAirports: invalid airport data %s.", line)
             line = file.readline()
@@ -225,23 +226,23 @@ class XPAirspace(Airspace):
             self._cached_vectex_ids["VHF"] = 0
             self._cached_vectex_ids["IDENT"] = 0
             for v in self.vert_dict.keys():
-                a = v.split(":")
-                if not a[0] in self._cached_vectex_ids.keys():
-                    self._cached_vectex_ids[a[0]] = {}
-                if not a[1] in self._cached_vectex_ids[a[0]].keys():
-                    self._cached_vectex_ids[a[0]][a[1]] = {}
-                if a[2] == "Fix":
-                    self._cached_vectex_ids[a[0]][a[1]]["Fix"] = []
-                    self._cached_vectex_ids[a[0]][a[1]]["Fix"].append(v)
+                a = ControlledPoint.parseId(ident=v)
+                if not a[CPIDENT.REGION] in self._cached_vectex_ids.keys():
+                    self._cached_vectex_ids[a[CPIDENT.REGION]] = {}
+                if not a[CPIDENT.IDENT] in self._cached_vectex_ids[a[CPIDENT.REGION]].keys():
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]] = {}
+                if a[CPIDENT.POINTTYPE] == "Fix":
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["Fix"] = []
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["Fix"].append(v)
                     self._cached_vectex_ids["Fix"] = self._cached_vectex_ids["Fix"] + 1
                 else:
-                    self._cached_vectex_ids[a[0]][a[1]]["VHF"] = []
-                    self._cached_vectex_ids[a[0]][a[1]]["VHF"].append(v)
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["VHF"] = []
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["VHF"].append(v)
                     self._cached_vectex_ids["VHF"] = self._cached_vectex_ids["VHF"] + 1
-                name = a[1]
-                if not name in self._cached_vectex_idents.keys():
-                    self._cached_vectex_idents[name] = []
-                self._cached_vectex_idents[name].append(v)
+
+                if not a[CPIDENT.IDENT] in self._cached_vectex_idents.keys():
+                    self._cached_vectex_idents[a[CPIDENT.IDENT]] = []
+                self._cached_vectex_idents[a[CPIDENT.IDENT]].append(v)
 
             logger.debug(":createIndex: created (%f sec)." % (time.perf_counter() - ss))
 

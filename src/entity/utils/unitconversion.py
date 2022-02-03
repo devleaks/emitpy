@@ -121,7 +121,7 @@ def FLtoM(fl: int):
     return fl * FT / 100
 
 
-def mach(mach: float, altitude: int = 30000):
+def convertMach(mach: float, altitude: int = 30000):
     mph_machconvert = mach * 660
     kmh_machconvert = mach * 1062
     knots_machconvert = mach * 573
@@ -188,6 +188,6 @@ def machToKmh(mach: float, altitude: int = 30000):
     :returns:   { description_of_the_return_value }
     :rtype:     { return_type_description }
     """
-    c = mach(mach, alt)
+    c = convertMach(mach, altitude)
     return c[0]
 

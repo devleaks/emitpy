@@ -4,8 +4,7 @@ from entity.business import Airline
 from entity.airspace import XPAirspace
 from entity.airport import Airport, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
-from entity.flight import Arrival, Departure
-from entity.flight import ArrivalPath, DeparturePath
+from entity.flight import Arrival, Departure, Movement
 from entity.business import AirportManager
 from entity.parameters import MANAGED_AIRPORT
 
@@ -66,8 +65,9 @@ def main():
     airportManager.hub(managed, qr)
 
     # Create a pair of flights
-    airline = None
-    (airline, other_airport) = airportManager.getRandomAirport(airline=airline)
+    airline = qr
+    other_airport = Airport.find("VOCL")
+#     (airline, other_airport) = airportManager.getRandomAirport(airline=airline)
     reqrange = managed.miles(other_airport)
 
     logger.debug("loading aircraft..")
@@ -95,7 +95,7 @@ def main():
 
     logger.debug("creating departure..")
     dep = Departure(operator=airline, number="3", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft)
-    arr.setFL(reqfl)
+    dep.setFL(reqfl)
     dep.setRamp(ramp)
     dep.setGate(gate)
     logger.debug("..planning..")
@@ -103,11 +103,10 @@ def main():
     logger.debug("..done")
 
     logger.debug("flying..")
-    arr.fly()
-
+    am = Movement.create(arr, managed)
+    am.vnav()
     # metar may change between the two
     managed.setMETAR(metar=metar)  # calls prepareRunways()
-    dep.fly()
     logger.debug("..done")
 
 main()

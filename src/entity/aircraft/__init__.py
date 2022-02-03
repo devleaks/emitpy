@@ -1,1 +1,1 @@
-from .aircraft import Aircraft, AircraftType, AircraftPerformance
+from .aircraft import Aircraft, AircraftType, AircraftPerformance, ACPERF

@@ -9,6 +9,7 @@ from ..airport import Airport
 from ..business import Airline
 from ..aircraft import Aircraft
 from ..constants import PAYLOAD
+from ..utils import FT
 
 logger = logging.getLogger("Flight")
 
@@ -59,9 +60,8 @@ class Flight:
         self.ramp = None
         self.codeshare = None
         self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
-        self.flightplan = None
         self.flight_level = 0
-        self.flightplan_features = []
+        self.flightplan = None
         self.flightplan_cp = []
         self.procedure = None
 
@@ -75,9 +75,17 @@ class Flight:
         except ValueError:
             self.flight_type = PAYLOAD.PAX
 
+
     def setFL(self, flight_level: int):
         self.flight_level = flight_level
-        logger.debug(":setFL: %d" % self.flight_level)
+        if flight_level <= 100:
+            logger.warning(":setFL: %d" % self.flight_level)
+        else:
+            logger.debug(":setFL: %d" % self.flight_level)
+
+
+    def getCruiseAltitude(self):
+        return self.flight_level * 100 * FT
 
 
     def setRamp(self, ramp):
@@ -102,21 +110,15 @@ class Flight:
         if fplen < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
             logger.warning(":loadFlightPlan: flight_plan is too short %d" % fplen)
 
-        temp = self.flightplan.toAirspace(self.managedAirport.airspace)
-        self.flightplan_cp = temp[0]
-        if temp[1] > 0:
-            logger.warning(":loadFlightPlan: unidentified %d waypoints" % temp[1])
-        logger.debug(":loadFlightPlan: identified %d waypoints" % len(self.flightplan_cp))
-
-
-    def taxi(self):
-        pass
 
     def plan(self):
         pass
 
-    def fly(self):
-        pass
+
+    @staticmethod
+    def setProp(arr: list, propname: str, value: str):
+        for a in arr:
+            a.setProp(propname, value)
 
 
 class Arrival(Flight):
@@ -140,7 +142,11 @@ class Arrival(Flight):
            APPCH
         """
         # @should check that last point is arrival airport, in case we could not get its ControlledPoint in conversion...
-        return self.flightplan_cp[0:-1]  # remove arrival airport
+        fpcp = self.flightplan.toAirspace(self.managedAirport.airspace)
+        if fpcp[1] > 0:
+            logger.warning(":loadFlightPlan: unidentified %d waypoints" % fpcp[1])
+        logger.debug(":loadFlightPlan: identified %d waypoints, first=%s" % (len(fpcp[0]), fpcp[0][0]))
+        return fpcp[0][0:-1]  # remove arrival airport
 
 
     def plan(self):
@@ -151,6 +157,8 @@ class Arrival(Flight):
             self.loadFlightPlan()
 
         arrpts = self.trimFlightPlan()
+        arrpts[0].setProp("_plan_segment_name", "origin")
+        Flight.setProp(arrpts[1:], "_plan_segment_name", "cruise")
 
         rwy = self.managedAirport.getRunway(self)
         logger.debug(":plan: runway %s" % rwy.name)
@@ -158,25 +166,22 @@ class Arrival(Flight):
 
         logger.debug(":plan: STAR %s" % star.name)
         ret = self.managedAirport.procedures.getRoute(star, self.managedAirport.airspace)
+        Flight.setProp(ret, "_plan_segment_name", "star")
         arrpts = arrpts + ret
 
         appch = self.managedAirport.getApproach(star, rwy)
         logger.debug(":plan: APPCH %s" % appch.name)
         ret = self.managedAirport.procedures.getRoute(appch, self.managedAirport.airspace)
+        Flight.setProp(ret, "_plan_segment_name", "appch")
         arrpts = arrpts + ret
 
-        arrpts = arrpts + rwy.getRoute()
+        ret = rwy.getRoute()
+        Flight.setProp(ret, "_plan_segment_name", "rwy")
+        arrpts = arrpts + ret
 
         self.procedure = (star, appch, rwy)
         self.flightplan_cp = arrpts
-
-        self.flightplan.vnav(isArrival=True, ac=self.aircraft)
-
-        self.taxi()  # Runway exit to Ramp
-
         return (True, "Arrival::plan: planned")
-        # ap = ArrivalPath(arr)
-        # pa = ap.mkPath()
 
 
 class Departure(Flight):
@@ -190,7 +195,11 @@ class Departure(Flight):
         """
         Remove first point for now, which is departure airport
         """
-        return self.flightplan_cp[1:]  # remove departure airport
+        fpcp = self.flightplan.toAirspace(self.managedAirport.airspace)
+        if fpcp[1] > 0:
+            logger.warning(":loadFlightPlan: unidentified %d waypoints" % fpcp[1])
+        logger.debug(":loadFlightPlan: identified %d waypoints, last=%s" % (len(fpcp[0]), fpcp[0][-1]))
+        return fpcp[0][1:]  # remove departure airport
 
 
     def plan(self):
@@ -203,20 +212,19 @@ class Departure(Flight):
         rwy = self.managedAirport.getRunway(self)
         logger.debug(":plan: runway %s" % rwy.name)
         deppts = rwy.getRoute()
-
-        self.taxi()  # Ramp to runway hold
+        Flight.setProp(deppts, "_plan_segment_name", "rwy")
 
         sid = self.managedAirport.getProcedure(self, rwy)
         logger.debug(":plan: SID %s" % sid.name)
         ret = self.managedAirport.procedures.getRoute(sid, self.managedAirport.airspace)
+        Flight.setProp(ret, "_plan_segment_name", "sid")
         deppts = deppts + ret
 
-        temp = self.trimFlightPlan()
-        deppts = deppts + temp
+        plan = self.trimFlightPlan()
+        Flight.setProp(plan, "_plan_segment_name", "cruise")
+        plan[-1].setProp("_plan_segment_name", "destination")
+        deppts = deppts + plan
 
         self.procedure = (rwy, sid)
-        self.flightplan = deppts
-
+        self.flightplan_cp = deppts
         return (True, "Departure::plan: planned")
-        # dp = DeparturePath(dep)
-        # pd = dp.mkPath()

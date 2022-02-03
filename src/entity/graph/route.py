@@ -24,7 +24,7 @@ class Route:
         return ""
 
     def find(self):
-        self.route = self.graph.Dijkstra(self.src, self.dst, self.options)
+        self.route = self.graph.AStar(self.src, self.dst, self.options)
         return self
 
     def found(self):

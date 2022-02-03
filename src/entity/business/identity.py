@@ -1,4 +1,10 @@
+from enum import Enum
 
+class IDENTIFIER(Enum):
+    orgId = "orgId"
+    classId = "classId"
+    typeId = "typeId"
+    name = "name"
 
 class Identity:
     """

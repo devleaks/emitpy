@@ -6,6 +6,8 @@ import os
 import logging
 from enum import Enum
 
+from turfpy.measurement import distance, bearing
+
 from .airspace import Airspace, RestrictedControlledPoint
 from ..utils import ConvertDMSToDD
 
@@ -220,7 +222,7 @@ class RWY(Procedure):
         self.airport = airport  ## Needed to create valid control point for runway
         self.runway = name
         self.point = None
-
+        self.end = None
 
     def add(self, line: ProcedureData):
         if self.point is not None:
@@ -320,14 +322,46 @@ class CIFP:
             prevline = cifpline
             line = cifp_fp.readline()
 
-        ## Print result
-        for procty in procedures.keys():
-            logger.debug(": %s: %s" % (procty, procedures[procty].keys()))
+
         # User friendlier:
         self.SIDS = procedures["SID"]
         self.STARS = procedures["STAR"]
         self.APPCHS = procedures["APPCH"]
         self.RWYS = procedures["RWY"]
+
+        # pair runways
+        self.pairRunways()
+
+        ## Print result
+        for procty in procedures.keys():
+            logger.debug(": %s: %s" % (procty, procedures[procty].keys()))
+
+
+    def pairRunways(self):
+        if len(self.RWYS) == 2:
+            self.RWYS[0].end, self.RWYS[1].end = self.RWYS[1], self.RWYS[0]
+        else:
+            for k, r in self.RWYS.items():
+                if r.end is None:
+                    rh = int(k[2:4])
+                    ri = rh + 18
+                    if ri > 36:
+                        ri = ri - 36
+                    rl = k[-1]  # {L|R|C}
+                    rw = "RW%02d" % ri
+                    if rl == "L":
+                        rw = rw + "R"
+                    elif rl == "R":
+                        rw = rw + "L"
+                    else:
+                        rw = rw + "C"
+                    r.end = self.RWYS[rw]
+                    self.RWYS[rw].end = r
+                    logger.debug(":pairRunways: %s and %s paired" % (r.name, rw))
+        # bearing and length
+        for k, r in self.RWYS.items():
+            r.bearing = bearing(r.getPoint(), r.end.getPoint())
+            r.length = distance(r.getPoint(), r.end.getPoint(), "m")
 
 
     def getRoute(self, procedure: Procedure, airspace: Airspace):
