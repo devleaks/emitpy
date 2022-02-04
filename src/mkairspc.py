@@ -1,6 +1,7 @@
 import logging
-from entity.airspace import XPAirspace
 from geojson import Feature, Point
+
+from entity.airspace import XPAirspace
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Airspace")

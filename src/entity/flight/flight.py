@@ -61,6 +61,7 @@ class Flight:
         self.codeshare = None
         self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
         self.flight_level = 0
+        self.runway = None
         self.flightplan = None
         self.flightplan_cp = []
         self.procedure = None
@@ -161,6 +162,7 @@ class Arrival(Flight):
         Flight.setProp(arrpts[1:], "_plan_segment_name", "cruise")
 
         rwy = self.managedAirport.getRunway(self)
+        self.runway = rwy
         logger.debug(":plan: runway %s" % rwy.name)
         star = self.managedAirport.getProcedure(self, rwy)
 
