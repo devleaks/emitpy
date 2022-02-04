@@ -349,12 +349,51 @@ class XPAirspace(Airspace):
         logger.debug(":loadAirwaySegments: %d segments loaded.", len(self.edges_arr))
         return [True, "XPXPAirspace::AirwaySegments loaded"]
 
+    """
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              48.0,
+              22.0
+            ],
+            [
+              55.0,
+              22.0
+            ],
+            [
+              55.0,
+              28.0
+            ],
+            [
+              48.0,
+              28.0
+            ],
+            [
+              48.0,
+              22.0
+            ]
+          ]
+        ]
+      }
+    }"""
 
     def loadHolds(self):
         filename = os.path.join(self.basename, "earth_hold.dat")
         file = open(filename, "r")
         line = file.readline()
         line.strip()
+
+        lonmin, lonmax = (50, 53)
+        latmin, latmax = (23, 27)
+        def inBbox(p):
+            lat = p["geometry"]["coordinates"][1]
+            lon = p["geometry"]["coordinates"][0]
+            return (lat > latmin) and (lat < latmax) and (lon > lonmin) and (lon < lonmax)
 
         while line:
             if line == "":
@@ -375,9 +414,10 @@ class XPAirspace(Airspace):
                     if fix is None:
                         logger.warning(":loadHolds: fix not found %s.", line)
                     else:
-                        hid = ControlledPoint.mkId(region=args[1], airport=args[2], ident=args[0], pointtype="HLD")
-                        self.holds[hid] = Hold(fix=fix, altmin=args[8], altmax=args[9],
-                            course=args[4], turn=args[7], leg_time=args[5], leg_length=args[6], speed=args[10])
+                        if inBbox(fix):
+                            hid = ControlledPoint.mkId(region=args[1], airport=args[2], ident=args[0], pointtype="HLD")
+                            self.holds[hid] = Hold(fix=fix, altmin=args[8], altmax=args[9],
+                                                   course=args[4], turn=args[7], leg_time=args[5], leg_length=args[6], speed=args[10])
                 else:
                     if len(line) > 1:
                         logger.warning(":loadHolds: invalid fix data %s.", line)
@@ -387,7 +427,8 @@ class XPAirspace(Airspace):
 
         file.close()
 
-        logger.debug(":loadHolds: %d holds loaded.", len(self.holds))
+        # logger.info(":loadHolds: %d holds loaded.", len(self.holds))
+        logger.debug(":loadHolds: %d holds loaded. %s" % (len(self.holds), self.holds.keys()))
         return [True, "XPXPAirspace::Holds loaded"]
 
 

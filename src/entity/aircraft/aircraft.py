@@ -280,7 +280,7 @@ class AircraftPerformance(AircraftType):
 
         t = (altend - altstart) / vspeed
         d = speed * t
-        logger.debug(":climb: %s from %f to %f at %f m/s during %f, move %f at %f m/s" % (self.name, altstart, altend, vspeed, t, d, speed))
+        # logger.debug(":climb: %s from %f to %f at %f m/s during %f, move %f at %f m/s" % (self.name, altstart, altend, vspeed, t, d, speed))
         return (t, d, altend)
 
     def initialClimb(self, altstart, safealt: int = 1500*FT):

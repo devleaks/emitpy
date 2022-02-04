@@ -212,6 +212,7 @@ class Departure(Flight):
             self.loadFlightPlan()
 
         rwy = self.managedAirport.getRunway(self)
+        self.runway = rwy
         logger.debug(":plan: runway %s" % rwy.name)
         deppts = rwy.getRoute()
         Flight.setProp(deppts, "_plan_segment_name", "rwy")

@@ -66,8 +66,8 @@ def main():
 
     # Create a pair of flights
     airline = qr
-    other_airport = Airport.find("VOCL")
-#    (airline, other_airport) = airportManager.getRandomAirport(airline=airline)
+    # other_airport = Airport.find("VOCL")
+    (airline, other_airport) = airportManager.getRandomAirport(airline=airline)
     reqrange = managed.miles(other_airport)
 
     logger.debug("loading aircraft..")

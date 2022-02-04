@@ -76,10 +76,10 @@ def moveOn(arr, idx, currpos, dist):
     nextp = arr[idx + 1]
     left = distance(currpos, nextp, 'm') # distance returns km
     if left < dist:  # we reach the next point at least. Move to it, then continue.
-        logger.debug(":moveOn: completed segment %d, move on segment %d, %f left to run" % (idx, idx + 1, dist - left))
+        # logger.debug(":moveOn: completed segment %d, move on segment %d, %f left to run" % (idx, idx + 1, dist - left))
         return moveOn(arr, idx + 1, nextp, dist - left)
     # we progress towards next point without reaching it
     brng = bearing(arr[idx], nextp)
     dest = destination(currpos, dist, brng, {"units": "m"})  # dist in m
-    logger.debug(":moveOn: distance to run reached, %f left on segment %d" % (left - dist, idx + 1))
+    # logger.debug(":moveOn: distance to run reached, %f left on segment %d" % (left - dist, idx + 1))
     return (dest, idx)
