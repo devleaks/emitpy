@@ -64,7 +64,7 @@ class Flight:
         self.runway = None
         self.flightplan = None
         self.flightplan_cp = []
-        self.procedure = None
+        self.procedure = None   # (RWY, SID), or (STAR, APPCH, RWY)
 
         self.flight_type = PAYLOAD.PAX
         try:
@@ -158,27 +158,32 @@ class Arrival(Flight):
             self.loadFlightPlan()
 
         arrpts = self.trimFlightPlan()
-        arrpts[0].setProp("_plan_segment_name", "origin")
-        Flight.setProp(arrpts[1:], "_plan_segment_name", "cruise")
+        arrpts[0].setProp("_plan_segment_type", "origin")
+        arrpts[0].setProp("_plan_segment_name", self.departure.icao)
+        Flight.setProp(arrpts[1:], "_plan_segment_type", "cruise")
+        Flight.setProp(arrpts[1:], "_plan_segment_name", self.departure.icao+"-"+self.arrival.icao)
 
-        rwy = self.managedAirport.getRunway(self)
+        rwy = self.managedAirport.selectRunway(self)
         self.runway = rwy
         logger.debug(":plan: runway %s" % rwy.name)
-        star = self.managedAirport.getProcedure(self, rwy)
 
+        star = self.managedAirport.getProcedure(self, rwy)
         logger.debug(":plan: STAR %s" % star.name)
         ret = self.managedAirport.procedures.getRoute(star, self.managedAirport.airspace)
-        Flight.setProp(ret, "_plan_segment_name", "star")
+        Flight.setProp(ret, "_plan_segment_type", "star")
+        Flight.setProp(ret, "_plan_segment_name", star.name)
         arrpts = arrpts + ret
 
         appch = self.managedAirport.getApproach(star, rwy)
         logger.debug(":plan: APPCH %s" % appch.name)
         ret = self.managedAirport.procedures.getRoute(appch, self.managedAirport.airspace)
-        Flight.setProp(ret, "_plan_segment_name", "appch")
+        Flight.setProp(ret, "_plan_segment_type", "appch")
+        Flight.setProp(ret, "_plan_segment_name", appch.name)
         arrpts = arrpts + ret
 
         ret = rwy.getRoute()
-        Flight.setProp(ret, "_plan_segment_name", "rwy")
+        Flight.setProp(ret, "_plan_segment_type", "rwy")
+        Flight.setProp(ret, "_plan_segment_name", rwy.name)
         arrpts = arrpts + ret
 
         self.procedure = (star, appch, rwy)
@@ -211,21 +216,25 @@ class Departure(Flight):
         if self.flightplan is None:
             self.loadFlightPlan()
 
-        rwy = self.managedAirport.getRunway(self)
+        rwy = self.managedAirport.selectRunway(self)
         self.runway = rwy
         logger.debug(":plan: runway %s" % rwy.name)
         deppts = rwy.getRoute()
-        Flight.setProp(deppts, "_plan_segment_name", "rwy")
+        Flight.setProp(deppts, "_plan_segment_type", "rwy")
+        Flight.setProp(deppts, "_plan_segment_name", rwy.name)
 
         sid = self.managedAirport.getProcedure(self, rwy)
         logger.debug(":plan: SID %s" % sid.name)
         ret = self.managedAirport.procedures.getRoute(sid, self.managedAirport.airspace)
-        Flight.setProp(ret, "_plan_segment_name", "sid")
+        Flight.setProp(ret, "_plan_segment_type", "sid")
+        Flight.setProp(ret, "_plan_segment_name", sid.name)
         deppts = deppts + ret
 
         plan = self.trimFlightPlan()
-        Flight.setProp(plan, "_plan_segment_name", "cruise")
-        plan[-1].setProp("_plan_segment_name", "destination")
+        Flight.setProp(plan, "_plan_segment_type", "cruise")
+        Flight.setProp(plan, "_plan_segment_name", self.departure.icao+"-"+self.arrival.icao)
+        plan[-1].setProp("_plan_segment_type", "destination")
+        plan[-1].setProp("_plan_segment_name", self.arrival.icao)
         deppts = deppts + plan
 
         self.procedure = (rwy, sid)

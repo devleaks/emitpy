@@ -108,7 +108,7 @@ def main():
     # metar may change between the two
     managed.setMETAR(metar=metar)  # calls prepareRunways()
     dm = Movement.create(dep, managed)
-    dm.make()
+    # dm.make()
     logger.debug("..done")
 
 main()
