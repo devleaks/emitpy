@@ -26,8 +26,8 @@ class MovePoint(Feature, Restriction):
     def __init__(self, geometry: Union[Point, LineString], properties: dict):
         Feature.__init__(self, geometry=geometry, properties=properties)
         Restriction.__init__(self)
-        self._speed = 0
-        self._vspeed = 0
+        self._speed = None
+        self._vspeed = None
 
     def getProp(self, propname: str):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
@@ -61,7 +61,7 @@ class MovePoint(Feature, Restriction):
         self["properties"]["speed"] = speed
 
     def speed(self):
-        return self.speed
+        return self._speed
 
     def setVSpeed(self, vspeed):
         self._vspeed = vspeed
@@ -80,6 +80,7 @@ class Movement:
         self.airport = airport
         self.moves = []  # Array of Features<Point>
         self.holdingpoint = None
+        self.taxi = []  # Array of Features<Point>
 
 
     def asFeatureCollection(self):
@@ -132,6 +133,85 @@ class Movement:
             return (False, status[1])
 
         return (True, "Movement::mkPath done")
+
+
+    def interpolate(self):
+
+        def interpolate_speed(istart, iend):
+            speedstart = self.moves[istart].speed()  # first known speed
+            speedend = self.moves[iend].speed()  # last known speed
+
+            if speedstart == speedend:  # simply copy
+                for idx in range(istart, iend):
+                    self.moves[idx].setSpeed(speedstart)
+                return
+
+            ratios = {}
+            spdcumul = 0
+            for idx in range(istart+1, iend):
+                d = distance(self.moves[idx-1], self.moves[idx], "m")
+                spdcumul = spdcumul + d
+                ratios[idx] = spdcumul
+            logger.debug(":interpolate_speed: (%d)%f -> (%d)%f, %f" % (istart, speedstart, iend, speedend, spdcumul))
+            speed_a = (speedend - speedstart) / spdcumul
+            speed_b = speedstart
+            for idx in range(istart+1, iend):
+                logger.debug(":interpolate_speed: %d %f %f" % (idx, ratios[idx]/spdcumul, speed_b + speed_a * ratios[idx]))
+                self.moves[idx].setSpeed(speed_b + speed_a * ratios[idx] / spdcumul)
+
+        def interpolate_altitude(istart, iend):
+            altstart = self.moves[istart].altitude()  # first known alt
+            altend = self.moves[iend].altitude()  # last known alt
+
+            if altstart == altend:  # simply copy
+                for idx in range(istart, iend):
+                    self.moves[idx].setAltitude(altstart)
+                return
+
+            ratios = {}
+            altcumul = 0
+            for idx in range(istart+1, iend+1):
+                d = distance(self.moves[idx-1], self.moves[idx], "m")
+                altcumul = altcumul + d
+                print(">>>", idx, d, altcumul)
+                ratios[idx] = altcumul
+            logger.debug(":interpolate_alt: (%d)%f -> (%d)%f, %f" % (istart, altstart, iend, altend, altcumul))
+            alt_a = (altend - altstart) / altcumul
+            alt_b = altstart
+            for idx in range(istart+1, iend):
+                logger.debug(":interpolate_alt: %d %f %f" % (idx, ratios[idx]/altcumul, alt_b + alt_a * ratios[idx]))
+                self.moves[idx].setAltitude(alt_b + alt_a * ratios[idx] / altcumul)
+
+
+        # we do have a speed for first point in flight for both arrival (takeoff_speed, apt.alt) and departure (landing_speed, apt.alt)
+        nospeed_idx = None  # index of last elem with not speed, elem[0] has speed.
+        noalt_idx = None
+        for idx in range(1, len(self.moves)):
+            f = self.moves[idx]
+
+            s = f.speed()
+            if s is None:
+                if nospeed_idx is None:
+                    nospeed_idx = idx - 1
+            else:
+                if nospeed_idx is not None:
+                    interpolate_speed(nospeed_idx, idx)
+                    nospeed_idx = None
+
+            a = f.altitude()
+            if a is None:
+                if noalt_idx is None:
+                    noalt_idx = idx - 1
+            else:
+                if noalt_idx is not None:
+                    interpolate_altitude(noalt_idx, idx)
+                    noalt_idx = None
+
+        return (True, "Movement::interpolate not implemented")
+
+
+    def smoothTurns(self):
+        return (True, "Movement::smoothTurns not implemented")
 
 
     def lnav(self):
@@ -371,6 +451,13 @@ class Movement:
         currpos.setProp("fpidx", fcidx)
         fcidx = addCurrentPoint(revmoves, currpos, fcidx, newidx, True)
 
+
+        i = 0
+        for f in fc:
+            logger.debug(":vnav: flight plan last at %d %s" % (i, f))
+            # logger.debug(":vnav: revmoves at %d %s" % (i, f))
+            i = i + 1
+
         # go at APPROACH_ALT at first point of approach / last point of star
         if type(self).__name__ == "ArrivalPath":
 
@@ -381,7 +468,7 @@ class Movement:
             if k == 0:
                 logger.warning(":vnav: no approach found")
             else:
-                logger.debug(":vnav: start of approach: %d, %s" % (k, fc[k].getProp("_plan_segment_name")))
+                logger.debug(":vnav: start of approach at index %d, %s" % (k, fc[k].getProp("_plan_segment_name")))
                 if k <= fcidx:
                     logger.debug(":vnav: final fix seems further away than start of apprach")
                 else:
@@ -389,7 +476,7 @@ class Movement:
                     # add all approach points between start to approach to final fix
                     for i in range(fcidx+1, k):
                         wpt = fc[i]
-                        logger.debug(":vnav: approach level: %d %s" % (i, wpt.getProp("_plan_segment_name")))
+                        logger.debug(":vnav: APPCH: flight level: %d %s" % (i, wpt.getProp("_plan_segment_name")))
                         p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
                         p.setAltitude(alt+APPROACH_ALT)
                         p.setSpeed(actype.getSI(ACPERF.approach_speed))
@@ -398,7 +485,16 @@ class Movement:
                         p.setProp("_mark", "approach")
                         p.setProp("fpidx", i)
                         revmoves.append(p)
-                        logger.debug(":vnav: adding remarkable point: %s (%d)" % (p.getProp("_mark"), len(revmoves)))
+                        logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (i, p.getProp("_mark"), len(revmoves)))
+
+                    # i = 0
+                    # for f in revmoves:
+                    #     a = f.altitude()
+                    #     s = f.speed()
+                    #     logger.debug(":vnav: revmoves before last at %d %s %s: %f %f" % (i, f.getProp("_mark"), f.getProp("_plan_segment_name"), s if s is not None else -1, a if a is not None else -1))
+                    #     # logger.debug(":vnav: revmoves at %d %s" % (i, f))
+                    #     i = i + 1
+
                     # add start of approach
                     currpos = MovePoint(geometry=fc[k]["geometry"], properties=fc[k]["properties"])
                     currpos.setAltitude(alt+APPROACH_ALT)
@@ -406,10 +502,22 @@ class Movement:
                     currpos.setVSpeed(0)
                     currpos.setProp("_mark", "start_of_approach")
                     currpos.setProp("fpidx", k)
-                    currpos.setColor("#ff00ff")  # approach in MAGENTA
+                    currpos.setColor("#880088")  # approach in MAGENTA
                     revmoves.append(currpos)
-                    logger.debug(":vnav: adding remarkable point: %s (%d)" % (currpos.getProp("_mark"), len(revmoves)))
+                    logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (k, currpos.getProp("_mark"), len(revmoves)))
+
+                    # BIG ISSUE HERE WITH APPEND THAT CHANGE LAST ELEMENT???
+                    revmoves[-2].setProp("_mark", "approach")
+
                     fcidx = k
+
+                    # i = 0
+                    # for f in revmoves:
+                    #     a = f.altitude()
+                    #     s = f.speed()
+                    #     logger.debug(":vnav: revmoves at %d %s %s: %f %f" % (i, f.getProp("_mark"), f.getProp("_plan_segment_name"), s if s is not None else -1, a if a is not None else -1))
+                    #     # logger.debug(":vnav: revmoves at %d %s" % (i, f))
+                    #     i = i + 1
 
             # find first point of star:
             k = len(fc) - 1
@@ -418,7 +526,7 @@ class Movement:
             if k == 0:
                 logger.warning(":vnav: no star found")
             else:
-                logger.debug(":vnav: start of star: %d, %s" % (k, fc[k].getProp("_plan_segment_name")))
+                logger.debug(":vnav: start of star at index %d, %s" % (k, fc[k].getProp("_plan_segment_name")))
                 if k <= fcidx:
                     logger.debug(":vnav: final fix seems further away than start of star")
                 else:
@@ -426,29 +534,30 @@ class Movement:
                     # add all approach points between start to approach to final fix
                     for i in range(fcidx+1, k):
                         wpt = fc[i]
-                        logger.debug(":vnav: star level: %d %s" % (i, wpt.getProp("_plan_segment_name")))
+                        logger.debug(":vnav: STAR: flight level: %d %s" % (i, wpt.getProp("_plan_segment_name")))
                         p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
-                        p.setAltitude(STAR_ALT)
+                        p.setAltitude(alt+STAR_ALT)
                         p.setSpeed(actype.getSI(ACPERF.approach_speed))
                         p.setVSpeed(0)
                         p.setColor("#ff00ff")  # star in MAGENTA
                         p.setProp("_mark", "star")
                         p.setProp("fpidx", i)
                         revmoves.append(p)
-                        logger.debug(":vnav: adding remarkable point: %s (%d)" % (p.getProp("_mark"), len(revmoves)))
+                        logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (i, p.getProp("_mark"), len(revmoves)))
                     # add start of approach
                     # we assume start of star is where holding occurs
                     self.holdingpoint = fc[k].id
                     logger.debug(":vnav: holding at : %s" % (self.holdingpoint))
                     currpos = MovePoint(geometry=fc[k]["geometry"], properties=fc[k]["properties"])
-                    currpos.setAltitude(STAR_ALT)
+                    currpos.setAltitude(alt+STAR_ALT)
                     currpos.setSpeed(actype.getSI(ACPERF.approach_speed))
                     currpos.setVSpeed(0)
                     currpos.setProp("_mark", "start_of_star")
                     currpos.setProp("fpidx", k)
                     currpos.setColor("#ff00ff")  # star in MAGENTA
                     revmoves.append(currpos)
-                    logger.debug(":vnav: adding remarkable point: %s (%d)" % (currpos.getProp("_mark"), len(revmoves)))
+                    logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (k, currpos.getProp("_mark"), len(revmoves)))
+                    fcidx = k
 
         if self.flight.flight_level > 100:
             # descent from FL100 to first approach point
@@ -526,7 +635,9 @@ class Movement:
         logger.debug(":vnav: cruise until %d, descent after %d, remains %f to destination" % (top_of_decent_idx, top_of_decent_idx, groundmv))
 
         # for f in revmoves:
-        #     logger.debug(":vnav: revmoves at %s %s" % (f.getProp("_mark"), f.getProp("_plan_segment_name")))
+        #     a = f.altitude()
+        #     s = f.speed()
+        #     logger.debug(":vnav: revmoves at %s %s: %f %f" % (f.getProp("_mark"), f.getProp("_plan_segment_name"), s if s is not None else -1, a if a is not None else -1))
 
         # PART 3: Join top of ascent to top of descent at cruise speed
         #
@@ -555,9 +666,23 @@ class Movement:
         self.moves = self.moves + revmoves
         logger.debug(":VNAV: descent added (+%d %d)" % (len(revmoves), len(self.moves)))
 
-        fc = Movement.cleanFeatures(self.moves)
-        fc.append(Feature(geometry=self.asLineString()))
-        print(FeatureCollection(features=fc))
+        # fc = Movement.cleanFeatures(self.moves)
+        # fc.append(Feature(geometry=self.asLineString()))
+        # print(FeatureCollection(features=fc))
+        # i = 0
+        # for f in self.moves:
+        #     s = f.speed()
+        #     a = f.altitude()
+        #     logger.debug(":vnav: before: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
+        #     i = i + 1
+        # self.interpolate()
+        # i = 0
+        # for f in self.moves:
+        #     s = f.speed()
+        #     a = f.altitude()
+        #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
+        #     i = i + 1
+
         return (True, "Movement::vnav completed without restriction")
 
 

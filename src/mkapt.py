@@ -30,7 +30,7 @@ def main():
     apt.load()
     logger.debug("..done")
 
-    rwy = apt.getRunway("")
+    rwy = apt.selectRunway("")
     print("RWY> ", rwy)
     r = apt.getProcedure("", rwy)
     print("SID> ", r)
@@ -39,7 +39,7 @@ def main():
     r = apt.procedures.getRoute("APPCH", "D16L", aspc)
     print("APPCH> ", r)
 
-    r = apt.getRunway("")
+    r = apt.selectRunway("")
     print("RWY> ", r)
     r = apt.procedures.getRoute("SID", "ALSE1C", aspc)
     print("SID>", r)

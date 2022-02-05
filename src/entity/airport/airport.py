@@ -243,7 +243,7 @@ class AirportBase(Airport):
         logger.warning(":getApproach: no aproach found for runway %s" % runway)
         return None
 
-    def getRunway(self, flight: 'Flight'):
+    def selectRunway(self, flight: 'Flight'):
         """
         Gets a valid runway for flight, depending on QFU, flight type (pax, cargo), destination, etc.
 
