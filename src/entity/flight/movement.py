@@ -216,6 +216,11 @@ class Movement:
 
     def standard_turns(self):
         ret = standard_turns(self.moves)
+        # replace vertices with standard turns
+        print(ret)
+        fc = Movement.cleanFeatures(ret)
+        fc.append(Feature(geometry=self.asLineString()))
+        print(FeatureCollection(features=fc))
         return (False, "Movement::standard_turns not implemented")
 
 
@@ -741,14 +746,10 @@ class Movement:
         logger.debug(":VNAV: descent added (+%d %d)" % (len(revmoves), len(self.moves)))
 
         logger.debug("STANDARD TURNS **************************************************************")
-
         # replace vertices with standard turns
         st = self.standard_turns()
-        fc = Movement.cleanFeatures(st)
-        # fc.append(Feature(geometry=self.asLineString()))
-        print(FeatureCollection(features=fc))
 
-        logger.debug("PATH COMPLETED **************************************************************")
+        # logger.debug("INTERPOLATE **************************************************************")
         # fc = Movement.cleanFeatures(self.moves)
         # fc.append(Feature(geometry=self.asLineString()))
         # print(FeatureCollection(features=fc))
@@ -761,6 +762,8 @@ class Movement:
         #     a = f.altitude()
         #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
         #     i = i + 1
+
+        logger.debug("MOVEMENTS COMPLETED **************************************************************")
 
         return (True, "Movement::vnav completed without restriction")
 
