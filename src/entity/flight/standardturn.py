@@ -24,11 +24,16 @@ def turn(bi, bo):
     return t
 
 
-def extend_line(line, dist=20):
+def extend_line(line, pct=40):
     # Extended line direction need to be returned (opposite direction)
+    # New 6/2/22: distance to extend is now proportionnal to length of segment.
+    # We noticed segments can sometimes be as long as 300km
+    #
     brng = bearing(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
-    far0 = destination(Feature(geometry=Point(line["coordinates"][0])), dist, brng + 180, {"units": "km"})
-    far1 = destination(Feature(geometry=Point(line["coordinates"][1])), dist, brng, {"units": "km"})
+    newdist = distance(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
+    newdist = newdist * pct / 100
+    far0 = destination(Feature(geometry=Point(line["coordinates"][0])), newdist, brng + 180, {"units": "km"})
+    far1 = destination(Feature(geometry=Point(line["coordinates"][1])), newdist, brng, {"units": "km"})
     return Feature(geometry=LineString([far1["geometry"]["coordinates"], far0["geometry"]["coordinates"]]),
                    properties={
                     "name": "B %f" % brng,
