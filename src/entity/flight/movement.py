@@ -740,16 +740,20 @@ class Movement:
         self.moves = self.moves + revmoves
         logger.debug(":VNAV: descent added (+%d %d)" % (len(revmoves), len(self.moves)))
 
-        logger.debug("PATH COMPLETED **************************************************************")
-        fc = Movement.cleanFeatures(self.moves)
-        fc.append(Feature(geometry=self.asLineString()))
+        logger.debug("STANDARD TURNS **************************************************************")
+
+        # replace vertices with standard turns
+        st = self.standard_turns()
+        fc = Movement.cleanFeatures(st)
+        # fc.append(Feature(geometry=self.asLineString()))
         print(FeatureCollection(features=fc))
-        # i = 0
-        # for f in self.moves:
-        #     s = f.speed()
-        #     a = f.altitude()
-        #     logger.debug(":vnav: before: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
-        #     i = i + 1
+
+        logger.debug("PATH COMPLETED **************************************************************")
+        # fc = Movement.cleanFeatures(self.moves)
+        # fc.append(Feature(geometry=self.asLineString()))
+        # print(FeatureCollection(features=fc))
+
+        # filling altitude and speed at each vertex with interpolated values
         # self.interpolate()
         # i = 0
         # for f in self.moves:
@@ -757,7 +761,6 @@ class Movement:
         #     a = f.altitude()
         #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
         #     i = i + 1
-        self.standard_turns()
 
         return (True, "Movement::vnav completed without restriction")
 

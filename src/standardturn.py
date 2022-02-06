@@ -1,11 +1,13 @@
 import logging
 
 from math import pi
+
 from geojson import Point, LineString, Feature, FeatureCollection
 from turfpy.measurement import destination, bearing, distance
 
 logger = logging.getLogger("standard_turns")
 
+ARRINPUT = []
 
 def sign(x):
     return -1 if x < 0 else (0 if x == 0 else 1)
@@ -41,8 +43,11 @@ def line_offset(line, offset):
     p1 = Feature(geometry=Point(line["geometry"]["coordinates"][1]))
     brg = bearing(p0, p1)
     brg = brg - sign(offset) * 90
+    print("line offset", offset, sign(offset), brg)
     d0 = destination(p0, offset, brg)
+    # print("d0", distance(d0, p0), offset)
     d1 = destination(p1, offset, brg)
+    # print("d1", distance(d1, p1), offset)
     return Feature(geometry=LineString([d0["geometry"]["coordinates"], d1["geometry"]["coordinates"]]))
 
 
@@ -90,31 +95,62 @@ def line_arc(center, radius, start, end, steps=8):
     return arc
 
 
+def color(f, c):
+    f["properties"]["marker-color"] = c
+    f["properties"]["marker-size"] = "medium"
+    f["properties"]["marker-symbol"] = ""
+
+
+def color_all(arr, c):
+    for f in arr:
+        color(f, c)
+
+
 def standard_turn(l0, l1, radius):
     b_in = bearing(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
     b_out = bearing(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
     turnAngle = turn(b_in, b_out)
     oppositeTurnAngle = turn(b_out, b_in)
+    print(">>>angles", b_in, b_out, turnAngle, oppositeTurnAngle)
 
     l0e = extend_line(l0, 20)
     l1e = extend_line(l1, 20)
     cross_ext = line_intersect(l0e, l1e)  # returns a FeatureCollection
+    # print(">>>extend_line")
+    # print(FeatureCollection(features=ARRINPUT + [l0e, l1e]))
+    # print(">>>cross_ext", cross_ext)
     if cross_ext is None:
         logger.warning("standard_turn: lines do not cross close %s %s" % (l0e, l1e))
+        print(">>>extend_line")
+        print(FeatureCollection(features=ARRINPUT + [l0e, l1e]))
+        print(">>>cross_ext", cross_ext)
         return None
+    color(cross_ext, "#ff0000")
 
     l0b = line_offset(l0e, sign(oppositeTurnAngle) * radius / 1000)
     l1b = line_offset(l1e, sign(oppositeTurnAngle) * radius / 1000)
     center = line_intersect(l0b, l1b)
+    color(center, "#00ff00")
+    # print(">>>line_offset")
+    # print(FeatureCollection(features=ARRINPUT + [l0b, l1b, center]))
     if center is None:
         logger.warning("standard_turn: no arc center %s %s" % (l0, l1))
         return None
 
+    print(">>>Control", radius/1000, distance(cross_ext, center))
+
     arc0 = b_out + 90 if turnAngle > 0 else b_in - 90
     arc1 = b_in + 90 if turnAngle > 0 else b_out - 90
     newradius = distance(cross_ext, center)
+    print(">>>arc", arc0, arc1, radius/1000, newradius)
 
     arc = line_arc(center, radius/1000, arc0, arc1)
+    color_all(arc, "#00ffff")
+    # print(FeatureCollection(features=arc))
+    print(">>>ALL", b_in, b_out, radius/1000, arc0, arc1, len(arc))
+    print(FeatureCollection(features=ARRINPUT + [l0e, l1e, l0b, l1b, cross_ext, center] + arc))
+
+
 
     if turnAngle > 0:  # reverse coordinates order
         arc.reverse()
@@ -123,15 +159,18 @@ def standard_turn(l0, l1, radius):
 
 
 def standard_turns(arrin):
-    # Inout is array of features
+    global ARRINPUT
+    ARRINPUT = arrin
+    color_all(ARRINPUT, "#ffff00")
     arrout = []
     last_speed = 100
-
     arrout.append(arrin[0])
+
+    print("START", len(arrin), turnRadius(last_speed))
     for i in range(1, len(arrin) - 1):
         li = LineString([arrin[i-1]["geometry"]["coordinates"], arrin[i]["geometry"]["coordinates"]])
         lo = LineString([arrin[i]["geometry"]["coordinates"], arrin[i+1]["geometry"]["coordinates"]])
-        s = arrin[i].speed()
+        s = last_speed  # arrin[i].speed()
         if s is None:
             s = last_speed
         arc = standard_turn(li, lo, turnRadius(s))
@@ -139,13 +178,10 @@ def standard_turns(arrin):
 
         if arc is not None:
             arrout.append(arrin[i])
-            cnt = 0
             for p in arc:
-                p["properties"]["arcid"] = "%d/%d" % (i, cnt)
                 arrout.append(p)
-                cnt = cnt + 1
-            logger.debug("standard_turn: added arc %d" % (i))
         else:
             arrout.append(arrin[i])
+        print("---------------------")
 
     return arrout
