@@ -1,7 +1,7 @@
 """
 Handy wrapper class for line (2-point linestring with named extremities)
 """
-from geojson import Point, LineString, Polygon
+from geojson import Point, LineString, Polygon, Feature
 from turfpy.measurement import destination, distance, bearing
 
 import logging
@@ -24,14 +24,14 @@ class Segment(LineString):
         """
         Returns length of line.
         """
-        return distance(self.start, self.end)
+        return distance(Feature(geometry=self.start), Feature(geometry=self.end))
 
 
     def bearing(self):
         """
         Returns bearing of line in decimal degrees (0-359).
         """
-        return bearing(self.start, self.end)
+        return bearing(Feature(geometry=self.start), Feature(geometry=self.end))
 
 
     def surface(self, width: float=None, closed: bool=True):

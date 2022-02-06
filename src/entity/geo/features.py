@@ -1,23 +1,24 @@
 """
 GeoJSON Features with special meaning or type (class).
 """
-from geojson import GeoJSON, Polygon, Point, Feature
+from geojson import Polygon, Point, Feature
+from geojson.geometry import Geometry
 from turfpy.measurement import bearing
 
-from ..business.identity import Identity
+# from ..business.identity import Identity
 
 
 # ################################@
 # IDENTIFIED FEATURE (=GEOJSON FEATURE WITH COMPLEX ID)
 #
 #
-class IdentifiedFeature(Feature, Identity):  # Alt: FeatureWithId?
-    """
-    A IdentifiedFeature is a Feature with mandatory identification data.
-    """
-    def __init__(self, geometry: GeoJSON, properties: dict, orgId: str, classId: str, typeId: str, name: str):
-        Feature.__init__(self, geometry=geometry, properties=properties)
-        Identity.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name)
+# class IdentifiedFeature(Feature, Identity):  # Alt: FeatureWithId?
+#     """
+#     A IdentifiedFeature is a Feature with mandatory identification data.
+#     """
+#     def __init__(self, geometry: Geometry, properties: dict, orgId: str, classId: str, typeId: str, name: str):
+#         Feature.__init__(self, geometry=geometry, properties=properties)
+#         Identity.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name)
 
 
 # ################################@
