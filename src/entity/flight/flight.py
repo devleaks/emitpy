@@ -163,6 +163,10 @@ class Arrival(Flight):
         Flight.setProp(arrpts[1:], "_plan_segment_type", "cruise")
         Flight.setProp(arrpts[1:], "_plan_segment_name", self.departure.icao+"-"+self.arrival.icao)
 
+        # for f in arrpts:
+        #     logger.debug(":plan: PLAN %s %s" % (f.id, f.getProp("_plan_segment_type")))
+        # logger.debug(":plan: ---")
+
         rwy = self.managedAirport.selectRunway(self)
         self.runway = rwy
         logger.debug(":plan: runway %s" % rwy.name)
@@ -172,19 +176,37 @@ class Arrival(Flight):
         ret = self.managedAirport.procedures.getRoute(star, self.managedAirport.airspace)
         Flight.setProp(ret, "_plan_segment_type", "star")
         Flight.setProp(ret, "_plan_segment_name", star.name)
+
         arrpts = arrpts + ret
+
+        # for f in ret:
+        #     logger.debug(":plan: STAR %s" % f.id)
+        # logger.debug(":plan: ---")
 
         appch = self.managedAirport.getApproach(star, rwy)
         logger.debug(":plan: APPCH %s" % appch.name)
         ret = self.managedAirport.procedures.getRoute(appch, self.managedAirport.airspace)
         Flight.setProp(ret, "_plan_segment_type", "appch")
         Flight.setProp(ret, "_plan_segment_name", appch.name)
-        arrpts = arrpts + ret
+
+        # for f in ret:
+        #     logger.debug(":plan: APPCH %s %s" % (f.id, f.getProp("_plan_segment_type")))
+        # logger.debug(":plan: ---")
+
+        if arrpts[-1].id == ret[0].id:
+            logger.debug(":plan: duplicate end STAR/begin APPCH %s removed" % ret[0].id)
+            arrpts = arrpts[:-1] + ret  # remove last point of STAR
+        else:
+            arrpts = arrpts + ret
 
         ret = rwy.getRoute()
         Flight.setProp(ret, "_plan_segment_type", "rwy")
         Flight.setProp(ret, "_plan_segment_name", rwy.name)
         arrpts = arrpts + ret
+
+        # for f in ret:
+        #     logger.debug(":plan: RWY %s %s" % (f.id, f.getProp("_plan_segment_type")))
+        # logger.debug(":plan: ---")
 
         self.procedure = (star, appch, rwy)
         self.flightplan_cp = arrpts

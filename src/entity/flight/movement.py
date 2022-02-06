@@ -4,9 +4,10 @@ A succession of positions where the aircraft passes. Includes taxi and takeoff o
 import logging
 from functools import reduce
 from typing import Union
+import copy
 
 from geojson import Point, LineString, Feature, FeatureCollection
-from turfpy.measurement import distance
+from turfpy.measurement import distance, destination, bearing
 
 from ..flight import Flight
 from ..airspace import Restriction
@@ -14,6 +15,8 @@ from ..airport import AirportBase
 from ..aircraft import ACPERF
 from ..geo import moveOn
 from ..utils import FT
+
+from .standardturn import standard_turns
 
 logger = logging.getLogger("Movement")
 
@@ -24,7 +27,7 @@ class MovePoint(Feature, Restriction):
     THe name of the point is the synchronization name.
     """
     def __init__(self, geometry: Union[Point, LineString], properties: dict):
-        Feature.__init__(self, geometry=geometry, properties=properties)
+        Feature.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
         Restriction.__init__(self)
         self._speed = None
         self._vspeed = None
@@ -79,6 +82,7 @@ class Movement:
         self.flight = flight
         self.airport = airport
         self.moves = []  # Array of Features<Point>
+        self.end_rollout = None
         self.holdingpoint = None
         self.taxi = []  # Array of Features<Point>
 
@@ -91,7 +95,7 @@ class Movement:
         # reduce(lambda num1, num2: num1 * num2, my_numbers, 0)
         coords = []
         for x in self.moves:
-            # logger.debug(":asLineString: %d %s %s %s" % (len(coords), x.getProp("fpidx"), x.getProp("_mark"), x.getProp("_plan_segment_name")))
+            # logger.debug(":asLineString: %d %s %s %s" % (len(coords), x.getProp("fpidx"), x.getProp("_mark"), x.getProp("_plan_segment_type")))
             coords.append(x["geometry"]["coordinates"])
         # coords = reduce(lambda x, coords: coords + x["geometry"]["coordinates"], self.moves, [])
         return LineString(coords)
@@ -210,8 +214,9 @@ class Movement:
         return (True, "Movement::interpolate not implemented")
 
 
-    def smoothTurns(self):
-        return (True, "Movement::smoothTurns not implemented")
+    def standard_turns(self):
+        ret = standard_turns(self.moves)
+        return (False, "Movement::standard_turns not implemented")
 
 
     def lnav(self):
@@ -225,9 +230,8 @@ class Movement:
     def vnav(self):
         """
         Perform vertical navigation for route
+        @todo: Add optional hold
         """
-    def vnav(self):
-        # @todo: Add optional hold
 
         def moveOnCP(fc, fcidx, currpos, alt):
             p, i = moveOn(fc, fcidx, currpos, alt)
@@ -244,7 +248,7 @@ class Movement:
                     p.setColor("#ff0000") # flight plan point in RED
                     #@todo: will need to interpolate alt and speed for these points
                     coll.append(p)
-                    # logger.debug(":addCurrentPoint: adding flight plan point: %d %s (%d)" % (i, wpt.getProp("_plan_segment_name"), len(coll)))
+                    # logger.debug(":addCurrentPoint: adding flight plan point: %d %s (%d)" % (i, wpt.getProp("_plan_segment_type"), len(coll)))
             pos.setColor("#00ff00")  # remarkable point in FREEN
             coll.append(pos)
             # logger.debug(":addCurrentPoint: adding remarkable point: %s (%d)" % (pos.getProp("_mark"), len(coll)))
@@ -257,7 +261,7 @@ class Movement:
         logger.debug(":vnav: %s: %d points in flight plan" % (type(self).__name__, len(fc)))
 
         # for f in self.flight.flightplan_cp:
-        #     logger.debug(":vnav: flight plan: %s" % (f.getProp("_plan_segment_name")))
+        #     logger.debug(":vnav: flight plan: %s" % (f.getProp("_plan_segment_type")))
 
         # PART 1: (FORWARD): From takeoff to top of ascent
         #
@@ -265,46 +269,92 @@ class Movement:
         logger.debug("DEPARTURE **********************************************************************")
         groundmv = 0
         fcidx = 0
-        deptapt = fc[fcidx]
 
-        if type(self).__name__ == "DeparturePath":  # the path starts at the END of the departure runway
+        if type(self).__name__ == "DeparturePath":  # take off
+            TOH_BLASTOFF = 0.2  # km
             rwy = self.flight.runway
-            deptapt = rwy.end.getPoint()
-            logger.debug(":vnav: departure from %s, first point is %s threshold" % (rwy.name, rwy.end.name))
+            rwy_threshold = rwy.getPoint()
+            alt = rwy_threshold.altitude()
+            if alt is None:
+                logger.warning(":vnav: departure airport has no altitude: %s" % rwy_threshold)
+                alt = 0
 
-        alt = deptapt.altitude()
-        if alt is None:
-            logger.warning(":vnav: departure airport has no altitude: %s" % deptapt)
-            alt = 0
+            brg = bearing(rwy_threshold, rwy.end.getPoint())
+            takeoff_hold = destination(rwy_threshold, TOH_BLASTOFF, brg, {"units": "km"})
+            logger.debug(":vnav: departure from %s, %f" % (rwy.name, brg))
 
-        if type(self).__name__ == "DeparturePath":  # the path starts at the END of the departure runway
-            logger.debug(":vnav: departure runway: %s, %d" % (type(deptapt).__name__, alt))
-        else:
-            logger.debug(":vnav: departure airport: %s, %d" % (type(deptapt).__name__, alt))
+            currpos = MovePoint(geometry=takeoff_hold["geometry"], properties={})
+            currpos.setAltitude(alt)
+            currpos.setSpeed(actype.getSI(0))
+            currpos.setVSpeed(0)
+            currpos.setColor("#880088")  # takeoff
+            currpos.setProp("_mark", "takeoff_hold")
+            currpos.setProp("fpidx", 0)
+            self.moves.append(currpos)
+            logger.debug(":vnav: takeoff hold at %s, %f" % (rwy.name, TOH_BLASTOFF))
 
-        currpos = MovePoint(geometry=deptapt["geometry"], properties=deptapt["properties"])
-        if type(self).__name__ == "DeparturePath":  # the path starts at the END of the departure runway
-            currpos.setProp("_mark", "runway_threshold")
-        else:
-            currpos.setProp("_mark", "departure airport")
-        currpos.setSpeed(actype.getSI(ACPERF.takeoff_speed))
-        currpos.setColor("#ffff00")  # departure airport in YELLOW
-        currpos.setProp("fpidx", fcidx)
-        self.moves.append(currpos)
-        logger.debug(":vnav: departure added first point")
-        # we'll deal with what happens before the runway threshold in the lnav part.
+            takeoff_distance = actype.getSI(ACPERF.takeoff_distance) * self.airport.runwayIsWet() / 1000  # must be km for destination()
+            takeoff = destination(takeoff_hold, takeoff_distance, brg, {"units": "km"})
 
-        # initial climb, commonly accepted to above 1500ft AGL
-        logger.debug(":vnav: initialClimb")
-        step = actype.initialClimb(alt)  # (t, d, altend)
-        # find initial climb point
-        groundmv = groundmv + step[1]
-        currpos, newidx = moveOnCP(fc, fcidx, currpos, step[1])
-        currpos.setAltitude(step[2])
-        currpos.setSpeed(actype.getSI(ACPERF.initial_climb_speed))
-        currpos.setVSpeed(actype.getSI(ACPERF.initial_climb_vspeed))
-        currpos.setProp("_mark", "end_initial_climb")
-        fcidx = addCurrentPoint(self.moves, currpos, fcidx, newidx)
+            currpos = MovePoint(geometry=takeoff["geometry"], properties={})
+            currpos.setAltitude(alt)
+            currpos.setSpeed(actype.getSI(ACPERF.takeoff_speed))
+            currpos.setVSpeed(actype.getSI(ACPERF.initial_climb_speed))
+            currpos.setColor("#880088")  # takeoff
+            currpos.setProp("_mark", "takeoff")
+            currpos.setProp("fpidx", 0)
+            self.moves.append(currpos)
+            groundmv = takeoff_distance
+            logger.debug(":vnav: takeoff at %s, %f" % (rwy.name, takeoff_distance))
+
+            # initial climb, commonly accepted to above 1500ft AGL
+            logger.debug(":vnav: initialClimb")
+            step = actype.initialClimb(alt)  # (t, d, altend)
+            initial_climb_distance = step[1] / 1000  # km
+            # find initial climb point
+
+            # we climb on path to see if we reach indices...
+            currpos, newidx = moveOnCP(fc, fcidx, currpos, initial_climb_distance)
+
+            # we ignore currpos for now, we will climb straight...
+            initial_climb = destination(takeoff, initial_climb_distance, brg, {"units": "km"})
+            currpos = MovePoint(geometry=initial_climb["geometry"], properties={})
+            currpos.setAltitude(alt)
+            currpos.setSpeed(actype.getSI(ACPERF.initial_climb_speed))
+            currpos.setVSpeed(actype.getSI(ACPERF.initial_climb_vspeed))
+            currpos.setColor("#880088")  # takeoff
+            currpos.setProp("_mark", "end_initial_climb")
+            currpos.setProp("fpidx", newidx)
+            self.moves.append(currpos)
+            logger.debug(":vnav: initial climb end at %d, %f" % (newidx, initial_climb_distance))
+            fcidx = newidx
+            groundmv = groundmv + initial_climb_distance
+
+        else:  # ArrivalPath, simpler departure
+            deptapt = fc[0]
+            alt = deptapt.altitude()
+            if alt is None:
+                logger.warning(":vnav: departure airport has no altitude: %s" % deptapt)
+                alt = 0
+            currpos = MovePoint(geometry=deptapt["geometry"], properties=deptapt["properties"])
+            currpos.setProp("_mark", "origin")
+            currpos.setSpeed(actype.getSI(ACPERF.takeoff_speed))
+            currpos.setColor("#ffff00")  # departure airport in YELLOW
+            currpos.setProp("fpidx", fcidx)
+            self.moves.append(currpos)
+            logger.debug(":vnav: origin added first point")
+
+            # initial climb, commonly accepted to above 1500ft AGL
+            logger.debug(":vnav: initialClimb")
+            step = actype.initialClimb(alt)  # (t, d, altend)
+            # find initial climb point
+            groundmv = step[1]
+            currpos, newidx = moveOnCP(fc, fcidx, currpos, step[1])
+            currpos.setAltitude(step[2])
+            currpos.setSpeed(actype.getSI(ACPERF.initial_climb_speed))
+            currpos.setVSpeed(actype.getSI(ACPERF.initial_climb_vspeed))
+            currpos.setProp("_mark", "end_initial_climb")
+            fcidx = addCurrentPoint(self.moves, currpos, fcidx, newidx)
 
         logger.debug(":vnav: climbToFL100")
         step = actype.climbToFL100(currpos.altitude())  # (t, d, altend)
@@ -406,37 +456,64 @@ class Movement:
         fc = self.flight.flightplan_cp.copy()
         fc.reverse()
         fcidx = 0
-        arrvapt = fc[fcidx]
 
         # for f in fc:
-        #     logger.debug(":vnav: flight plan reversed: %s" % (f.getProp("_plan_segment_name")))
+        #     logger.debug(":vnav: flight plan reversed: %s" % (f.getProp("_plan_segment_type")))
 
         if type(self).__name__ == "ArrivalPath":  # the path starts at the END of the departure runway
+            LAND_TOUCH_DOWN = 0.4  # km
+            TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
             rwy = self.flight.runway
-            arrvapt = rwy.getPoint()
-            logger.debug(":vnav: arrival to %s threshold" % (rwy.name))
+            rwy_threshold = rwy.getPoint()
+            alt = rwy_threshold.altitude()
+            if alt is None:
+                logger.warning(":vnav: departure airport has no altitude: %s" % rwy_threshold)
+                alt = 0
 
-        alt = arrvapt.altitude()
-        if alt is None:
-            logger.warning(":vnav: arrival airport has no altitude: %s" % arrvapt)
-            alt = 0
+            brg = bearing(rwy_threshold, rwy.end.getPoint())
+            touch_down = destination(rwy_threshold, LAND_TOUCH_DOWN, brg, {"units": "km"})
+            logger.debug(":vnav: arrival runway %s, %f" % (rwy.name, brg))
 
-        if type(self).__name__ == "ArrivalPath":  # the path starts at the END of the departure runway
-            logger.debug(":vnav: arrival runway: %s: %s, %d" % (type(arrvapt).__name__, arrvapt, alt))
+            # First point is where stopped
+            rollout_distance = actype.getSI(ACPERF.landing_distance) * self.airport.runwayIsWet() / 1000 # must be km for destination()
+            landing = destination(touch_down, rollout_distance, brg, {"units": "km"})
+
+            currpos = MovePoint(geometry=landing["geometry"], properties={})
+            currpos.setAltitude(alt)
+            currpos.setSpeed(TAXI_SPEED)
+            currpos.setVSpeed(0)
+            currpos.setColor("#880088")  # takeoff
+            currpos.setProp("_mark", "end_rollout")
+            currpos.setProp("fpidx", 0)
+            revmoves.append(currpos)
+            logger.debug(":vnav: stopped at %s, %f" % (rwy.name, rollout_distance))
+            self.end_rollout = copy.deepcopy(currpos)  # we keep this special position for taxiing (start_of_taxi)
+
+            # Point before is touch down
+            currpos = MovePoint(geometry=touch_down["geometry"], properties={})
+            currpos.setAltitude(alt)
+            currpos.setSpeed(actype.getSI(ACPERF.landing_speed))
+            currpos.setVSpeed(0)
+            currpos.setColor("#880088")  # takeoff
+            currpos.setProp("_mark", "touch_down")
+            currpos.setProp("fpidx", 0)
+            revmoves.append(currpos)
+            logger.debug(":vnav: touch down at %s, %f" % (rwy.name, LAND_TOUCH_DOWN))
+
         else:
-            logger.debug(":vnav: arrival airport: %s: %s, %d" % (type(arrvapt).__name__, arrvapt, alt))
+            arrvapt = fc[fcidx]
+            alt = arrvapt.altitude()
+            if alt is None:
+                logger.warning(":vnav: arrival airport has no altitude: %s" % arrvapt)
+                alt = 0
 
-        currpos = MovePoint(geometry=arrvapt["geometry"], properties=arrvapt["properties"])
-        if type(self).__name__ == "ArrivalPath":  # the path starts at the END of the departure runway
-            currpos.setProp("_mark", "runway_threshold")
-        else:
-            currpos.setProp("_mark", "destination airport")
-        currpos.setSpeed(actype.getSI(ACPERF.landing_speed))
-        currpos.setProp("fpidx", len(fc) - fcidx)
-        currpos.setColor("#00ffff")  # Arrival airport in CYAN
-        revmoves.append(currpos)
-        logger.debug(":vnav: arrival added last point")
-        # we'll deal with what happens after the runway threshold in the lnav part.
+            currpos = MovePoint(geometry=arrvapt["geometry"], properties=arrvapt["properties"])
+            currpos.setProp("_mark", "destination")
+            currpos.setSpeed(actype.getSI(ACPERF.landing_speed))
+            currpos.setProp("fpidx", len(fc) - fcidx)
+            currpos.setColor("#00ffff")  # Arrival airport in CYAN
+            revmoves.append(currpos)
+            logger.debug(":vnav: destination added last point")
 
         # we move to the final fix at max 3000ft, approach speed
         logger.debug(":vnav: final")
@@ -452,23 +529,23 @@ class Movement:
         fcidx = addCurrentPoint(revmoves, currpos, fcidx, newidx, True)
 
 
-        i = 0
-        for f in fc:
-            logger.debug(":vnav: flight plan last at %d %s" % (i, f))
-            # logger.debug(":vnav: revmoves at %d %s" % (i, f))
-            i = i + 1
+        # i = 0
+        # for f in fc:
+        #     logger.debug(":vnav: flight plan last at %d %s" % (i, f.id))
+        #     # logger.debug(":vnav: revmoves at %d %s" % (i, f))
+        #     i = i + 1
 
         # go at APPROACH_ALT at first point of approach / last point of star
         if type(self).__name__ == "ArrivalPath":
 
             # find first point of approach:
             k = len(fc) - 1
-            while fc[k].getProp("_plan_segment_name") != "appch" and k > 0:
+            while fc[k].getProp("_plan_segment_type") != "appch" and k > 0:
                 k = k - 1
             if k == 0:
                 logger.warning(":vnav: no approach found")
             else:
-                logger.debug(":vnav: start of approach at index %d, %s" % (k, fc[k].getProp("_plan_segment_name")))
+                logger.debug(":vnav: start of approach at index %d, %s" % (k, fc[k].getProp("_plan_segment_type")))
                 if k <= fcidx:
                     logger.debug(":vnav: final fix seems further away than start of apprach")
                 else:
@@ -476,7 +553,7 @@ class Movement:
                     # add all approach points between start to approach to final fix
                     for i in range(fcidx+1, k):
                         wpt = fc[i]
-                        logger.debug(":vnav: APPCH: flight level: %d %s" % (i, wpt.getProp("_plan_segment_name")))
+                        # logger.debug(":vnav: APPCH: flight level: %d %s" % (i, wpt.getProp("_plan_segment_type")))
                         p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
                         p.setAltitude(alt+APPROACH_ALT)
                         p.setSpeed(actype.getSI(ACPERF.approach_speed))
@@ -485,13 +562,13 @@ class Movement:
                         p.setProp("_mark", "approach")
                         p.setProp("fpidx", i)
                         revmoves.append(p)
-                        logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (i, p.getProp("_mark"), len(revmoves)))
+                        # logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (i, p.getProp("_mark"), len(revmoves)))
 
                     # i = 0
                     # for f in revmoves:
                     #     a = f.altitude()
                     #     s = f.speed()
-                    #     logger.debug(":vnav: revmoves before last at %d %s %s: %f %f" % (i, f.getProp("_mark"), f.getProp("_plan_segment_name"), s if s is not None else -1, a if a is not None else -1))
+                    #     logger.debug(":vnav: revmoves before last at %d %s %s: %f %f" % (i, f.getProp("_mark"), f.getProp("_plan_segment_type"), s if s is not None else -1, a if a is not None else -1))
                     #     # logger.debug(":vnav: revmoves at %d %s" % (i, f))
                     #     i = i + 1
 
@@ -504,10 +581,7 @@ class Movement:
                     currpos.setProp("fpidx", k)
                     currpos.setColor("#880088")  # approach in MAGENTA
                     revmoves.append(currpos)
-                    logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (k, currpos.getProp("_mark"), len(revmoves)))
-
-                    # BIG ISSUE HERE WITH APPEND THAT CHANGE LAST ELEMENT???
-                    revmoves[-2].setProp("_mark", "approach")
+                    # logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (k, currpos.getProp("_mark"), len(revmoves)))
 
                     fcidx = k
 
@@ -515,18 +589,18 @@ class Movement:
                     # for f in revmoves:
                     #     a = f.altitude()
                     #     s = f.speed()
-                    #     logger.debug(":vnav: revmoves at %d %s %s: %f %f" % (i, f.getProp("_mark"), f.getProp("_plan_segment_name"), s if s is not None else -1, a if a is not None else -1))
+                    #     logger.debug(":vnav: revmoves at %d %s %s: %f %f" % (i, f.getProp("_mark"), f.getProp("_plan_segment_type"), s if s is not None else -1, a if a is not None else -1))
                     #     # logger.debug(":vnav: revmoves at %d %s" % (i, f))
                     #     i = i + 1
 
             # find first point of star:
             k = len(fc) - 1
-            while fc[k].getProp("_plan_segment_name") != "star" and k > 0:
+            while fc[k].getProp("_plan_segment_type") != "star" and k > 0:
                 k = k - 1
             if k == 0:
                 logger.warning(":vnav: no star found")
             else:
-                logger.debug(":vnav: start of star at index %d, %s" % (k, fc[k].getProp("_plan_segment_name")))
+                logger.debug(":vnav: start of star at index %d, %s" % (k, fc[k].getProp("_plan_segment_type")))
                 if k <= fcidx:
                     logger.debug(":vnav: final fix seems further away than start of star")
                 else:
@@ -534,7 +608,7 @@ class Movement:
                     # add all approach points between start to approach to final fix
                     for i in range(fcidx+1, k):
                         wpt = fc[i]
-                        logger.debug(":vnav: STAR: flight level: %d %s" % (i, wpt.getProp("_plan_segment_name")))
+                        # logger.debug(":vnav: STAR: flight level: %d %s" % (i, wpt.getProp("_plan_segment_type")))
                         p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
                         p.setAltitude(alt+STAR_ALT)
                         p.setSpeed(actype.getSI(ACPERF.approach_speed))
@@ -543,7 +617,7 @@ class Movement:
                         p.setProp("_mark", "star")
                         p.setProp("fpidx", i)
                         revmoves.append(p)
-                        logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (i, p.getProp("_mark"), len(revmoves)))
+                        # logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (i, p.getProp("_mark"), len(revmoves)))
                     # add start of approach
                     # we assume start of star is where holding occurs
                     self.holdingpoint = fc[k].id
@@ -556,7 +630,7 @@ class Movement:
                     currpos.setProp("fpidx", k)
                     currpos.setColor("#ff00ff")  # star in MAGENTA
                     revmoves.append(currpos)
-                    logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (k, currpos.getProp("_mark"), len(revmoves)))
+                    # logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (k, currpos.getProp("_mark"), len(revmoves)))
                     fcidx = k
 
         if self.flight.flight_level > 100:
@@ -637,7 +711,7 @@ class Movement:
         # for f in revmoves:
         #     a = f.altitude()
         #     s = f.speed()
-        #     logger.debug(":vnav: revmoves at %s %s: %f %f" % (f.getProp("_mark"), f.getProp("_plan_segment_name"), s if s is not None else -1, a if a is not None else -1))
+        #     logger.debug(":vnav: revmoves at %s %s: %f %f" % (f.getProp("_mark"), f.getProp("_plan_segment_type"), s if s is not None else -1, a if a is not None else -1))
 
         # PART 3: Join top of ascent to top of descent at cruise speed
         #
@@ -647,7 +721,7 @@ class Movement:
             # logger.debug(":vnav: adding cruise: %d -> %d" % (top_of_ascent_idx, top_of_decent_idx))
             for i in range(top_of_ascent_idx, top_of_decent_idx):
                 wpt = self.flight.flightplan_cp[i]
-                # logger.debug(":vnav: adding cruise: %d %s" % (i, wpt.getProp("_plan_segment_name")))
+                # logger.debug(":vnav: adding cruise: %d %s" % (i, wpt.getProp("_plan_segment_type")))
                 p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
                 p.setAltitude(self.flight.getCruiseAltitude())
                 p.setSpeed(cruise_speed)
@@ -666,9 +740,10 @@ class Movement:
         self.moves = self.moves + revmoves
         logger.debug(":VNAV: descent added (+%d %d)" % (len(revmoves), len(self.moves)))
 
-        # fc = Movement.cleanFeatures(self.moves)
-        # fc.append(Feature(geometry=self.asLineString()))
-        # print(FeatureCollection(features=fc))
+        logger.debug("PATH COMPLETED **************************************************************")
+        fc = Movement.cleanFeatures(self.moves)
+        fc.append(Feature(geometry=self.asLineString()))
+        print(FeatureCollection(features=fc))
         # i = 0
         # for f in self.moves:
         #     s = f.speed()
@@ -682,6 +757,7 @@ class Movement:
         #     a = f.altitude()
         #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
         #     i = i + 1
+        self.standard_turns()
 
         return (True, "Movement::vnav completed without restriction")
 

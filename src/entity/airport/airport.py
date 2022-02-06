@@ -184,11 +184,12 @@ class AirportBase(Airport):
     def runwayIsWet(self):
         landing = 1.1
         if self.metar is not None:
-            prec = self.metar.precip_1hr.value(units="CM")
-            if prec > 0.5:
-                landing = 1.75
-            elif prec > 0 or self.metar.precip_1hr.istrace():
-                landing = 1.4
+            if self.metar.precip_1hr is not None:
+                prec = self.metar.precip_1hr.value(units="CM")
+                if prec > 0.5:
+                    landing = 1.75
+                elif prec > 0 or self.metar.precip_1hr.istrace():
+                    landing = 1.4
         return landing
 
     def _computeOperationalRunways(self):

@@ -189,7 +189,7 @@ class APPCH(Procedure):
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
                     a.append(airspace.vert_dict[vtxs[0]])
-                    logger.debug(":getRoute: added %s" % vtxs[0])
+                    # logger.debug(":getRoute: added %s" % vtxs[0])
                 else:
                     logger.warning(":getRoute: vertex not found %s", vid)
             else:
