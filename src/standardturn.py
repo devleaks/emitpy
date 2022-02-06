@@ -26,9 +26,14 @@ def turn(bi, bo):
     return t
 
 
-def extend_line(line, dist=20):
+def extend_line(line, pct=40):
     # Extended line direction need to be returned (opposite direction)
+    # New 6/2/22: distance to extend is now proportionnal to length of segment.
+    # We noticed segments can sometimes be as long as 300km
+    #
     brng = bearing(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
+    newdist = distance(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
+    dist = newdist * pct / 100
     far0 = destination(Feature(geometry=Point(line["coordinates"][0])), dist, brng + 180, {"units": "km"})
     far1 = destination(Feature(geometry=Point(line["coordinates"][1])), dist, brng, {"units": "km"})
     return Feature(geometry=LineString([far1["geometry"]["coordinates"], far0["geometry"]["coordinates"]]),
@@ -42,7 +47,7 @@ def line_offset(line, offset):
     p0 = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
     p1 = Feature(geometry=Point(line["geometry"]["coordinates"][1]))
     brg = bearing(p0, p1)
-    brg = brg - sign(offset) * 90
+    brg = brg - 90 # sign(offset) * 90
     print("line offset", offset, sign(offset), brg)
     d0 = destination(p0, offset, brg)
     # print("d0", distance(d0, p0), offset)
@@ -144,7 +149,10 @@ def standard_turn(l0, l1, radius):
     newradius = distance(cross_ext, center)
     print(">>>arc", arc0, arc1, radius/1000, newradius)
 
-    arc = line_arc(center, radius/1000, arc0, arc1)
+
+    # New: Module number of point with turn
+    steps = 4 + round(abs(turnAngle / 36))
+    arc = line_arc(center, radius/1000, arc0, arc1, steps)
     color_all(arc, "#00ffff")
     # print(FeatureCollection(features=arc))
     print(">>>ALL", b_in, b_out, radius/1000, arc0, arc1, len(arc))

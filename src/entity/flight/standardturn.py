@@ -1,6 +1,7 @@
 import logging
 
 from math import pi
+
 from geojson import Point, LineString, Feature, FeatureCollection
 from turfpy.measurement import destination, bearing, distance
 
@@ -31,9 +32,9 @@ def extend_line(line, pct=40):
     #
     brng = bearing(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
     newdist = distance(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
-    newdist = newdist * pct / 100
-    far0 = destination(Feature(geometry=Point(line["coordinates"][0])), newdist, brng + 180, {"units": "km"})
-    far1 = destination(Feature(geometry=Point(line["coordinates"][1])), newdist, brng, {"units": "km"})
+    dist = newdist * pct / 100
+    far0 = destination(Feature(geometry=Point(line["coordinates"][0])), dist, brng + 180, {"units": "km"})
+    far1 = destination(Feature(geometry=Point(line["coordinates"][1])), dist, brng, {"units": "km"})
     return Feature(geometry=LineString([far1["geometry"]["coordinates"], far0["geometry"]["coordinates"]]),
                    properties={
                     "name": "B %f" % brng,
@@ -45,7 +46,7 @@ def line_offset(line, offset):
     p0 = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
     p1 = Feature(geometry=Point(line["geometry"]["coordinates"][1]))
     brg = bearing(p0, p1)
-    brg = brg - sign(offset) * 90
+    brg = brg - 90 # sign(offset) * 90
     d0 = destination(p0, offset, brg)
     d1 = destination(p1, offset, brg)
     return Feature(geometry=LineString([d0["geometry"]["coordinates"], d1["geometry"]["coordinates"]]))
@@ -117,9 +118,13 @@ def standard_turn(l0, l1, radius):
 
     arc0 = b_out + 90 if turnAngle > 0 else b_in - 90
     arc1 = b_in + 90 if turnAngle > 0 else b_out - 90
+
+    # New 6/2/22: Experimental, more precise
     newradius = distance(cross_ext, center)
 
-    arc = line_arc(center, radius/1000, arc0, arc1)
+    # New 6/2/22: Module number of point with turn
+    steps = 4 + round(abs(turnAngle / 36))
+    arc = line_arc(center, radius/1000, arc0, arc1, steps)
 
     if turnAngle > 0:  # reverse coordinates order
         arc.reverse()
@@ -128,15 +133,14 @@ def standard_turn(l0, l1, radius):
 
 
 def standard_turns(arrin):
-    # Inout is array of features
     arrout = []
     last_speed = 100
-
     arrout.append(arrin[0])
+
     for i in range(1, len(arrin) - 1):
         li = LineString([arrin[i-1]["geometry"]["coordinates"], arrin[i]["geometry"]["coordinates"]])
         lo = LineString([arrin[i]["geometry"]["coordinates"], arrin[i+1]["geometry"]["coordinates"]])
-        s = arrin[i].speed()
+        s = last_speed  # arrin[i].speed()
         if s is None:
             s = last_speed
         arc = standard_turn(li, lo, turnRadius(s))
@@ -144,12 +148,8 @@ def standard_turns(arrin):
 
         if arc is not None:
             arrout.append(arrin[i])
-            cnt = 0
             for p in arc:
-                p["properties"]["arcid"] = "%d/%d" % (i, cnt)
                 arrout.append(p)
-                cnt = cnt + 1
-            logger.debug("standard_turn: added arc %d" % (i))
         else:
             arrout.append(arrin[i])
 
