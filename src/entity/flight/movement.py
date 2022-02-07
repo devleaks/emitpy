@@ -2,7 +2,7 @@
 A succession of positions where the aircraft passes. Includes taxi and takeoff or landing and taxi.
 """
 import logging
-from functools import reduce
+from math import pi
 from typing import Union
 import copy
 
@@ -16,9 +16,12 @@ from ..aircraft import ACPERF
 from ..geo import moveOn
 from ..utils import FT
 
-from .standardturn import standard_turns
+from .standardturn import standard_turn_flyby
 
 logger = logging.getLogger("Movement")
+
+TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
+SLOW_SPEED = 1.4 # 1.4m/s = 5km/h = slow speed
 
 
 class MovePoint(Feature, Restriction):
@@ -82,6 +85,8 @@ class Movement:
         self.flight = flight
         self.airport = airport
         self.moves = []  # Array of Features<Point>
+        self.moves_st = []  # Array of Features<Point>
+        self.takeoff_hold = None
         self.end_rollout = None
         self.holdingpoint = None
         self.taxi = []  # Array of Features<Point>
@@ -126,72 +131,83 @@ class Movement:
         status = self.vnav()
         if not status[0]:
             logger.warning(status[1])
-            return (False, status[1])
+            return status
+
+        status = self.standard_turns()
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
+        status = self.interpolate()
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
+        fc = Movement.cleanFeatures(self.moves_st)
+        fc.append(Feature(geometry=self.asLineString()))
+        print(FeatureCollection(features=fc))
 
         status = self.lnav()
         if not status[0]:
-            return (False, status[1])
+            logger.warning(status[1])
+            return status
 
-        status = self.snav()
-        if not status[0]:
-            return (False, status[1])
-
-        return (True, "Movement::mkPath done")
+        return (True, "Movement::make completed")
 
 
     def interpolate(self):
 
+        to_interp = self.moves_st if self.moves_st is not None else self.moves
+
         def interpolate_speed(istart, iend):
-            speedstart = self.moves[istart].speed()  # first known speed
-            speedend = self.moves[iend].speed()  # last known speed
+            speedstart = to_interp[istart].speed()  # first known speed
+            speedend = to_interp[iend].speed()  # last known speed
 
             if speedstart == speedend:  # simply copy
                 for idx in range(istart, iend):
-                    self.moves[idx].setSpeed(speedstart)
+                    to_interp[idx].setSpeed(speedstart)
                 return
 
             ratios = {}
             spdcumul = 0
             for idx in range(istart+1, iend):
-                d = distance(self.moves[idx-1], self.moves[idx], "m")
+                d = distance(to_interp[idx-1], to_interp[idx], "m")
                 spdcumul = spdcumul + d
                 ratios[idx] = spdcumul
-            logger.debug(":interpolate_speed: (%d)%f -> (%d)%f, %f" % (istart, speedstart, iend, speedend, spdcumul))
+            # logger.debug(":interpolate_speed: (%d)%f -> (%d)%f, %f" % (istart, speedstart, iend, speedend, spdcumul))
             speed_a = (speedend - speedstart) / spdcumul
             speed_b = speedstart
             for idx in range(istart+1, iend):
-                logger.debug(":interpolate_speed: %d %f %f" % (idx, ratios[idx]/spdcumul, speed_b + speed_a * ratios[idx]))
-                self.moves[idx].setSpeed(speed_b + speed_a * ratios[idx] / spdcumul)
+                # logger.debug(":interpolate_speed: %d %f %f" % (idx, ratios[idx]/spdcumul, speed_b + speed_a * ratios[idx]))
+                to_interp[idx].setSpeed(speed_b + speed_a * ratios[idx] / spdcumul)
 
         def interpolate_altitude(istart, iend):
-            altstart = self.moves[istart].altitude()  # first known alt
-            altend = self.moves[iend].altitude()  # last known alt
+            altstart = to_interp[istart].altitude()  # first known alt
+            altend = to_interp[iend].altitude()  # last known alt
 
             if altstart == altend:  # simply copy
                 for idx in range(istart, iend):
-                    self.moves[idx].setAltitude(altstart)
+                    to_interp[idx].setAltitude(altstart)
                 return
 
             ratios = {}
             altcumul = 0
             for idx in range(istart+1, iend+1):
-                d = distance(self.moves[idx-1], self.moves[idx], "m")
+                d = distance(to_interp[idx-1], to_interp[idx], "m")
                 altcumul = altcumul + d
-                print(">>>", idx, d, altcumul)
                 ratios[idx] = altcumul
-            logger.debug(":interpolate_alt: (%d)%f -> (%d)%f, %f" % (istart, altstart, iend, altend, altcumul))
+            # logger.debug(":interpolate_alt: (%d)%f -> (%d)%f, %f" % (istart, altstart, iend, altend, altcumul))
             alt_a = (altend - altstart) / altcumul
             alt_b = altstart
             for idx in range(istart+1, iend):
-                logger.debug(":interpolate_alt: %d %f %f" % (idx, ratios[idx]/altcumul, alt_b + alt_a * ratios[idx]))
-                self.moves[idx].setAltitude(alt_b + alt_a * ratios[idx] / altcumul)
-
+                # logger.debug(":interpolate_alt: %d %f %f" % (idx, ratios[idx]/altcumul, alt_b + alt_a * ratios[idx]))
+                to_interp[idx].setAltitude(alt_b + alt_a * ratios[idx] / altcumul)
 
         # we do have a speed for first point in flight for both arrival (takeoff_speed, apt.alt) and departure (landing_speed, apt.alt)
         nospeed_idx = None  # index of last elem with not speed, elem[0] has speed.
         noalt_idx = None
-        for idx in range(1, len(self.moves)):
-            f = self.moves[idx]
+        for idx in range(1, len(to_interp)):
+            f = to_interp[idx]
 
             s = f.speed()
             if s is None:
@@ -211,25 +227,40 @@ class Movement:
                     interpolate_altitude(noalt_idx, idx)
                     noalt_idx = None
 
-        return (True, "Movement::interpolate not implemented")
+        # i = 0
+        # for f in self.moves:
+        #     s = f.speed()
+        #     a = f.altitude()
+        #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
+        #     i = i + 1
+
+        return (True, "Movement::interpolated speed and altitude")
 
 
     def standard_turns(self):
-        ret = standard_turns(self.moves)
-        # replace vertices with standard turns
-        print(ret)
-        fc = Movement.cleanFeatures(ret)
-        fc.append(Feature(geometry=self.asLineString()))
-        print(FeatureCollection(features=fc))
-        return (False, "Movement::standard_turns not implemented")
+        def turnRadius(speed):  # speed in m/s, returns radius in m
+            return 120 * speed / (2 * pi)
 
+        self.moves_st = []
+        last_speed = 100
+        self.moves_st.append(self.moves[0])
 
-    def lnav(self):
-        """
-        Perform lateral navigation for route
-        """
-        # logger.debug(":lnav: ", len(self.vert_dict.keys()) - startLen, count)
-        return (False, "Movement::lnav not implemented")
+        for i in range(1, len(self.moves) - 1):
+            li = LineString([self.moves[i-1]["geometry"]["coordinates"], self.moves[i]["geometry"]["coordinates"]])
+            lo = LineString([self.moves[i]["geometry"]["coordinates"], self.moves[i+1]["geometry"]["coordinates"]])
+            s = last_speed  # arrin[i].speed()
+            if s is None:
+                s = last_speed
+            arc = standard_turn_flyby(li, lo, turnRadius(s))
+            last_speed = s
+
+            if arc is not None:
+                self.moves_st.append(self.moves[i])
+                for p in arc:
+                    self.moves_st.append(MovePoint(geometry=p["geometry"], properties=p["properties"]))
+            else:
+                self.moves_st.append(self.moves[i])
+        return (True, "Movement::standard_turns added")
 
 
     def vnav(self):
@@ -271,7 +302,7 @@ class Movement:
         # PART 1: (FORWARD): From takeoff to top of ascent
         #
         #
-        logger.debug("DEPARTURE **********************************************************************")
+        logger.debug("DEPARTURE **********")
         groundmv = 0
         fcidx = 0
 
@@ -296,6 +327,7 @@ class Movement:
             currpos.setProp("_mark", "takeoff_hold")
             currpos.setProp("fpidx", 0)
             self.moves.append(currpos)
+            self.takeoff_hold = copy.deepcopy(currpos)  # we keep this special position for taxiing (end_of_taxi)
             logger.debug(":vnav: takeoff hold at %s, %f" % (rwy.name, TOH_BLASTOFF))
 
             takeoff_distance = actype.getSI(ACPERF.takeoff_distance) * self.airport.runwayIsWet() / 1000  # must be km for destination()
@@ -336,6 +368,8 @@ class Movement:
             groundmv = groundmv + initial_climb_distance
 
         else:  # ArrivalPath, simpler departure
+            # Someday, we could add SID departure from runway for remote airport as well
+            # Get METAR at airport, determine runway, select random runway & SID
             deptapt = fc[0]
             alt = deptapt.altitude()
             if alt is None:
@@ -445,13 +479,13 @@ class Movement:
 
         top_of_ascent_idx = fcidx + 1 # we reach top of ascent between idx and idx+1, so we cruise from idx+1 on.
         logger.debug(":vnav: cruise at %d after %f" % (top_of_ascent_idx, groundmv))
-        logger.debug(":VNAV: ascent added (+%d %d)" % (len(self.moves), len(self.moves)))
+        logger.debug(":vnav: ascent added (+%d %d)" % (len(self.moves), len(self.moves)))
         # cruise until top of descent
 
         # PART 2: (REVERSE): From brake on runway to top of descent
         #
         #
-        logger.debug("ARRIVAL **********************************************************************")
+        logger.debug("ARRIVAL **********")
         FINAL_ALT = 1000*FT
         APPROACH_ALT = 3000*FT
         STAR_ALT = 6000*FT
@@ -467,7 +501,6 @@ class Movement:
 
         if type(self).__name__ == "ArrivalPath":  # the path starts at the END of the departure runway
             LAND_TOUCH_DOWN = 0.4  # km
-            TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
             rwy = self.flight.runway
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
@@ -506,6 +539,8 @@ class Movement:
             logger.debug(":vnav: touch down at %s, %f" % (rwy.name, LAND_TOUCH_DOWN))
 
         else:
+            # Someday, we could add STAR/APPCH to runway for remote airport as well
+            # Get METAR at airport, determine runway, select random RWY, STAR and APPCH
             arrvapt = fc[fcidx]
             alt = arrvapt.altitude()
             if alt is None:
@@ -624,7 +659,10 @@ class Movement:
                         revmoves.append(p)
                         # logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (i, p.getProp("_mark"), len(revmoves)))
                     # add start of approach
+                    #
+                    # @todo:
                     # we assume start of star is where holding occurs
+                    # Add holding pattern
                     self.holdingpoint = fc[k].id
                     logger.debug(":vnav: holding at : %s" % (self.holdingpoint))
                     currpos = MovePoint(geometry=fc[k]["geometry"], properties=fc[k]["properties"])
@@ -721,7 +759,7 @@ class Movement:
         # PART 3: Join top of ascent to top of descent at cruise speed
         #
         # We copy waypoints from start of cruise to end of cruise
-        logger.debug("CRUISE **********************************************************************")
+        logger.debug("CRUISE **********")
         if top_of_decent_idx > top_of_ascent_idx:
             # logger.debug(":vnav: adding cruise: %d -> %d" % (top_of_ascent_idx, top_of_decent_idx))
             for i in range(top_of_ascent_idx, top_of_decent_idx):
@@ -734,7 +772,7 @@ class Movement:
                 p.setProp("_mark", "cruise")
                 p.setProp("fpidx", i)
                 self.moves.append(p)
-            logger.debug(":VNAV: cruise added (+%d %d)" % (top_of_decent_idx - top_of_ascent_idx, len(self.moves)))
+            logger.debug(":vnav: cruise added (+%d %d)" % (top_of_decent_idx - top_of_ascent_idx, len(self.moves)))
         else:
             logger.warning(":vnav: cruise too short (%d -> %d)" % (top_of_ascent_idx, top_of_decent_idx))
 
@@ -743,36 +781,17 @@ class Movement:
         #
         revmoves.reverse()
         self.moves = self.moves + revmoves
-        logger.debug(":VNAV: descent added (+%d %d)" % (len(revmoves), len(self.moves)))
-
-        logger.debug("STANDARD TURNS **************************************************************")
-        # replace vertices with standard turns
-        st = self.standard_turns()
-
-        # logger.debug("INTERPOLATE **************************************************************")
-        # fc = Movement.cleanFeatures(self.moves)
-        # fc.append(Feature(geometry=self.asLineString()))
-        # print(FeatureCollection(features=fc))
-
-        # filling altitude and speed at each vertex with interpolated values
-        # self.interpolate()
-        # i = 0
-        # for f in self.moves:
-        #     s = f.speed()
-        #     a = f.altitude()
-        #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
-        #     i = i + 1
-
-        logger.debug("MOVEMENTS COMPLETED **************************************************************")
+        logger.debug(":vnav: descent added (+%d %d)" % (len(revmoves), len(self.moves)))
 
         return (True, "Movement::vnav completed without restriction")
 
 
-    def snav(self):
+    def lnav(self):
         """
-        Perform speed calculation, control, and adjustments for route
+        Perform lateral navigation for route
         """
-        return (False, "Movement::snav not implemented")
+        # logger.debug(":lnav: ", len(self.vert_dict.keys()) - startLen, count)
+        return (False, "Movement::lnav not implemented")
 
 
 class ArrivalPath(Movement):
@@ -793,12 +812,80 @@ class ArrivalPath(Movement):
         # Route on taxiway from runway exit to parking's closest point on taxiway network.
         # Join parking's closest point on taxiway network to parking.
         # ON BLOCK
-        return (False, "ArrivalPath::lnav not implemented")
+        fc = []
 
+        endrolloutpos = MovePoint(geometry=self.end_rollout["geometry"], properties=self.end_rollout["properties"])
+        endrolloutpos.setSpeed(TAXI_SPEED)
+        endrolloutpos.setColor("#880088")  # parking
+        endrolloutpos.setProp("_mark", "end rollout")
+        fc.append(endrolloutpos)
 
-    def snav(self):
-        # ### SNAV: "Speed" nav for speed constraints not added through LNAV or VNAV.
-        return (False, "ArrivalPath::vnav not implemented")
+        ## TO DO
+        # We need to first the first runway exit in front of the aircraft.
+        # Move the aircraft to that exit on the runway
+        # Then exit to closest point to RWY exit on taxiways
+        # Then route on taxiways.
+
+        taxi_start = self.airport.taxiways.nearest_point_on_edge(self.end_rollout)
+        print(">>> taxi start", taxi_start)
+        if taxi_start[0] is None:
+            logger.warning(":lnav: could not find taxi start")
+        taxistartpos = MovePoint(geometry=taxi_start[0]["geometry"], properties=taxi_start[0]["properties"])
+        taxistartpos.setSpeed(TAXI_SPEED)
+        taxistartpos.setColor("#880088")  # parking
+        taxistartpos.setProp("_mark", "taxi start")
+        fc.append(taxistartpos)
+
+        taxistart_vtx = self.airport.taxiways.nearest_vertex(taxi_start[0])
+        print(">>> taxi start vtx", self.end_rollout)
+        if taxistart_vtx[0] is None:
+            logger.warning(":lnav: could not find taxi end vertex")
+        taxistartpos = MovePoint(geometry=taxistart_vtx[0]["geometry"], properties=taxistart_vtx[0]["properties"])
+        taxistartpos.setSpeed(TAXI_SPEED)
+        taxistartpos.setColor("#880088")  # parking
+        taxistartpos.setProp("_mark", "taxi start vertex")
+        fc.append(taxistartpos)
+
+        parking = self.airport.parkings[self.flight.ramp]
+        print(">> parking", parking)
+        # we call the move from packing position to taxiway network the "parking entry"
+        parking_entry = self.airport.taxiways.nearest_point_on_edge(parking)
+        print(">> parking_entry", parking_entry)
+
+        if parking_entry[0] is None:
+            logger.warning(":lnav: could not find parking entry")
+
+        parkingentry_vtx = self.airport.taxiways.nearest_vertex(parking_entry[0])
+        if parkingentry_vtx[0] is None:
+            logger.warning(":lnav: could not find parking entry vertex")
+        print(">> parkingentry_vtx", parkingentry_vtx)
+
+        # taxi_ride = self.airport.taxiways.AStar(taxistart_vtx[0], parkingentry_vtx[0])
+        # print(">> taxi_ride", taxi_ride)
+
+        # for v in taxi_ride:
+        #     taxipos = MovePoint(geometry=v["geometry"], properties=v["properties"])
+        #     taxipos.setSpeed(TAXI_SPEED)
+        #     taxipos.setColor("#880000")  # taxi
+        #     taxipos.setProp("_mark", "taxi")
+        #     fc.append(taxipos)
+        # fc[-1].setProp("_mark", "taxi end vertex")
+
+        parkingentrypos = MovePoint(geometry=parking_entry[0]["geometry"], properties=parking_entry[0]["properties"])
+        parkingentrypos.setSpeed(SLOW_SPEED)
+        parkingentrypos.setColor("#880088")  # parking
+        parkingentrypos.setProp("_mark", "taxi end")
+        fc.append(parkingentrypos)
+
+        parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
+        parkingpos.setSpeed(0)
+        parkingpos.setColor("#880088")  # parking
+        parkingpos.setProp("_mark", "parking")
+        fc.append(parkingpos)
+
+        self.taxi = fc
+
+        return (False, "ArrivalPath::lnav completed")
 
 
 class DeparturePath(Movement):
@@ -819,9 +906,72 @@ class DeparturePath(Movement):
         # Go to take-off hold
         # Accelerate to take-off point (now fixed, mobile later)
         # Initial climb to (opposite) runway threshold
-        return (False, "DeparturePath::lnav not implemented")
+        fc = []
+
+        parking = self.airport.parkings[self.flight.ramp]
+        print(">> parking", parking)
+        parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
+        parkingpos.setSpeed(0)
+        parkingpos.setColor("#880088")  # parking
+        parkingpos.setProp("_mark", "parking")
+        fc.append(parkingpos)
+
+        # we call the move from packing position to taxiway network the "pushback"
+        pushback_end = self.airport.taxiways.nearest_point_on_edge(parking)
+        print(">> pushback_end", pushback_end)
+        if pushback_end[0] is None:
+            logger.warning(":lnav: could not find pushback end")
+
+        pushbackpos = MovePoint(geometry=pushback_end[0]["geometry"], properties=pushback_end[0]["properties"])
+        pushbackpos.setSpeed(SLOW_SPEED)
+        pushbackpos.setColor("#880088")  # parking
+        pushbackpos.setProp("_mark", "pushback")
+        fc.append(pushbackpos)
+
+        pushback_vtx = self.airport.taxiways.nearest_vertex(pushback_end[0])
+        print(">> pushback_vtx", pushback_vtx)
+        if pushback_vtx[0] is None:
+            logger.warning(":lnav: could not find pushback end vertex")
 
 
-    def snav(self):
-        # ### SNAV: "Speed" nav for speed constraints not added through LNAV or VNAV.
-        return (False, "DeparturePath::snav not implemented")
+        ## TO DO
+        # We need to taxi to the START OF TAKEOFF QUEUE position,
+        # then move to (add) each queue position, then add the taxi end
+        # which is the closest point to take-off hold.
+
+
+        taxi_end = self.airport.taxiways.nearest_point_on_edge(self.takeoff_hold)
+        print(">> taxi_end", taxi_end)
+        if taxi_end[0] is None:
+            logger.warning(":lnav: could not find taxi end")
+
+        taxiend_vtx = self.airport.taxiways.nearest_vertex(taxi_end[0])
+        print(">> taxiend_vtx", taxiend_vtx)
+        if taxiend_vtx[0] is None:
+            logger.warning(":lnav: could not find taxi end vertex")
+
+        # taxi_ride = self.airport.taxiways.AStar(pushback_vtx, taxiend_vtx)
+
+        # for v in taxi_ride:
+        #     taxipos = MovePoint(geometry=v["geometry"], properties=v["properties"])
+        #     taxipos.setSpeed(TAXI_SPEED)
+        #     taxipos.setColor("#880000")  # taxi
+        #     taxipos.setProp("_mark", "taxi")
+        #     fc.append(taxipos)
+        # fc[-1].setProp("_mark", "taxi end vertex")
+
+        taxiendpos = MovePoint(geometry=taxi_end[0]["geometry"], properties=taxi_end[0]["properties"])
+        taxiendpos.setSpeed(TAXI_SPEED)
+        taxiendpos.setColor("#880088")  # parking
+        taxiendpos.setProp("_mark", "taxi end")
+        fc.append(taxiendpos)
+
+        takeoffholdpos = MovePoint(geometry=self.takeoff_hold["geometry"], properties=self.takeoff_hold["properties"])
+        takeoffholdpos.setSpeed(0)
+        takeoffholdpos.setColor("#880088")  # parking
+        takeoffholdpos.setProp("_mark", "takeoff hold")
+        fc.append(takeoffholdpos)
+
+        self.taxi = fc
+
+        return (False, "DeparturePath::lnav completed")

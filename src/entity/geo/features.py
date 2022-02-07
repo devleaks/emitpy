@@ -53,18 +53,18 @@ class Ramp(Feature):
             "available": None})
 
     def busy(self):
-        self.properties["available"] = False
+        self["properties"]["available"] = False
 
     def available(self):
-        self.properties["available"] = True
+        self["properties"]["available"] = True
 
     def isAvailable(self):
-        if "available" in self.properties:
-            return self.properties["available"]
+        if "available" in self["properties"]:
+            return self["properties"]["available"]
         return None
 
     def addProp(self, propname, propvalue):
-        self.properties[propname] = propvalue
+        self["properties"][propname] = propvalue
 
 
 # ################################@

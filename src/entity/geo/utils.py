@@ -83,3 +83,31 @@ def moveOn(arr, idx, currpos, dist):
     dest = destination(currpos, dist, brng, {"units": "m"})  # dist in m
     # logger.debug(":moveOn: distance to run reached, %f left on segment %d" % (left - dist, idx + 1))
     return (dest, idx)
+
+
+def line_intersect(line1, line2):
+    coords1 = line1["geometry"]["coordinates"]
+    coords2 = line2["geometry"]["coordinates"]
+    x1 = coords1[0][0]
+    y1 = coords1[0][1]
+    x2 = coords1[1][0]
+    y2 = coords1[1][1]
+    x3 = coords2[0][0]
+    y3 = coords2[0][1]
+    x4 = coords2[1][0]
+    y4 = coords2[1][1]
+    denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1)
+    numeA = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)
+    numeB = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)
+    if denom == 0:
+        if numeA == 0 and numeB == 0:
+            return None
+        return None
+    uA = numeA / denom
+    uB = numeB / denom
+    if uA >= 0 and uA <= 1 and uB >= 0 and uB <= 1:
+        x = x1 + uA * (x2 - x1)
+        y = y1 + uA * (y2 - y1)
+        return Feature(geometry=Point([x, y]))
+    return None
+

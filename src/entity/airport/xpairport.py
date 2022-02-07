@@ -62,6 +62,8 @@ class XPAirport(AirportBase):
         self.service_pois = None
         self.simairporttype = "X-Plane"
         self.airport_base = os.path.join(DATA_DIR, "managedairport", icao)
+        self.runway_exits = {}
+        self.takeoff_queues = {}
 
     def loadFromFile(self):
         SCENERY_PACKS = os.path.join(SYSTEM_DIRECTORY, "Custom Scenery", "scenery_packs.ini")
@@ -164,10 +166,11 @@ class XPAirport(AirportBase):
 
     def loadTaxiways(self):
         # Collect 1201 and (102,1204) line codes and create routing network (graph) of taxiways
+        # code  LAT          LON          WAY  ID NAME...
         # 1201  25.29549372  051.60759816 both 16 unnamed entity(split)
         def addVertex(aptline):
             args = aptline.content().split()
-            return self.taxiways.add_vertex(Vertex(node=args[3], point=Point((float(args[0]), float(args[1]))), usage=[ args[2]], name=" ".join(args[3:])))
+            return self.taxiways.add_vertex(Vertex(node=args[3], point=Point((float(args[1]), float(args[0]))), usage=[ args[2]], name=" ".join(args[3:])))
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
@@ -186,7 +189,7 @@ class XPAirport(AirportBase):
                 if len(args) >= 4:
                     src = self.taxiways.get_vertex(args[0])
                     dst = self.taxiways.get_vertex(args[1])
-                    cost = distance(src.geometry, dst.geometry)
+                    cost = distance(src["geometry"], dst["geometry"])
                     edge = None
                     if len(args) == 5:
                         # args[2] = {oneway|twoway}, args[3] = {runway|taxiway}
@@ -232,7 +235,7 @@ class XPAirport(AirportBase):
                 if len(args) >= 4:
                     src = self.service_roads.get_vertex(args[0])
                     dst = self.service_roads.get_vertex(args[1])
-                    cost = distance(src.geometry, dst.geometry)
+                    cost = distance(src["geometry"], dst["geometry"])
                     edge = None
                     if len(args) == 5:
                         # args[2] = {oneway|twoway}

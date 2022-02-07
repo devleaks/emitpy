@@ -2,8 +2,9 @@ import logging
 
 from math import pi
 
-from geojson import Point, LineString, Feature, FeatureCollection
+from geojson import Point, LineString, Feature
 from turfpy.measurement import destination, bearing, distance
+#from .movement import MovePoint
 
 logger = logging.getLogger("standard_turns")
 
@@ -96,7 +97,7 @@ def line_arc(center, radius, start, end, steps=8):
     return arc
 
 
-def standard_turn(l0, l1, radius):
+def standard_turn_flyby(l0, l1, radius):
     b_in = bearing(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
     b_out = bearing(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
     turnAngle = turn(b_in, b_out)
@@ -143,13 +144,14 @@ def standard_turns(arrin):
         s = last_speed  # arrin[i].speed()
         if s is None:
             s = last_speed
-        arc = standard_turn(li, lo, turnRadius(s))
+        arc = standard_turn_flyby(li, lo, turnRadius(s))
         last_speed = s
 
         if arc is not None:
             arrout.append(arrin[i])
             for p in arc:
                 arrout.append(p)
+                # arrout.append(MovePoint(geometry=p["geometry"], properties=p["properties"]))
         else:
             arrout.append(arrin[i])
 

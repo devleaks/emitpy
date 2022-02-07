@@ -34,26 +34,28 @@ class AirportManager:
 
 
     def load(self):
+
         status = self.loadFromFile()
         if not status[0]:
-            return [False, status[1]]
+            return status
+
         status = self.loadAirRoutes()
         if not status[0]:
-            return [False, status[1]]
+            return status
+
         return [False, "AirportManager::loaded"]
 
 
     def loadFromFile(self):
         self.airport_base = os.path.join(SYSTEM_DIRECTORY, self.icao)
         business = os.path.join(self.airport_base, "airport.yaml")
-
         if os.path.exists(business):
             with open(business, "r") as fp:
                 self.data = yaml.safe_load(fp)
-        else:
-            logger.warning(":file: %s not found" % business)
-            return [False, "AirportManager::loadFromFile file %s not found", business]
-        return [True, "AirportManager::loadFromFile: loaded"]
+            logger.warning(":file: %s loaded" % business)
+            return [True, "AirportManager::loadFromFile: loaded"]
+        logger.warning(":file: %s not found" % business)
+        return [False, "AirportManager::loadFromFile file %s not found", business]
 
 
     def loadAirRoutes(self):

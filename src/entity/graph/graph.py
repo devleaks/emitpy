@@ -4,14 +4,16 @@
 # Dijkstra stolen at https://www.bogotobogo.com/python/python_graph_data_structures.php
 #
 import logging
-from math import inf
 import time
+from math import inf
+
+from geojson import Point, LineString, Feature
+from turfpy.measurement import distance, destination, bearing, boolean_point_in_polygon, point_to_line_distance
+
+from ..geo import line_intersect
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Graph")
-
-from geojson import Point, LineString, Feature
-from turfpy.measurement import distance, boolean_point_in_polygon, point_to_line_distance
 
 
 class Vertex(Feature):
@@ -31,6 +33,18 @@ class Vertex(Feature):
 
     def get_neighbors(self):
         return list(map(lambda a: (a, self.adjacent[a]), self.adjacent))
+
+    def use(self, what: str, mode: bool = None):
+        if mode is None:  # Query
+            return what in self.usage
+
+        # Else: set what
+        if mode and what not in self.usage:
+            self.usage.append(what)
+        elif mode and what in self.usage:
+            self.usage.remove(what)
+
+        return what in self.usage
 
     def getProp(self, propname: str):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
@@ -57,8 +71,8 @@ class Vertex(Feature):
 class Edge(Feature):
 
     def __init__(self, src: Vertex, dst: Vertex, weight: float, directed: bool, usage: [str]=[], name=None):
-        Feature.__init__(self, geometry=LineString([src.geometry.coordinates, dst.geometry.coordinates]))
-        # Feature.__init__(self, geometry=Line([src.geometry, dst.geometry]))
+        Feature.__init__(self, geometry=LineString([src["geometry"]["coordinates"], dst["geometry"]["coordinates"]]))
+        # Feature.__init__(self, geometry=Line([src["geometry"], dst["geometry"]]))
         self.start = src
         self.end = dst
         self.name = name        # segment name, not unique!
@@ -162,7 +176,7 @@ class Graph:  # Graph(FeatureCollection)?
                 self.vert_dict[edge.end.id].add_neighbor(self.vert_dict[edge.start.id].id, edge.weight)
 
         else:
-            logging.critical(":add_edge: vertex not found when adding edges %s,%s", edge.start, edge.end)
+            logger.critical(":add_edge: vertex not found when adding edges %s,%s", edge.start, edge.end)
 
 
     def get_edge(self, src: str, dst: str):
@@ -178,39 +192,62 @@ class Graph:  # Graph(FeatureCollection)?
 
 
     def nearest_point_on_edge(self, point: Feature, with_connection: bool = False):  # @todo: construct array of lines on "add_edge"
+        def pureFeature(f):
+            # See https://github.com/omanges/turfpy/issues/97
+            return Feature(geometry=f["geometry"], properties=f["properties"])
+
+        def nearest_point_on_line(point, line, dist):
+            brng = bearing(Feature(geometry=Point(line["geometry"]["coordinates"][0])), Feature(geometry=Point(line["geometry"]["coordinates"][1])))
+            p0 = destination(point, 2 * dist, brng + 90, {"units": "km"})
+            p1 = destination(point, 2 * dist, brng - 90, {"units": "km"})
+            perp = Feature(geometry=LineString([p0["geometry"]["coordinates"], p1["geometry"]["coordinates"]]))
+            return line_intersect(line, perp)
+
         closest = None
         edge = None
         nconn = (0, 0)
         dist = inf
         for e in self.edges_arr:
             if (not with_connection) or (with_connection and (len(e.start.adjacent) > 0 or len(e.end.adjacent) > 0)):
-                d = point_to_line_distance(point, Feature(geometry=e["geometry"]))
+                d = point_to_line_distance(pureFeature(point), Feature(geometry=e["geometry"]))
                 if d < dist:
+                    print(">>>", d)
                     dist = d
                     edge = e
                     nconn = (len(e.start.adjacent), len(e.end.adjacent))
+        if dist == 0:
+            d = distance(pureFeature(pureFeature(point)), Feature(geometry=Point(edge.start["geometry"]["coordinates"])))
+            if d == 0:
+                logger.debug(":nearest_point_on_edge: nearest point is start of edge")
+                return(edge.start, 0, edge, nconn)
+            d = distance(pureFeature(pureFeature(point)), Feature(geometry=Point(edge.end["geometry"]["coordinates"])))
+            if d == 0:
+                logger.debug(":nearest_point_on_edge: nearest point is end of edge")
+                return(edge.end, 0, edge, nconn)
+            logger.debug(":nearest_point_on_edge: nearest point is on edge")
+            closest = point
+        else:
+            closest = nearest_point_on_line(point, edge, dist)
         return [closest, dist, edge, nconn]
 
 
     def nearest_vertex(self, point: Feature, with_connection: bool = False):
+        def pureFeature(f):
+            # See https://github.com/omanges/turfpy/issues/97
+            return Feature(geometry=f["geometry"], properties=f["properties"])
+
         closest = None
         nconn = 0
         dist = inf
         for p in self.vert_dict.values():
             if (not with_connection) or (with_connection and len(p.adjacent) > 0):
-                d = distance(point, p)
+                d = distance(pureFeature(point), pureFeature(p))
                 if d < dist:
+                    print(">>2", d)
                     dist = d
                     closest = p
                     nconn = len(p.adjacent)
         return [closest, dist, nconn]
-
-        # fc = list(map(lambda x: Feature(geometry=x.geometry, id=x.id), self.vert_dict.values()))
-        # print(len(fc))
-        # print(fc[0])
-        # fc.reverse()
-        # return nearest_point(point, FeatureCollection(features=fc))
-
 
 # #################
 #
