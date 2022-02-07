@@ -1,5 +1,6 @@
 """
-Global parameters for application
+Application parameters not related to the simulation.
+Used for file location, connection details, etc.
 """
 import os
 

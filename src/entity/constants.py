@@ -1,8 +1,7 @@
-# Global application constants
+# Application constants and global parameters related to the simulation
 #
 from enum import Enum
 
-SYSTEM_DIRECTORY = "."
 
 ########################################
 # Identifiers (org,class,type,name)
@@ -23,7 +22,6 @@ AIRLINE = "airline"
 TRANSPORTER = "transporter"
 LOGISTICS = "logistics"
 HANDLER = "handler"  # GSE, etc.
-
 
 
 # 3. Airports (detailed and managed)
@@ -51,6 +49,7 @@ class PAYLOAD(Enum):
 BULK = "bulk"
 PARCEL = "parcel"
 
+
 # 3. GSE types
 CLEANING = "clean"
 CATERING = "catering"
@@ -75,15 +74,9 @@ MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation pa
 FLIGHTROUTE_DATABASE = "flightplans"
 AODB = "aodb"
 
-########################################
-# Keywords
-class MOVEMENT(Enum):
-    ARRIVAL = "arrival"
-    DEPARTURE = "departure"
-
 
 ########################################
-# Aeronautics constant
+# Aeronautics-related constant
 #
 # ICAO Annex 14 - Aerodrome Reference Code Element 2, Table 1-1
 # (Aeroplane Wingspan; Outer Main Gear Wheel Span)
@@ -112,7 +105,7 @@ AIRCRAFT_TYPES = {  # Half width of taxiway in meters
 }
 
 
-# X-Plane APT files constants
+# X-Plane APT files keywords and constants
 #
 NODE_TYPE_BOTH = "both"
 NODE_TYPE_DESTNATION = "dest"
@@ -128,5 +121,4 @@ TAXIWAY_TYPE_RUNWAY = "runway"
 TAXIWAY_ACTIVE_DEPARTURE = "departure"
 TAXIWAY_ACTIVE_ARRIVAL = "arrival"
 TAXIWAY_ACTIVE_ILS = "ils"
-
 

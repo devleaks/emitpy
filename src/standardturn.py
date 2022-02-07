@@ -111,7 +111,7 @@ def color_all(arr, c):
         color(f, c)
 
 
-def standard_turn(l0, l1, radius):
+def standard_turn_flyby(l0, l1, radius):
     b_in = bearing(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
     b_out = bearing(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
     turnAngle = turn(b_in, b_out)
@@ -158,8 +158,6 @@ def standard_turn(l0, l1, radius):
     print(">>>ALL", b_in, b_out, radius/1000, arc0, arc1, len(arc))
     print(FeatureCollection(features=ARRINPUT + [l0e, l1e, l0b, l1b, cross_ext, center] + arc))
 
-
-
     if turnAngle > 0:  # reverse coordinates order
         arc.reverse()
 
@@ -181,7 +179,7 @@ def standard_turns(arrin):
         s = last_speed  # arrin[i].speed()
         if s is None:
             s = last_speed
-        arc = standard_turn(li, lo, turnRadius(s))
+        arc = standard_turn_flyby(li, lo, turnRadius(s))
         last_speed = s
 
         if arc is not None:
