@@ -370,7 +370,7 @@ class XPAirport(AirportBase):
                 p = destination(start, i * segment, brng, {"units": "km"})
                 p["properties"]["runway"] = "RW" + name
                 p["properties"]["category"] = "takeoff queue"
-                p["properties"]["queue"] = i
+                p["properties"]["queuepos"] = i
                 self.takeoff_queues[name].append(p)
             # logger.debug(":makeQueue: added %d queue points for %s" % (len(self.takeoff_queues[name]), name))
 
@@ -409,3 +409,24 @@ class XPAirport(AirportBase):
 
         return [True, ":XPAirport::makeAdditionalPOIS: loaded"]
 
+
+    def closest_runway_exit(self, runway, dist):
+        i = 0
+        closest = None
+        while closest is None and i < len(self.runway_exits[runway]):
+            if dist > self.runway_exits[runway][i]["properties"]["length"]:
+                i = i + 1
+            else:
+                closest = self.runway_exits[runway][i]
+
+        if closest is None:
+            closest = self.runway_exits[runway][-1]
+
+        logger.debug(":closest_runway_exit: runway %s, landing: %f, runway exit at %f" % (runway, dist, closest["properties"]["length"]))
+        return closest
+
+
+    def queue_point(self, runway, qid):
+        # no extra checks
+        res = list(filter(lambda f: f["properties"]["queuepos"] == qid, self.takeoff_queues[runway]))
+        return res[0]
