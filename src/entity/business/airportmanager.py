@@ -123,7 +123,7 @@ class AirportManager:
         return aln
 
 
-    def getRandomAirport(self, airline: Airline = None):
+    def getRandomAirroute(self, airline: Airline = None):
         aln = airline if airline is not None else self.getRandomAirline()
         apt = None
         if self.airline_route_frequencies is not None:
@@ -131,13 +131,13 @@ class AirportManager:
             a = random.choices(population=list(aptlist.keys()), weights=list(aptlist.values()))
             apt = Airport.findIATA(a[0])
             if apt is None:
-                logger.debug(":getRandomAirport: with density: %s(%s)" % (apt.icao, apt.iata))
+                logger.debug(":getRandomAirroute: with density: %s(%s)" % (apt.icao, apt.iata))
             else:
-                logger.warning(":getRandomAirport: with density: %s not found" % (a[0]))
+                logger.warning(":getRandomAirroute: with density: %s not found" % (a[0]))
         else:
             a = random.choice(list(aln.routes.keys()))
             apt = Airport.find(a)
-            logger.debug(":getRandomAirport: %s" % a)
+            logger.debug(":getRandomAirroute: %s" % a)
         return (aln, apt)
 
     def hub(self, airport, airline):
