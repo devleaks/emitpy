@@ -114,33 +114,33 @@ class AirportBase(Airport):
 
     def load(self):
         status = self.loadFromFile()
-
+        print(">>>", status)
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         status = self.loadProcedures()
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         status = self.loadRunways()
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         status = self.loadParkings()
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         status = self.loadTaxiways()
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         status = self.loadServiceRoads()
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         status = self.loadPOIS()
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         return [True, "Airport::load loaded"]
 

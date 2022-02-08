@@ -65,6 +65,22 @@ class XPAirport(AirportBase):
         self.runway_exits = {}
         self.takeoff_queues = {}
 
+
+    def load(self):
+        logger.debug(":load: loading super..")
+        status = super().load()
+        if not status[0]:
+            return status
+
+        logger.debug(":load: ..done. loading complement.. %s" % status)
+        status = self.makeAdditionalPOIS()
+        if not status[0]:
+            return status
+        logger.debug(":load: ..done %s" % status)
+
+        return [True, ":XPAirport::load loaded"]
+
+
     def loadFromFile(self):
         SCENERY_PACKS = os.path.join(SYSTEM_DIRECTORY, "Custom Scenery", "scenery_packs.ini")
         scenery_packs = open(SCENERY_PACKS, "r")
@@ -328,3 +344,68 @@ class XPAirport(AirportBase):
 
     def miles(self, airport):
         return distance(self, airport)
+
+
+    def makeAdditionalPOIS(self):
+        # build additional points and positions
+
+        MAX_QUEUE = 10
+
+        def makeQueue(poiskey):
+            # place MAX_QUEUE points on line
+            name = "RW"+poiskey[2:]
+            line = self.aeroway_pois[poiskey]
+            q0 = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
+            q1 = Feature(geometry=Point(line["geometry"]["coordinates"][-1]))
+            rwy = self.procedures.RWYS[name]
+            rwypt = rwy.getPoint()
+            d0 = distance(q0, rwypt)
+            d1 = distance(q1, rwypt)
+            (start, end) = (q1, q0) if d0 < d1 else (q0, q1)
+            brng = bearing(start, Feature(geometry=Point(line["geometry"]["coordinates"][1])))
+            length = distance(start, end)  # approximately
+            segment = length / MAX_QUEUE
+            self.takeoff_queues[name] = []
+            for i in range(MAX_QUEUE):
+                p = destination(start, i * segment, brng, {"units": "km"})
+                p["properties"]["runway"] = "RW" + name
+                p["properties"]["category"] = "takeoff queue"
+                p["properties"]["queue"] = i
+                self.takeoff_queues[name].append(p)
+            # logger.debug(":makeQueue: added %d queue points for %s" % (len(self.takeoff_queues[name]), name))
+
+
+        def makeRunwayExits(poiskey):
+            exitpt = self.aeroway_pois[poiskey]
+            name = "RW" + poiskey[3:poiskey.rfind(":")]
+            rwy = self.procedures.RWYS[name]
+            rwypt = rwy.getPoint()
+            dist = distance(Feature(geometry=Point(rwypt["geometry"]["coordinates"])), Feature(geometry=Point(exitpt["geometry"]["coordinates"])))
+            exitpt["properties"]["runway"] = "RW" + name
+            exitpt["properties"]["category"] = "runway exit"
+            exitpt["properties"]["length"] = dist
+            # logger.debug(":makeRunwayExits: added exit for %s at %f" % (name, round(dist, 3)))
+            if not name in self.runway_exits:
+                self.runway_exits[name] = []
+            self.runway_exits[name].append(exitpt)
+
+
+        if self.procedures is None:
+            logger.warning(":makeAdditionalPOIS: procedures not loaded")
+            return [False, ":XPAirport::makeAdditionalPOIS: procedures not loaded"]
+
+        for k in self.aeroway_pois.keys():
+            if k.startswith("Q:"):
+                makeQueue(k)
+            if k.startswith("RE:"):
+                makeRunwayExits(k)
+
+        logger.debug(":makeQueue: added %d queue points for %s" % (MAX_QUEUE, self.runway_exits.keys()))
+        for name in self.runway_exits.keys():
+            self.runway_exits[name] = sorted(self.runway_exits[name], key=lambda f: f["properties"]["length"])
+            logger.debug(":makeRunwayExits: added %d runway exits for %s" % (len(self.runway_exits[name]), name))
+            # for f in self.runway_exits[name]:
+            #     logger.debug(":makeRunwayExits: added %d runway exits for %s at %f" % (len(self.runway_exits[name]), name, f["properties"]["length"]))
+
+        return [True, ":XPAirport::makeAdditionalPOIS: loaded"]
+

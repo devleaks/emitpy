@@ -18,11 +18,16 @@ def main():
 
     s = a.nearest_vertex(point=bru, with_connection=True)
     s1 = a.nearest_point_on_edge(point=bru, with_connection=True)
-    print(s[0]["id"], "[ " + s1[2].start["id"] + " -> " + s1[2].end["id"] + " ]")
-
+    if s1[0]:
+        print(s[0]["id"], "[ " + s1[2].start["id"] + " -> " + s1[2].end["id"] + " ]")
+    else:
+        print("no s1")
     e = a.nearest_vertex(point=doh, with_connection=True)
     e1 = a.nearest_point_on_edge(point=doh, with_connection=True)
-    print(e[0]["id"], "[ " + e1[2].start["id"] + " -> " + e1[2].end["id"] + " ]")
+    if e1[0]:
+        print(e[0]["id"], "[ " + e1[2].start["id"] + " -> " + e1[2].end["id"] + " ]")
+    else:
+        print("no e1")
 
     if s[0] is not None and e[0] is not None:
         r = a.AStar(s[0].id, e[0].id)  # debug prints route inside routine

@@ -211,7 +211,6 @@ class Graph:  # Graph(FeatureCollection)?
             if (not with_connection) or (with_connection and (len(e.start.adjacent) > 0 or len(e.end.adjacent) > 0)):
                 d = point_to_line_distance(pureFeature(point), Feature(geometry=e["geometry"]))
                 if d < dist:
-                    print(">>>", d)
                     dist = d
                     edge = e
                     nconn = (len(e.start.adjacent), len(e.end.adjacent))
@@ -226,7 +225,7 @@ class Graph:  # Graph(FeatureCollection)?
                 return(edge.end, 0, edge, nconn)
             logger.debug(":nearest_point_on_edge: nearest point is on edge")
             closest = point
-        else:
+        elif edge is not None:
             closest = nearest_point_on_line(point, edge, dist)
         return [closest, dist, edge, nconn]
 
@@ -243,7 +242,6 @@ class Graph:  # Graph(FeatureCollection)?
             if (not with_connection) or (with_connection and len(p.adjacent) > 0):
                 d = distance(pureFeature(point), pureFeature(p))
                 if d < dist:
-                    print(">>2", d)
                     dist = d
                     closest = p
                     nconn = len(p.adjacent)
@@ -254,12 +252,16 @@ class Graph:  # Graph(FeatureCollection)?
 # DIJKSTRA ROUTING ALGORITHM
 #
 #
-    def Dijkstra(self, source, target, options={}):
+    def Dijkstra(self, source, target, options=None):
         # This will store the Shortest path between source and target node
         route = []
         if not source or not target:
             logger.debug(":Dijkstra: source or target missing")
             return route
+
+        options = {}
+        if opts is not None:
+            options = opts
 
         # These are all the nodes which have not been visited yet
         unvisited_nodes = None

@@ -16,8 +16,8 @@ def main():
 
     plan = FlightPlanBase(
         managedAirport=MANAGED_AIRPORT["ICAO"],
-        fromICAO=args.fromICAO.upper(),
-        toICAO=args.toICAO.upper(),
+        fromICAO="OTHH",  # args.fromICAO.upper(),
+        toICAO="EBBR",  # args.toICAO.upper(),
         cruiseAlt=30000,
         cruiseSpeed=380,
         ascentRate=2500,
