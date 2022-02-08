@@ -97,3 +97,13 @@ class ServiceParking(Feature):
             "parking-use": use,
             "orientation": orientation})
 
+
+def findFeatures(arr, criteria):
+    res = []
+    for f in arr:
+        ok = True
+        for k in criteria:
+            ok = (ok and f["properties"][k] == criteria[k])
+        if ok:
+            res.append(f)
+    return res

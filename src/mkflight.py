@@ -51,7 +51,9 @@ def main():
         lat=MANAGED_AIRPORT["lat"],
         lon=MANAGED_AIRPORT["lon"],
         alt=MANAGED_AIRPORT["elevation"])
-    managed.load()
+    ret = managed.load()
+    if not ret[0]:
+        print("Airport not loaded")
     managed.setAirspace(airspace)
 
     logger.debug("..done")
@@ -104,7 +106,7 @@ def main():
 
     logger.debug("flying..")
     am = Movement.create(arr, managed)
-    # am.make()
+    am.make()
 
     # metar may change between the two
     managed.setMETAR(metar=metar)  # calls prepareRunways()

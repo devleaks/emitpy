@@ -860,8 +860,8 @@ class ArrivalPath(Movement):
             logger.warning(":lnav: could not find parking entry vertex")
         print(">> parkingentry_vtx", parkingentry_vtx)
 
-        # taxi_ride = self.airport.taxiways.AStar(taxistart_vtx[0], parkingentry_vtx[0])
-        # print(">> taxi_ride", taxi_ride)
+        taxi_ride = self.airport.taxiways.AStar(taxistart_vtx[0].id, parkingentry_vtx[0].id)
+        print(">> taxi_ride", taxi_ride)
 
         # for v in taxi_ride:
         #     taxipos = MovePoint(geometry=v["geometry"], properties=v["properties"])
@@ -950,7 +950,8 @@ class DeparturePath(Movement):
         if taxiend_vtx[0] is None:
             logger.warning(":lnav: could not find taxi end vertex")
 
-        # taxi_ride = self.airport.taxiways.AStar(pushback_vtx, taxiend_vtx)
+        taxi_ride = self.airport.taxiways.AStar(pushback_vtx[0].id, taxiend_vtx[0].id)
+        print(">> taxi_ride", taxi_ride)
 
         # for v in taxi_ride:
         #     taxipos = MovePoint(geometry=v["geometry"], properties=v["properties"])
