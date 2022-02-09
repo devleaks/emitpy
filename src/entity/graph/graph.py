@@ -67,6 +67,11 @@ class Vertex(Feature):
         else:
             return None
 
+    def setColor(self, color: str):
+        # geojson.io specific
+        self["properties"]["marker-color"] = color
+        self["properties"]["marker-size"] = "medium"
+        self["properties"]["marker-symbol"] = ""
 
 class Edge(Feature):
 
@@ -83,6 +88,12 @@ class Edge(Feature):
         for s in self.usage:
             if str.lower(str(self.usage[:8])) == "taxiway_" and len(self.usage) == 9:
                 self.widthCode = str.upper(self.usage[8])  # should check for A-F return...
+
+    def setColor(self, color: str):
+        # geojson.io specific
+        self["properties"]["stroke"] = color
+        self["properties"]["stroke-width"] = "medium"
+        self["properties"]["stroke-opacity"] = ""
 
     def use(self, what: str, mode: bool = None):
         if mode is None:  # Query
