@@ -1,49 +1,14 @@
-import os
 import logging
-import json
-from enum import Enum, auto
-from geojson import Feature
+from datetime import datetime, timezone
 
 from ..airspace import FlightPlan
 from ..airport import Airport
 from ..business import Airline
 from ..aircraft import Aircraft
-from ..constants import PAYLOAD
+from ..constants import PAYLOAD, FLIGHT_PHASE
 from ..utils import FT
 
 logger = logging.getLogger("Flight")
-
-
-class FLIGHT_PHASE(Enum):
-    OFFBLOCK = "OFFBLOCK"
-    PUSHBACK = "PUSHBACK"
-    TAXI = "TAXI"
-    TAXIHOLD = "TAXIHOLD"
-    TAKEOFF_HOLD = "TAXIHOLD"
-    TAKE_OFF = "TAKE_OFF"
-    TAKEOFF_ROLL = "TAKEOFF_ROLL"
-    ROTATE = "ROTATE"
-    LIFT_OFF = "LIFT_OFF"
-    INITIAL_CLIMB = "INITIAL_CLIMB"
-    CLIMB = "CLIMB"
-    CRUISE = "CRUISE"
-    DESCEND = "DESCEND"
-    APPROACH = "APPROACH"
-    FINAL = "FINAL"
-    LANDING = "LANDING"
-    FLARE = "FLARE"
-    TOUCH_DOWN = "TOUCH_DOWN"
-    ROLL_OUT = "ROLL_OUT"
-    STOPPED_ON_RWY = "STOPPED_ON_RWY"
-    RUNWAY_EXIT = "RUNWAY_EXIT"
-    STOPPED_ON_TAXIWAY = "STOPPED_ON_TAXIWAY"
-    PARKING = "PARKING"
-    ONBLOCK = "ONBLOCK"
-    SCHEDULED = "SCHEDULED"
-    TERMINATED = "TERMINATED"
-    CANCELLED = "CANCELLED"
-    TOWED = "TOWED"
-    UNKNOWN = "UNKNOWN"
 
 
 class Flight:
@@ -75,6 +40,11 @@ class Flight:
                     self.flight_type = PAYLOAD.CARGO
         except ValueError:
             self.flight_type = PAYLOAD.PAX
+
+
+    def getId(self) -> str:
+        s = datetime.fromisoformat(self.scheduled)
+        return self.operator.iata + self.number + "S" + s.astimezone(tz=timezone.utc).isoformat()
 
 
     def setFL(self, flight_level: int):

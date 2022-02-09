@@ -184,6 +184,7 @@ def standard_turns(arrin):
 
         if arc is not None:
             arrout.append(arrin[i])
+            color(arc[0], "#ff0000")
             for p in arc:
                 arrout.append(p)
         else:
