@@ -5,6 +5,7 @@ import os
 import json
 import logging
 from math import pi
+from datetime import timedelta
 from typing import Union
 import copy
 
@@ -26,10 +27,13 @@ from .standardturn import standard_turn_flyby
 logger = logging.getLogger("Movement")
 
 
-class MovePoint(Feature, Restriction):
+class MovePoint(Feature):
     """
-    A path point is a Feature with a Point geometry and mandatory properties for movements speed and altitude.
-    THe name of the point is the synchronization name.
+    A MovePoint is an application waypoint through which vehicle passes.
+    It is a GeoJSON Feature<Point> with facilities to set a few standard
+    properties like altitude, speed, vertical speed and properties.
+    It can also set colors for geojson.io map display.
+    Altitude is stored in third geometry coordinates array value.
     """
     def __init__(self, geometry: Union[Point, LineString], properties: dict):
         Feature.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
@@ -38,9 +42,9 @@ class MovePoint(Feature, Restriction):
         self._vspeed = None
         self._time = None
 
-    def getProp(self, propname: str):
+    def getProp(self, name: str):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
-        return self["properties"][propname] if propname in self["properties"] else "None"
+        return self["properties"][name] if name in self["properties"] else "None"
 
     def setProp(self, name: str, value):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
@@ -87,9 +91,19 @@ class MovePoint(Feature, Restriction):
         return self._time
 
 
+class RestrictedMovePoint(MovePoint, Restriction):
+    """
+    A RestrictedMovePoint is a MovePoint with altitude and/or speed restrictions.
+    """
+    def __init__(self, geometry: Union[Point, LineString], properties: dict):
+        MovePoint.__init__(self, geometry=geometry, properties=properties)
+        Restriction.__init__(self)
+
+
 class Movement:
     """
-    Movement build the detailed path of the aircraft, both on the ground and in the air.
+    Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
+    from takeoff to landing and roll out.
     """
     def __init__(self, flight: Flight, airport: AirportBase):
         self.flight = flight
@@ -142,6 +156,11 @@ class Movement:
 
 
     def save(self):
+        """
+        Save flight paths to 3 files for flight plan, detailed movement, and taxi path.
+        Save a technical json file which can be loaded later, and GeoJSON files for display.
+        @todo should save file format version number.
+        """
         basename = os.path.join(DATA_DIR, "_DB", FLIGHT_DATABASE, self.flight_id)
 
         filename = os.path.join(basename + "-plan.json")
@@ -173,6 +192,10 @@ class Movement:
 
 
     def load(self):
+        """
+        Load flight paths from 3 files for flight plan, detailed movement, and taxi path.
+        File must be saved by above save() function.
+        """
         basename = os.path.join(DATA_DIR, FLIGHT_DATABASE, self.flight_id)
 
         filename = os.path.join(basename, "-plan.json")
@@ -192,7 +215,9 @@ class Movement:
 
 
     def make(self):
-
+        """
+        Chains local function calls to do the work.
+        """
         status = self.vnav()
         if not status[0]:
             logger.warning(status[1])
@@ -215,10 +240,20 @@ class Movement:
 
         Movement.show(self.taxipos, "after taxi")
 
+        status = self.time()
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
         return (True, "Movement::make completed")
 
 
     def interpolate(self):
+        """
+        Compute interpolated values for altitude and speed based on distance.
+        This is a simple linear interpolation based on distance between points.
+        Runs for flight portion of flight.
+        """
 
         to_interp = self.moves_st if self.moves_st is not None else self.moves
 
@@ -290,6 +325,7 @@ class Movement:
                     interpolate_altitude(noalt_idx, idx)
                     noalt_idx = None
 
+        # logger.debug(":interpolate: last point %d: %f, %f" % (len(self.moves_st), self.moves_st[-1].speed(), self.moves_st[-1].altitude()))
         # i = 0
         # for f in self.moves:
         #     s = f.speed()
@@ -306,6 +342,7 @@ class Movement:
 
         self.moves_st = []
         last_speed = 100
+        # Add first point
         self.moves_st.append(self.moves[0])
 
         for i in range(1, len(self.moves) - 1):
@@ -323,6 +360,8 @@ class Movement:
                     self.moves_st.append(MovePoint(geometry=p["geometry"], properties=p["properties"]))
             else:
                 self.moves_st.append(self.moves[i])
+        # Add last point too
+        self.moves_st.append(self.moves[-1])
         return (True, "Movement::standard_turns added")
 
 
@@ -859,28 +898,46 @@ class Movement:
 
 
     def taxi(self):
-        """
-        Perform lateral navigation for route
-        """
-        # logger.debug(":taxi: ", len(self.vert_dict.keys()) - startLen, count)
         return (False, "Movement::taxi not implemented")
 
 
     def time(self):
-        return (False, "Movement::time not implemented")
+        if self.moves_st is None:
+            return (False, "Movement::time no move")
+
+        elapsed = 0
+        wpts = self.moves_st
+        currpos = wpts[0]
+
+        for idx in range(1, len(wpts)):
+            nextpos = wpts[idx]
+            d = distance(currpos, nextpos) * 1000 # km
+            s = (nextpos.speed() + currpos.speed()) / 2
+            t = d / s  # km
+            elapsed = elapsed + t
+            logger.debug(":time: %3d: %10.3fm at %5.1fm/s = %6.1fs, total=%s" % (idx, d, nextpos.speed(), t, timedelta(seconds=elapsed)))
+            currpos.setTime(elapsed)
+            currpos = nextpos
+
+        return (True, "Movement::time computed")
 
 
     def taxiTime(self):
-        return (False, "Movement::taxiTime not implemented")
+        return (True, "Movement::taxiTime not implemented")
 
 
 class ArrivalPath(Movement):
-
+    """
+    Movement for an arrival flight
+    """
     def __init__(self, flight: Flight, airport: AirportBase):
         Movement.__init__(self, flight=flight, airport=airport)
 
 
     def taxi(self):
+        """
+        Compute taxi path for arrival, from roll out position, to runway exit to parking.
+        """
         fc = []
 
         endrolloutpos = MovePoint(geometry=self.end_rollout["geometry"], properties=self.end_rollout["properties"])
@@ -971,12 +1028,17 @@ class ArrivalPath(Movement):
 
 
 class DeparturePath(Movement):
-
+    """
+    Movement for an departure flight
+    """
     def __init__(self, flight: Flight, airport: AirportBase):
         Movement.__init__(self, flight=flight, airport=airport)
 
 
     def taxi(self):
+        """
+        Compute taxi path for departure, from parking to take-off hold location.
+        """
         fc = []
 
         parking = self.airport.parkings[self.flight.ramp]
