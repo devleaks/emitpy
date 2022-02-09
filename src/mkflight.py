@@ -76,8 +76,8 @@ def main():
     acperf = AircraftPerformance.findAircraft(reqrange=reqrange)
     reqfl = acperf.FLFor(reqrange)
 
-    logger.info("***** Flying from/to %s (%dkm)(%s, %s) with %s (%s, %s)" % (other_airport["properties"]["city"], reqrange, other_airport.iata, other_airport.icao, airline.orgId, airline.iata, airline.icao))
-    logger.info("***** range is %dkm, aircraft will be %s at FL%d" % (reqrange, acperf.typeId, reqfl))
+    logger.info("FLIGHT ********** From/to %s (%dkm)(%s, %s) with %s (%s, %s)" % (other_airport["properties"]["city"], reqrange, other_airport.iata, other_airport.icao, airline.orgId, airline.iata, airline.icao))
+    logger.info("       ********** Range is %dkm, aircraft will be %s at FL%d" % (reqrange, acperf.typeId, reqfl))
 
     aircraft = Aircraft(registration="A7-PMA", actype=acperf, operator=airline)
     logger.debug("..done")
@@ -107,13 +107,13 @@ def main():
     logger.debug("flying..")
     am = Movement.create(arr, managed)
     am.make()
-    am.save()
+    # am.save()
 
     # metar may change between the two
     managed.setMETAR(metar=metar)  # calls prepareRunways()
     dm = Movement.create(dep, managed)
-    dm.make()
-    am.save()
+    # dm.make()
+    # am.save()
 
     logger.debug("..done")
 
