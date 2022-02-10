@@ -12,6 +12,7 @@ from ..parameters import LOAD_AIRWAYS
 
 logger = logging.getLogger("Airspace")
 
+
 class CPIDENT(Enum):
     REGION = "region"
     AIRPORT = "airport"
@@ -80,6 +81,7 @@ class Restriction:
 
     def hasSpeedRestriction(self):
         return self.speedmin is not None or self.speedmax is not None
+
 
 ################################
 #

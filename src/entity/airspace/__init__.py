@@ -1,3 +1,4 @@
+from .metar import Metar
 from .flightplanbase import FlightPlanBase
 from .airspace import Airspace, Restriction
 from .xpairspace import XPAirspace

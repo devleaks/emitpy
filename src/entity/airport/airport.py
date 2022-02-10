@@ -12,13 +12,11 @@ import json
 import logging
 import random
 
-from metar import Metar
-
 from ..graph import Graph
 from ..geo import Location
 
 from ..constants import AIRPORT_DATABASE
-from ..parameters import DATA_DIR, LOAD_AIRWAYS
+from ..parameters import DATA_DIR
 from ..utils import FT
 logger = logging.getLogger("Airport")
 
@@ -176,10 +174,13 @@ class AirportBase(Airport):
     def loadPOIS(self):
         return [False, "no load implemented"]
 
-    def setMETAR(self, metar: str):
-        self.metar = Metar.Metar(metar)
-        logger.debug(":setMETAR: %s" % self.metar)
-        self._computeOperationalRunways()
+    def setMETAR(self, metar: 'Metar'):
+        if metar.metar is not None:
+            self.metar = metar.metar
+            logger.debug(":setMETAR: %s" % self.metar)
+            self._computeOperationalRunways()
+        else:
+            logger.debug(":setMETAR: no metar")
 
     def runwayIsWet(self):
         landing = 1.1
@@ -193,6 +194,7 @@ class AirportBase(Airport):
         return landing
 
     def _computeOperationalRunways(self):
+        # Fucntion should may be move to Procedures: oprationalRunways(windir: float) -> [ RWY ].
         qfu = self.metar.wind_dir.value()
         max1 = qfu - 90
         if max1 < 0:

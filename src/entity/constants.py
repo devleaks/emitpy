@@ -1,6 +1,6 @@
 # Application constants and global parameters related to the simulation
 #
-from enum import Enum
+from enum import Enum, IntEnum, Flag
 
 
 ########################################
@@ -39,7 +39,7 @@ REMOTE = "remote"
 # TYPES
 #
 # 1. load types
-class PAYLOAD(Enum):
+class PAYLOAD(Flag):
     PAX = "pax"
     CARGO = "cargo"
     TECH = "tech"
@@ -70,6 +70,7 @@ XPLANE_DATABASE = "x-plane"
 AIRCRAFT_TYPE_DATABASE = "aircraft-types"
 AIRCRAFT_DATABASE = "aircrafts"
 FLIGHT_DATABASE = "flights"
+METAR_DATABASE = "metar"
 
 MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation parameters
 FLIGHTROUTE_DATABASE = "flightplans"
@@ -256,9 +257,24 @@ class FEATPROP(Enum):
     FLIGHT_PLAN_INDEX = "fpidx"
     MOVE_INDEX = "mvidx"
 
-#
-# Simulation
 
+class ARRIVAL_DELAY(IntEnum):
+    # Feature property names
+    HOLDING = 0
+    STAND_BYSU = 1
+
+
+class DEPARTURE_DELAY(IntEnum):
+    # Feature property names
+    PUSHBACK = 0
+    TAXI = 1
+    RUNWAY_HOLD = 2
+    TAKEOFF_QUEUE = 3
+    TAKEOFF_HOLD = 4
+
+
+# Simulation
+#
 TAKEOFF_QUEUE_SIZE = 0
 
 TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed

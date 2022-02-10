@@ -9,25 +9,25 @@ from datetime import timedelta
 from typing import Union
 import copy
 
-from geojson import Point, LineString, Feature, FeatureCollection
+from geojson import Point, LineString, FeatureCollection
 from turfpy.measurement import distance, destination, bearing
 
 from ..flight import Flight
 from ..airspace import Restriction
 from ..airport import AirportBase
 from ..aircraft import ACPERF
-from ..geo import moveOn
+from ..geo import FeatureWithProps, moveOn, cleanFeatures, printFeatures
 from ..utils import FT
 from ..constants import POSITION_COLOR, FEATPROP, TAKEOFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
 from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
-from ..parameters import DATA_DIR
+from ..parameters import AODB_DIR
 
 from .standardturn import standard_turn_flyby
 
 logger = logging.getLogger("Movement")
 
 
-class MovePoint(Feature):
+class MovePoint(FeatureWithProps):
     """
     A MovePoint is an application waypoint through which vehicle passes.
     It is a GeoJSON Feature<Point> with facilities to set a few standard
@@ -36,59 +36,7 @@ class MovePoint(Feature):
     Altitude is stored in third geometry coordinates array value.
     """
     def __init__(self, geometry: Union[Point, LineString], properties: dict):
-        Feature.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
-        Restriction.__init__(self)
-        self._speed = None
-        self._vspeed = None
-        self._time = None
-
-    def getProp(self, name: str):
-        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
-        return self["properties"][name] if name in self["properties"] else "None"
-
-    def setProp(self, name: str, value):
-        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
-        self["properties"][name] = value
-
-    def setColor(self, color: str):
-        # geojson.io specific
-        self["properties"]["marker-color"] = color
-        self["properties"]["marker-size"] = "medium"
-        self["properties"]["marker-symbol"] = ""
-
-    def setAltitude(self, alt):
-        if len(self["geometry"]["coordinates"]) > 2:
-            self["geometry"]["coordinates"][2] = alt
-        else:
-            self["geometry"]["coordinates"].append(alt)
-        self["properties"]["altitude"] = alt
-
-    def altitude(self):
-        if len(self["geometry"]["coordinates"]) > 2:
-            return self["geometry"]["coordinates"][2]
-        else:
-            return None
-
-    def setSpeed(self, speed):
-        self._speed = speed
-        self["properties"]["speed"] = speed
-
-    def speed(self):
-        return self._speed
-
-    def setVSpeed(self, vspeed):
-        self._vspeed = vspeed
-        self["properties"]["vspeed"] = vspeed
-
-    def vspeed(self):
-        return self._vspeed
-
-    def setTime(self, time):
-        self._time = time
-        self["properties"]["time"] = time
-
-    def time(self):
-        return self._time
+        FeatureWithProps.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
 
 
 class RestrictedMovePoint(MovePoint, Restriction):
@@ -119,99 +67,11 @@ class Movement:
 
 
     @staticmethod
-    def asLineString(features):
-        # reduce(lambda num1, num2: num1 * num2, my_numbers, 0)
-        coords = []
-        for x in features:
-            coords.append(x["geometry"]["coordinates"])
-        # coords = reduce(lambda x, coords: coords + x["geometry"]["coordinates"], self.moves, [])
-        return LineString(coords)
-
-
-    @staticmethod
-    def cleanFeature(f):
-        return Feature(geometry=f["geometry"], properties=f["properties"])
-
-
-    @staticmethod
-    def cleanFeatures(fa):
-        c = []
-        for f in fa:
-            c.append(Movement.cleanFeature(f))
-        return c
-
-
-    @staticmethod
     def create(flight: Flight, airport: AirportBase):
+        # Allows to expose Movement without exposing ArrivalMove or DepartureMove
         if type(flight).__name__ == "Arrival":
-            return ArrivalPath(flight, airport)
-        return DeparturePath(flight, airport)
-
-
-    @staticmethod
-    def show(features, info):
-        logger.debug(f">>> {info} ------------------------------------------------------------")
-        print(FeatureCollection(features=Movement.cleanFeatures(features)))
-        logger.debug("-------------------------------------------------------------------------------------")
-
-
-    def save(self):
-        """
-        Save flight paths to 3 files for flight plan, detailed movement, and taxi path.
-        Save a technical json file which can be loaded later, and GeoJSON files for display.
-        @todo should save file format version number.
-        """
-        basename = os.path.join(DATA_DIR, "_DB", FLIGHT_DATABASE, self.flight_id)
-
-        filename = os.path.join(basename + "-plan.json")
-        with open(filename, "w") as fp:
-            json.dump(self.moves, fp, indent=4)
-
-        filename = os.path.join(basename + "-plan.geojson")
-        with open(filename, "w") as fp:
-            json.dump(FeatureCollection(features=Movement.cleanFeatures(self.moves)), fp, indent=4)
-
-        filename = os.path.join(basename + "-move.json")
-        with open(filename, "w") as fp:
-            json.dump(self.moves_st, fp, indent=4)
-
-        filename = os.path.join(basename + "-move.geojson")
-        with open(filename, "w") as fp:
-            json.dump(FeatureCollection(features=Movement.cleanFeatures(self.moves_st)), fp, indent=4)
-
-        filename = os.path.join(basename + "-taxi.json")
-        with open(filename, "w") as fp:
-            json.dump(self.taxipos, fp, indent=4)
-
-        filename = os.path.join(basename + "-taxi.geojson")
-        with open(filename, "w") as fp:
-            json.dump(FeatureCollection(features=Movement.cleanFeatures(self.taxipos)), fp, indent=4)
-
-        logger.debug(":loadAll: saved %s" % self.flight_id)
-        return (True, "Movement::save saved")
-
-
-    def load(self):
-        """
-        Load flight paths from 3 files for flight plan, detailed movement, and taxi path.
-        File must be saved by above save() function.
-        """
-        basename = os.path.join(DATA_DIR, FLIGHT_DATABASE, self.flight_id)
-
-        filename = os.path.join(basename, "-plan.json")
-        with open(filename, "r") as fp:
-            self.moves = json.load(fp)
-
-        filename = os.path.join(basename, "-move.json")
-        with open(filename, "r") as fp:
-            self.moves_st = json.load(fp)
-
-        filename = os.path.join(basename, "-taxi.json")
-        with open(filename, "r") as fp:
-            self.taxipos = json.load(fp)
-
-        logger.debug(":loadAll: loaded %d " % self.flight_id)
-        return (True, "Movement::load loaded")
+            return ArrivalMove(flight, airport)
+        return DepartureMove(flight, airport)
 
 
     def make(self):
@@ -238,7 +98,7 @@ class Movement:
             logger.warning(status[1])
             return status
 
-        Movement.show(self.taxipos, "after taxi")
+        printFeatures(self.taxipos, "after taxi")
 
         status = self.time()
         if not status[0]:
@@ -248,121 +108,52 @@ class Movement:
         return (True, "Movement::make completed")
 
 
-    def interpolate(self):
+    def save(self):
         """
-        Compute interpolated values for altitude and speed based on distance.
-        This is a simple linear interpolation based on distance between points.
-        Runs for flight portion of flight.
+        Save flight paths to 3 files for flight plan, detailed movement, and taxi path.
+        Save a technical json file which can be loaded later, and GeoJSON files for display.
+        @todo should save file format version number.
         """
+        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.flight_id)
 
-        to_interp = self.moves_st if self.moves_st is not None else self.moves
+        def saveMe(arr, name):
+            filename = os.path.join(basename + "-" + name + ".json")
+            with open(filename, "w") as fp:
+                json.dump(arr, fp, indent=4)
 
-        def interpolate_speed(istart, iend):
-            speedstart = to_interp[istart].speed()  # first known speed
-            speedend = to_interp[iend].speed()  # last known speed
+            filename = os.path.join(basename + "-" + name + ".geojson")
+            with open(filename, "w") as fp:
+                json.dump(FeatureCollection(features=cleanFeatures(arr)), fp, indent=4)
 
-            if speedstart == speedend: # simply copy
-                for idx in range(istart, iend):
-                    to_interp[idx].setSpeed(speedstart)
-                return
+        saveMe(self.moves, "plan")
+        saveMe(self.moves_st, "move")
+        saveMe(self.taxipos, "taxi")
 
-            ratios = {}
-            spdcumul = 0
-            for idx in range(istart+1, iend):
-                d = distance(to_interp[idx-1], to_interp[idx], "m")
-                spdcumul = spdcumul + d
-                ratios[idx] = spdcumul
-            # logger.debug(":interpolate_speed: (%d)%f -> (%d)%f, %f" % (istart, speedstart, iend, speedend, spdcumul))
-            speed_a = (speedend - speedstart) / spdcumul
-            speed_b = speedstart
-            for idx in range(istart+1, iend):
-                # logger.debug(":interpolate_speed: %d %f %f" % (idx, ratios[idx]/spdcumul, speed_b + speed_a * ratios[idx]))
-                to_interp[idx].setSpeed(speed_b + speed_a * ratios[idx] / spdcumul)
-
-        def interpolate_altitude(istart, iend):
-            altstart = to_interp[istart].altitude()  # first known alt
-            altend = to_interp[iend].altitude()  # last known alt
-
-            if altstart == altend: # simply copy
-                for idx in range(istart, iend):
-                    to_interp[idx].setAltitude(altstart)
-                return
-
-            ratios = {}
-            altcumul = 0
-            for idx in range(istart+1, iend+1):
-                d = distance(to_interp[idx-1], to_interp[idx], "m")
-                altcumul = altcumul + d
-                ratios[idx] = altcumul
-            # logger.debug(":interpolate_alt: (%d)%f -> (%d)%f, %f" % (istart, altstart, iend, altend, altcumul))
-            alt_a = (altend - altstart) / altcumul
-            alt_b = altstart
-            for idx in range(istart+1, iend):
-                # logger.debug(":interpolate_alt: %d %f %f" % (idx, ratios[idx]/altcumul, alt_b + alt_a * ratios[idx]))
-                to_interp[idx].setAltitude(alt_b + alt_a * ratios[idx] / altcumul)
-
-        # we do have a speed for first point in flight for both arrival (takeoff_speed, apt.alt) and departure (landing_speed, apt.alt)
-        nospeed_idx = None  # index of last elem with not speed, elem[0] has speed.
-        noalt_idx = None
-        for idx in range(1, len(to_interp)):
-            f = to_interp[idx]
-
-            s = f.speed()
-            if s is None:
-                if nospeed_idx is None:
-                    nospeed_idx = idx - 1
-            else:
-                if nospeed_idx is not None:
-                    interpolate_speed(nospeed_idx, idx)
-                    nospeed_idx = None
-
-            a = f.altitude()
-            if a is None:
-                if noalt_idx is None:
-                    noalt_idx = idx - 1
-            else:
-                if noalt_idx is not None:
-                    interpolate_altitude(noalt_idx, idx)
-                    noalt_idx = None
-
-        # logger.debug(":interpolate: last point %d: %f, %f" % (len(self.moves_st), self.moves_st[-1].speed(), self.moves_st[-1].altitude()))
-        # i = 0
-        # for f in self.moves:
-        #     s = f.speed()
-        #     a = f.altitude()
-        #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
-        #     i = i + 1
-
-        return (True, "Movement::interpolated speed and altitude")
+        logger.debug(":loadAll: saved %s" % self.flight_id)
+        return (True, "Movement::save saved")
 
 
-    def standard_turns(self):
-        def turnRadius(speed): # speed in m/s, returns radius in m
-            return 120 * speed / (2 * pi)
+    def load(self):
+        """
+        Load flight paths from 3 files for flight plan, detailed movement, and taxi path.
+        File must be saved by above save() function.
+        """
+        basename = os.path.join(DATA_DIR, FLIGHT_DATABASE, self.flight_id)
 
-        self.moves_st = []
-        last_speed = 100
-        # Add first point
-        self.moves_st.append(self.moves[0])
+        filename = os.path.join(basename, "-plan.json")
+        with open(filename, "r") as fp:
+            self.moves = json.load(fp)
 
-        for i in range(1, len(self.moves) - 1):
-            li = LineString([self.moves[i-1]["geometry"]["coordinates"], self.moves[i]["geometry"]["coordinates"]])
-            lo = LineString([self.moves[i]["geometry"]["coordinates"], self.moves[i+1]["geometry"]["coordinates"]])
-            s = last_speed  # arrin[i].speed()
-            if s is None:
-                s = last_speed
-            arc = standard_turn_flyby(li, lo, turnRadius(s))
-            last_speed = s
+        filename = os.path.join(basename, "-move.json")
+        with open(filename, "r") as fp:
+            self.moves_st = json.load(fp)
 
-            if arc is not None:
-                self.moves_st.append(self.moves[i])
-                for p in arc:
-                    self.moves_st.append(MovePoint(geometry=p["geometry"], properties=p["properties"]))
-            else:
-                self.moves_st.append(self.moves[i])
-        # Add last point too
-        self.moves_st.append(self.moves[-1])
-        return (True, "Movement::standard_turns added")
+        filename = os.path.join(basename, "-taxi.json")
+        with open(filename, "r") as fp:
+            self.taxipos = json.load(fp)
+
+        logger.debug(":loadAll: loaded %d " % self.flight_id)
+        return (True, "Movement::load loaded")
 
 
     def vnav(self):
@@ -408,7 +199,7 @@ class Movement:
         groundmv = 0
         fcidx = 0
 
-        if type(self).__name__ == "DeparturePath": # take off
+        if type(self).__name__ == "DepartureMove": # take off
             TOH_BLASTOFF = 0.2  # km
             rwy = self.flight.runway
             rwy_threshold = rwy.getPoint()
@@ -469,7 +260,7 @@ class Movement:
             fcidx = newidx
             groundmv = groundmv + initial_climb_distance
 
-        else: # ArrivalPath, simpler departure
+        else: # ArrivalMove, simpler departure
             # Someday, we could add SID departure from runway for remote airport as well
             # Get METAR at airport, determine runway, select random runway & SID
             deptapt = fc[0]
@@ -609,7 +400,7 @@ class Movement:
         # for f in fc:
         #     logger.debug(":vnav: flight plan reversed: %s" % (f.getProp("_plan_segment_type")))
 
-        if type(self).__name__ == "ArrivalPath": # the path starts at the END of the departure runway
+        if type(self).__name__ == "ArrivalMove": # the path starts at the END of the departure runway
             LAND_TOUCH_DOWN = 0.4  # km
             rwy = self.flight.runway
             rwy_threshold = rwy.getPoint()
@@ -687,7 +478,7 @@ class Movement:
         #     i = i + 1
 
         # go at APPROACH_ALT at first point of approach / last point of star
-        if type(self).__name__ == "ArrivalPath":
+        if type(self).__name__ == "ArrivalMove":
 
             # find first point of approach:
             k = len(fc) - 1
@@ -897,11 +688,132 @@ class Movement:
         return (True, "Movement::vnav completed without restriction")
 
 
+    def standard_turns(self):
+        def turnRadius(speed): # speed in m/s, returns radius in m
+            return 120 * speed / (2 * pi)
+
+        self.moves_st = []
+        last_speed = 100
+        # Add first point
+        self.moves_st.append(self.moves[0])
+
+        for i in range(1, len(self.moves) - 1):
+            li = LineString([self.moves[i-1]["geometry"]["coordinates"], self.moves[i]["geometry"]["coordinates"]])
+            lo = LineString([self.moves[i]["geometry"]["coordinates"], self.moves[i+1]["geometry"]["coordinates"]])
+            s = last_speed  # arrin[i].speed()
+            if s is None:
+                s = last_speed
+            arc = standard_turn_flyby(li, lo, turnRadius(s))
+            last_speed = s
+
+            if arc is not None:
+                self.moves_st.append(self.moves[i])
+                for p in arc:
+                    self.moves_st.append(MovePoint(geometry=p["geometry"], properties=p["properties"]))
+            else:
+                self.moves_st.append(self.moves[i])
+        # Add last point too
+        self.moves_st.append(self.moves[-1])
+        return (True, "Movement::standard_turns added")
+
+
     def taxi(self):
         return (False, "Movement::taxi not implemented")
 
 
+    def interpolate(self):
+        """
+        Compute interpolated values for altitude and speed based on distance.
+        This is a simple linear interpolation based on distance between points.
+        Runs for flight portion of flight.
+        """
+
+        to_interp = self.moves_st if self.moves_st is not None else self.moves
+
+        def interpolate_speed(istart, iend):
+            speedstart = to_interp[istart].speed()  # first known speed
+            speedend = to_interp[iend].speed()  # last known speed
+
+            if speedstart == speedend: # simply copy
+                for idx in range(istart, iend):
+                    to_interp[idx].setSpeed(speedstart)
+                return
+
+            ratios = {}
+            spdcumul = 0
+            for idx in range(istart+1, iend):
+                d = distance(to_interp[idx-1], to_interp[idx], "m")
+                spdcumul = spdcumul + d
+                ratios[idx] = spdcumul
+            # logger.debug(":interpolate_speed: (%d)%f -> (%d)%f, %f" % (istart, speedstart, iend, speedend, spdcumul))
+            speed_a = (speedend - speedstart) / spdcumul
+            speed_b = speedstart
+            for idx in range(istart+1, iend):
+                # logger.debug(":interpolate_speed: %d %f %f" % (idx, ratios[idx]/spdcumul, speed_b + speed_a * ratios[idx]))
+                to_interp[idx].setSpeed(speed_b + speed_a * ratios[idx] / spdcumul)
+
+        def interpolate_altitude(istart, iend):
+            altstart = to_interp[istart].altitude()  # first known alt
+            altend = to_interp[iend].altitude()  # last known alt
+
+            if altstart == altend: # simply copy
+                for idx in range(istart, iend):
+                    to_interp[idx].setAltitude(altstart)
+                return
+
+            ratios = {}
+            altcumul = 0
+            for idx in range(istart+1, iend+1):
+                d = distance(to_interp[idx-1], to_interp[idx], "m")
+                altcumul = altcumul + d
+                ratios[idx] = altcumul
+            # logger.debug(":interpolate_alt: (%d)%f -> (%d)%f, %f" % (istart, altstart, iend, altend, altcumul))
+            alt_a = (altend - altstart) / altcumul
+            alt_b = altstart
+            for idx in range(istart+1, iend):
+                # logger.debug(":interpolate_alt: %d %f %f" % (idx, ratios[idx]/altcumul, alt_b + alt_a * ratios[idx]))
+                to_interp[idx].setAltitude(alt_b + alt_a * ratios[idx] / altcumul)
+
+        # we do have a speed for first point in flight for both arrival (takeoff_speed, apt.alt) and departure (landing_speed, apt.alt)
+        nospeed_idx = None  # index of last elem with not speed, elem[0] has speed.
+        noalt_idx = None
+        for idx in range(1, len(to_interp)):
+            f = to_interp[idx]
+
+            s = f.speed()
+            if s is None:
+                if nospeed_idx is None:
+                    nospeed_idx = idx - 1
+            else:
+                if nospeed_idx is not None:
+                    interpolate_speed(nospeed_idx, idx)
+                    nospeed_idx = None
+
+            a = f.altitude()
+            if a is None:
+                if noalt_idx is None:
+                    noalt_idx = idx - 1
+            else:
+                if noalt_idx is not None:
+                    interpolate_altitude(noalt_idx, idx)
+                    noalt_idx = None
+
+        # logger.debug(":interpolate: last point %d: %f, %f" % (len(self.moves_st), self.moves_st[-1].speed(), self.moves_st[-1].altitude()))
+        # i = 0
+        # for f in self.moves:
+        #     s = f.speed()
+        #     a = f.altitude()
+        #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
+        #     i = i + 1
+
+        return (True, "Movement::interpolated speed and altitude")
+
+
     def time(self):
+        """
+        Time 0 is start of roll for takeoff (Departure) or takeoff from origin airport (Arrival).
+        Last time is touch down at destination (Departure) or end of roll out (Arrival).
+        """
         if self.moves_st is None:
             return (False, "Movement::time no move")
 
@@ -915,18 +827,24 @@ class Movement:
             s = (nextpos.speed() + currpos.speed()) / 2
             t = d / s  # km
             elapsed = elapsed + t
-            logger.debug(":time: %3d: %10.3fm at %5.1fm/s = %6.1fs, total=%s" % (idx, d, nextpos.speed(), t, timedelta(seconds=elapsed)))
             currpos.setTime(elapsed)
             currpos = nextpos
+
+        # only show values of last iteration (can be moved inside loop)
+        logger.debug(":time: %3d: %10.3fm at %5.1fm/s = %6.1fs, total=%s" % (idx, d, currpos.speed(), t, timedelta(seconds=elapsed)))
 
         return (True, "Movement::time computed")
 
 
     def taxiTime(self):
-        return (True, "Movement::taxiTime not implemented")
+        """
+        Time 0 is start of pushback (Departure) or end of roll out (Arrival).
+        Last time is take off hold (Departure) or parking (Arrival).
+        """
+        return (False, "Movement::taxiTime not implemented")
 
 
-class ArrivalPath(Movement):
+class ArrivalMove(Movement):
     """
     Movement for an arrival flight
     """
@@ -1024,10 +942,10 @@ class ArrivalPath(Movement):
         self.taxipos = fc
         logger.debug(":taxi: taxi %d moves" % (len(self.taxipos)))
 
-        return (True, "ArrivalPath::taxi completed")
+        return (True, "ArrivalMove::taxi completed")
 
 
-class DeparturePath(Movement):
+class DepartureMove(Movement):
     """
     Movement for an departure flight
     """
@@ -1189,4 +1107,4 @@ class DeparturePath(Movement):
         self.taxipos = fc
         logger.debug(":taxi: taxi %d moves" % (len(self.taxipos)))
 
-        return (True, "DeparturePath::taxi completed")
+        return (True, "DepartureMove::taxi completed")

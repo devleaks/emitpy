@@ -21,9 +21,6 @@ Better SID/STAR selection.
 Suggestion: Make a directed graph from antepenultimate/second point of cruise (last/first is not sufficient) to arrival/from departure runway.
 Let AStar algorithm choose fastest arrival/departure route.
 
+Automatic runway exit findings?
 
-Automatic runway exit findings
-
-
-METAR => RWY + SID/STAR at origin/destination airport if procedure available.
-
+At origin/destination airport: METAR => RWY + SID/STAR+APPCH  if procedure available.

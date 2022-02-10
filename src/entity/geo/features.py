@@ -1,6 +1,7 @@
 """
 GeoJSON Features with special meaning or type (class).
 """
+import copy
 from geojson import Polygon, Point, Feature
 from geojson.geometry import Geometry
 from turfpy.measurement import bearing
@@ -19,6 +20,75 @@ from turfpy.measurement import bearing
 #     def __init__(self, geometry: Geometry, properties: dict, orgId: str, classId: str, typeId: str, name: str):
 #         Feature.__init__(self, geometry=geometry, properties=properties)
 #         Identity.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name)
+
+
+# ################################@
+# FEATUREWITHPROPS
+#
+#
+class FeatureWithProps(Feature):
+    """
+    A FeatureWithProps is a GeoJSON Feature<Point> with facilities to set a few standard
+    properties like altitude, speed, vertical speed and properties.
+    It can also set colors for geojson.io map display.
+    Altitude is stored in third geometry coordinates array value.
+    """
+    def __init__(self, geometry: Geometry, properties: dict):
+        Feature.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
+        self._speed = None
+        self._vspeed = None
+        self._time = None
+
+    def getProp(self, name: str):
+        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
+        return self["properties"][name] if name in self["properties"] else "None"
+
+    def setProp(self, name: str, value):
+        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
+        self["properties"][name] = value
+
+    def addProps(self, values: dict):
+        for name, value in values.items():
+            self.setProp(name, value)
+
+    def setColor(self, color: str):
+        # geojson.io specific
+        self.addProps({
+            "marker-color": color,
+            "marker-size": "medium",
+            "marker-symbol": ""
+        })
+
+    def setAltitude(self, alt):
+        if len(self["geometry"]["coordinates"]) > 2:
+            self["geometry"]["coordinates"][2] = alt
+        else:
+            self["geometry"]["coordinates"].append(alt)
+        self.setProp("altitude", alt)
+
+    def altitude(self):
+        return self["geometry"]["coordinates"][2] if len(self["geometry"]["coordinates"]) > 2 else None
+
+    def setSpeed(self, speed):
+        self._speed = speed
+        self.setProp("speed", speed)
+
+    def speed(self):
+        return self._speed
+
+    def setVSpeed(self, vspeed):
+        self._vspeed = vspeed
+        self.setProp("vspeed", vspeed)
+
+    def vspeed(self):
+        return self._vspeed
+
+    def setTime(self, time):
+        self._time = time
+        self.setProp("time", time)
+
+    def time(self):
+        return self._time
 
 
 # ################################@
