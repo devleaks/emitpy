@@ -1,7 +1,7 @@
 import random
 import logging
 
-from geojson import Point, LineString, Polygon, Feature
+from geojson import Point, LineString, Polygon, Feature, FeatureCollection
 from turfpy.measurement import distance, destination, bearing, bbox
 
 logger = logging.getLogger("geoutils")
@@ -111,3 +111,29 @@ def line_intersect(line1, line2):
         return Feature(geometry=Point([x, y]))
     return None
 
+
+def asLineString(features):
+    # reduce(lambda num1, num2: num1 * num2, my_numbers, 0)
+    coords = []
+    for x in features:
+        coords.append(x["geometry"]["coordinates"])
+    # coords = reduce(lambda x, coords: coords + x["geometry"]["coordinates"], self.moves, [])
+    return LineString(coords)
+
+
+def cleanFeature(f):
+    return Feature(geometry=f["geometry"], properties=f["properties"])
+
+
+def cleanFeatures(fa):
+    c = []
+    for f in fa:
+        c.append(cleanFeature(f))
+    return c
+
+
+def printFeatures(features, info):
+    dash = 50
+    print(f">>> {info} " + ("-" * dash))
+    print(FeatureCollection(features=cleanFeatures(features)))
+    print("-" * (dash + 5 + len(info)))

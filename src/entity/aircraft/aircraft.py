@@ -331,9 +331,11 @@ class AircraftPerformance(AircraftType):
 
 class Aircraft:
     """
+    An aircraft servicing an airline route.
     """
     def __init__(self, registration: str, actype: AircraftPerformance, operator: Company):
         self.registration = registration
+        self.icao24 = None  # 6 hexadecimal digit string
         self.operator = operator
         self.actype = actype
         self.callsign = None
@@ -345,6 +347,8 @@ class Aircraft:
     def setCallsign(self, callsign: str):
         self.callsign = callsign
 
+    def setICAO24(self, icao24: str):
+        self.icao24 = icao24
 
     def setPosition(self, position):
         self._position = position

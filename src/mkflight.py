@@ -1,10 +1,10 @@
 import logging
 
 from entity.business import Airline
-from entity.airspace import XPAirspace
+from entity.airspace import XPAirspace, Metar
 from entity.airport import Airport, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
-from entity.flight import Arrival, Departure, Movement
+from entity.flight import Arrival, Departure, Movement, Emit
 from entity.business import AirportManager
 from entity.parameters import MANAGED_AIRPORT
 
@@ -59,7 +59,7 @@ def main():
     logger.debug("..done")
 
     # Prepare airport for each movement
-    metar = "OTHH 041200Z 26113KT 9999 FEW030 20/08 Q1017 NOSIG"
+    metar = Metar(icao=MANAGED_AIRPORT["ICAO"])
     managed.setMETAR(metar=metar)  # calls prepareRunways()
 
     # Add pure commercial stuff
@@ -107,6 +107,8 @@ def main():
     logger.debug("flying..")
     am = Movement.create(arr, managed)
     am.make()
+    ae = Emit(am)
+    ae.emit()
     # am.save()
 
     # metar may change between the two
