@@ -70,7 +70,7 @@ def main():
     # other_airport = Airport.find("VOCL")
 
     reqrange = 45000
-    while(reqrange > 1000):
+    while(reqrange > 2000):
         (airline, other_airport) = airportManager.getRandomAirroute(airline=airline)
         reqrange = managed.miles(other_airport)
 
@@ -102,7 +102,7 @@ def main():
     logger.info("FLIGHT ********** From/to %s (%dkm)(%s, %s) with %s (%s, %s)" % (other_airport["properties"]["city"], reqrange, other_airport.iata, other_airport.icao, airline.orgId, airline.iata, airline.icao))
     logger.info("       ********** Range is %dkm, aircraft will be %s at FL%d" % (reqrange, acperf.typeId, reqfl))
 
-    aircraft = Aircraft(registration="A7-PMA", actype=acperf, operator=airline)
+    aircraft = Aircraft(registration="A7-PMA", icao24= "a2ec4f", actype=acperf, operator=airline)
     logger.debug("..done")
 
     logger.debug("creating arrival..")
@@ -130,26 +130,25 @@ def main():
     logger.debug("flying..")
     am = Movement.create(arr, managed)
     am.make()
-    # am.save()
+    am.save()
 
-    # ae = Emit(am)
-    # ae.emit()
-    # ae.save()
-    # f = ae.get("TOUCH_DOWN", datetime.now())
+    ae = Emit(am)
+    ae.emit()
+    ae.save()
+    f = ae.get("TOUCH_DOWN", datetime.now())
 
     # metar may change between the two
     managed.setMETAR(metar=metar)  # calls prepareRunways()
     dm = Movement.create(dep, managed)
-    # dm.make()
-    # am.save()
+    dm.make()
+    am.save()
 
-    # de = Emit(am)
-    # de.emit()
-    # de.save()
+    de = Emit(am)
+    de.emit()
+    de.save()
 
-    # f = ae.get("TAKE_OFF", datetime.now())
+    f = ae.get("TAKE_OFF", datetime.now())
 
     logger.debug("..done")
 
 main()
-

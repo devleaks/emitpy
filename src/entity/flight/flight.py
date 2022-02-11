@@ -99,7 +99,7 @@ class Arrival(Flight):
         self.managedAirport = managedAirport
 
 
-    def trimFlightPlan(self):
+    def trimFlightPlan(self, has_procedures=True):
         """
         Remove last point for now, which is arrival airport
 
@@ -117,7 +117,7 @@ class Arrival(Flight):
         if fpcp[1] > 0:
             logger.warning(":loadFlightPlan: unidentified %d waypoints" % fpcp[1])
         logger.debug(":loadFlightPlan: identified %d waypoints, first=%s" % (len(fpcp[0]), fpcp[0][0]))
-        return fpcp[0][0:-1]  # remove arrival airport
+        return fpcp[0][1:-1] if has_procedures else fpcp[0][0:-1] # remove arrival airport
 
 
     def plan(self):
@@ -127,41 +127,64 @@ class Arrival(Flight):
         if self.flightplan is None:
             self.loadFlightPlan()
 
-        arrpts = self.trimFlightPlan()
-        arrpts[0].setProp("_plan_segment_type", "origin")
-        arrpts[0].setProp("_plan_segment_name", self.departure.icao)
-        Flight.setProp(arrpts[1:], "_plan_segment_type", "cruise")
-        Flight.setProp(arrpts[1:], "_plan_segment_name", self.departure.icao+"-"+self.arrival.icao)
+        if self.departure.has_procedures():
+            logger.debug(":plan: using procedures for departure airport %s" % self.departure.icao)
+            # Departure
+            rwydep = self.departure.selectRunway(self)
+            logger.debug(":plan: runway %s" % rwydep.name)
+            arrpts = rwydep.getRoute()
+            arrpts[0].setProp("_plan_segment_type", "origin")
+            arrpts[0].setProp("_plan_segment_name", self.departure.icao)
 
-        # for f in arrpts:
-        #     logger.debug(":plan: PLAN %s %s" % (f.id, f.getProp("_plan_segment_type")))
-        # logger.debug(":plan: ---")
+            # SID
+            sid = self.departure.getOtherProcedure(self, rwydep)  # !!
+            if sid is not None:
+                logger.debug(":plan: SID %s" % sid.name)
+                ret = self.departure.procedures.getRoute(sid, self.managedAirport.airspace)
+                Flight.setProp(ret, "_plan_segment_type", "sid")
+                Flight.setProp(ret, "_plan_segment_name", sid.name)
+                arrpts = arrpts + ret
+            else:
+                logger.warning(":plan: no SID for %s %s" % (self.departure.icao, rwydep.name))
+        else:
+            logger.debug(":plan: departure airport %s has no procedure" % self.departure.icao)
+            if self.flightplan is None:
+                self.loadFlightPlan()
 
+            arrpts = self.trimFlightPlan()
+            arrpts[0].setProp("_plan_segment_type", "origin")
+            arrpts[0].setProp("_plan_segment_name", self.departure.icao)
+
+        # Cruise
+        ret = self.trimFlightPlan()
+        Flight.setProp(ret, "_plan_segment_type", "cruise")
+        Flight.setProp(ret, "_plan_segment_name", self.departure.icao+"-"+self.arrival.icao)
+        arrpts = arrpts + ret
+
+        # STAR
         rwy = self.managedAirport.selectRunway(self)
         self.runway = rwy
         logger.debug(":plan: runway %s" % rwy.name)
 
         star = self.managedAirport.getProcedure(self, rwy)
-        logger.debug(":plan: STAR %s" % star.name)
-        ret = self.managedAirport.procedures.getRoute(star, self.managedAirport.airspace)
-        Flight.setProp(ret, "_plan_segment_type", "star")
-        Flight.setProp(ret, "_plan_segment_name", star.name)
+        if star is not None:
+            logger.debug(":plan: STAR %s" % star.name)
+            ret = self.managedAirport.procedures.getRoute(star, self.managedAirport.airspace)
+            Flight.setProp(ret, "_plan_segment_type", "star")
+            Flight.setProp(ret, "_plan_segment_name", star.name)
+            arrpts = arrpts + ret
+        else:
+            logger.warning(":plan: no STAR for %s %s" % (self.managedAirport.icao, rwy.name))
 
-        arrpts = arrpts + ret
-
-        # for f in ret:
-        #     logger.debug(":plan: STAR %s" % f.id)
-        # logger.debug(":plan: ---")
-
+        # APPCH
         appch = self.managedAirport.getApproach(star, rwy)
-        logger.debug(":plan: APPCH %s" % appch.name)
-        ret = self.managedAirport.procedures.getRoute(appch, self.managedAirport.airspace)
-        Flight.setProp(ret, "_plan_segment_type", "appch")
-        Flight.setProp(ret, "_plan_segment_name", appch.name)
-
-        # for f in ret:
-        #     logger.debug(":plan: APPCH %s %s" % (f.id, f.getProp("_plan_segment_type")))
-        # logger.debug(":plan: ---")
+        if appch is not None:
+            logger.debug(":plan: APPCH %s" % appch.name)
+            ret = self.managedAirport.procedures.getRoute(appch, self.managedAirport.airspace)
+            Flight.setProp(ret, "_plan_segment_type", "appch")
+            Flight.setProp(ret, "_plan_segment_name", appch.name)
+        else:
+            logger.warning(":plan: no APPCH for %s %s" % (self.managedAirport.icao, rwy.name))
 
         if arrpts[-1].id == ret[0].id:
             logger.debug(":plan: duplicate end STAR/begin APPCH %s removed" % ret[0].id)
@@ -169,17 +192,15 @@ class Arrival(Flight):
         else:
             arrpts = arrpts + ret
 
+        # RWY
         ret = rwy.getRoute()
         Flight.setProp(ret, "_plan_segment_type", "rwy")
         Flight.setProp(ret, "_plan_segment_name", rwy.name)
         arrpts = arrpts + ret
 
-        # for f in ret:
-        #     logger.debug(":plan: RWY %s %s" % (f.id, f.getProp("_plan_segment_type")))
-        # logger.debug(":plan: ---")
-
         self.procedure = (star, appch, rwy)
         self.flightplan_cp = arrpts
+        # printFeatures(self.flightplan_cp, "plan")
         return (True, "Arrival::plan: planned")
 
 
@@ -190,7 +211,7 @@ class Departure(Flight):
         self.managedAirport = managedAirport
 
 
-    def trimFlightPlan(self):
+    def trimFlightPlan(self, has_procedures=True):
         """
         Remove first point for now, which is departure airport
         """
@@ -198,7 +219,7 @@ class Departure(Flight):
         if fpcp[1] > 0:
             logger.warning(":loadFlightPlan: unidentified %d waypoints" % fpcp[1])
         logger.debug(":loadFlightPlan: identified %d waypoints, last=%s" % (len(fpcp[0]), fpcp[0][-1]))
-        return fpcp[0][1:]  # remove departure airport
+        return fpcp[0][1:-1] if has_procedures else fpcp[0][1:]  # remove departure airport
 
 
     def plan(self):
@@ -215,20 +236,68 @@ class Departure(Flight):
         Flight.setProp(deppts, "_plan_segment_type", "rwy")
         Flight.setProp(deppts, "_plan_segment_name", rwy.name)
 
+        # SID
         sid = self.managedAirport.getProcedure(self, rwy)
-        logger.debug(":plan: SID %s" % sid.name)
-        ret = self.managedAirport.procedures.getRoute(sid, self.managedAirport.airspace)
-        Flight.setProp(ret, "_plan_segment_type", "sid")
-        Flight.setProp(ret, "_plan_segment_name", sid.name)
-        deppts = deppts + ret
+        if sid is not None:
+            logger.debug(":plan: SID %s" % sid.name)
+            ret = self.managedAirport.procedures.getRoute(sid, self.managedAirport.airspace)
+            Flight.setProp(ret, "_plan_segment_type", "sid")
+            Flight.setProp(ret, "_plan_segment_name", sid.name)
+            deppts = deppts + ret
+        else:
+            logger.warning(":plan: no SID for %s %s" % (self.managedAirport.icao, rwy.name))
 
+        # CRUISE
         plan = self.trimFlightPlan()
         Flight.setProp(plan, "_plan_segment_type", "cruise")
         Flight.setProp(plan, "_plan_segment_name", self.departure.icao+"-"+self.arrival.icao)
+        deppts = deppts + plan
+
+        if self.arrival.has_procedures():
+            logger.debug(":plan: using procedures for arrival airport %s" % self.arrival.icao)
+            # STAR
+            rwyarr = self.arrival.selectRunway(self)
+            star = self.arrival.getOtherProcedure(self, rwyarr)  # !!
+            if star is not None:
+                logger.debug(":plan: STAR %s" % star.name)
+                ret = self.managedAirport.procedures.getRoute(star, self.managedAirport.airspace)
+                Flight.setProp(ret, "_plan_segment_type", "star")
+                Flight.setProp(ret, "_plan_segment_name", star.name)
+                deppts = deppts + ret
+            else:
+                logger.warning(":plan: no STAR for %s %s" % (self.arrival.icao, rwyarr.name))
+
+            # APPCH
+            appch = self.arrival.getApproach(star, rwyarr)
+            if appch is not None:
+                logger.debug(":plan: APPCH %s" % appch.name)
+                ret = self.arrival.procedures.getRoute(appch, self.managedAirport.airspace)
+                Flight.setProp(ret, "_plan_segment_type", "appch")
+                Flight.setProp(ret, "_plan_segment_name", appch.name)
+            else:
+                logger.warning(":plan: no STAR for %s %s" % (self.arrival.icao, rwyarr.name))
+
+            if deppts[-1].id == ret[0].id:
+                logger.debug(":plan: duplicate end STAR/begin APPCH %s removed" % ret[0].id)
+                deppts = deppts[:-1] + ret  # remove last point of STAR
+            else:
+                deppts = deppts + ret
+
+            ret = rwyarr.getRoute()
+            Flight.setProp(ret, "_plan_segment_type", "rwy")
+            Flight.setProp(ret, "_plan_segment_name", rwyarr.name)
+            deppts = deppts + ret
+        else:
+            logger.debug(":plan: arrival airport %s has no procedure" % self.arrival.icao)
+            plan[-1].setProp("_plan_segment_type", "destination")
+            plan[-1].setProp("_plan_segment_name", self.arrival.icao)
+
+        # Arrival
         plan[-1].setProp("_plan_segment_type", "destination")
         plan[-1].setProp("_plan_segment_name", self.arrival.icao)
         deppts = deppts + plan
 
         self.procedure = (rwy, sid)
         self.flightplan_cp = deppts
+        # printFeatures(self.flightplan_cp, "plan")
         return (True, "Departure::plan: planned")

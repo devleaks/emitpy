@@ -266,13 +266,13 @@ class Hold(Restriction):
         self.fix = fix
         self.course = course
         self.turn = turn
-        self.leg_time = leg_time
-        self.leg_length = leg_length
+        self.leg_time = leg_time  # min
+        self.leg_length = leg_length  # unit?
         self.setAltitudeRestriction(altmin, altmax)
         self.setSpeedRestriction(speed, speed)
 
 
-    def mkHold(self, speed: float, finesse: int = 8):
+    def getRoute(self, speed: float, finesse: int = 8):
         """
         Make path from Hold data and aircraft speed.
         Returns an array of Feature<Point>
@@ -280,38 +280,55 @@ class Hold(Restriction):
         :param      speed:  The speed
         :type       speed:  float
         """
-        length = (speed/60) * self.leg_time if self.leg_time > 0 else self.leg_length
+        length = speed * self.leg_time * 60 if self.leg_time > 0 else self.leg_length
+        length = length / 1000  # km
         # circle radius:
         radius = length / math.pi
         step = 180 / finesse
 
+        turnAngle = self.course - 180
+
+        logger.debug(":Hold:getRoute: spd=%f len=%f rad=%f legt=%f legl=%f turnAngle=%f" % (speed, length, radius, self.leg_time, self.leg_length, turnAngle))
+
         # 4 corners and 2 arc centers p1 -> p2 -> p3 -> p4 -> p1
         p1 = self.fix
-        p2 = destination(p1, length, self.course)
+        p2 = destination(p1, length, self.course, {"units": "km"})
 
-        arc = [p1, p2]
+        hold = [p1, p2]
 
-        perpendicular = self.course + 90 * (1 if self.turn == "L" else -1)
-        c23 = destination(p2, length/2, perpendicular)
+        perpendicular = self.course + 90 * (1 if self.turn == "R" else -1)
+        c23 = destination(p2, radius, perpendicular, {"units": "km"})
         curr = perpendicular - 180
+        arc = []
         for i in range(0, finesse - 1):
             curr = curr + step
-            p = destination(c23, radius, curr)
+            p = destination(c23, radius, curr, {"units": "km"})
             arc.append(p)
 
-        p3 = destination(p2, length, perpendicular)
-        p4 = destination(p1, length, perpendicular)
-        arc.append(p3)
-        arc.append(p4)
+        if turnAngle > 0:  # reverse coordinates order
+            arc.reverse()
 
-        c41 = destination(p1, length/2, perpendicular)
+        hold = hold + arc
+
+        p3 = destination(p2, 2*radius, perpendicular, {"units": "km"})
+        p4 = destination(p1, 2*radius, perpendicular, {"units": "km"})
+        hold.append(p3)
+        hold.append(p4)
+
+        c41 = destination(p1, radius, perpendicular, {"units": "km"})
         curr = perpendicular
+        arc = []
         for i in range(0, finesse - 1):
             curr = curr + step
             p = destination(c41, radius, curr)
             arc.append(p)
 
-        return arc
+        if turnAngle > 0:  # reverse coordinates order
+            arc.reverse()
+
+        hold = hold + arc
+
+        return hold
 
 
 ##########################
@@ -407,4 +424,8 @@ class Airspace(Graph):
 
     def loadHolds(self):
         return [False, "no load implemented"]
+
+    def findHolds(self, name):
+        validholds = list(filter(lambda x: x.fix.id == name, self.holds.values()))
+        return validholds
 

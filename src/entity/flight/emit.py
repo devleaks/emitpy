@@ -34,9 +34,9 @@ class Emit:
     """
     Emit takes an array of MovePoints to produce a FeatureCollection of decorated features ready for emission.
     """
-    def __init__(self, move):
+    def __init__(self, move: 'Movement', frequency: int = 30):
         self.move = move
-        self.frequency = 30  # seconds
+        self.frequency = frequency  # seconds
         self.broadcast = []  # [ EmitPoint ]
         self.props = {}  # general purpose properties added to each emit point
 
@@ -223,7 +223,8 @@ class Emit:
             for f in self.broadcast:
                 f.addProps(self.props)
 
-        logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist2/1000, 3), len(self.moves), len(self.broadcast)))
+        # logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist2/1000, 3), len(self.moves), len(self.broadcast)))
+        logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist2/1000, 3), len(self.moves), len(self.broadcast)))
 
         #printFeatures(self.broadcast, "broadcast")
         return (True, "Emit::emit completed")
