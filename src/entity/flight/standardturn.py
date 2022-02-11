@@ -107,7 +107,7 @@ def standard_turn_flyby(l0, l1, radius):
     l1e = extend_line(l1, 20)
     cross_ext = line_intersect(l0e, l1e)  # returns a FeatureCollection
     if cross_ext is None:
-        logger.warning("standard_turn: lines do not cross close %s %s" % (l0e, l1e))
+        # logger.warning("standard_turn: lines do not cross close %s %s" % (l0e, l1e))
         return None
 
     l0b = line_offset(l0e, sign(oppositeTurnAngle) * radius / 1000)

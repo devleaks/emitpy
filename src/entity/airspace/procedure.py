@@ -296,7 +296,7 @@ class CIFP:
         while line:
             cifpline = ProcedureData(line.strip())
             procty = cifpline.proc()
-            procname = cifpline.name()
+            procname = cifpline.name().strip()  # RWY NAME IS  ALWAYS RWNNL, L can be a space.
 
             if procty == "PRDAT":  # continuation of last line of current procedure
                 if prevline is not None:
@@ -340,25 +340,32 @@ class CIFP:
 
     def pairRunways(self):
         if len(self.RWYS) == 2:
-            self.RWYS[0].end, self.RWYS[1].end = self.RWYS[1], self.RWYS[0]
+            rwk = list(self.RWYS.keys())
+            self.RWYS[rwk[0]].end, self.RWYS[rwk[1]].end = self.RWYS[rwk[1]], self.RWYS[rwk[0]]
+            logger.debug(":pairRunways: %s: %s and %s paired" % (self.icao, self.RWYS[rwk[0]].name, self.RWYS[rwk[1]].name))
         else:
+            logger.debug(":pairRunways: %s: pairing %s" % (self.icao, self.RWYS.keys()))
             for k, r in self.RWYS.items():
                 if r.end is None:
                     rh = int(k[2:4])
                     ri = rh + 18
                     if ri > 36:
                         ri = ri - 36
-                    rl = k[-1]  # {L|R|C}
+                    rl = k[-1]  # {L|R|C|<SPC>}
                     rw = "RW%02d" % ri
                     if rl == "L":
                         rw = rw + "R"
                     elif rl == "R":
                         rw = rw + "L"
-                    else:
+                    elif rl == "C":
                         rw = rw + "C"
+                    # elif rl == " ":
+                    #     rw = rw
+                    # else:
+                    #     rw = rw
                     r.end = self.RWYS[rw]
                     self.RWYS[rw].end = r
-                    logger.debug(":pairRunways: %s and %s paired" % (r.name, rw))
+                    logger.debug(":pairRunways: %s: %s and %s paired" % (self.icao, r.name, rw))
         # bearing and length
         for k, r in self.RWYS.items():
             r.bearing = bearing(r.getPoint(), r.end.getPoint())
@@ -367,3 +374,41 @@ class CIFP:
 
     def getRoute(self, procedure: Procedure, airspace: Airspace):
         return procedure.getRoute(airspace)
+
+
+    def getOperationalRunways(self, wind_dir: float):
+        # Fucntion should may be move to Procedures: oprationalRunways(windir: float) -> [ RWY ].
+        max1 = wind_dir - 90
+        if max1 < 0:
+            max1 = max1 + 360
+        max1 = int(max1/10)
+        max2 = wind_dir + 90
+        if max2 > 360:
+            max2 = max2 - 360
+        max2 = int(max2/10)
+        if max1 > max2:
+            max1, max2 = max2, max1
+
+        # logger.debug(":_computeOperationalRunways: %f %d %d" % (wind_dir, max1, max2))
+        rops = {}
+        if wind_dir > 90 and wind_dir < 270:
+            for rwy in self.RWYS.keys():
+                # logger.debug(":_computeOperationalRunways: %s %d" % (rwy, int(rwy[2:4])))
+                rw = int(rwy[2:4])
+                if rw >= max1 and rw < max2:
+                    # logger.debug(":_computeOperationalRunways: added %s" % rwy)
+                    rops[rwy] = self.RWYS[rwy]
+        else:
+            for rwy in self.RWYS.keys():
+                # logger.debug(":_computeOperationalRunways: %s %d" % (rwy, int(rwy[2:4])))
+                rw = int(rwy[2:4])
+                if rw < max1 or rw >= max2:
+                    # logger.debug(":_computeOperationalRunways: added %s" % rwy)
+                    rops[rwy] = self.RWYS[rwy]
+
+        if len(rops.keys()) == 0:
+            logger.debug(":getOperationalRunways: could not find runway for operations")
+
+        logger.info(":getOperationalRunways: wind direction is %f, runway in use: %s" % (wind_dir, rops.keys()))
+        return rops
+

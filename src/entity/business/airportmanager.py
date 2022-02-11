@@ -131,9 +131,9 @@ class AirportManager:
             a = random.choices(population=list(aptlist.keys()), weights=list(aptlist.values()))
             apt = Airport.findIATA(a[0])
             if apt is None:
-                logger.debug(":getRandomAirroute: with density: %s(%s)" % (apt.icao, apt.iata))
-            else:
                 logger.warning(":getRandomAirroute: with density: %s not found" % (a[0]))
+            else:
+                logger.debug(":getRandomAirroute: with density: %s(%s)" % (apt.icao, apt.iata))
         else:
             a = random.choice(list(aln.routes.keys()))
             apt = Airport.find(a)

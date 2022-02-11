@@ -8,7 +8,6 @@ from geojson import Point, Polygon, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from .airport import AirportBase
-from ..airspace import CIFP
 from ..graph import Vertex, Edge
 from ..geo import Ramp, ServiceParking, Runway, mkPolygon
 from ..parameters import DATA_DIR
@@ -131,11 +130,6 @@ class XPAirport(AirportBase):
 
         scenery_packs.close()
         return [True, "XPAirport::loadFromFile: loaded"]
-
-
-    def loadProcedures(self):
-        self.procedures = CIFP(self.icao)
-        return [True, "XPAirport::loadProcedures: loaded"]
 
 
     def loadRunways(self):

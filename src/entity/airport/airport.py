@@ -15,6 +15,7 @@ import random
 from ..graph import Graph
 from ..geo import Location
 
+from ..airspace import CIFP
 from ..constants import AIRPORT_DATABASE
 from ..parameters import DATA_DIR
 from ..utils import FT
@@ -22,13 +23,12 @@ logger = logging.getLogger("Airport")
 
 
 # ################################@
-# AIRPORT BASE
+# AIRPORT
 #
 #
 class Airport(Location):
     """
-    An AirportBase is a location for flight departure and arrival.
-
+    An Airport is a location for flight departure and arrival.
     """
 
     _DB = {}
@@ -61,7 +61,7 @@ class Airport(Location):
                 Airport._DB[row["ident"]] = a
                 Airport._DB_IATA[row["iata_code"]] = a
         file.close()
-        logger.debug(":loadAll: loaded %d airports" % len(Airport._DB))
+        logger.debug(":loadAll: loaded %d airports" % (len(Airport._DB)))
 
 
     @staticmethod
@@ -87,14 +87,18 @@ class Airport(Location):
     def addHub(self, airline):
         self.hub[airline.icao] = airline
 
+
 # ################################@
-# AIRPORT
+# AIRPORT BASE
 #
 #
 class AirportBase(Airport):
     """
-    An ManagedAirport is an airport as it appears in the simulation software.
+    An AirportBase is a more complete version of an airport.
+    It is used as the basis of a ManagedAirport and can be used for origin and destination airport
+    if we use procedures.
     """
+
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
         Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.airspace = None
@@ -112,7 +116,6 @@ class AirportBase(Airport):
 
     def load(self):
         status = self.loadFromFile()
-        print(">>>", status)
         if not status[0]:
             return status
 
@@ -144,7 +147,7 @@ class AirportBase(Airport):
 
 
     def loadFromFile(self):
-        return [False, "no load implemented"]
+        return [True, "no load implemented"]
 
     def loadGeometries(self, name):
         df = os.path.join(self.airport_base, "geometries", name)
@@ -157,28 +160,31 @@ class AirportBase(Airport):
         return [True, "GeoJSONAirport::file %s loaded" % name]
 
     def loadProcedures(self):
-        return [False, "no load implemented"]
+        self.procedures = CIFP(self.icao)
+        return [True, "XPAirport::loadProcedures: loaded"]
 
     def loadRunways(self):
-        return [False, "no load implemented"]
+        return [True, "no load implemented"]
 
     def loadTaxiways(self):
-        return [False, "no load implemented"]
+        return [True, "no load implemented"]
 
     def loadParkings(self):
-        return [False, "no load implemented"]
+        return [True, "no load implemented"]
 
     def loadServiceRoads(self):
-        return [False, "no load implemented"]
+        return [True, "no load implemented"]
 
     def loadPOIS(self):
-        return [False, "no load implemented"]
+        return [True, "no load implemented"]
 
     def setMETAR(self, metar: 'Metar'):
         if metar.metar is not None:
             self.metar = metar.metar
             logger.debug(":setMETAR: %s" % self.metar)
-            self._computeOperationalRunways()
+            if self.procedures is not None:
+                # set which runways are usable
+                self.rops = self.procedures.getOperationalRunways(self.metar.wind_dir.value())
         else:
             logger.debug(":setMETAR: no metar")
 
@@ -192,42 +198,6 @@ class AirportBase(Airport):
                 elif prec > 0 or self.metar.precip_1hr.istrace():
                     landing = 1.4
         return landing
-
-    def _computeOperationalRunways(self):
-        # Fucntion should may be move to Procedures: oprationalRunways(windir: float) -> [ RWY ].
-        qfu = self.metar.wind_dir.value()
-        max1 = qfu - 90
-        if max1 < 0:
-            max1 = max1 + 360
-        max1 = int(max1/10)
-        max2 = qfu + 90
-        if max2 > 360:
-            max2 = max2 - 360
-        max2 = int(max2/10)
-        if max1 > max2:
-            max1, max2 = max2, max1
-
-        # logger.debug(":_computeOperationalRunways: %f %d %d" % (qfu, max1, max2))
-        if qfu > 90 and qfu < 270:
-            for rwy in self.procedures.RWYS.keys():
-                # logger.debug(":_computeOperationalRunways: %s %d" % (rwy, int(rwy[2:4])))
-                rw = int(rwy[2:4])
-                if rw >= max1 and rw < max2:
-                    # logger.debug(":_computeOperationalRunways: added %s" % rwy)
-                    self.rops[rwy] = self.procedures.RWYS[rwy]
-        else:
-            for rwy in self.procedures.RWYS.keys():
-                # logger.debug(":_computeOperationalRunways: %s %d" % (rwy, int(rwy[2:4])))
-                rw = int(rwy[2:4])
-                if rw < max1 or rw >= max2:
-                    # logger.debug(":_computeOperationalRunways: added %s" % rwy)
-                    self.rops[rwy] = self.procedures.RWYS[rwy]
-
-        if len(self.rops.keys()) == 0:
-            logger.debug(":_computeOperationalRunways: could not find runway for operations")
-
-        logger.info(":_computeOperationalRunways: wind direction is %f, runway in use: %s" % (qfu, self.rops.keys()))
-
 
     def getProcedure(self, flight: 'Flight', runway: str):
         logger.debug(":getProcedure: direction: %s" % type(flight).__name__)

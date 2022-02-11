@@ -2,7 +2,7 @@ import logging
 
 from entity.business import Airline
 from entity.airspace import XPAirspace, Metar
-from entity.airport import Airport, XPAirport
+from entity.airport import Airport, AirportBase, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, Movement, Emit
 from entity.business import AirportManager
@@ -69,8 +69,23 @@ def main():
     # Create a pair of flights
     airline = qr
     # other_airport = Airport.find("VOCL")
-    (airline, other_airport) = airportManager.getRandomAirroute(airline=airline)
-    reqrange = managed.miles(other_airport)
+
+    reqrange = 45000
+    while(reqrange > 1000):
+        (airline, other_airport) = airportManager.getRandomAirroute(airline=airline)
+        reqrange = managed.miles(other_airport)
+
+    # upgrade
+    other_airport = AirportBase(icao=other_airport.icao,
+                                iata=other_airport.iata,
+                                name=other_airport["properties"]["name"],
+                                city=other_airport["properties"]["city"],
+                                country=other_airport["properties"]["country"],
+                                region=other_airport.region,
+                                lat=other_airport["geometry"]["coordinates"][1],
+                                lon=other_airport["geometry"]["coordinates"][0],
+                                alt=other_airport["geometry"]["coordinates"][2] if len(other_airport["geometry"]["coordinates"]) > 2 else None)
+    other_airport.load()
 
     logger.debug("loading aircraft..")
     acperf = AircraftPerformance.findAircraft(reqrange=reqrange)
