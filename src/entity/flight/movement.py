@@ -98,7 +98,7 @@ class Movement:
             logger.warning(status[1])
             return status
 
-        printFeatures(self.taxipos, "after taxi")
+        # printFeatures(self.taxipos, "after taxi")
 
         status = self.time()
         if not status[0]:
@@ -707,7 +707,9 @@ class Movement:
             last_speed = s
 
             if arc is not None:
-                self.moves_st.append(self.moves[i])
+                # self.moves_st.append(self.moves[i])
+                mid = arc[int(len(arc) / 2)]
+                mid["properties"] = self.moves[i]["properties"]
                 for p in arc:
                     self.moves_st.append(MovePoint(geometry=p["geometry"], properties=p["properties"]))
             else:
@@ -817,9 +819,10 @@ class Movement:
         if self.moves_st is None:
             return (False, "Movement::time no move")
 
-        elapsed = 0
         wpts = self.moves_st
+        elapsed = 0
         currpos = wpts[0]
+        currpos.setTime(elapsed)
 
         for idx in range(1, len(wpts)):
             nextpos = wpts[idx]
@@ -827,9 +830,10 @@ class Movement:
             s = (nextpos.speed() + currpos.speed()) / 2
             t = d / s  # km
             elapsed = elapsed + t
-            currpos.setTime(elapsed)
+            nextpos.setTime(elapsed)
             currpos = nextpos
 
+        print(">>>", )
         # only show values of last iteration (can be moved inside loop)
         logger.debug(":time: %3d: %10.3fm at %5.1fm/s = %6.1fs, total=%s" % (idx, d, currpos.speed(), t, timedelta(seconds=elapsed)))
 

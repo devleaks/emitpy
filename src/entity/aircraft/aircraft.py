@@ -238,7 +238,10 @@ class AircraftPerformance(AircraftType):
         # copy others verbatim
         for n in self.perfraw.keys():
             if n not in self.perfdata.keys():
-                self.perfdata[n] = self.perfraw[n]
+                if self.perfraw[n] != "no data":
+                    self.perfdata[n] = self.perfraw[n]
+                else:
+                    logger.warning(":toSI: %s no value for: %s" % (self.name, n))
 
     def get(self, name: str):
         if name in self.perfraw.keys():
