@@ -5,12 +5,13 @@ import os
 import json
 import logging
 from typing import Union
-from datetime import timedelta
+from datetime import datetime, timedelta
+from random import randrange
 
 from geojson import FeatureCollection, Point, LineString
 from turfpy.measurement import distance, bearing, destination
 
-from ..geo import FeatureWithProps, cleanFeatures, printFeatures
+from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures
 
 from ..constants import FLIGHT_DATABASE, SLOW_SPEED
 from ..parameters import DATA_DIR
@@ -73,7 +74,7 @@ class Emit:
         def time_distance_to_next_vtx(c0, idx):  # time it takes to go from c0 to vtx[idx+1]
             totald = distance(self.moves[idx], self.moves[idx+1]) * 1000  # km
             if totald == 0:  # same point...
-                logger.warning(":emit:time_distance_to_next_vtx: same point? (%s %s)" % (self.moves[idx], self.moves[idx+1]))
+                # logger.warning(":emit:time_distance_to_next_vtx: same point? (%s %s)" % (self.moves[idx], self.moves[idx+1]))
                 return 0
             partiald = distance(self.moves[idx], c0) * 1000  # km
             portion = partiald / totald
@@ -118,14 +119,14 @@ class Emit:
 
         def broadcast(idx, pos, time, reason, waypt=False):
             e = EmitPoint(geometry=pos["geometry"], properties=pos["properties"])
-            e.setProp("broadcast_time", time)
+            e.setProp("broadcast_relative_time", time)
             e.setProp("broadcast", not waypt)
             if waypt:
                 e.setColor("#eeeeee")
-                logger.debug(":broadcast: %s (%s)" % (reason, timedelta(seconds=time)))
+                #logger.debug(":broadcast: %s (%s)" % (reason, timedelta(seconds=time)))
             else:
                 e.setColor("#ccccff")
-                logger.debug(":broadcast: %s (%d, %f (%s))" % (reason, idx, time, timedelta(seconds=time)))
+                #logger.debug(":broadcast: %s (%d, %f (%s))" % (reason, idx, time, timedelta(seconds=time)))
             self.broadcast.append(e)
 
 
@@ -133,39 +134,44 @@ class Emit:
         # collect common props from aircraft
 
         # build emission points
-        total_time = 0
-        total_dist = 0
-        total_dist2 = 0  # used to control progress and consistency
+        total_dist = 0   # sum of distances between emissions
+        total_dist2 = 0  # sum of distances between vertices
+        total_time = 0   # sum of times between emissions
+
         curridx = 0
         currpos = self.moves[curridx]
 
         # Add first point
         broadcast(curridx, currpos, total_time, "start")
 
-        time_to_next_emit = self.frequency  # we could actually random from (0..self.frequency) to randomly start broadcast
+        time_to_next_emit = randrange(self.frequency)  # we could actually random from (0..self.frequency) to randomly start broadcast
+
+        future_emit = self.frequency
+        # future_emit = self.frequency - 0.2 * self.frequency + randrange(0.4 * self.frequency)  # random time between emission DANGEROUS!
+
         while curridx < (len(self.moves) - 1):
             # We progress one leg at a time, leg is from idx -> idx+1.
             next_vtx = self.moves[curridx + 1]
             time_to_next_vtx = time_distance_to_next_vtx(currpos, curridx)
-            ## logger.debug(":emit: >>>> %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
-            logger.debug(":emit: START: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
+            # logger.debug(":emit: >>>> %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
+            ## logger.debug(":emit: START: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
 
-            if (time_to_next_emit > 0) and (time_to_next_emit < self.frequency) and (time_to_next_emit < time_to_next_vtx):
+            if (time_to_next_emit > 0) and (time_to_next_emit < future_emit) and (time_to_next_emit < time_to_next_vtx):
                 # We need to emit before next vertex
                 # logger.debug("moving on edge with time remaining to next emit.. (%d, %f, %f)" % (curridx, time_to_next_emit, time_to_next_vtx))  # if we are here, we know we will not reach the next vertex
-                logger.debug(":emit: EBEFV: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
+                ## logger.debug(":emit: EBEFV: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
                 newpos = destinationOnTrack(currpos, time_to_next_emit, curridx)
                 total_time = total_time + time_to_next_emit
                 controld = distance(currpos, newpos) * 1000  # km
                 total_dist = total_dist + controld
                 broadcast(curridx, newpos, total_time, "moving on edge with time remaining to next emit")
                 currpos = newpos
-                time_to_next_emit = self.frequency
+                time_to_next_emit = future_emit
                 time_to_next_vtx = time_distance_to_next_vtx(currpos, curridx)
                 # logger.debug("..done moving on edge with time remaining to next emit. %f sec left before next emit, %f to next vertex" % (time_to_next_emit, time_to_next_vtx))
 
-            if (time_to_next_emit > 0) and (time_to_next_emit < self.frequency) and (time_to_next_vtx < time_to_next_emit):
-                logger.debug(":emit: RVBFE: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
+            if (time_to_next_emit > 0) and (time_to_next_emit < future_emit) and (time_to_next_vtx < time_to_next_emit):
+                ##logger.debug(":emit: RVBFE: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
                 # We will reach next vertex before we need to emit
                 # logger.debug("moving from to vertex with time remaining before next emit.. (%d, %f, %f)" % (curridx, time_to_next_emit, time_to_next_vtx))  # if we are here, we know we will not reach the next vertex
                 total_time = total_time + time_to_next_vtx
@@ -178,37 +184,37 @@ class Emit:
 
             else:
                 # We will emit before we reach next vertex
-                while time_to_next_vtx > self.frequency:  # @todo: >= ?
-                    logger.debug(":emit: EONTR: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
+                while time_to_next_vtx > future_emit:  # @todo: >= ?
+                    ## logger.debug(":emit: EONTR: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
                     # We keep having time to emit before we reach the next vertex
-                    #logger.debug("moving on edge.. %d, %f, %f" % (curridx, time_to_next_vtx, self.frequency))
-                    total_time = total_time + self.frequency
-                    nextpos = destinationOnTrack(currpos, self.frequency, curridx)
+                    #logger.debug("moving on edge.. %d, %f, %f" % (curridx, time_to_next_vtx, future_emit))
+                    total_time = total_time + future_emit
+                    nextpos = destinationOnTrack(currpos, future_emit, curridx)
                     controld = distance(currpos, nextpos) * 1000  # km
                     total_dist = total_dist + controld
                     broadcast(curridx, currpos, total_time, f"en route after vertex {curridx}")
                     currpos = nextpos
                     time_to_next_vtx = time_distance_to_next_vtx(currpos, curridx)
-                    time_to_next_emit = self.frequency
+                    time_to_next_emit = future_emit
 
                 #logger.debug(".. done moving on edge by %f sec. %f remaining to next vertex" % (time_to_next_emit, time_to_next_vtx))
 
                 if time_to_next_vtx > 0:
-                    # jump to next vertex because time_to_next_vtx <= self.frequency
-                    logger.debug(":emit: TONXV: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
+                    # jump to next vertex because time_to_next_vtx <= future_emit
+                    ## logger.debug(":emit: TONXV: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
                     controld = distance(currpos, next_vtx) * 1000  # km
-                    #logger.debug("jumping to next vertex.. (%f m, %f sec)" % (controld, time_to_next_vtx))
+                    # logger.debug("jumping to next vertex.. (%f m, %f sec)" % (controld, time_to_next_vtx))
                     total_time = total_time + time_to_next_vtx
                     controld = distance(currpos, next_vtx) * 1000  # km
                     total_dist = total_dist + controld
                     broadcast(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }", True)  # ONLY IF BROADCAST AT VERTEX
                     currpos = next_vtx
                     time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
-                    #logger.debug(".. done jumping to next vertex. %f sec left before next emit" % (time_to_next_emit))
+                    # logger.debug(".. done jumping to next vertex. %f sec left before next emit" % (time_to_next_emit))
 
             controld = distance(self.moves[curridx], next_vtx) * 1000  # km
-            total_dist2 = total_dist2 + controld
-            logger.debug(":emit: +++> %d: %f sec , %f m / %f m" % (curridx, round(total_time, 2), round(total_dist/1000,3), round(total_dist2/1000, 3)))
+            total_dist2 = total_dist2 + controld  # sum of distances between vertices
+            #logger.debug(":emit: END> %d: %f sec , %f m / %f m" % (curridx, round(total_time, 2), round(total_dist/1000,3), round(total_dist2/1000, 3)))
             curridx = curridx + 1
 
         # transfert common data to each emit point for emission
@@ -217,11 +223,41 @@ class Emit:
             for f in self.broadcast:
                 f.addProps(self.props)
 
-        logger.debug(":emit: +++> %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist2/1000, 3), len(self.moves), len(self.broadcast)))
+        logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist2/1000, 3), len(self.moves), len(self.broadcast)))
 
-        printFeatures(self.broadcast, "broadcast")
+        #printFeatures(self.broadcast, "broadcast")
         return (True, "Emit::emit completed")
 
 
-    def get(self, synch, moment):
+    def get(self, synch, moment: datetime):
+        """
+        Adjust a emission track to synchronize moment at position mkar synch.
+
+        :param      synch:   The synchronize
+        :type       synch:   { type_description }
+        :param      moment:  The moment
+        :type       moment:  datetime
+        """
+        f = findFeatures(self.broadcast, {"_mark": synch})
+        if f is not None and len(f) > 0:
+            copy = []
+            r = f[0]
+            logger.debug(f":get: found {synch} mark")
+            offset = r.getProp("broadcast_relative_time")
+            if offset is not None:
+                logger.debug(f":get: {synch} offset {offset} sec")
+                for e in self.broadcast:
+                    p = EmitPoint(geometry=e["geometry"], properties=e["properties"])
+                    t = e.getProp("broadcast_relative_time")
+                    if t is not None:
+                        p.setProp("broadcast_absolute_time", moment + timedelta(seconds=(t - offset)))
+                    else:
+                        copy.append(p)
+                    copy.append(p)
+                return copy
+            else:
+                logger.warning(f":get: _mark {synch} has no time offset")
+        else:
+            logger.warning(f":get: _mark {synch} not found")
+
         return None

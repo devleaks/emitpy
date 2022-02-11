@@ -90,6 +90,11 @@ class FeatureWithProps(Feature):
     def time(self):
         return self._time
 
+    @staticmethod
+    def setProp(arr: list, propname: str, value: str):
+        for a in arr:
+            a.setProp(propname, value)
+
 
 # ################################@
 # LOCATION
@@ -166,14 +171,3 @@ class ServiceParking(Feature):
             "sub-type": parking_type,
             "parking-use": use,
             "orientation": orientation})
-
-
-def findFeatures(arr, criteria):
-    res = []
-    for f in arr:
-        ok = True
-        for k in criteria:
-            ok = (ok and f["properties"][k] == criteria[k])
-        if ok:
-            res.append(f)
-    return res

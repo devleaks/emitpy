@@ -137,3 +137,15 @@ def printFeatures(features, info):
     print(f">>> {info} " + ("-" * dash))
     print(FeatureCollection(features=cleanFeatures(features)))
     print("-" * (dash + 5 + len(info)))
+
+
+def findFeatures(arr, criteria):
+    res = []
+    for f in arr:
+        ok = True
+        for k in criteria:
+            ok = (ok and k in f["properties"] and f["properties"][k] == criteria[k])
+        if ok:
+            res.append(f)
+    return res
+

@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from entity.business import Airline
 from entity.airspace import XPAirspace, Metar
@@ -53,10 +54,8 @@ def main():
         alt=MANAGED_AIRPORT["elevation"])
     ret = managed.load()
     if not ret[0]:
-        print("Airport not loaded")
+        print("Managed airport not loaded")
     managed.setAirspace(airspace)
-
-    logger.debug("..done")
 
     # Prepare airport for each movement
     metar = Metar(icao=MANAGED_AIRPORT["ICAO"])
@@ -76,6 +75,7 @@ def main():
         reqrange = managed.miles(other_airport)
 
     # upgrade
+    logger.debug("..loading other airport..")
     other_airport = AirportBase(icao=other_airport.icao,
                                 iata=other_airport.iata,
                                 name=other_airport["properties"]["name"],
@@ -85,7 +85,15 @@ def main():
                                 lat=other_airport["geometry"]["coordinates"][1],
                                 lon=other_airport["geometry"]["coordinates"][0],
                                 alt=other_airport["geometry"]["coordinates"][2] if len(other_airport["geometry"]["coordinates"]) > 2 else None)
-    other_airport.load()
+    ret = other_airport.load()
+    if not ret[0]:
+        print("Other airport not loaded")
+
+    other_metar = Metar(icao=other_airport.icao)
+    other_airport.setMETAR(metar=other_metar)  # calls prepareRunways()
+
+    logger.debug("..done")
+
 
     logger.debug("loading aircraft..")
     acperf = AircraftPerformance.findAircraft(reqrange=reqrange)
@@ -122,15 +130,24 @@ def main():
     logger.debug("flying..")
     am = Movement.create(arr, managed)
     am.make()
-    ae = Emit(am)
-    ae.emit()
     # am.save()
+
+    # ae = Emit(am)
+    # ae.emit()
+    # ae.save()
+    # f = ae.get("TOUCH_DOWN", datetime.now())
 
     # metar may change between the two
     managed.setMETAR(metar=metar)  # calls prepareRunways()
     dm = Movement.create(dep, managed)
     # dm.make()
     # am.save()
+
+    # de = Emit(am)
+    # de.emit()
+    # de.save()
+
+    # f = ae.get("TAKE_OFF", datetime.now())
 
     logger.debug("..done")
 
