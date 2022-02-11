@@ -214,7 +214,7 @@ class Movement:
 
             currpos = MovePoint(geometry=takeoff_hold["geometry"], properties={})
             currpos.setAltitude(alt)
-            currpos.setSpeed(actype.getSI(0))
+            currpos.setSpeed(0)
             currpos.setVSpeed(0)
             currpos.setColor(POSITION_COLOR.TAKEOFF_HOLD.value)
             currpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TAKEOFF_HOLD.value)
@@ -500,8 +500,8 @@ class Movement:
                         p.setAltitude(alt+APPROACH_ALT)
                         p.setSpeed(actype.getSI(ACPERF.approach_speed))
                         p.setVSpeed(0)
-                        p.setColor("#ff00ff")  # approach in MAGENTA
-                        p.setProp(FEATPROP.MARK.value, "approach")
+                        p.setColor(POSITION_COLOR.APPROACH.value)  # approach in MAGENTA
+                        p.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.APPROACH.value)
                         p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
                         revmoves.append(p)
                         # logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (i, p.getProp(FEATPROP.MARK), len(revmoves)))
@@ -521,7 +521,7 @@ class Movement:
                     currpos.setVSpeed(0)
                     currpos.setProp(FEATPROP.MARK.value, "start_of_approach")
                     currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, k)
-                    currpos.setColor("#880088")  # approach in MAGENTA
+                    currpos.setColor(POSITION_COLOR.APPROACH.value)  # approach in MAGENTA
                     revmoves.append(currpos)
                     # logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (k, currpos.getProp(FEATPROP.MARK), len(revmoves)))
 
@@ -555,7 +555,7 @@ class Movement:
                         p.setAltitude(alt+STAR_ALT)
                         p.setSpeed(actype.getSI(ACPERF.approach_speed))
                         p.setVSpeed(0)
-                        p.setColor("#ff00ff")  # star in MAGENTA
+                        p.setColor(POSITION_COLOR.APPROACH.value)
                         p.setProp(FEATPROP.MARK.value, "star")
                         p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
                         revmoves.append(p)
@@ -573,7 +573,7 @@ class Movement:
                     currpos.setVSpeed(0)
                     currpos.setProp(FEATPROP.MARK.value, "start_of_star")
                     currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, k)
-                    currpos.setColor("#ff00ff")  # star in MAGENTA
+                    currpos.setColor(POSITION_COLOR.APPROACH.value)
                     revmoves.append(currpos)
                     # logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (k, currpos.getProp(FEATPROP.MARK), len(revmoves)))
                     fcidx = k
@@ -588,6 +588,7 @@ class Movement:
             currpos.setSpeed(actype.getSI(ACPERF.approach_speed))
             currpos.setVSpeed(actype.getSI(ACPERF.approach_vspeed))
             currpos.setProp(FEATPROP.MARK.value, "descent_fl100_reached")
+            currpos.setColor(POSITION_COLOR.DESCEND.value)
             fcidx = addCurrentPoint(revmoves, currpos, fcidx, newidx, True)
 
             if self.flight.flight_level > 240:
@@ -600,6 +601,7 @@ class Movement:
                 currpos.setSpeed(actype.getSI(ACPERF.descentFL100_speed))
                 currpos.setVSpeed(actype.getSI(ACPERF.descentFL100_vspeed))
                 currpos.setProp(FEATPROP.MARK.value, "descent_fl240_reached")
+                currpos.setColor(POSITION_COLOR.DESCEND.value)
                 fcidx = addCurrentPoint(revmoves, currpos, fcidx, newidx, True)
 
                 if self.flight.flight_level > 240:
@@ -612,6 +614,7 @@ class Movement:
                     currpos.setSpeed(actype.getSI(ACPERF.descentFL240_mach))
                     currpos.setVSpeed(actype.getSI(ACPERF.descentFL240_vspeed))
                     currpos.setProp(FEATPROP.MARK.value, "top_of_descent")
+                    currpos.setColor(POSITION_COLOR.TOP_OF_DESCENT.value)
                     fcidx = addCurrentPoint(revmoves, currpos, fcidx, newidx, True)
             else:
                 # descent from cruise below FL240 to FL100
@@ -622,7 +625,8 @@ class Movement:
                 currpos.setAltitude(self.flight.getCruiseAltitude())
                 currpos.setSpeed(actype.getSI(ACPERF.descentFL100_speed))
                 currpos.setVSpeed(actype.getSI(ACPERF.descentFL100_vspeed))
-                currpos.setProp(FEATPROP.MARK.value, "top_of_descent")  # !
+                currpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TOP_OF_DESCENT.value)  # !
+                currpos.setColor(POSITION_COLOR.TOP_OF_DESCENT.value)
                 fcidx = addCurrentPoint(revmoves, currpos, fcidx, newidx, True)
         else:
             # descent from cruise below FL100 to approach alt
@@ -633,7 +637,8 @@ class Movement:
             currpos.setAltitude(self.flight.getCruiseAltitude())
             currpos.setSpeed(actype.getSI(ACPERF.approach_speed))
             currpos.setVSpeed(actype.getSI(ACPERF.approach_vspeed))
-            currpos.setProp(FEATPROP.MARK.value, "top_of_descent")  # !
+            currpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TOP_OF_DESCENT.value)  # !
+            currpos.setColor(POSITION_COLOR.TOP_OF_DESCENT.value)
             fcidx = addCurrentPoint(revmoves, currpos, fcidx, newidx, True)
 
         # decelerate to descent speed smoothly
@@ -645,6 +650,7 @@ class Movement:
         currpos.setSpeed(cruise_speed)  # computed when climbing
         currpos.setVSpeed(0)
         currpos.setProp(FEATPROP.MARK.value, "end_of_cruise_speed")
+        currpos.setColor(POSITION_COLOR.CRUISE.value)
         fcidx = addCurrentPoint(revmoves, currpos, fcidx, newidx, True)
 
         top_of_decent_idx = fcidx + 1 # we reach top of descent between idx and idx+1, so we cruise until idx+1
@@ -670,8 +676,8 @@ class Movement:
                 p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
                 p.setAltitude(self.flight.getCruiseAltitude())
                 p.setSpeed(cruise_speed)
-                p.setColor("#0000ff")  # Cruise in BLUE
-                p.setProp(FEATPROP.MARK.value, "cruise")
+                p.setColor(POSITION_COLOR.CRUISE.value)
+                p.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.CRUISE.value)
                 p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
                 self.moves.append(p)
             logger.debug(":vnav: cruise added (+%d %d)" % (top_of_decent_idx - top_of_ascent_idx, len(self.moves)))
@@ -735,6 +741,11 @@ class Movement:
         def interpolate_speed(istart, iend):
             speedstart = to_interp[istart].speed()  # first known speed
             speedend = to_interp[iend].speed()  # last known speed
+
+            if speedstart is None:
+                logger.warning(":interpolate:interpolate_speed: istart has no speed %s" % to_interp[istart])
+            if speedend is None:
+                logger.warning(":interpolate:interpolate_speed: iend has no speed %s" % to_interp[iend])
 
             if speedstart == speedend: # simply copy
                 for idx in range(istart, iend):

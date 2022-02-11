@@ -199,6 +199,9 @@ class AirportBase(Airport):
                     landing = 1.4
         return landing
 
+    def has_procedures(self) -> bool:
+        return self.procedures is not None
+
     def getProcedure(self, flight: 'Flight', runway: str):
         logger.debug(":getProcedure: direction: %s" % type(flight).__name__)
         procs = self.procedures.STARS if type(flight).__name__ == 'Arrival' else self.procedures.SIDS
@@ -206,6 +209,15 @@ class AirportBase(Airport):
         if len(validprocs) > 0:
             return random.choice(validprocs)
         logger.warning(":getProcedure: no procedure found for runway %s" % runway)
+        return None
+
+    def getOtherProcedure(self, flight: 'Flight', runway: str):
+        logger.debug(":getOtherProcedure: direction: %s (TO BE REVERSED)" % type(flight).__name__)
+        procs = self.procedures.SIDS if type(flight).__name__ == 'Arrival' else self.procedures.STARS
+        validprocs = list(filter(lambda x: x.runway == runway.name, procs.values()))
+        if len(validprocs) > 0:
+            return random.choice(validprocs)
+        logger.warning(":getOtherProcedure: no procedure found for runway %s" % runway)
         return None
 
     def getApproach(self, procedure: 'Procedure', runway: str):  # Procedure should be a STAR
@@ -231,8 +243,8 @@ class AirportBase(Airport):
             return self.procedures.RWYS[rwy]
 
         logger.warning(":getRunway: no qfu")
-        rwy = random.choice(list(self.runways))  ## formally random.choice(list(self.procedures.RWYS)) is faster
-        return self.procedures.RWYS["RW"+rwy]
+        rwy = random.choice(list(self.procedures.RWYS.keys()))  ## formally random.choice(list(self.procedures.RWYS)) is faster
+        return self.procedures.RWYS[rwy]
 
     def getRamp(self, flight: 'Flight'):
         """
