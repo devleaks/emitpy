@@ -311,6 +311,8 @@ class AircraftPerformance(AircraftType):
     #
     # Descent helper functions
     #
+    # @todo: Should catch absence of descent speed
+    #
     def descentToFL240(self, altcruise):
         altend = 24000*FT
         avgalt = (altcruise + altend) / 2
@@ -336,9 +338,9 @@ class Aircraft:
     """
     An aircraft servicing an airline route.
     """
-    def __init__(self, registration: str, actype: AircraftPerformance, operator: Company):
+    def __init__(self, registration: str, icao24: str, actype: AircraftPerformance, operator: Company):
         self.registration = registration
-        self.icao24 = None  # 6 hexadecimal digit string
+        self.icao24 = icao24  # 6 hexadecimal digit string, ADS-B address
         self.operator = operator
         self.actype = actype
         self.callsign = None

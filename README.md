@@ -23,4 +23,5 @@ Let AStar algorithm choose fastest arrival/departure route.
 
 Automatic runway exit findings?
 
-At origin/destination airport: METAR => RWY + SID/STAR+APPCH  if procedure available.
+
+Better hold entry / exit

@@ -71,7 +71,7 @@ class FeatureWithProps(Feature):
 
     def setSpeed(self, speed):
         self._speed = speed
-        self.setProp("speed", speed)
+        self.setProp(name="speed", value=speed)
 
     def speed(self):
         return self._speed
@@ -89,11 +89,6 @@ class FeatureWithProps(Feature):
 
     def time(self):
         return self._time
-
-    @staticmethod
-    def setProp(arr: list, propname: str, value: str):
-        for a in arr:
-            a.setProp(propname, value)
 
 
 # ################################@

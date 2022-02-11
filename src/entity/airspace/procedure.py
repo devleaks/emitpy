@@ -323,7 +323,6 @@ class CIFP:
             prevline = cifpline
             line = cifp_fp.readline()
 
-
         # User friendlier:
         self.SIDS = procedures["SID"]
         self.STARS = procedures["STAR"]
@@ -335,7 +334,11 @@ class CIFP:
 
         ## Print result
         for procty in procedures.keys():
-            logger.debug(": %s: %s" % (procty, procedures[procty].keys()))
+            # logger.debug(":loadFromFile: %s: %s" % (procty, procedures[procty].keys()))
+            # details:
+            for p in procedures[procty]:
+                logger.debug(":CIFP: %s: %s %s" % (procty, procedures[procty][p].runway, p))
+
 
 
     def pairRunways(self):

@@ -200,24 +200,29 @@ class AirportBase(Airport):
         return landing
 
     def has_procedures(self) -> bool:
-        return self.procedures is not None
+        return self.procedures is not None and len(self.procedures.SIDS) > 0 and len(self.procedures.STARS) > 0
 
     def getProcedure(self, flight: 'Flight', runway: str):
+        # @todo: Need to be a lot more clever to find procedure.
+        # Some procedure have no runway (i.e. that are valid on all runways)
+        # Approaches are also coded with rwy numbers and type letter (D,I...)
+        # So this routine will need rewriting...
         logger.debug(":getProcedure: direction: %s" % type(flight).__name__)
         procs = self.procedures.STARS if type(flight).__name__ == 'Arrival' else self.procedures.SIDS
-        validprocs = list(filter(lambda x: x.runway == runway.name, procs.values()))
+        validprocs = list(filter(lambda x: x.runway == runway.name or x.runway.strip() == "", procs.values()))
         if len(validprocs) > 0:
             return random.choice(validprocs)
         logger.warning(":getProcedure: no procedure found for runway %s" % runway)
         return None
 
     def getOtherProcedure(self, flight: 'Flight', runway: str):
-        logger.debug(":getOtherProcedure: direction: %s (TO BE REVERSED)" % type(flight).__name__)
-        procs = self.procedures.SIDS if type(flight).__name__ == 'Arrival' else self.procedures.STARS
-        validprocs = list(filter(lambda x: x.runway == runway.name, procs.values()))
+        opposite = "Departure" if type(flight).__name__ == "Arrival" else "Arrival"
+        logger.debug(":getOtherProcedure: direction: %s" % opposite)
+        procs = self.procedures.STARS if opposite == 'Arrival' else self.procedures.SIDS
+        validprocs = list(filter(lambda x: x.runway == runway.name or x.runway.strip() == "", procs.values()))
         if len(validprocs) > 0:
             return random.choice(validprocs)
-        logger.warning(":getOtherProcedure: no procedure found for runway %s" % runway)
+        logger.warning(":getOtherProcedure: no procedure found for runway %s" % runway.name)
         return None
 
     def getApproach(self, procedure: 'Procedure', runway: str):  # Procedure should be a STAR

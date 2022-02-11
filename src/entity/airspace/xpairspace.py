@@ -416,8 +416,8 @@ class XPAirspace(Airspace):
                     else:
                         if inBbox(fix):
                             hid = ControlledPoint.mkId(region=args[1], airport=args[2], ident=args[0], pointtype="HLD")
-                            self.holds[hid] = Hold(fix=fix, altmin=args[8], altmax=args[9],
-                                                   course=args[4], turn=args[7], leg_time=args[5], leg_length=args[6], speed=args[10])
+                            self.holds[hid] = Hold(fix=fix, altmin=float(args[8]), altmax=float(args[9]),
+                                                   course=float(args[4]), turn=args[7], leg_time=float(args[5]), leg_length=float(args[6]), speed=float(args[10]))
                 else:
                     if len(line) > 1:
                         logger.warning(":loadHolds: invalid fix data %s.", line)
