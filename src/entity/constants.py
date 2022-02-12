@@ -51,14 +51,17 @@ PARCEL = "parcel"
 
 
 # 3. GSE types
-CLEANING = "clean"
-CATERING = "catering"
-FUEL = "fuel"
-CARGO = "cargo"
-BAGGAGE = "baggage"
-MARSHALL = "marshall"
-PUSHBACK = "pushback"
-WATER = "water"
+class SERVICE(Enum):
+    CLEANING = "clean"
+    CATERING = "catering"
+    FUEL = "fuel"
+    CARGO = "cargo"
+    ULD = "ULD"
+    BAGGAGE = "baggage"
+    MARSHALL = "marshall"
+    PUSHBACK = "pushback"
+    WATER = "water"
+    APU = "apu"
 
 
 ########################################
