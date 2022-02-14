@@ -1,7 +1,7 @@
 """
 Manage reservation calendar for resources.
 A Resource can be a runway, a parking, or a service vehicle.
-It could even be a plane, etc.
+It could even be an aircraft, etc.
 The Calendar is meant to be associated with the resource it protects.
 """
 

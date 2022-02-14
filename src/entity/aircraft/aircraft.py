@@ -4,6 +4,7 @@
 import os
 import csv
 import json
+import yaml
 import logging
 from math import inf
 
@@ -89,8 +90,10 @@ class AircraftPerformance(AircraftType):
 
     def __init__(self, orgId: str, classId: str, typeId: str, name: str):
         AircraftType.__init__(self, orgId, classId, typeId, name)
-        self.perffile = None
         self.perfraw = None
+        self.gseraw = None
+        self.tarraw = None
+
         self.perfdata = None
 
 
@@ -139,34 +142,21 @@ class AircraftPerformance(AircraftType):
         return AircraftPerformance._DB_PERF[best]
 
 
-    def loadPerformance(self):
-        if self.perfraw is None:
-            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.typeId.upper()+".json")
-            if os.path.exists(filename):
-                with open(filename, "r") as file:
-                    self.perfraw = json.load(file)
-                    self.perffile = file
-                logger.debug(":loadPerformance: loaded %d perfs for aircraft type %s" % (len(self.perfraw), self.typeId.upper()))
-            else:  # fall back on aircraft performance category (A-F)
-                logger.warning(":loadPerformance: file not found %s" % filename)
-                filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.classId.upper()+".json")
-                if os.path.exists(filename):
-                    with open(filename, "r") as file:
-                        self.perfraw = json.load(file)
-                        self.perffile = file
-                    logger.debug(":loadPerformance: loaded average %d perfs for aircraft class %s" % (len(self.perfraw), self.classId.upper()))
-                else:
-                    logger.warning(":loadPerformance: file not found %s" % filename)
-                    filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "STD.json")
-                    if os.path.exists(filename):
-                        with open(filename, "r") as file:
-                            self.perfraw = json.load(file)
-                            self.perffile = file
-                        logger.debug(":loadPerformance: loaded %d standard perfs data for aircraft, ignoring model" % (len(self.perfraw)))
-                    else:
-                        logger.warning(":loadPerformance: average perfs file %s for aircraft not found" % (filename))
-                        logger.warning(":loadPerformance: no performance data file for %s" % self.typeId.upper())
-        self.toSI()
+    def load(self):
+        status = self.loadPerformance()
+
+        if not status[0]:
+            return status
+
+        status = self.loadTurnaroundProfile()
+        if not status[0]:
+            return status
+
+        status = self.loadGSEProfile()
+        if not status[0]:
+            return status
+
+        return (True, "AircraftPerformance loaded (%s)" % self.typeId)
 
     """
     {
@@ -200,6 +190,72 @@ class AircraftPerformance(AircraftType):
         "iata": "321/32S"
     }
     """
+    def loadFromFile(self, extension: str):
+        data = None
+        filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.typeId.upper()+extension)
+        if os.path.exists(filename):
+            with open(filename, "r") as file:
+                if filename[-5:] == ".yaml":
+                    data = yaml.safe_load(file)
+                else:  # JSON or GeoJSON
+                    data = json.load(file)
+            logger.debug(":loadFromFile: loaded %s for aircraft type %s" % (filename, self.typeId.upper()))
+        else:  # fall back on aircraft performance category (A-F)
+            logger.warning(":loadFromFile: file not found %s" % filename)
+            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.classId.upper()+extension)
+            if os.path.exists(filename):
+                with open(filename, "r") as file:
+                    if filename[-5:] == ".yaml":
+                        data = yaml.safe_load(file)
+                    else:  # JSON or GeoJSON
+                        data = json.load(file)
+                logger.debug(":loadFromFile: loaded class %s data for aircraft class %s" % (filename, self.classId.upper()))
+            else:
+                logger.warning(":loadFromFile: file not found %s" % filename)
+                filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "STD" + extension)
+                if os.path.exists(filename):
+                    with open(filename, "r") as file:
+                        if filename[-5:] == ".yaml":
+                            data = yaml.safe_load(file)
+                        else:  # JSON or GeoJSON
+                            data = json.load(file)
+                    logger.debug(":loadFromFile: loaded %s standard data for aircraft, ignoring model" % (filename))
+                else:
+                    logger.warning(":loadFromFile: standard data file %s for aircraft not found" % (filename))
+                    logger.warning(":loadFromFile: no data file for %s" % self.typeId.upper())
+        return data
+
+
+    def loadPerformance(self):
+        if self.perfraw is None:
+            data = self.loadFromFile(".json")
+            if data is not None:
+                self.perfraw = data
+                self.toSI()
+            else:
+                logger.warning(":loadPerformance: no performance data file for %s" % self.typeId.upper())
+        return [True, "AircraftPerformance::loadPerformance: loaded"]
+
+
+    def loadTurnaroundProfile(self):
+        if self.tarraw is None:
+            data = self.loadFromFile("-tarpro.yaml")
+            if data is not None:
+                self.tarraw = data
+            else:
+                logger.warning(":loadTurnaroundProfile: no turnaround profile data file for %s" % self.typeId.upper())
+        return [True, "AircraftPerformance::loadTurnaroundProfile: not implemented"]
+
+
+    def loadGSEProfile(self):
+        data = self.loadFromFile("-gsepro.yaml")
+        if data is not None:
+            self.gseraw = data
+        else:
+            logger.warning(":loadGSEProfile: no GSE profile data file for %s" % self.typeId.upper())
+        return [True, "AircraftPerformance::loadGSEProfile: not implemented"]
+
+
     def toSI(self):
         if self.perfdata is None:
             self.perfdata = {}
@@ -243,6 +299,7 @@ class AircraftPerformance(AircraftType):
                 else:
                     logger.warning(":toSI: %s no value for: %s" % (self.name, n))
 
+
     def get(self, name: str):
         if name in self.perfraw.keys():
             return self.perfraw[name]
@@ -260,6 +317,7 @@ class AircraftPerformance(AircraftType):
 
 
     def FLFor(self, reqrange: int):
+        # Set Flight Level for given flight range in km.
         if reqrange < 300:
             return 200
         if reqrange < 500:
@@ -267,6 +325,7 @@ class AircraftPerformance(AircraftType):
         if reqrange < 1000:
             return 280
         return 340
+
 
     def perfs(self):
         for name in self.perfdata.keys():
@@ -344,31 +403,9 @@ class Aircraft:
         self.operator = operator
         self.actype = actype
         self.callsign = None
-        self._position = None
-        self._speed = 0
-        self._vspeed = 0
-
 
     def setCallsign(self, callsign: str):
         self.callsign = callsign
 
     def setICAO24(self, icao24: str):
         self.icao24 = icao24
-
-    def setPosition(self, position):
-        self._position = position
-
-    def setSpeed(self, speed: float):
-        self._speed = speed
-
-    def setVSpeed(self, vspeed: float):
-        self._vspeed = vspeed
-
-    def position(self):
-        return self._position
-
-    def speed(self):
-        return self._speed
-
-    def vspeed(self):
-        return self._vspeed

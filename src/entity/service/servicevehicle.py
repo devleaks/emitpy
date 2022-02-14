@@ -73,7 +73,7 @@ class ULDTruck(ServiceVehicleType):
 #
 class ServiceVehicle(Identity):
 
-    def __init__(self, svcType: ServiceVehicleType, orgId: str, classId: str, typeId: str, name: str):
-        Identity.__init__(self, orgId, classId, typeId, name)
-
+    def __init__(self, svcType: ServiceVehicleType, operator: str, registration: str):
+        Identity.__init__(self, operator, "GSE", type(svcType).__name__, registration)
         self.svcType = svcType
+

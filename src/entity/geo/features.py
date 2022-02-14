@@ -4,7 +4,7 @@ GeoJSON Features with special meaning or type (class).
 import copy
 from geojson import Polygon, Point, Feature
 from geojson.geometry import Geometry
-from turfpy.measurement import bearing
+from turfpy.measurement import bearing, destination
 
 # from ..business.identity import Identity
 
@@ -35,9 +35,6 @@ class FeatureWithProps(Feature):
     """
     def __init__(self, geometry: Geometry, properties: dict):
         Feature.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
-        self._speed = None
-        self._vspeed = None
-        self._time = None
 
     def getProp(self, name: str):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
@@ -51,12 +48,25 @@ class FeatureWithProps(Feature):
         for name, value in values.items():
             self.setProp(name, value)
 
-    def setColor(self, color: str):
         # geojson.io specific
+    def setColor(self, color: str):
         self.addProps({
             "marker-color": color,
             "marker-size": "medium",
             "marker-symbol": ""
+        })
+
+    def setStrokeColor(self, color: str):
+        self.addProps({
+            "stroke": color,
+            "stroke-width": 2,
+            "stroke-opacity": 1
+        })
+
+    def setFillColor(self, color: str):
+        self.addProps({
+            "fill": color,
+            "fill-opacity": 0.5
         })
 
     def setAltitude(self, alt):
@@ -70,25 +80,22 @@ class FeatureWithProps(Feature):
         return self["geometry"]["coordinates"][2] if len(self["geometry"]["coordinates"]) > 2 else None
 
     def setSpeed(self, speed):
-        self._speed = speed
         self.setProp(name="speed", value=speed)
 
     def speed(self):
-        return self._speed
+        return self.getProp("speed")
 
     def setVSpeed(self, vspeed):
-        self._vspeed = vspeed
         self.setProp("vspeed", vspeed)
 
     def vspeed(self):
-        return self._vspeed
+        return self.getProp("vspeed")
 
     def setTime(self, time):
-        self._time = time
         self.setProp("time", time)
 
     def time(self):
-        return self._time
+        return self.getProp("time")
 
 
 # ################################@
@@ -112,15 +119,19 @@ class Location(Feature):  # Location(Feature)
 # RAMP
 #
 #
-class Ramp(Feature):
+class Ramp(FeatureWithProps):
 
     def __init__(self, name: str, ramptype: str, position: [float], orientation: float, use: str):
+
         Feature.__init__(self, geometry=Point(position), properties={
+            "name": name,
             "type": "ramp",
             "sub-type": ramptype,
             "use": use,
             "orientation": orientation,
             "available": None})
+
+        self.service_pois = {}
 
     def busy(self):
         self["properties"]["available"] = False
@@ -133,8 +144,28 @@ class Ramp(Feature):
             return self["properties"]["available"]
         return None
 
-    def addProp(self, propname, propvalue):
-        self["properties"][propname] = propvalue
+    def getServicePOI(self, service):
+        return self.service_pois[service] if service in self.service_pois else None
+
+    def makeServicePOIs(self, data):
+        def sign(x):
+            return -1 if x < 0 else (0 if x == 0 else 1)
+
+        OFFSET = 30
+        heading = self.getProp("orientation")
+        # compute offset
+        origin = destination(self, OFFSET / 1000, heading, {"units": "km"})
+        # for each service
+        positions = data["services"]
+        for svc in positions:
+            poiax = destination(origin, positions[svc][0]/1000, heading - 180, {"units": "km"})
+            poilat = destination(poiax, positions[svc][1]/1000, heading + sign(positions[svc][1]) * 90, {"units": "km"})
+            pos = FeatureWithProps(geometry=poilat["geometry"], properties=poilat["properties"])
+            pos.setProp("service", svc)
+            pos.setProp("heading", positions[svc][2])
+            self.service_pois[svc] = pos
+
+        return (True, "Ramp::makeServicePOIs: created")
 
 
 # ################################@

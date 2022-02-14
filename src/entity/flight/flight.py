@@ -13,16 +13,18 @@ logger = logging.getLogger("Flight")
 
 class Flight:
 
-    def __init__(self, operator: Airline, number: str, scheduled: str, departure: Airport, arrival: Airport, aircraft: Aircraft):
+    def __init__(self, operator: Airline, number: str, scheduled: str, departure: Airport, arrival: Airport, aircraft: Aircraft, linked_flight: 'Flight' = None):
         self.number = number
         self.departure = departure
         self.arrival = arrival
+        self.linked_flight = linked_flight
         self.managedAirport = None
         self.scheduled = scheduled
         self.actual = None
         self.operator = operator
         self.aircraft = aircraft
         self.ramp = None
+        self.turnaround = None
         self.codeshare = None
         self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
         self.flight_level = 0
@@ -41,10 +43,18 @@ class Flight:
         except ValueError:
             self.flight_type = PAYLOAD.PAX
 
+        if linked_flight is not None and linked_flight.linked_flight is None:
+            linked_flight.setLinkedFlight(self)
+
 
     def getId(self) -> str:
         s = datetime.fromisoformat(self.scheduled)
         return self.operator.iata + self.number + "S" + s.astimezone(tz=timezone.utc).isoformat()
+
+
+    def setLinkedFlight(self, linked_flight: 'Flight'):
+        self.linked_flight = linked_flight
+        logger.debug(":setLinkedFlight: %s linked to %s" % (self.getId(), linked_flight.getId()))
 
 
     def setFL(self, flight_level: int):
@@ -55,12 +65,16 @@ class Flight:
             logger.debug(":setFL: %d" % self.flight_level)
 
 
+    def setTurnaround(self, turnaround: 'Turnaround'):
+        self.turnaround = turnaround
+
+
     def getCruiseAltitude(self):
         return self.flight_level * 100 * FT
 
 
     def setRamp(self, ramp):
-        if ramp in self.managedAirport.parkings.keys():
+        if ramp.getProp("name") in self.managedAirport.ramps.keys():
             self.ramp = ramp
             logger.debug(":setRamp: %s" % self.ramp)
         else:
@@ -94,8 +108,8 @@ class Flight:
 
 class Arrival(Flight):
 
-    def __init__(self, number: str, scheduled: str, managedAirport: Airport, origin: Airport, operator: Airline, aircraft: Aircraft):
-        Flight.__init__(self, number=number, scheduled=scheduled, departure=origin, arrival=managedAirport, operator=operator, aircraft=aircraft)
+    def __init__(self, number: str, scheduled: str, managedAirport: Airport, origin: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
+        Flight.__init__(self, number=number, scheduled=scheduled, departure=origin, arrival=managedAirport, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
         self.managedAirport = managedAirport
 
 
@@ -206,8 +220,8 @@ class Arrival(Flight):
 
 class Departure(Flight):
 
-    def __init__(self, number: str, scheduled: str, managedAirport: Airport, destination: Airport, operator: Airline, aircraft: Aircraft):
-        Flight.__init__(self, number=number, scheduled=scheduled, departure=managedAirport, arrival=destination, operator=operator, aircraft=aircraft)
+    def __init__(self, number: str, scheduled: str, managedAirport: Airport, destination: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
+        Flight.__init__(self, number=number, scheduled=scheduled, departure=managedAirport, arrival=destination, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
         self.managedAirport = managedAirport
 
 

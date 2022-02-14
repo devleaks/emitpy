@@ -887,7 +887,7 @@ class ArrivalMove(Movement):
         taxistartpos.setProp(FEATPROP.MARK.value, "taxi start vertex")
         fc.append(taxistartpos)
 
-        parking = self.airport.parkings[self.flight.ramp]
+        parking = self.airport.ramps[self.flight.ramp]
         logger.debug(":taxi: parking: %s" % parking)
         # we call the move from packing position to taxiway network the "parking entry"
         parking_entry = self.airport.taxiways.nearest_point_on_edge(parking)
@@ -957,7 +957,7 @@ class DepartureMove(Movement):
         """
         fc = []
 
-        parking = self.airport.parkings[self.flight.ramp]
+        parking = self.airport.ramps[self.flight.ramp]
         logger.debug(":taxi: parking: %s" % parking)
         parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
         parkingpos.setSpeed(0)

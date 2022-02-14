@@ -133,10 +133,10 @@ def cleanFeatures(fa):
 
 
 def printFeatures(features, info):
-    dash = 50
-    print(f">>> {info} " + ("-" * dash))
+    dashlen = 50
+    print(f">>> {info} " + ("-" * dashlen))
     print(FeatureCollection(features=cleanFeatures(features)))
-    print("-" * (dash + 5 + len(info)))
+    print("-" * (dashlen + 5 + len(info)))
 
 
 def findFeatures(arr, criteria):
@@ -145,6 +145,17 @@ def findFeatures(arr, criteria):
         ok = True
         for k in criteria:
             ok = (ok and k in f["properties"] and f["properties"][k] == criteria[k])
+        if ok:
+            res.append(f)
+    return res
+
+
+def findFeaturesCWL(arr, criteria):
+    res = []
+    for f in arr:
+        ok = True
+        for k in criteria:
+            ok = (ok and k in f["properties"] and (criteria[k] in f["properties"][k].split("|") or f["properties"][k] == "*"))
         if ok:
             res.append(f)
     return res

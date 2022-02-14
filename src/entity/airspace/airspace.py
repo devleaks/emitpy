@@ -384,24 +384,24 @@ class Airspace(Graph):
         status = self.loadAirports()
 
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         status = self.loadNavaids()
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         status = self.loadFixes()
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         if LOAD_AIRWAYS:
             status = self.loadAirwaySegments()
             if not status[0]:
-                return [False, status[1]]
+                return status
 
         status = self.loadHolds()
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         return [True, "Airspace loaded (%s)" % self.simairspacetype]
 
