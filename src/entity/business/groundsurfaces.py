@@ -44,7 +44,7 @@ class Parking(Identity):
 
 class Parking(Identity):
     """
-    A Parking uis a place to store an airplane when it is on the ground.
+    A Parking uis a place to store an aircraft when it is on the ground.
     """
     def __init__(self, orgId: str, classId: str, typeId: str, name: str, size: str, shared: Union[[str], [Parking]] = None):
         Identity.__init__(self, orgId, classId, typeId, name)

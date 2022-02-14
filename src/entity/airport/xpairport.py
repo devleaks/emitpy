@@ -9,7 +9,7 @@ from turfpy.measurement import distance, destination, bearing
 
 from .airport import AirportBase
 from ..graph import Vertex, Edge
-from ..geo import Ramp, ServiceParking, Runway, mkPolygon
+from ..geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
 from ..parameters import DATA_DIR
 from ..constants import TAKEOFF_QUEUE_SIZE
 
@@ -147,7 +147,7 @@ class XPAirport(AirportBase):
         logger.debug(":loadRunways: added %d runways", len(runways.keys()))
         return [True, "XPAirport::loadRunways loaded"]
 
-    def loadParkings(self):
+    def loadRamps(self):
         # 1300  25.26123160  051.61147754 155.90 gate heavy|jets|turboprops A1
         # 1301 E airline
         # 1202 ignored.
@@ -163,17 +163,17 @@ class XPAirport(AirportBase):
             elif ramp is not None and aptline.linecode() == 1301: # ramp details
                 args = aptline.content().split()
                 if len(args) > 0:
-                    ramp.addProp("icao-width", args[0])
+                    ramp.setProp("icao-width", args[0])
                 if len(args) > 1:
-                    ramp.addProp("operation-type", args[1])
+                    ramp.setProp("operation-type", args[1])
                 if len(args) > 2:
-                    ramp.addProp("airline", args[2])
+                    ramp.setProp("airline", args[2])
             else:
                 ramp = None
 
-        self.parkings = ramps
-        logger.debug(":loadParkings: added %d ramps: %s" % (len(ramps.keys()), ramps.keys()))
-        return [True, "XPAirport::loadParkings loaded"]
+        self.ramps = ramps
+        logger.debug(":loadRamps: added %d ramps: %s" % (len(ramps.keys()), ramps.keys()))
+        return [True, "XPAirport::loadRamps loaded"]
 
     def loadTaxiways(self):
         # Collect 1201 and (102,1204) line codes and create routing network (graph) of taxiways
@@ -268,13 +268,13 @@ class XPAirport(AirportBase):
     def loadPOIS(self):
         status = self.loadServiceDestinations()
         if not status[0]:
-            return [False, status[1]]
+            return status
         status = self.loadAerowaysPOIS()
         if not status[0]:
-            return [False, status[1]]
+            return status
         status = self.loadServicePOIS()
         if not status[0]:
-            return [False, status[1]]
+            return status
         logger.debug(":loadPOIS: loaded")
         return [True, "GeoJSONAirport::loadPOIS loaded"]
 
@@ -301,7 +301,7 @@ class XPAirport(AirportBase):
             for f in self.data["features"]:
                 n = f["properties"]["name"] if "name" in f["properties"] else None
                 if n is not None:
-                    self.aeroway_pois[n] = f
+                    self.aeroway_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
                 else:
                     logger.warning(":loadAerowaysPOIS: feature with no name. cannot index %s." % f)
             logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))
@@ -311,15 +311,17 @@ class XPAirport(AirportBase):
         return [True, "XPAirport::loadAerowaysPOIS loaded"]
 
     def loadServicePOIS(self):
+        cnt = 0
         self.loadGeometries("service-pois.geojson")
         self.service_pois = {}
         if self.data is not None:  # parse runways
             for f in self.data["features"]:
                 n = f["properties"]["name"] if "name" in f["properties"] else None
-                if n is not None:
-                    self.service_pois[n] = f
-                else:
-                    logger.warning(":loadServicePOIS: feature with no name. cannot index %s." % f)
+                if n is None:
+                    n = f"poi-{cnt}"
+                    cnt = cnt + 1
+                    logger.warning(":loadServicePOIS: feature with no name. naming %s." % n)
+                self.service_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
             logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))
             self.data = None
 
@@ -334,8 +336,14 @@ class XPAirport(AirportBase):
         res = list(filter(lambda f: f.name == name, self.service_pois))
         return res[0] if len(res) == 1 else None
 
-    def getParking(self, name):
-        return self.parkings[name] if name in self.parkings.keys() else None
+    def getServicePOIs(self, service):
+        return findFeatures(self.service_pois.values(), criteria={
+                "services": service,
+                "poi": "supply"
+            })
+
+    def getRamp(self, name):
+        return self.ramps[name] if name in self.ramps.keys() else None
 
     def miles(self, airport):
         return distance(self, airport)

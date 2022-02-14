@@ -7,7 +7,6 @@ from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.business import AirportManager
 from entity.flight import Arrival, Departure
 from entity.service import Turnaround
-from entity.service import FuelService, CateringService
 from entity.service import ServiceVehicle, FuelTruck, CateringTruck
 from entity.parameters import MANAGED_AIRPORT
 
@@ -64,6 +63,7 @@ def main():
 
     logger.debug("loading aircraft..")
     acperf = AircraftPerformance.findAircraft(reqrange=reqrange)
+    acperf.load()
     reqfl = acperf.FLFor(reqrange)
 
     logger.info("FLIGHT ********** From/to %s (%dkm)(%s, %s) with %s (%s, %s)" % (other_airport["properties"]["city"], reqrange, other_airport.iata, other_airport.icao, airline.orgId, airline.iata, airline.icao))
@@ -75,16 +75,17 @@ def main():
     logger.debug("creating arrival..")
     arr = Arrival(operator=airline, number="4L", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
     arr.setFL(reqfl)
-    ramp = managed.getRamp(arr)  # Plane won't get towed
+    ramp = managed.selectRamp(arr)  # Aircraft won't get towed
     arr.setRamp(ramp)
     gate = "C99"
-    if ramp[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
+    ramp_name = ramp.getProp("name")
+    if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
         gate = ramp
     arr.setGate(gate)
     logger.debug("..done")
 
     logger.debug("creating departure..")
-    dep = Departure(operator=airline, number="3", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft)
+    dep = Departure(operator=airline, number="3", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft, linked_flight=arr)
     dep.setFL(reqfl)
     dep.setRamp(ramp)
     dep.setGate(gate)
@@ -93,17 +94,12 @@ def main():
     logger.debug("creating service..")
     turnaround = Turnaround(arrival=arr, departure=dep)
 
-    fs = FuelService(20)
-    fs.setVehicle(ServiceVehicle(svcType=FuelTruck(model="pump"),
-                  orgId="MATAR", classId="GSE", typeId="Fuel", name="0553"))
-    turnaround.addService(fs)
-
-    cs = CateringService(10)
-    cs.setVehicle(ServiceVehicle(svcType=CateringTruck(),
-                  orgId="MATAR", classId="GSE", typeId="Fuel", name="miam"))
-    turnaround.addService(cs)
-
+    turnaround.setManagedAirport(managed)
     turnaround.plan()
+    turnaround.setVehicle("Fuel", ServiceVehicle(svcType=FuelTruck("pump"), operator="MATAR", registration="FUEL01"))
+    turnaround.setVehicle("Catering", ServiceVehicle(svcType=CateringTruck(), operator="MATAR", registration="CAT01"))
+
+    turnaround.make()
     turnaround.run(datetime.now())
 
     logger.debug("..done")

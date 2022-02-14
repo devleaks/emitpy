@@ -25,7 +25,7 @@ class GeoJSONAirport(AirportBase):
         AirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.airport_base = None
         self.taxiways_geo = None
-        self.parkings_geo = None
+        self.ramps_geo = None
         self.service_roads_geo = None
         self.service_stops_geo = None
         self.data = None
@@ -39,16 +39,16 @@ class GeoJSONAirport(AirportBase):
         return [True, "GeoJSONAirport::loadFromFile: loaded"]
 
 
-    def loadParkings(self):
+    def loadRamps(self):
         self.loadGeometries("parkings.geojson")
 
         if self.data is not None:
-            self.parkings_geo = self.data
+            self.ramps_geo = self.data
             self.data = None
-            logger.info(":loadParkings: added %d features.", len(self.parkings_geo["features"]))
+            logger.info(":loadRamps: added %d features.", len(self.ramps_geo["features"]))
 
-        logger.debug(":loadParkings: added %d parkings", len(self.parkings.keys()))
-        return [True, "GeoJSONAirport::loadParkings loaded"]
+        logger.debug(":loadRamps: added %d parkings", len(self.ramps.keys()))
+        return [True, "GeoJSONAirport::loadRamps loaded"]
 
     def loadTaxiways(self):
         self.loadGeometries("taxiways.geojson")
@@ -77,7 +77,7 @@ class GeoJSONAirport(AirportBase):
         status = self.loadServiceDestinations()
 
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         logger.debug(":loadPOIS: loaded")
         return [True, "GeoJSONAirport::loadPOIS loaded"]

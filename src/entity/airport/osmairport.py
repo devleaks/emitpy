@@ -31,7 +31,7 @@ class OSMAirport(AirportBase):
         self.airport_base = None
         self.taxiways_geo = None
         self.taxiways_net = None
-        self.parkings_geo = None
+        self.ramps_geo = None
         self.service_roads_geo = None
         self.service_roads_net = None
         self.data = None
@@ -88,10 +88,10 @@ class OSMAirport(AirportBase):
         return [True, "OSMAirport::loadRunways loaded"]
 
 
-    def loadParkings(self):
+    def loadRamps(self):
         self.loadJSONOrYAMLFromFile("overpass-parking_position.json")
         if self.data is None:
-            return [False, "OSMAirport::loadParkings: could not load %s" % fn1]
+            return [False, "OSMAirport::loadRamps: could not load %s" % fn1]
 
         points = {}
         for el in self.data["elements"]:
@@ -108,15 +108,15 @@ class OSMAirport(AirportBase):
                     heading = bearing(Feature(geometry=start), Feature(geometry=end))
                     center = start  # for now
                     # Ramp (name: str, ramptype: str, position: [float], orientation: float, use: str):
-                    self.parkings[name] = Ramp(name=name,
+                    self.ramps[name] = Ramp(name=name,
                                                ramptype="unknown",
                                                position=center,
                                                orientation=heading,
                                                use="pax|cargo")
         self.data = None
 
-        logger.info(":loadParkings: added %d parkings: %s" % (len(self.parkings), sorted(self.parkings.keys()) ))
-        return [True, "OSMAirport::loadParkings loaded"]
+        logger.info(":loadRamps: added %d parkings: %s" % (len(self.ramps), sorted(self.ramps.keys()) ))
+        return [True, "OSMAirport::loadRamps loaded"]
 
 
     def loadOSM(self, filename, graph):
@@ -159,7 +159,7 @@ class OSMAirport(AirportBase):
         status = self.loadServiceDestinations()
 
         if not status[0]:
-            return [False, status[1]]
+            return status
 
         logger.debug(":loadPOIS: loaded")
         return [True, "GeoJSONAirport::loadPOIS loaded"]

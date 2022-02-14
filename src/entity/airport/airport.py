@@ -105,7 +105,7 @@ class AirportBase(Airport):
         self.procedures = None
         self.runways = {}
         self.taxiways = Graph()
-        self.parkings = {}
+        self.ramps = {}
         self.service_roads = Graph()
         self.service_destinations = {}
         self.metar = None
@@ -127,7 +127,7 @@ class AirportBase(Airport):
         if not status[0]:
             return status
 
-        status = self.loadParkings()
+        status = self.loadRamps()
         if not status[0]:
             return status
 
@@ -169,7 +169,7 @@ class AirportBase(Airport):
     def loadTaxiways(self):
         return [True, "no load implemented"]
 
-    def loadParkings(self):
+    def loadRamps(self):
         return [True, "no load implemented"]
 
     def loadServiceRoads(self):
@@ -251,7 +251,7 @@ class AirportBase(Airport):
         rwy = random.choice(list(self.procedures.RWYS.keys()))  ## formally random.choice(list(self.procedures.RWYS)) is faster
         return self.procedures.RWYS[rwy]
 
-    def getRamp(self, flight: 'Flight'):
+    def selectRamp(self, flight: 'Flight'):
         """
         Gets a valid ramp for flight depending on its attibutes.
 
@@ -261,5 +261,5 @@ class AirportBase(Airport):
         :returns:   The runway.
         :rtype:     { return_type_description }
         """
-        ramp = random.choice(list(self.parkings))  ## formally random.choice(list(self.procedures.RWYS)) is faster
-        return ramp
+        ramp = random.choice(list(self.ramps.keys()))
+        return self.ramps[ramp]
