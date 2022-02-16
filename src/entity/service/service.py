@@ -6,8 +6,10 @@ import logging
 import random
 from datetime import datetime
 
+from geojson import Feature
 from .servicevehicle import ServiceVehicle
-from ..geo import FeatureWithProps
+from ..geo import FeatureWithProps, printFeatures, asLineString
+from ..graph import Route
 
 logger = logging.getLogger("Service")
 
@@ -52,59 +54,99 @@ class Service:
         if self.pos_start is None:
             pss = managedAirport.getServicePOIs(type(self).__name__.replace("Service", ""))
             self.pos_start = random.choice(pss)
-            logger.debug(":make: found POI %s, %s" % (self.pos_start.getProp("poi"), self.pos_start.getProp("services")))
-
-        self.route.append(self.pos_start)
+            if self.pos_start is None:
+                logger.debug(":make: no start position")
+            else:
+                logger.debug(":make: found POI %s, %s" % (self.pos_start.getProp("poi"), self.pos_start.getProp("services")))
+                self.route.append(self.pos_start)
 
         # starting position to network
-        np = managedAirport.service_roads.nearest_point_on_edge(self.pos_start)
-        self.route.append(np[0])
+        startnp = managedAirport.service_roads.nearest_point_on_edge(self.pos_start)
+        if startnp[0] is None:
+            logger.warning(":make: no nearest_point_on_edge for pos_start")
+        else:
+            self.route.append(startnp[0])
 
-        start = managedAirport.service_roads.nearest_vertex(self.pos_start)
+        startnv = managedAirport.service_roads.nearest_vertex(self.pos_start)
+        if startnv[0] is None:
+            logger.warning(":make: no nearest_vertex for pos_start")
 
         # find ramp position, use ramp center if none is given.
         ramp_stop = self.turnaround.ramp.getServicePOI(type(self).__name__.replace("Service", ""))
 
         # find closest point on network to ramp
-        rp = managedAirport.service_roads.nearest_point_on_edge(ramp_stop)
-        rv = managedAirport.service_roads.nearest_vertex(ramp_stop)
+        rampnp = managedAirport.service_roads.nearest_point_on_edge(ramp_stop)
+        if rampnp[0] is None:
+            logger.warning(":make: no nearest_point_on_edge for ramp_stop")
+        rampnv = managedAirport.service_roads.nearest_vertex(ramp_stop)
+        if rampnv[0] is None:
+            logger.warning(":make: no nearest_vertex for ramp_stop")
 
         # route from start to ramp
-        r1 = managedAirport.service_roads.AStar(start[0].id, rv[0].id)
+        logger.debug(":make: route from start %s to ramp %s (vertices)" % (startnv[0].id, rampnv[0].id))
+        rt1 = Route(managedAirport.service_roads, startnv[0].id, rampnv[0].id)
+        rt1.find()
+        # r1 = managedAirport.service_roads.Dijkstra(startnv[0].id, rampnv[0].id)
 
-        if r1 is not None:
-            for vid in r1:
-                vtx = managedAirport.service_roads.get_vertex(vid)
+        if rt1.found():
+            for vtx in rt1.get_vertices():
+                # vtx = managedAirport.service_roads.get_vertex(vid)
                 pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
                 self.route.append(pos)
+        else:
+            logger.debug(":make: no route from start %s to ramp %s" % (startnv[0].id, rampnv[0].id))
 
-        self.route.append(rp[0])
+        if rampnp[0] is not None:
+            self.route.append(rampnp[0])
         self.route.append(ramp_stop)
+        #
         # .. servicing ..
-
+        #
         # find end position if none is given
         if self.pos_end is None:
             pss = managedAirport.getServicePOIs(type(self).__name__.replace("Service", ""))
             if len(pss) > 0:
                 self.pos_end = random.choice(pss)
+                if self.pos_end is None:
+                    logger.debug(":make: no end position")
+                    if self.pos_start is not None:
+                        self.pos_end = self.pos_start  # if start found send it back there...
+                        logger.debug(":make: using start position as end position")
+                    else:
+                        logger.warning(":make: no end position")
+                else:
+                    logger.debug(":make: found POI %s, %s" % (self.pos_end.getProp("poi"), self.pos_end.getProp("services")))
+
+                    # find end position on network
+                    endnp = managedAirport.service_roads.nearest_point_on_edge(self.pos_end)
+                    if endnp[0] is None:
+                        logger.warning(":make: no nearest_point_on_edge for end")
+
+                    endnv = managedAirport.service_roads.nearest_vertex(self.pos_end)
+                    if endnv[0] is None:
+                        logger.warning(":make: no nearest_vertex for end")
+
+                    # route ramp to end position
+                    self.route.append(rampnp[0])
+
+                    logger.debug(":make: route from %s to %s" % (rampnv[0].id, endnv[0].id))
+                    r2 = managedAirport.service_roads.AStar(rampnv[0].id, endnv[0].id)
+                    if r2 is not None:
+                        for vid in r2:
+                            vtx = managedAirport.service_roads.get_vertex(vid)
+                            pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                            self.route.append(pos)
+                    else:
+                        logger.debug(":make: no route from ramp %s to end %s" % (rampnv[0].id, endnv[0].id))
+
+                    if endnp is not None:
+                        self.route.append(endnp[0])
+
+                    self.route.append(self.pos_end)
 
 
-        # find end position on network
-        ne = managedAirport.service_roads.nearest_point_on_edge(self.pos_end)
-        end = managedAirport.service_roads.nearest_vertex(self.pos_end)
-
-        # route ramp to end position
-        self.route.append(rp[0])
-        r2 = managedAirport.service_roads.AStar(rv[0].id, end[0].id)
-        if r2 is not None:
-            for vid in r2:
-                vtx = managedAirport.service_roads.get_vertex(vid)
-                pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
-                self.route.append(pos)
-
-
-        self.route.append(ne[0])
-        self.route.append(self.pos_end)
+        printFeatures(self.route, "route")
+        # printFeatures([Feature(geometry=asLineString(self.route))], "route")
 
         return (False, "Service::make not implemented")
 

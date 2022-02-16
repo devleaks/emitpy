@@ -156,8 +156,8 @@ def standard_turn_flyby(l0, l1, radius):
     arc = line_arc(center, radius/1000, arc0, arc1, steps)
     color_all(arc, "#00ffff")
     # print(FeatureCollection(features=arc))
-    print(">>>ALL", b_in, b_out, radius/1000, arc0, arc1, len(arc))
-    print(FeatureCollection(features=ARRINPUT + [l0e, l1e, l0b, l1b, cross_ext, center] + arc))
+    # print(">>>ALL", b_in, b_out, radius/1000, arc0, arc1, len(arc))
+    # print(FeatureCollection(features=ARRINPUT + [l0e, l1e, l0b, l1b, cross_ext, center] + arc))
 
     if turnAngle > 0:  # reverse coordinates order
         arc.reverse()
@@ -168,58 +168,45 @@ def standard_turn_flyby(l0, l1, radius):
 def standard_turn_flyover(l0, l1, r):
     b_in = bearing(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
     b_out = bearing(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
+
+    b_out = b_out + 90
+
     turnAngle = turn(b_in, b_out)
     oppositeTurnAngle = turn(b_out, b_in)
     print(">>>angles", b_in, b_out, turnAngle, oppositeTurnAngle)
 
     radius = r / 1000
+
     # angle vertex
     v = Feature(geometry=Point(l0["coordinates"][1]))
-
-    ta = turnAngle * pi / 180  # π radians
-    h = radius * (1 - cos(ta / 2))
-
-    h2 = h / 2
-    tb = acos( 1 - (h2/radius)) * 180 / pi
-    beta = 2 * tb  # degrees
-    gamma = beta + (turnAngle - beta) / 2
-    gamma = gamma + 14
-
-    l = abs(2 * radius * sin(ta/2))
-
-    print(">>>calcul", beta, gamma, radius, h, l)
-
     c1 = destination(v, radius, b_in - 90)
 
-    ext2 = destination(v, radius, b_out + 90)
-    c2 = destination(ext2, 2 * l, b_out + 180)
-    tangent = gamma + 90
-    # arc for turn
-    s1 = b_in-90
-    e1 = tangent+90
-    if s1 > e1:
-        s1, e1 = e1, s1
-    arc1 = line_arc(c1, radius, s1, e1, 8)
+    a0 = b_out + 90 if turnAngle > 0 else b_in - 90
+    a1 = b_in + 90 if turnAngle > 0 else b_out - 90
+
+    arc1 = line_arc(c1, radius, a0, a1, 8)
     color_all(arc1, "#FF0000")
 
     # from the last point, we draw a line to intersect the outline:
-    straight = destination(arc1[-1], 10*radius, e1)
+    straight = destination(arc1[-1], 10*radius, b_out + 180)
     l2 = Feature(geometry=LineString([arc1[-1]["geometry"]["coordinates"],straight["geometry"]["coordinates"]]))
     intersect = line_intersect(Feature(geometry=l1), l2)
-    color(intersect, "#DDFFDD")
-    join = LineString([arc1[-1]["geometry"]["coordinates"],intersect["geometry"]["coordinates"]])
+    if intersect is None:
+        print("no intersect")
+        return [c1, l2, l2] + arc1
 
-    arc2 = standard_turn_flyby(l1, join, r)
+    color(intersect, "#333333")
+    join = LineString([arc1[-1]["geometry"]["coordinates"],intersect["geometry"]["coordinates"]])
+    left = LineString([intersect["geometry"]["coordinates"],l1["coordinates"][1]])
+
+    arc2 = standard_turn_flyby(join, left, r)
     if arc2 is not None:
         color_all(arc2, "#00FF00")
     else:
         arc2 = []
 
-    color(c1, "#000000")
-    color(c2, "#FFFFFF")
-    color(ext2, "#888888")
-
-    return [c1] + arc1 + arc2
+    return [c1, l2, l2] + arc1 + arc2 # , Feature(geometry=join), Feature(geometry=left)] + arc1 + arc2
+    return arc1 + arc2  # [c1, l2, intersect, Feature(geometry=join), Feature(geometry=left)] + arc1 + arc2
 
 
 def standard_turn_flyover2(l0, l1, r):
