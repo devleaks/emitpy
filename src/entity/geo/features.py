@@ -5,6 +5,7 @@ import copy
 from geojson import Polygon, Point, Feature
 from geojson.geometry import Geometry
 from turfpy.measurement import bearing, destination
+from .utils import printFeatures
 
 # from ..business.identity import Identity
 
@@ -26,6 +27,8 @@ from turfpy.measurement import bearing, destination
 # FEATUREWITHPROPS
 #
 #
+TAG_SEP = "|"
+
 class FeatureWithProps(Feature):
     """
     A FeatureWithProps is a GeoJSON Feature<Point> with facilities to set a few standard
@@ -47,6 +50,27 @@ class FeatureWithProps(Feature):
     def addProps(self, values: dict):
         for name, value in values.items():
             self.setProp(name, value)
+
+        # For historical reasons, tags are kept in |-separated strings like tag1|tag2.
+    def setTag(self, tagname, tagvalue, sep = TAG_SEP):
+        tags = self.getProp(tagname).split(sep)
+        if tagvalue not in tags:
+            tags.append(tagvalue)
+        self.setProp(tagname, sep.join(tags))
+
+    def unsetTag(self, tagname, tagvalue, sep = TAG_SEP):
+        tags = self.getProp(tagname).split(sep)
+        ndx = -1
+        try:
+            ndx = tags.index(tagvalue)
+        except:
+            ndx = -1
+        if ndx != -1:
+            del tags[ndx]
+        self.setProp(tagname, sep.join(tags))
+
+    def hasTag(self, tagname, tagvalue, sep = TAG_SEP):
+        return tagvalue in self.getProp(tagname).split(sep)
 
         # geojson.io specific
     def setColor(self, color: str):
@@ -153,8 +177,14 @@ class Ramp(FeatureWithProps):
 
         OFFSET = 30
         heading = self.getProp("orientation")
-        # compute offset
+        # compute offset, origin is aircraft nose tip
         origin = destination(self, OFFSET / 1000, heading, {"units": "km"})
+        forig = FeatureWithProps(geometry=origin["geometry"], properties=origin["properties"])
+        forig.setColor("#dd0000")
+        self.setColor("#00dd00")
+        self.service_pois["center"] = self
+        self.service_pois["origin"] = forig
+
         # for each service
         positions = data["services"]
         for svc in positions:
@@ -164,6 +194,8 @@ class Ramp(FeatureWithProps):
             pos.setProp("service", svc)
             pos.setProp("heading", positions[svc][2])
             self.service_pois[svc] = pos
+
+        # printFeatures(list(self.service_pois.values()), "ramp position")
 
         return (True, "Ramp::makeServicePOIs: created")
 
@@ -189,7 +221,7 @@ class Runway(Feature):
 # SERVICE PARKING
 #
 #
-class ServiceParking(Feature):
+class ServiceParking(FeatureWithProps):
 
     def __init__(self, name: str, parking_type: str, position: [float], orientation: float, use: str):
         Feature.__init__(self, geometry=Point(position), properties={

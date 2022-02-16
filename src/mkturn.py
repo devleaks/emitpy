@@ -18,8 +18,8 @@ def main():
       "geometry": {
         "type": "Point",
         "coordinates": [
-          51.63471221923828,
-          25.17449510769419
+          51.5972900390625,
+          25.27046750488758
         ]
       }
     },
@@ -29,8 +29,8 @@ def main():
       "geometry": {
         "type": "Point",
         "coordinates": [
-          51.616859436035156,
-          25.31795976270813
+          51.58905029296875,
+          25.33285545946249
         ]
       }
     },
@@ -40,8 +40,8 @@ def main():
       "geometry": {
         "type": "Point",
         "coordinates": [
-          51.690673828125,
-          25.36853560809667
+          51.6386604309082,
+          25.278539396522223
         ]
       }
     }
@@ -58,7 +58,7 @@ def main():
 
     newfc = standard_turns(oldfc["features"])
 
-#    print(FeatureCollection(features=newfc + [Feature(geometry=LineString(coords))]))
+    print(FeatureCollection(features=newfc + [Feature(geometry=LineString(coords))]))
 
 if __name__ == "__main__":
     main()

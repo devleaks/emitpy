@@ -206,7 +206,9 @@ class XPAirport(AirportBase):
                         # args[2] = {oneway|twoway}, args[3] = {runway|taxiway}
                         edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=[args[3]], name=args[4])
                     else:
-                        edge = Edge(src, dst, cost, args[2], args[3], "")
+                        edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=args[3], name="")
+                    if args[2] == "oneway":
+                        edge.setColor("#AA4444")
                     self.taxiways.add_edge(edge)
                     edgeCount += 1
                 else:
@@ -231,7 +233,7 @@ class XPAirport(AirportBase):
         # 1201  25.29549372  051.60759816 both 16 unnamed entity(split)
         def addVertex(aptline):
             args = aptline.content().split()
-            return self.service_roads.add_vertex(Vertex(node=args[3], point=Point((float(args[0]), float(args[1]))), usage=[ args[2]], name=" ".join(args[3:])))
+            return self.service_roads.add_vertex(Vertex(node=args[3], point=Point((float(args[1]), float(args[0]))), usage=[ args[2]], name=" ".join(args[3:])))
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
@@ -243,16 +245,20 @@ class XPAirport(AirportBase):
         for aptline in self.lines:
             if aptline.linecode() == 1206: # edge for ground vehicle
                 args = aptline.content().split()
-                if len(args) >= 4:
+                if len(args) >= 3:
                     src = self.service_roads.get_vertex(args[0])
                     dst = self.service_roads.get_vertex(args[1])
                     cost = distance(src["geometry"], dst["geometry"])
                     edge = None
                     if len(args) == 5:
                         # args[2] = {oneway|twoway}
-                        edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=["ground"], name=args[4])
+                        edge = Edge(src=src, dst=dst, weight=cost, directed=False, usage=["ground"], name=args[4])
+                        #edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=["ground"], name=args[4])
                     else:
-                        edge = Edge(src, dst, cost, args[2], args[3], "")
+                        edge = Edge(src=src, dst=dst, weight=cost, directed=False, usage=["ground"], name="")
+                        #edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=["ground"], name="")
+                    # if args[2] == "oneway":
+                    #     edge.setColor("#AA4444")
                     self.service_roads.add_edge(edge)
                     edgeCount += 1
                 else:
@@ -283,15 +289,25 @@ class XPAirport(AirportBase):
         # 1400 47.44374472 -122.30463464 88.1 baggage_train 3 Svc Baggage
         # 1401 47.44103438 -122.30382493 0.0 baggage_train Luggage Train Destination South 2
         service_destinations = {}
+        svc_dest = 0
+        svc_park = 0
 
         for aptline in self.lines:
             if aptline.linecode() in [1400, 1401]:  # service vehicle paarking or destination
                 args = aptline.content().split()
                 name = " ".join(args[4:])
-                service_destinations[name] = ServiceParking(name=name, parking_type=aptline.linecode(), position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[3])
-
+                svc = ServiceParking(name=name, parking_type=aptline.linecode(), position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[3])
+                if aptline.linecode() == 1400:
+                    svc_park = svc_park + 1
+                    svc.setColor("#ffdddd")
+                    svc.setProp("location", "parking")
+                if aptline.linecode() == 1401:
+                    svc_dest = svc_dest + 1
+                    svc.setColor("#ddffdd")
+                    svc.setProp("location", "destination")
+                service_destinations[name] = svc
         self.service_destinations = service_destinations
-        logger.debug(":loadServiceDestination: added %d service_destinations", len(service_destinations.keys()))
+        logger.debug(":loadServiceDestination: added %d service_destinations (park=%d, dest=%d)" % (len(service_destinations.keys()), svc_park, svc_dest))
         return [True, "XPAirport::loadServiceDestination loaded"]
 
     def loadAerowaysPOIS(self):
@@ -300,26 +316,24 @@ class XPAirport(AirportBase):
         if self.data is not None:  # parse runways
             for f in self.data["features"]:
                 n = f["properties"]["name"] if "name" in f["properties"] else None
-                if n is not None:
-                    self.aeroway_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
-                else:
-                    logger.warning(":loadAerowaysPOIS: feature with no name. cannot index %s." % f)
-            logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))
+                if n is None:
+                    n = f"at-poi-{len(self.aeroway_pois)}"
+                    logger.warning(":loadAerowaysPOIS: feature with no name. naming %s." % n)
+                self.aeroway_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+            logger.info(":loadAerowaysPOIS: loaded %d features.", len(self.data["features"]))
             self.data = None
 
         logger.debug(":loadAerowaysPOIS: added %d points of interest: %s" % (len(self.aeroway_pois), self.aeroway_pois.keys()))
         return [True, "XPAirport::loadAerowaysPOIS loaded"]
 
     def loadServicePOIS(self):
-        cnt = 0
         self.loadGeometries("service-pois.geojson")
         self.service_pois = {}
         if self.data is not None:  # parse runways
             for f in self.data["features"]:
                 n = f["properties"]["name"] if "name" in f["properties"] else None
                 if n is None:
-                    n = f"poi-{cnt}"
-                    cnt = cnt + 1
+                    n = f"sr-poi-{len(self.service_pois)}"
                     logger.warning(":loadServicePOIS: feature with no name. naming %s." % n)
                 self.service_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
             logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))

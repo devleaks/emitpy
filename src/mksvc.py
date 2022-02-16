@@ -80,7 +80,7 @@ def main():
     gate = "C99"
     ramp_name = ramp.getProp("name")
     if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
-        gate = ramp
+        gate = ramp_name
     arr.setGate(gate)
     logger.debug("..done")
 
@@ -91,11 +91,15 @@ def main():
     dep.setGate(gate)
     logger.debug("..done")
 
+    # managed.service_roads.print(vertex=False)
+
     logger.debug("creating service..")
     turnaround = Turnaround(arrival=arr, departure=dep)
 
     turnaround.setManagedAirport(managed)
     turnaround.plan()
+
+    # AirportManager will provide some automagic randomization to instanciate vehicle.
     turnaround.setVehicle("Fuel", ServiceVehicle(svcType=FuelTruck("pump"), operator="MATAR", registration="FUEL01"))
     turnaround.setVehicle("Catering", ServiceVehicle(svcType=CateringTruck(), operator="MATAR", registration="CAT01"))
 
