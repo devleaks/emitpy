@@ -101,25 +101,36 @@ class FeatureWithProps(Feature):
         self.setProp("altitude", alt)
 
     def altitude(self):
-        return self["geometry"]["coordinates"][2] if len(self["geometry"]["coordinates"]) > 2 else None
+        return float(self["geometry"]["coordinates"][2]) if len(self["geometry"]["coordinates"]) > 2 else None
 
     def setSpeed(self, speed):
         self.setProp(name="speed", value=speed)
 
     def speed(self):
-        return self.getProp("speed")
+        a = self.getProp("speed")
+        if a is None or a == "None":
+            return None
+        return float(a)
+
 
     def setVSpeed(self, vspeed):
         self.setProp("vspeed", vspeed)
 
     def vspeed(self):
-        return self.getProp("vspeed")
+        a = self.getProp("vspeed")
+        if a is None or a == "None":
+            return None
+        return float(a)
+
 
     def setTime(self, time):
         self.setProp("time", time)
 
     def time(self):
-        return self.getProp("time")
+        a = self.getProp("time")
+        if a is None or a == "None":
+            return None
+        return float(a)
 
 
 # ################################@

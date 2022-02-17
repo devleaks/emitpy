@@ -55,6 +55,8 @@ class Metar:
 
 
     def save(self):
+        metid = "*ERROR*"
+        fn = "*ERROR*"
         if self.raw is not None:
             metid = self.raw.METAR[0:4] + '-' + self.raw.METAR[5:12]
             fn = os.path.join(METAR_DIR, metid + ".json")
