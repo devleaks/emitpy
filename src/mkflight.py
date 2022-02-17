@@ -108,11 +108,12 @@ def main():
     logger.debug("creating arrival..")
     arr = Arrival(operator=airline, number="4L", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
     arr.setFL(reqfl)
-    ramp = managed.getRamp(arr)  # Aircraft won't get towed
+    ramp = managed.selectRamp(arr)  # Aircraft won't get towed
     arr.setRamp(ramp)
     gate = "C99"
-    if ramp[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
-        gate = ramp
+    ramp_name = ramp.getProp("name")
+    if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
+        gate = ramp_name
     arr.setGate(gate)
     logger.debug("..planning..")
     arr.plan()
@@ -132,22 +133,22 @@ def main():
     am.make()
     am.save()
 
-    ae = Emit(am)
-    ae.emit()
-    ae.save()
-    f = ae.get("TOUCH_DOWN", datetime.now())
+    # ae = Emit(am)
+    # ae.emit()
+    # ae.save()
+    # f = ae.get("TOUCH_DOWN", datetime.now())
 
     # metar may change between the two
-    managed.setMETAR(metar=metar)  # calls prepareRunways()
-    dm = Movement.create(dep, managed)
-    dm.make()
-    am.save()
+    # managed.setMETAR(metar=metar)  # calls prepareRunways()
+    # dm = Movement.create(dep, managed)
+    # dm.make()
+    # dm.save()
 
-    de = Emit(am)
-    de.emit()
-    de.save()
+    # de = Emit(am)
+    # de.emit()
+    # de.save()
 
-    f = ae.get("TAKE_OFF", datetime.now())
+    # f = ae.get("TAKE_OFF", datetime.now())
 
     logger.debug("..done")
 

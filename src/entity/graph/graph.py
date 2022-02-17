@@ -219,11 +219,19 @@ class Graph:  # Graph(FeatureCollection)?
             return Feature(geometry=f["geometry"], properties=f["properties"])
 
         def nearest_point_on_line(point, line, dist):
+            LINE_LENGTH = 0.5  # km
+            # extends original line, segments can sometimes be very short (openstreetmap)
             brng = bearing(Feature(geometry=Point(line["geometry"]["coordinates"][0])), Feature(geometry=Point(line["geometry"]["coordinates"][1])))
-            p0 = destination(point, 2 * dist, brng + 90, {"units": "km"})
-            p1 = destination(point, 2 * dist, brng - 90, {"units": "km"})
+            p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng, {"units": "km"})
+            p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 180, {"units": "km"})
+            linext = Feature(geometry=LineString([p0["geometry"]["coordinates"], p1["geometry"]["coordinates"]]))
+            # make perpendicular, long enough
+            brng = bearing(Feature(geometry=Point(line["geometry"]["coordinates"][0])), Feature(geometry=Point(line["geometry"]["coordinates"][1])))
+            p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng + 90, {"units": "km"})
+            p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 90, {"units": "km"})
             perp = Feature(geometry=LineString([p0["geometry"]["coordinates"], p1["geometry"]["coordinates"]]))
-            return line_intersect(line, perp)
+            printFeatures([linext, perp], "nearest_point_on_line")
+            return line_intersect(linext, perp)
 
         closest = None
         edge = None

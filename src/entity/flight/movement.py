@@ -16,7 +16,7 @@ from ..flight import Flight
 from ..airspace import Restriction
 from ..airport import AirportBase
 from ..aircraft import ACPERF
-from ..geo import FeatureWithProps, moveOn, cleanFeatures, printFeatures
+from ..geo import FeatureWithProps, moveOn, cleanFeatures, printFeatures, toKML
 from ..utils import FT
 from ..constants import POSITION_COLOR, FEATPROP, TAKEOFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
 from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
@@ -129,7 +129,11 @@ class Movement:
         saveMe(self.moves_st, "move")
         saveMe(self.taxipos, "taxi")
 
-        logger.debug(":loadAll: saved %s" % self.flight_id)
+        filename = os.path.join(basename + "-move.kml")
+        with open(filename, "w") as fp:
+            fp.write(toKML(self.moves_st))
+
+        logger.debug(":save: saved %s" % self.flight_id)
         return (True, "Movement::save saved")
 
 
@@ -409,9 +413,9 @@ class Movement:
 
             # First point is where stopped
             rollout_distance = actype.getSI(ACPERF.landing_distance) * self.airport.runwayIsWet() / 1000 # must be km for destination()
-            landing = destination(touch_down, rollout_distance, brg, {"units": "km"})
+            end_rollout = destination(touch_down, rollout_distance, brg, {"units": "km"})
 
-            currpos = MovePoint(geometry=landing["geometry"], properties={})
+            currpos = MovePoint(geometry=end_rollout["geometry"], properties={})
             currpos.setAltitude(alt)
             currpos.setSpeed(TAXI_SPEED)
             currpos.setVSpeed(0)
@@ -419,7 +423,7 @@ class Movement:
             currpos.setProp(FEATPROP.MARK.value, "end_rollout")
             currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, 0)
             revmoves.append(currpos)
-            logger.debug(":vnav: stopped at %s, %f" % (rwy.name, rollout_distance))
+            logger.debug(":vnav: stopped at %s, %f, %f" % (rwy.name, rollout_distance, alt))
             self.end_rollout = copy.deepcopy(currpos)  # we keep this special position for taxiing (start_of_taxi)
 
             # Point before is touch down
@@ -431,7 +435,7 @@ class Movement:
             currpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TOUCH_DOWN.value)
             currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, 0)
             revmoves.append(currpos)
-            logger.debug(":vnav: touch down at %s, %f" % (rwy.name, LAND_TOUCH_DOWN))
+            logger.debug(":vnav: touch down at %s, %f, %f" % (rwy.name, LAND_TOUCH_DOWN, alt))
 
         else:
             # Someday, we could add STAR/APPCH to runway for remote airport as well
@@ -443,6 +447,7 @@ class Movement:
                 alt = 0
 
             currpos = MovePoint(geometry=arrvapt["geometry"], properties=arrvapt["properties"])
+            currpos.setAltitude(alt)
             currpos.setProp(FEATPROP.MARK.value, "destination")
             currpos.setSpeed(actype.getSI(ACPERF.landing_speed))
             currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, len(fc) - fcidx)
@@ -671,7 +676,7 @@ class Movement:
         revmoves.reverse()
         self.moves = self.moves + revmoves
         logger.debug(":vnav: descent added (+%d %d)" % (len(revmoves), len(self.moves)))
-        printFeatures(self.moves, "holding")
+        # printFeatures(self.moves, "holding")
         return (True, "Movement::vnav completed without restriction")
 
 
@@ -724,9 +729,9 @@ class Movement:
             speedend = to_interp[iend].speed()  # last known speed
 
             if speedstart is None:
-                logger.warning(":interpolate:interpolate_speed: istart has no speed %s" % to_interp[istart])
+                logger.warning(":interpolate:interpolate_speed: istart has no speed %s" % (to_interp[istart]))
             if speedend is None:
-                logger.warning(":interpolate:interpolate_speed: iend has no speed %s" % to_interp[iend])
+                logger.warning(":interpolate:interpolate_speed: iend has no speed %s" % (to_interp[iend]))
 
             if speedstart == speedend: # simply copy
                 for idx in range(istart, iend):
@@ -747,7 +752,7 @@ class Movement:
                     # logger.debug(":interpolate_speed: %d %f %f" % (idx, ratios[idx]/cumul_dist, speed_b + speed_a * ratios[idx]))
                     to_interp[idx].setSpeed(speed_b + speed_a * ratios[idx] / cumul_dist)
             else:
-                logger.warning(":interpolate:interpolate_speed: cumulative distance is 0: %d-%d" % istart, iend)
+                logger.warning(":interpolate:interpolate_speed: cumulative distance is 0: %d-%d" % (istart, iend))
 
         def interpolate_altitude(istart, iend):
             altstart = to_interp[istart].altitude()  # first known alt
@@ -822,6 +827,9 @@ class Movement:
         for idx in range(1, len(wpts)):
             nextpos = wpts[idx]
             d = distance(currpos, nextpos) * 1000 # km
+            logger.debug(":time: %s %s" % (nextpos.speed(), currpos.speed()))
+            if nextpos.speed() is None or nextpos.speed() is None:
+                logger.debug(":time: positions: %s %s" % (nextpos, currpos))
             s = (nextpos.speed() + currpos.speed()) / 2
             t = d / s  # km
             elapsed = elapsed + t
@@ -887,7 +895,7 @@ class ArrivalMove(Movement):
         taxistartpos.setProp(FEATPROP.MARK.value, "taxi start vertex")
         fc.append(taxistartpos)
 
-        parking = self.airport.ramps[self.flight.ramp]
+        parking = self.flight.ramp
         logger.debug(":taxi: parking: %s" % parking)
         # we call the move from packing position to taxiway network the "parking entry"
         parking_entry = self.airport.taxiways.nearest_point_on_edge(parking)

@@ -9,7 +9,7 @@ from enum import Enum
 from turfpy.measurement import distance, bearing
 
 from .airspace import Airspace, RestrictedControlledPoint
-from ..utils import ConvertDMSToDD
+from ..utils import ConvertDMSToDD, FT
 
 from ..parameters import DATA_DIR
 
@@ -239,7 +239,7 @@ class RWY(Procedure):
             lat=self.getLatitude(),
             lon=self.getLongitude()
         )
-        self.setAltitude(float(self.route[0].params[3]))
+        self.setAltitude(float(self.route[0].params[3]) * FT)
 
     def getLatitude(self):
         latstr = self.route[0].params[7].split(";")[1]
@@ -254,9 +254,6 @@ class RWY(Procedure):
             self.point["geometry"]["coordinates"].append(alt)
         else:
             self.point["geometry"]["coordinates"][2] = alt
-
-    def getAltitude(self):
-        return self.point["geometry"]["coordinates"][2]
 
     def getPoint(self):
         return self.point
