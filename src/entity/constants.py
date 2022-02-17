@@ -255,6 +255,7 @@ class EDGE_COLOR(Enum):
 class FEATPROP(Enum):
     # Feature property names
     MARK = "_mark"
+    ALTITUDE = "altitude"
     SPEED = "speed"
     VSPEED = "vspeed"
     VERTICAL_SPEED = "vspeed"

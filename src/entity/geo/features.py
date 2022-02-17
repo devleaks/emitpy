@@ -6,6 +6,7 @@ from geojson import Polygon, Point, Feature
 from geojson.geometry import Geometry
 from turfpy.measurement import bearing, destination
 from .utils import printFeatures
+from ..constants import FEATPROP
 
 # from ..business.identity import Identity
 
@@ -41,11 +42,16 @@ class FeatureWithProps(Feature):
 
     def getProp(self, name: str):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
-        return self["properties"][name] if name in self["properties"] else "None"
+        if name == FEATPROP.ALTITUDE.value:
+            return self.altitude()
+        return self["properties"][name] if name in self["properties"] else None
 
     def setProp(self, name: str, value):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
-        self["properties"][name] = value
+        if name == FEATPROP.ALTITUDE.value:
+            self.setAltitude(value)
+        else:
+            self["properties"][name] = value
 
     def addProps(self, values: dict):
         for name, value in values.items():
@@ -98,36 +104,47 @@ class FeatureWithProps(Feature):
             self["geometry"]["coordinates"][2] = alt
         else:
             self["geometry"]["coordinates"].append(alt)
-        self.setProp("altitude", alt)
+        self["properties"][FEATPROP.ALTITUDE.value] = alt
 
     def altitude(self):
-        return float(self["geometry"]["coordinates"][2]) if len(self["geometry"]["coordinates"]) > 2 else None
+        # Altitude can be stored at two places
+        if len(self["geometry"]["coordinates"]) > 2:
+            return self["geometry"]["coordinates"][2]
+        alt = self["properties"][FEATPROP.ALTITUDE.value] if FEATPROP.ALTITUDE.value in self["properties"] else None
+        if alt is not None:  # write it to coordinates
+            alt = float(alt)
+            if len(self["geometry"]["coordinates"]) > 2:
+                self["geometry"]["coordinates"][2] = alt
+            else:
+                self["geometry"]["coordinates"].append(alt)
+            return alt
+        return None
 
     def setSpeed(self, speed):
-        self.setProp(name="speed", value=speed)
+        self.setProp(name=FEATPROP.SPEED.value, value=speed)
 
     def speed(self):
-        a = self.getProp("speed")
+        a = self.getProp(FEATPROP.SPEED.value)
         if a is None or a == "None":
             return None
         return float(a)
 
 
     def setVSpeed(self, vspeed):
-        self.setProp("vspeed", vspeed)
+        self.setProp(FEATPROP.VERTICAL_SPEED.value, vspeed)
 
     def vspeed(self):
-        a = self.getProp("vspeed")
+        a = self.getProp(FEATPROP.VERTICAL_SPEED.value)
         if a is None or a == "None":
             return None
         return float(a)
 
 
     def setTime(self, time):
-        self.setProp("time", time)
+        self.setProp(FEATPROP.TIME.value, time)
 
     def time(self):
-        a = self.getProp("time")
+        a = self.getProp(FEATPROP.TIME.value)
         if a is None or a == "None":
             return None
         return float(a)

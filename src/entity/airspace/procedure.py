@@ -250,10 +250,10 @@ class RWY(Procedure):
         return ConvertDMSToDD(lonstr[1:4], lonstr[4:6], int(lonstr[6:10])/100, lonstr[0])
 
     def setAltitude(self, alt):
-        if len(self.point["geometry"]["coordinates"]) < 3:
-            self.point["geometry"]["coordinates"].append(alt)
-        else:
+        if len(self.point["geometry"]["coordinates"]) > 2:
             self.point["geometry"]["coordinates"][2] = alt
+        else:
+            self.point["geometry"]["coordinates"].append(alt)
 
     def getPoint(self):
         return self.point

@@ -23,6 +23,7 @@ from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
 from ..parameters import AODB_DIR
 
 from .standardturn import standard_turn_flyby
+from .interpolate import interpolate as doInterpolation, time as doTime
 
 logger = logging.getLogger("Movement")
 
@@ -93,17 +94,21 @@ class Movement:
             logger.warning(status[1])
             return status
 
+        status = self.time()
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
         status = self.taxi()
         if not status[0]:
             logger.warning(status[1])
             return status
 
-        # printFeatures(self.taxipos, "after taxi")
-
-        status = self.time()
+        status = self.taxiInterpolateAndTime()
         if not status[0]:
             logger.warning(status[1])
             return status
+        # printFeatures(self.taxipos, "after taxi")
 
         return (True, "Movement::make completed")
 
@@ -131,7 +136,8 @@ class Movement:
 
         filename = os.path.join(basename + "-move.kml")
         with open(filename, "w") as fp:
-            fp.write(toKML(self.moves_st))
+            fp.write(toKML(cleanFeatures(self.moves_st)))
+            logger.debug(":save: saved kml %s (%d)" % (filename, len(self.moves_st)))
 
         logger.debug(":save: saved %s" % self.flight_id)
         return (True, "Movement::save saved")
@@ -171,18 +177,17 @@ class Movement:
             return (MovePoint(geometry=p["geometry"], properties=p["properties"]), i)
 
         def addCurrentPoint(coll, pos, oi, ni, reverse: bool = False):
+            # catch up adding all points in flight plan between oi, ni
             # logger.debug(":addCurrentPoint: %d %d %s" % (oi, ni, reverse))
             if oi != ni:
                 for idx in range(oi+1, ni+1):
                     i = idx if not reverse else len(self.flight.flightplan_cp) - idx - 1
                     wpt = self.flight.flightplan_cp[i]
                     p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
-                    currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
+                    p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
                     p.setColor("#ff0000") # flight plan point in RED
-                    #@todo: will need to interpolate alt and speed for these points
                     coll.append(p)
-                    # logger.debug(":addCurrentPoint: adding flight plan point: %d %s (%d)" % (i, wpt.getProp("_plan_segment_type"), len(coll)))
-            pos.setColor("#00ff00")  # remarkable point in FREEN
+            pos.setColor("#00ff00")  # remarkable point in GREEN
             coll.append(pos)
             # logger.debug(":addCurrentPoint: adding remarkable point: %s (%d)" % (pos.getProp(FEATPROP.MARK), len(coll)))
             return ni
@@ -272,6 +277,7 @@ class Movement:
                 alt = 0
             currpos = MovePoint(geometry=deptapt["geometry"], properties=deptapt["properties"])
             currpos.setSpeed(actype.getSI(ACPERF.takeoff_speed))
+            currpos.setVSpeed(actype.getSI(ACPERF.initial_climb_speed))
             currpos.setColor(POSITION_COLOR.TAKE_OFF.value)
             currpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TAKE_OFF.value)
             currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, fcidx)
@@ -440,6 +446,7 @@ class Movement:
         else:
             # Someday, we could add STAR/APPCH to runway for remote airport as well
             # Get METAR at airport, determine runway, select random RWY, STAR and APPCH
+            # even landing and rollout.
             arrvapt = fc[fcidx]
             alt = arrvapt.altitude()
             if alt is None:
@@ -450,6 +457,7 @@ class Movement:
             currpos.setAltitude(alt)
             currpos.setProp(FEATPROP.MARK.value, "destination")
             currpos.setSpeed(actype.getSI(ACPERF.landing_speed))
+            currpos.setVSpeed(actype.getSI(ACPERF.approach_vspeed))
             currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, len(fc) - fcidx)
             currpos.setColor(POSITION_COLOR.DESTINATION.value)
             revmoves.append(currpos)
@@ -662,6 +670,7 @@ class Movement:
                 p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
                 p.setAltitude(self.flight.getCruiseAltitude())
                 p.setSpeed(cruise_speed)
+                p.setVSpeed(0)
                 p.setColor(POSITION_COLOR.CRUISE.value)
                 p.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.CRUISE.value)
                 p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
@@ -699,11 +708,10 @@ class Movement:
             last_speed = s
 
             if arc is not None:
-                # self.moves_st.append(self.moves[i])
                 mid = arc[int(len(arc) / 2)]
                 mid["properties"] = self.moves[i]["properties"]
                 for p in arc:
-                    self.moves_st.append(MovePoint(geometry=p["geometry"], properties=p["properties"]))
+                    self.moves_st.append(MovePoint(geometry=p["geometry"], properties=mid["properties"]))
             else:
                 self.moves_st.append(self.moves[i])
         # Add last point too
@@ -721,84 +729,30 @@ class Movement:
         This is a simple linear interpolation based on distance between points.
         Runs for flight portion of flight.
         """
+        to_interp = self.moves_st
+        # before = []
 
-        to_interp = self.moves_st if self.moves_st is not None else self.moves
+        for name in ["speed", "vspeed", "altitude"]:
+            logger.debug(":interpolate: interpolate %s .." % (name))
+            # before = list(map(lambda x: x.getProp(name), to_interp))
+            status = doInterpolation(to_interp, name)
+            if not status[0]:
+                logger.warning(status[1])
+        logger.debug(":interpolate: .. done.")
 
-        def interpolate_speed(istart, iend):
-            speedstart = to_interp[istart].speed()  # first known speed
-            speedend = to_interp[iend].speed()  # last known speed
+        logger.debug(":interpolate: checking and transposing altitudes..")
+        for f in to_interp:
+            if len(f["geometry"]["coordinates"]) == 2:
+                a = f.altitude()
+                if a is not None:
+                    f["geometry"]["coordinates"].append(float(a))
+                else:
+                    logger.warning(":interpolate: not altitude?%s" % (f["geometry"]["name"]if name in f["geometry"] else "?"))
+        logger.debug(":interpolate: .. done.")
+        # for i in range(len(to_interp)):
+        #     v = to_interp[i].getProp(name) if to_interp[i].getProp(name) is not None and to_interp[i].getProp(name) != "None" else -1
+        #     logger.debug(":interpolate: %d: %s -> %s." % (i, before[i] if before[i] is not None else -1, v))
 
-            if speedstart is None:
-                logger.warning(":interpolate:interpolate_speed: istart has no speed %s" % (to_interp[istart]))
-            if speedend is None:
-                logger.warning(":interpolate:interpolate_speed: iend has no speed %s" % (to_interp[iend]))
-
-            if speedstart == speedend: # simply copy
-                for idx in range(istart, iend):
-                    to_interp[idx].setSpeed(speedstart)
-                return
-
-            ratios = {}
-            cumul_dist = 0
-            for idx in range(istart+1, iend):
-                d = distance(to_interp[idx-1], to_interp[idx], "m")
-                cumul_dist = cumul_dist + d
-                ratios[idx] = cumul_dist
-            # logger.debug(":interpolate_speed: (%d)%f -> (%d)%f, %f" % (istart, speedstart, iend, speedend, cumul_dist))
-            if cumul_dist != 0:
-                speed_a = (speedend - speedstart) / cumul_dist
-                speed_b = speedstart
-                for idx in range(istart+1, iend):
-                    # logger.debug(":interpolate_speed: %d %f %f" % (idx, ratios[idx]/cumul_dist, speed_b + speed_a * ratios[idx]))
-                    to_interp[idx].setSpeed(speed_b + speed_a * ratios[idx] / cumul_dist)
-            else:
-                logger.warning(":interpolate:interpolate_speed: cumulative distance is 0: %d-%d" % (istart, iend))
-
-        def interpolate_altitude(istart, iend):
-            altstart = to_interp[istart].altitude()  # first known alt
-            altend = to_interp[iend].altitude()  # last known alt
-
-            if altstart == altend: # simply copy
-                for idx in range(istart, iend):
-                    to_interp[idx].setAltitude(altstart)
-                return
-
-            ratios = {}
-            altcumul = 0
-            for idx in range(istart+1, iend+1):
-                d = distance(to_interp[idx-1], to_interp[idx], "m")
-                altcumul = altcumul + d
-                ratios[idx] = altcumul
-            # logger.debug(":interpolate_alt: (%d)%f -> (%d)%f, %f" % (istart, altstart, iend, altend, altcumul))
-            alt_a = (altend - altstart) / altcumul
-            alt_b = altstart
-            for idx in range(istart+1, iend):
-                # logger.debug(":interpolate_alt: %d %f %f" % (idx, ratios[idx]/altcumul, alt_b + alt_a * ratios[idx]))
-                to_interp[idx].setAltitude(alt_b + alt_a * ratios[idx] / altcumul)
-
-        # we do have a speed for first point in flight for both arrival (takeoff_speed, apt.alt) and departure (landing_speed, apt.alt)
-        nospeed_idx = None  # index of last elem with not speed, elem[0] has speed.
-        noalt_idx = None
-        for idx in range(1, len(to_interp)):
-            f = to_interp[idx]
-
-            s = f.speed()
-            if s is None:
-                if nospeed_idx is None:
-                    nospeed_idx = idx - 1
-            else:
-                if nospeed_idx is not None:
-                    interpolate_speed(nospeed_idx, idx)
-                    nospeed_idx = None
-
-            a = f.altitude()
-            if a is None:
-                if noalt_idx is None:
-                    noalt_idx = idx - 1
-            else:
-                if noalt_idx is not None:
-                    interpolate_altitude(noalt_idx, idx)
-                    noalt_idx = None
 
         # logger.debug(":interpolate: last point %d: %f, %f" % (len(self.moves_st), self.moves_st[-1].speed(), self.moves_st[-1].altitude()))
         # i = 0
@@ -819,35 +773,37 @@ class Movement:
         if self.moves_st is None:
             return (False, "Movement::time no move")
 
-        wpts = self.moves_st
-        elapsed = 0
-        currpos = wpts[0]
-        currpos.setTime(elapsed)
-
-        for idx in range(1, len(wpts)):
-            nextpos = wpts[idx]
-            d = distance(currpos, nextpos) * 1000 # km
-            logger.debug(":time: %s %s" % (nextpos.speed(), currpos.speed()))
-            if nextpos.speed() is None or nextpos.speed() is None:
-                logger.debug(":time: positions: %s %s" % (nextpos, currpos))
-            s = (nextpos.speed() + currpos.speed()) / 2
-            t = d / s  # km
-            elapsed = elapsed + t
-            nextpos.setTime(elapsed)
-            currpos = nextpos
-
-        # only show values of last iteration (can be moved inside loop)
-        logger.debug(":time: %3d: %10.3fm at %5.1fm/s = %6.1fs, total=%s" % (idx, d, currpos.speed(), t, timedelta(seconds=elapsed)))
+        status = doTime(self.moves_st)
+        if not status[0]:
+            logger.warning(status[1])
+            return status
 
         return (True, "Movement::time computed")
 
 
-    def taxiTime(self):
+    def taxiInterpolateAndTime(self):
         """
         Time 0 is start of pushback (Departure) or end of roll out (Arrival).
         Last time is take off hold (Departure) or parking (Arrival).
         """
-        return (False, "Movement::taxiTime not implemented")
+        if self.taxipos is None:
+            return (False, "Movement::taxiInterpolateAndTime no move")
+
+        logger.debug(":taxiInterpolateAndTime: interpolate speed ..")
+        status = doInterpolation(self.taxipos, "speed")
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
+        logger.debug(":taxiInterpolateAndTime: compute time ..")
+        status = doTime(self.taxipos)
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
+        logger.debug(":taxiInterpolateAndTime: .. done.")
+
+        return (True, "Movement::taxiInterpolateAndTime not implemented")
 
 
 class ArrivalMove(Movement):

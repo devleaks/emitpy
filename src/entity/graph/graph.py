@@ -230,7 +230,7 @@ class Graph:  # Graph(FeatureCollection)?
             p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng + 90, {"units": "km"})
             p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 90, {"units": "km"})
             perp = Feature(geometry=LineString([p0["geometry"]["coordinates"], p1["geometry"]["coordinates"]]))
-            printFeatures([linext, perp], "nearest_point_on_line")
+            # printFeatures([linext, perp], "nearest_point_on_line")
             return line_intersect(linext, perp)
 
         closest = None

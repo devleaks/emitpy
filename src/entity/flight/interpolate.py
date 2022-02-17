@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from turfpy.measurement import distance
 
@@ -18,6 +19,7 @@ def interpolate_value(arr, value, istart, iend):
     if startval == endval:  # simply copy
         for idx in range(istart, iend):
             arr[idx].setProp(value, startval)
+            # logger.debug(":interpolate_value: copied %f (%d) -> (%d)f" % (startval, istart, iend))
         return
 
     ratios = {}
@@ -26,13 +28,13 @@ def interpolate_value(arr, value, istart, iend):
         d = distance(arr[idx-1], arr[idx], "m")
         cumul_dist = cumul_dist + d
         ratios[idx] = cumul_dist
-    # logger.debug(":interpolate_speed: (%d)%f -> (%d)%f, %f" % (istart, startval, iend, endval, cumul_dist))
+    # logger.debug(":interpolate_value: (%d)%f -> (%d)%f, %f" % (istart, startval, iend, endval, cumul_dist))
     if cumul_dist != 0:
         speed_a = (endval - startval) / cumul_dist
         speed_b = startval
         for idx in range(istart+1, iend):
-            # logger.debug(":interpolate_speed: %d %f %f" % (idx, ratios[idx]/cumul_dist, speed_b + speed_a * ratios[idx]))
-            arr[idx].setProp(value, speed_b + speed_a * ratios[idx] / cumul_dist)
+            # logger.debug(":interpolate_value: %d %f %f %f" % (idx, ratios[idx], ratios[idx]/cumul_dist, speed_b + speed_a * ratios[idx]))
+            arr[idx].setProp(value, speed_b + speed_a * ratios[idx])
     else:
         logger.warning(":interpolate_value: cumulative distance is 0: %d-%d" % (istart, iend))
 
@@ -66,3 +68,33 @@ def interpolate(arr: list, value: str):
     #     i = i + 1
 
     return (True, ":interpolate: interpolated %s" % value)
+
+
+
+def time(wpts):
+    """
+    Time 0 is start of array.
+    """
+    elapsed = 0
+    currpos = wpts[0]
+    currpos.setTime(elapsed)
+
+    for idx in range(1, len(wpts)):
+        nextpos = wpts[idx]
+        d = distance(currpos, nextpos) * 1000 # km
+        # logger.debug(":time: %s %s" % (nextpos.speed(), currpos.speed()))
+        # if nextpos.speed() is None or nextpos.speed() is None:
+        #     logger.debug(":time: positions: %d %s %s" % (idx, nextpos, currpos))
+        s = (nextpos.speed() + currpos.speed()) / 2
+        t = d / s  # km
+        elapsed = elapsed + t
+        nextpos.setTime(elapsed)
+        currpos = nextpos
+
+    # only show values of last iteration (can be moved inside loop)
+    logger.debug(":time: %3d: %10.3fm at %5.1fm/s = %6.1fs, total=%s" % (idx, d, currpos.speed(), t, timedelta(seconds=elapsed)))
+
+    return (True, ":time: computed")
+
+
+

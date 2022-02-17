@@ -201,7 +201,7 @@ class Arrival(Flight):
         else:
             logger.warning(":plan: no APPCH for %s %s" % (self.managedAirport.icao, rwy.name))
 
-        if arrpts[-1].id == ret[0].id:
+        if len(arrpts) > 0 and len(ret) > 0 and arrpts[-1].id == ret[0].id:
             logger.debug(":plan: duplicate end STAR/begin APPCH %s removed" % ret[0].id)
             arrpts = arrpts[:-1] + ret  # remove last point of STAR
         else:
@@ -292,7 +292,7 @@ class Departure(Flight):
             else:
                 logger.warning(":plan: no STAR for %s %s" % (self.arrival.icao, rwyarr.name))
 
-            if deppts[-1].id == ret[0].id:
+            if len(deppts) > 0 and len(ret) > 0 and deppts[-1].id == ret[0].id:
                 logger.debug(":plan: duplicate end STAR/begin APPCH %s removed" % ret[0].id)
                 deppts = deppts[:-1] + ret  # remove last point of STAR
             else:

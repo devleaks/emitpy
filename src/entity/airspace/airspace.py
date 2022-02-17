@@ -288,7 +288,7 @@ class Hold(Restriction):
 
         turnAngle = self.course - 180
 
-        logger.debug(":Hold:getRoute: spd=%f len=%f rad=%f legt=%f legl=%f turnAngle=%f" % (speed, length, radius, self.leg_time, self.leg_length, turnAngle))
+        logger.debug(":Hold:getRoute: spd=%f len=%f rad=%f turn=%s legt=%f legl=%f turnAngle=%f" % (speed, length, radius, self.turn, self.leg_time, self.leg_length, turnAngle))
 
         # 4 corners and 2 arc centers p1 -> p2 -> p3 -> p4 -> p1
         p1 = self.fix
@@ -300,12 +300,19 @@ class Hold(Restriction):
         c23 = destination(p2, radius, perpendicular, {"units": "km"})
         curr = perpendicular - 180
         arc = []
+        # ugly but works, if first point is further away, it is ok
+        tst = destination(c23, radius, curr + step, {"units": "km"})
+        ts = distance(p1, tst)
+        rev = 180 if ts < length else 0
         for i in range(0, finesse - 1):
             curr = curr + step
-            p = destination(c23, radius, curr, {"units": "km"})
+            p = destination(c23, radius, curr + rev, {"units": "km"})
             arc.append(p)
 
-        if turnAngle > 0:  # reverse coordinates order
+        # ugly but works, if first point is closer, no need to reverse...
+        ds = distance(p2, arc[0])
+        de = distance(p2, arc[-1])
+        if de < ds:  # reverse coordinates order
             arc.reverse()
 
         hold = hold + arc
@@ -318,12 +325,17 @@ class Hold(Restriction):
         c41 = destination(p1, radius, perpendicular, {"units": "km"})
         curr = perpendicular
         arc = []
+        tst = destination(c41, radius, curr + step, {"units": "km"})
+        ts = distance(p3, tst)
+        rev = 180 if ts < length else 0
         for i in range(0, finesse - 1):
             curr = curr + step
             p = destination(c41, radius, curr)
             arc.append(p)
 
-        if turnAngle > 0:  # reverse coordinates order
+        ds = distance(p4, arc[0])
+        de = distance(p4, arc[-1])
+        if de < ds:  # reverse coordinates order
             arc.reverse()
 
         hold = hold + arc
