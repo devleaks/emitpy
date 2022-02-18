@@ -9,14 +9,14 @@ from datetime import timedelta
 from typing import Union
 import copy
 
-from geojson import Point, LineString, FeatureCollection
+from geojson import Point, LineString, FeatureCollection, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from ..flight import Flight
 from ..airspace import Restriction
 from ..airport import AirportBase
 from ..aircraft import ACPERF
-from ..geo import FeatureWithProps, moveOn, cleanFeatures, printFeatures, toKML
+from ..geo import FeatureWithProps, moveOn, cleanFeatures, printFeatures, asLineString, toKML
 from ..utils import FT
 from ..constants import POSITION_COLOR, FEATPROP, TAKEOFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
 from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
@@ -132,6 +132,8 @@ class Movement:
 
         saveMe(self.moves, "plan")
         saveMe(self.moves_st, "move")
+        ls = Feature(geometry=asLineString(self.moves_st))
+        saveMe(self.moves_st + [ls], "move3d")
         saveMe(self.taxipos, "taxi")
 
         filename = os.path.join(basename + "-move.kml")
