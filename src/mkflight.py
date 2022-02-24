@@ -5,7 +5,8 @@ from entity.business import Airline
 from entity.airspace import XPAirspace, Metar
 from entity.airport import Airport, AirportBase, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
-from entity.flight import Arrival, Departure, Movement, Emit
+from entity.flight import Arrival, Departure, Movement
+from entity.emit import Emit
 from entity.business import AirportManager
 from entity.parameters import MANAGED_AIRPORT
 
@@ -70,7 +71,7 @@ def main():
     # other_airport = Airport.find("VOCL")
 
     reqrange = 45000
-    while(reqrange > 2000):
+    while(reqrange > 3000):
         (airline, other_airport) = airportManager.getRandomAirroute(airline=airline)
         reqrange = managed.miles(other_airport)
 
@@ -106,7 +107,7 @@ def main():
     logger.debug("..done")
 
     logger.debug("creating arrival..")
-    arr = Arrival(operator=airline, number="4L", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
+    arr = Arrival(operator=airline, number="196", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
     arr.setFL(reqfl)
     ramp = managed.selectRamp(arr)  # Aircraft won't get towed
     arr.setRamp(ramp)
@@ -119,14 +120,14 @@ def main():
     arr.plan()
     logger.debug("..done")
 
-    logger.debug("creating departure..")
-    dep = Departure(operator=airline, number="3", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft)
-    dep.setFL(reqfl)
-    dep.setRamp(ramp)
-    dep.setGate(gate)
-    logger.debug("..planning..")
-    dep.plan()
-    logger.debug("..done")
+    # logger.debug("creating departure..")
+    # dep = Departure(operator=airline, number="195", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft)
+    # dep.setFL(reqfl)
+    # dep.setRamp(ramp)
+    # dep.setGate(gate)
+    # logger.debug("..planning..")
+    # dep.plan()
+    # logger.debug("..done")
 
     logger.debug("flying..")
     am = Movement.create(arr, managed)

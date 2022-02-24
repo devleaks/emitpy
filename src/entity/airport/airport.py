@@ -230,7 +230,7 @@ class AirportBase(Airport):
         validappchs = list(filter(lambda x: x.runway == runway.name, procs.values()))
         if len(validappchs) > 0:
             return random.choice(validappchs)
-        logger.warning(":getApproach: no aproach found for runway %s" % runway)
+        logger.warning(":getApproach: no approach found for runway %s" % runway)
         return None
 
     def selectRunway(self, flight: 'Flight'):

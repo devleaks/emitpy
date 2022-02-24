@@ -93,7 +93,7 @@ class XPAirspace(Airspace):
 
         file.close()
 
-        logger.info(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.debug(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPXPAirspace::Airport loaded"]
 
 

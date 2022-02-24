@@ -34,7 +34,7 @@ class Metar:
         self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
 
         # For development
-        requests_cache.install_cache()
+        # requests_cache.install_cache()
 
         self.init()
 
@@ -51,6 +51,7 @@ class Metar:
         if metar is not None and metar.METAR is not None:
             self.raw = metar
             if self.raw is not None:
+                logger.debug(":fetch: %s," % (self.raw.METAR))
                 self.metar = MetarLib.Metar(self.raw.METAR)
 
 
@@ -64,17 +65,16 @@ class Metar:
                 with open(fn, "w") as outfile:
                     json.dump(self.raw._to_api_dict(), outfile)
 
-        logger.debug(":save: %s, %s" % (metid, fn))
-
 
     def load(self):
         def round_dt(dt, delta):  # rounds date to delta after date.
             return dt + (datetime.min - dt) % delta
 
         now = datetime.utcnow()
-        now2 = round_dt(now - timedelta(minutes=120), timedelta(minutes=60))
+        now2 = round_dt(now - timedelta(minutes=90), timedelta(minutes=60))
         nowstr = now2.strftime('%d%H%MZ')
         fn = os.path.join(METAR_DIR, self.icao + "-" + nowstr + ".json")
+        logger.debug(":load: trying %s" % (fn))
         if os.path.exists(fn):
             with open(fn, "r") as fp:
                 self.raw = json.load(fp)
@@ -86,9 +86,4 @@ class Metar:
 
     def get(self):
         return None if self.raw is None else self.raw["METAR"]
-
-
-    def parse(self):
-        if self.metar is None:
-            return None
 

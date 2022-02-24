@@ -5,7 +5,6 @@ import os
 import json
 import logging
 from math import pi
-from datetime import timedelta
 from typing import Union
 import copy
 
@@ -16,8 +15,8 @@ from ..flight import Flight
 from ..airspace import Restriction
 from ..airport import AirportBase
 from ..aircraft import ACPERF
-from ..geo import FeatureWithProps, moveOn, cleanFeatures, printFeatures, asLineString, toKML
-from ..utils import FT
+from ..geo import FeatureWithProps, moveOn, cleanFeatures, printFeatures, findFeatures, asLineString, toKML
+from ..utils import FT, NAUTICAL_MILE
 from ..constants import POSITION_COLOR, FEATPROP, TAKEOFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
 from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
 from ..parameters import AODB_DIR
@@ -85,6 +84,11 @@ class Movement:
             return status
 
         status = self.standard_turns()
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
+        status = self.add_tmo()
         if not status[0]:
             logger.warning(status[1])
             return status
@@ -556,16 +560,20 @@ class Movement:
                     revmoves.append(currpos)
                     # logger.debug(":vnav: adding remarkable point: %d %s (%d)" % (k, currpos.getProp(FEATPROP.MARK), len(revmoves)))
                     #
-                    # @todo:
-                    # we assume start of star is where holding occurs
-                    # Add holding pattern
+                    # @todo: We assume start of star is where holding occurs
                     self.holdingpoint = fc[k].id
-                    logger.debug(":vnav: holding at : %s" % (self.holdingpoint))
+                    logger.debug(":vnav: searching for holding fix at %s" % (self.holdingpoint))
                     holds = self.airport.airspace.findHolds(self.holdingpoint)
                     if len(holds) > 0:
                         holding = holds[0]  # keep fist one
-                        logger.debug(":vnav: found hold at : %s (%d found) <<<<<<<<<<<<<<<<<<<<<<" % (holding.fix.id, len(holds)))
+                        logger.debug(":vnav: found holding fix at %s (%d found), adding pattern.." % (holding.fix.id, len(holds)))
                         hold_pts = holding.getRoute(actype.getSI(ACPERF.approach_speed))
+                        # !!! since the pattern is added to revmoves (which is reversed!)
+                        # we need to reverse the pattern before adding it.
+                        # it will be inversed again (back to its original sequence)
+                        # at revmoves.reverse().
+                        hold_pts.reverse()
+                        holdidx = len(hold_pts)
                         for hp in hold_pts:
                             p = MovePoint(geometry=hp["geometry"], properties=hp["properties"])
                             p.setAltitude(alt+STAR_ALT)
@@ -574,8 +582,10 @@ class Movement:
                             p.setColor(POSITION_COLOR.HOLDING.value)
                             p.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.HOLDING.value)
                             p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
+                            p.setProp("holding-pattern-idx", holdidx)
+                            holdidx = holdidx - 1
                             revmoves.append(p)
-                        logger.debug(":vnav: hold added (%d)" % (len(hold_pts)))
+                        logger.debug(":vnav: .. done (%d points added)" % (len(hold_pts)))
 
                     fcidx = k
 
@@ -696,7 +706,7 @@ class Movement:
             return 120 * speed / (2 * pi)
 
         self.moves_st = []
-        last_speed = 100
+        last_speed = 100  # @todo: should fetch another reasonable value from aircraft performance.
         # Add first point
         self.moves_st.append(self.moves[0])
 
@@ -719,10 +729,6 @@ class Movement:
         # Add last point too
         self.moves_st.append(self.moves[-1])
         return (True, "Movement::standard_turns added")
-
-
-    def taxi(self):
-        return (False, "Movement::taxi not implemented")
 
 
     def interpolate(self):
@@ -783,6 +789,10 @@ class Movement:
         return (True, "Movement::time computed")
 
 
+    def taxi(self):
+        return (False, "Movement::taxi done")
+
+
     def taxiInterpolateAndTime(self):
         """
         Time 0 is start of pushback (Departure) or end of roll out (Arrival).
@@ -805,7 +815,46 @@ class Movement:
 
         logger.debug(":taxiInterpolateAndTime: .. done.")
 
-        return (True, "Movement::taxiInterpolateAndTime not implemented")
+        return (True, "Movement::taxiInterpolateAndTime done")
+
+
+    def add_tmo(self):
+        # We add a TMO point (Ten (nautical) Miles Out). Should be set before we interpolate.
+        TMO = 10 * NAUTICAL_MILE  # km
+        idx = len(self.moves_st)
+        totald = 0
+        prev = 0
+        while totald < TMO and idx > 1:
+            idx = idx - 1
+            d = distance(self.moves_st[idx], self.moves_st[idx-1])
+            prev = totald
+            totald = totald + d
+            # logger.debug("add_tmo: %d: d=%f, t=%f" % (idx, d, totald))
+        # idx points at
+        left = TMO - prev
+        # logger.debug("add_tmo: %d: left=%f, TMO=%f" % (idx, left, TMO))
+        brng = bearing(self.moves_st[idx], self.moves_st[idx - 1])
+        tmopt = destination(self.moves_st[idx], left, brng, {"units": "km"})
+
+        tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
+        tmomp.setProp(FEATPROP.MARK.value, "TMO")
+
+        d = distance(tmomp, self.moves_st[-1])
+
+        self.moves_st.insert(idx, tmomp)
+        logger.debug(":add_tmo: added at ~%f km, ~%f nm from touch down" % (d, d / NAUTICAL_MILE))
+
+        return (True, "Movement::add_tmo added")
+
+
+    def addDelay(self, name: str, seconds: int):
+        farr = findFeatures(self.moves_st, {FEATPROP.MARK.value: name})
+        if len(farr) == 0:
+            logger.warning(":addDelay: feature mark %s not found" % name)
+            return
+        ## assume at most one...
+        f = farr[0]
+        f.setProp(FEATPROP.DELAY.value, seconds)
 
 
 class ArrivalMove(Movement):
@@ -820,6 +869,7 @@ class ArrivalMove(Movement):
         """
         Compute taxi path for arrival, from roll out position, to runway exit to parking.
         """
+        show_pos = False
         fc = []
 
         endrolloutpos = MovePoint(geometry=self.end_rollout["geometry"], properties=self.end_rollout["properties"])
@@ -834,7 +884,8 @@ class ArrivalMove(Movement):
         rwy_exit = self.airport.closest_runway_exit(rwy.name, landing_distance)
 
         taxi_start = self.airport.taxiways.nearest_point_on_edge(rwy_exit)
-        logger.debug(":taxi: taxi start: %s" % taxi_start)
+        if show_pos:
+            logger.debug(":taxi: taxi start: %s" % taxi_start)
         if taxi_start[0] is None:
             logger.warning(":taxi: could not find taxi start")
         taxistartpos = MovePoint(geometry=taxi_start[0]["geometry"], properties=taxi_start[0]["properties"])
@@ -844,7 +895,8 @@ class ArrivalMove(Movement):
         fc.append(taxistartpos)
 
         taxistart_vtx = self.airport.taxiways.nearest_vertex(taxi_start[0])
-        logger.debug(":taxi: taxi start vtx: %s" % taxistart_vtx)
+        if show_pos:
+            logger.debug(":taxi: taxi start vtx: %s" % taxistart_vtx)
         if taxistart_vtx[0] is None:
             logger.warning(":taxi: could not find taxi start vertex")
         taxistartpos = MovePoint(geometry=taxistart_vtx[0]["geometry"], properties=taxistart_vtx[0]["properties"])
@@ -854,10 +906,12 @@ class ArrivalMove(Movement):
         fc.append(taxistartpos)
 
         parking = self.flight.ramp
-        logger.debug(":taxi: parking: %s" % parking)
+        if show_pos:
+            logger.debug(":taxi: parking: %s" % parking)
         # we call the move from packing position to taxiway network the "parking entry"
         parking_entry = self.airport.taxiways.nearest_point_on_edge(parking)
-        logger.debug(":taxi: parking_entry: %s" % parking_entry[0])
+        if show_pos:
+            logger.debug(":taxi: parking_entry: %s" % parking_entry[0])
 
         if parking_entry[0] is None:
             logger.warning(":taxi: could not find parking entry")
@@ -865,18 +919,18 @@ class ArrivalMove(Movement):
         parkingentry_vtx = self.airport.taxiways.nearest_vertex(parking_entry[0])
         if parkingentry_vtx[0] is None:
             logger.warning(":taxi: could not find parking entry vertex")
-        logger.debug(":taxi: parkingentry_vtx: %s " % parkingentry_vtx[0])
+        if show_pos:
+            logger.debug(":taxi: parkingentry_vtx: %s " % parkingentry_vtx[0])
 
+        # Should use Route()
         taxi_ride = self.airport.taxiways.AStar(taxistart_vtx[0].id, parkingentry_vtx[0].id)
         logger.debug(":taxi: taxi_ride: %s -> %s: %s" % (taxistart_vtx[0].id, parkingentry_vtx[0].id, taxi_ride))
 
-        dummy = self.airport.taxiways.AStar(parkingentry_vtx[0].id, taxistart_vtx[0].id)
-        logger.debug(":taxi: taxi_ride inverted: %s -> %s: %s" % (taxistart_vtx[0].id, parkingentry_vtx[0].id, dummy))
-
-        if taxi_ride is None and dummy is not None:
-            logger.debug(":taxi: using taxi_ride inverted")
-            taxi_ride = dummy
-            taxi_ride.reverse()
+        if taxi_ride is None:
+            taxi_ride = self.airport.taxiways.AStar(taxistart_vtx[0].id, parkingentry_vtx[0].id)
+            if taxi_ride is not None:
+                taxi_ride.reverse()
+                logger.debug(":taxi: taxi_ride inverted: %s -> %s: %s" % (taxistart_vtx[0].id, parkingentry_vtx[0].id, taxi_ride))
 
         if taxi_ride is not None:
             for vid in taxi_ride:
@@ -921,6 +975,7 @@ class DepartureMove(Movement):
         """
         Compute taxi path for departure, from parking to take-off hold location.
         """
+        show_pos = False
         fc = []
 
         parking = self.airport.ramps[self.flight.ramp]
@@ -933,7 +988,8 @@ class DepartureMove(Movement):
 
         # we call the move from packing position to taxiway network the "pushback"
         pushback_end = self.airport.taxiways.nearest_point_on_edge(parking)
-        logger.debug(":taxi: pushback_end: %s" % pushback_end[0])
+        if show_pos:
+            logger.debug(":taxi: pushback_end: %s" % pushback_end[0])
         if pushback_end[0] is None:
             logger.warning(":taxi: could not find pushback end")
 
@@ -944,7 +1000,8 @@ class DepartureMove(Movement):
         fc.append(pushbackpos)
 
         pushback_vtx = self.airport.taxiways.nearest_vertex(pushback_end[0])
-        logger.debug(":taxi: pushback_vtx: %s" % pushback_vtx[0])
+        if show_pos:
+            logger.debug(":taxi: pushback_vtx: %s" % pushback_vtx[0])
         if pushback_vtx[0] is None:
             logger.warning(":taxi: could not find pushback end vertex")
 
@@ -957,25 +1014,26 @@ class DepartureMove(Movement):
 
             queuepnt = self.airport.queue_point(rwy.name, 0)
             queuerwy = self.airport.taxiways.nearest_point_on_edge(queuepnt)
-            logger.debug(":taxi: start of queue point: %s" % queuerwy[0])
+            if show_pos:
+                logger.debug(":taxi: start of queue point: %s" % queuerwy[0])
             if queuerwy[0] is None:
                 logger.warning(":taxi: could not find start of queue point")
 
             queuerwy_vtx = self.airport.taxiways.nearest_vertex(queuerwy[0])
-            logger.debug(":taxi: queuerwy_vtx %s" % queuerwy_vtx[0])
+            if show_pos:
+                logger.debug(":taxi: queuerwy_vtx %s" % queuerwy_vtx[0])
             if queuerwy_vtx[0] is None:
                 logger.warning(":taxi: could not find start of queue vertex")
 
+            # Should use Route()
             taxi_ride = self.airport.taxiways.AStar(pushback_vtx[0].id, queuerwy_vtx[0].id)
             logger.debug(":taxi: taxi_ride: %s -> %s: %s" % (pushback_vtx[0].id, queuerwy_vtx[0].id, taxi_ride))
 
-            dummy = self.airport.taxiways.AStar(queuerwy_vtx[0].id, pushback_vtx[0].id)
-            logger.debug(":taxi: taxi_ride inverted: %s -> %s: %s" % (queuerwy_vtx[0].id, pushback_vtx[0].id, dummy))
-
-            if taxi_ride is None and dummy is not None:
-                logger.debug(":taxi: using taxi_ride inverted")
-                taxi_ride = dummy
-                taxi_ride.reverse()
+            if taxi_ride is None:
+                taxi_ride = self.airport.taxiways.AStar(queuerwy_vtx[0].id, pushback_vtx[0].id)
+                if taxi_ride is not None:
+                    taxi_ride.reverse()
+                    logger.debug(":taxi: taxi_ride inverted: %s -> %s: %s" % (queuerwy_vtx[0].id, pushback_vtx[0].id, taxi_ride))
 
             if taxi_ride is not None:
                 for vid in taxi_ride:
