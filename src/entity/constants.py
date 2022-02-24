@@ -260,6 +260,7 @@ class FEATPROP(Enum):
     VSPEED = "vspeed"
     VERTICAL_SPEED = "vspeed"
     TIME = "time"
+    DELAY = "delay"  # was pause in emitjs
     FLIGHT_PLAN_INDEX = "fpidx"
     MOVE_INDEX = "mvidx"
 

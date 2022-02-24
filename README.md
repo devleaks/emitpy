@@ -23,5 +23,8 @@ Let AStar algorithm choose fastest arrival/departure route.
 
 Automatic runway exit findings?
 
-
 Better hold entry / exit
+
+Add ACARS messages, OOOI
+
+Add sync message for "TMO" (Ten Miles Out)

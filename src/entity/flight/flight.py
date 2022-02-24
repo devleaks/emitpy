@@ -20,7 +20,9 @@ class Flight:
         self.linked_flight = linked_flight
         self.managedAirport = None
         self.scheduled = scheduled
+        self.estimated = None
         self.actual = None
+        self.schedule_history = None  # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
         self.operator = operator
         self.aircraft = aircraft
         self.ramp = None
@@ -49,7 +51,7 @@ class Flight:
 
     def getId(self) -> str:
         s = datetime.fromisoformat(self.scheduled)
-        return self.operator.iata + self.number + "S" + s.astimezone(tz=timezone.utc).isoformat()
+        return self.operator.iata + self.number + "-S" + s.astimezone(tz=timezone.utc).strftime("%Y%m%d%H%M")
 
 
     def setLinkedFlight(self, linked_flight: 'Flight'):
@@ -95,6 +97,16 @@ class Flight:
 
         if fplen < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
             logger.warning(":loadFlightPlan: flight_plan is too short %d" % fplen)
+
+
+    def setEstimatedTime(self, dt: datetime):
+        self.estimated = dt
+        self.schedule_history.append((datetime.now(), "ET", dt))
+
+
+    def setActualTime(self, dt: datetime):
+        self.actual = dt
+        self.schedule_history.append((datetime.now(), "AT", dt))
 
 
     def plan(self):

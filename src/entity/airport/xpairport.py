@@ -71,13 +71,11 @@ class XPAirport(AirportBase):
         status = super().load()
         if not status[0]:
             return status
-
         logger.debug(":load: ..done. loading complement.. %s" % status)
         status = self.makeAdditionalPOIS()
         if not status[0]:
             return status
         logger.debug(":load: ..done %s" % status)
-
         return [True, ":XPAirport::load loaded"]
 
 
@@ -118,7 +116,7 @@ class XPAirport(AirportBase):
                                         logger.debug(":loadFromFile: did not load empty line '%s'" % line)
                                     line = apt_dat.readline()  # next line in apt.dat
                                 # Info 4.b
-                                logger.info(":loadFromFile: Read %d lines for %s." % (len(self.lines), self.name))
+                                logger.info(":loadFromFile: read %d lines for %s." % (len(self.lines), self.name))
                                 self.loaded = True
 
                         if(line):  # otherwize we reached the end of file

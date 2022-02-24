@@ -10,6 +10,7 @@ from turfpy.measurement import distance, destination
 from ..graph import Vertex, Edge, Graph
 from ..parameters import LOAD_AIRWAYS
 
+
 logger = logging.getLogger("Airspace")
 
 
@@ -272,7 +273,7 @@ class Hold(Restriction):
         self.setSpeedRestriction(speed, speed)
 
 
-    def getRoute(self, speed: float, finesse: int = 8):
+    def getRoute(self, speed: float, finesse: int = 6):
         """
         Make path from Hold data and aircraft speed.
         Returns an array of Feature<Point>
@@ -280,64 +281,56 @@ class Hold(Restriction):
         :param      speed:  The speed
         :type       speed:  float
         """
+        def line_arc(center, radius, start, end, steps=8):
+            arc = []
+            if end < start:
+                end = end + 360
+            step = (end - start) / steps
+            a = start
+            while a < end:
+                p = destination(center, radius, a + 180)
+                arc.append(p)
+                a = a + step
+            return arc
+
+        # leg length
         length = speed * self.leg_time * 60 if self.leg_time > 0 else self.leg_length
         length = length / 1000  # km
         # circle radius:
         radius = length / math.pi
-        step = 180 / finesse
+        # step = 180 / finesse
 
-        turnAngle = self.course - 180
-
-        logger.debug(":Hold:getRoute: spd=%f len=%f rad=%f turn=%s legt=%f legl=%f turnAngle=%f" % (speed, length, radius, self.turn, self.leg_time, self.leg_length, turnAngle))
+        # logger.debug(":Hold:getRoute: spd=%f len=%f rad=%f turn=%s legt=%f legl=%f" % (speed, length, radius, self.turn, self.leg_time, self.leg_length))
 
         # 4 corners and 2 arc centers p1 -> p2 -> p3 -> p4 -> p1
         p1 = self.fix
         p2 = destination(p1, length, self.course, {"units": "km"})
 
-        hold = [p1, p2]
+        hold = [p1, p2]  # start from p1, to to p2, then 180 turn:
 
         perpendicular = self.course + 90 * (1 if self.turn == "R" else -1)
         c23 = destination(p2, radius, perpendicular, {"units": "km"})
-        curr = perpendicular - 180
-        arc = []
-        # ugly but works, if first point is further away, it is ok
-        tst = destination(c23, radius, curr + step, {"units": "km"})
-        ts = distance(p1, tst)
-        rev = 180 if ts < length else 0
-        for i in range(0, finesse - 1):
-            curr = curr + step
-            p = destination(c23, radius, curr + rev, {"units": "km"})
-            arc.append(p)
 
-        # ugly but works, if first point is closer, no need to reverse...
-        ds = distance(p2, arc[0])
-        de = distance(p2, arc[-1])
-        if de < ds:  # reverse coordinates order
+        logger.debug(":Hold:getRoute: fix:%s turn=%s course=%f perp=%f" % (self.fix.id, self.turn, self.course, perpendicular))
+
+        start_angle = perpendicular
+        if self.turn == "L":
+            start_angle = start_angle - 180
+
+        arc = line_arc(c23, radius, start_angle, start_angle + 180, finesse)
+        if self.turn == "L":
             arc.reverse()
-
         hold = hold + arc
 
         p3 = destination(p2, 2*radius, perpendicular, {"units": "km"})
-        p4 = destination(p1, 2*radius, perpendicular, {"units": "km"})
         hold.append(p3)
+        p4 = destination(p1, 2*radius, perpendicular, {"units": "km"})
         hold.append(p4)
 
         c41 = destination(p1, radius, perpendicular, {"units": "km"})
-        curr = perpendicular
-        arc = []
-        tst = destination(c41, radius, curr + step, {"units": "km"})
-        ts = distance(p3, tst)
-        rev = 180 if ts < length else 0
-        for i in range(0, finesse - 1):
-            curr = curr + step
-            p = destination(c41, radius, curr)
-            arc.append(p)
-
-        ds = distance(p4, arc[0])
-        de = distance(p4, arc[-1])
-        if de < ds:  # reverse coordinates order
+        arc = line_arc(c41, radius, start_angle + 180, start_angle + 360, finesse)
+        if self.turn == "L":
             arc.reverse()
-
         hold = hold + arc
 
         return hold

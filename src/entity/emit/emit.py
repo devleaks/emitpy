@@ -26,8 +26,6 @@ class EmitPoint(FeatureWithProps):
     """
     def __init__(self, geometry: Union[Point, LineString], properties: dict):
         FeatureWithProps.__init__(self, geometry=geometry, properties=properties)
-        self._speed = None
-        self._vspeed = None
 
 
 class Emit:
@@ -59,17 +57,15 @@ class Emit:
 
 
     def load(self):
+        # load output of Movement file.
         pass
 
 
     def emit(self):
-
         # Utility subfunctions
-
         def point_on_line(c, n, d):
             brng = bearing(c, n)
             return destination(c, d / 1000, brng, {"units": "km"})
-
 
         def time_distance_to_next_vtx(c0, idx):  # time it takes to go from c0 to vtx[idx+1]
             totald = distance(self.moves[idx], self.moves[idx+1]) * 1000  # km
@@ -93,7 +89,6 @@ class Emit:
             # logger.debug(":time_distance_to_next_vtx: (%d, tot=%f, done=%f, v=%f, v0=%f, v1=%f, t=%f)" % (idx, totald, partiald, v, v0, v1, t))
             return t
 
-
         def destinationOnTrack(c0, duration, idx):  # from c0, moves duration seconds on edges at speed specified at vertices
             totald = distance(self.moves[idx], self.moves[idx+1]) * 1000  # km
             if totald == 0:  # same point...
@@ -116,7 +111,6 @@ class Emit:
             # return nextpos
             return point_on_line(currpos, self.moves[idx+1], dist)
 
-
         def broadcast(idx, pos, time, reason, waypt=False):
             e = EmitPoint(geometry=pos["geometry"], properties=pos["properties"])
             e.setProp("broadcast_relative_time", time)
@@ -129,9 +123,13 @@ class Emit:
                 #logger.debug(":broadcast: %s (%d, %f (%s))" % (reason, idx, time, timedelta(seconds=time)))
             self.broadcast.append(e)
 
-
         # collect common props from flight
+        # if self.move.flight:
+        #   props = props + self.move.flight.getEmitData()
         # collect common props from aircraft
+        # if self.move.flight.aircraft:  # may be added by above function?
+        #   props = props + self.move.flight.aircraft.getEmitData()
+        # alt, speed, and vspeed info will be added here.
 
         # build emission points
         total_dist = 0   # sum of distances between emissions
