@@ -160,9 +160,9 @@ def main():
     am.make()
     am.save()
 
-    # ae = Emit(am)
-    # ae.emit()
-    # ae.save()
+    ae = Emit(am)
+    ae.emit()
+    ae.save()
     # f = ae.get("TOUCH_DOWN", datetime.now())
 
     # metar may change between the two

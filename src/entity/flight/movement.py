@@ -432,7 +432,7 @@ class Movement:
             currpos.setSpeed(TAXI_SPEED)
             currpos.setVSpeed(0)
             currpos.setColor(POSITION_COLOR.ROLL_OUT.value)
-            currpos.setProp(FEATPROP.MARK.value, "end_rollout")
+            currpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.END_ROLLOUT.value)
             currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, 0)
             revmoves.append(currpos)
             logger.debug(":vnav: stopped at %s, %f, %f" % (rwy.name, rollout_distance, alt))
@@ -562,30 +562,32 @@ class Movement:
                     #
                     # @todo: We assume start of star is where holding occurs
                     self.holdingpoint = fc[k].id
-                    logger.debug(":vnav: searching for holding fix at %s" % (self.holdingpoint))
-                    holds = self.airport.airspace.findHolds(self.holdingpoint)
-                    if len(holds) > 0:
-                        holding = holds[0]  # keep fist one
-                        logger.debug(":vnav: found holding fix at %s (%d found), adding pattern.." % (holding.fix.id, len(holds)))
-                        hold_pts = holding.getRoute(actype.getSI(ACPERF.approach_speed))
-                        # !!! since the pattern is added to revmoves (which is reversed!)
-                        # we need to reverse the pattern before adding it.
-                        # it will be inversed again (back to its original sequence)
-                        # at revmoves.reverse().
-                        hold_pts.reverse()
-                        holdidx = len(hold_pts)
-                        for hp in hold_pts:
-                            p = MovePoint(geometry=hp["geometry"], properties=hp["properties"])
-                            p.setAltitude(alt+STAR_ALT)
-                            p.setSpeed(actype.getSI(ACPERF.approach_speed))
-                            p.setVSpeed(0)
-                            p.setColor(POSITION_COLOR.HOLDING.value)
-                            p.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.HOLDING.value)
-                            p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
-                            p.setProp("holding-pattern-idx", holdidx)
-                            holdidx = holdidx - 1
-                            revmoves.append(p)
-                        logger.debug(":vnav: .. done (%d points added)" % (len(hold_pts)))
+                    # logger.debug(":vnav: searching for holding fix at %s" % (self.holdingpoint))
+                    # holds = self.airport.airspace.findHolds(self.holdingpoint)
+                    # if len(holds) > 0:
+                    #     holding = holds[0]  # keep fist one
+                    #     logger.debug(":vnav: found holding fix at %s (%d found), adding pattern.." % (holding.fix.id, len(holds)))
+                    #     hold_pts = holding.getRoute(actype.getSI(ACPERF.approach_speed))
+                    #     # !!! since the pattern is added to revmoves (which is reversed!)
+                    #     # we need to reverse the pattern before adding it.
+                    #     # it will be inversed again (back to its original sequence)
+                    #     # at revmoves.reverse().
+                    #     hold_pts.reverse()
+                    #     holdidx = len(hold_pts)
+                    #     for hp in hold_pts:
+                    #         p = MovePoint(geometry=hp["geometry"], properties=hp["properties"])
+                    #         p.setAltitude(alt+STAR_ALT)
+                    #         p.setSpeed(actype.getSI(ACPERF.approach_speed))
+                    #         p.setVSpeed(0)
+                    #         p.setColor(POSITION_COLOR.HOLDING.value)
+                    #         p.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.HOLDING.value)
+                    #         p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
+                    #         p.setProp("holding-pattern-idx", holdidx)
+                    #         holdidx = holdidx - 1
+                    #         revmoves.append(p)
+                    #     logger.debug(":vnav: .. done (%d points added)" % (len(hold_pts)))
+                    # else:
+                    #     logger.debug(":vnav: holding fix %s not found" % (self.holdingpoint))
 
                     fcidx = k
 
@@ -711,23 +713,30 @@ class Movement:
         self.moves_st.append(self.moves[0])
 
         for i in range(1, len(self.moves) - 1):
-            li = LineString([self.moves[i-1]["geometry"]["coordinates"], self.moves[i]["geometry"]["coordinates"]])
-            lo = LineString([self.moves[i]["geometry"]["coordinates"], self.moves[i+1]["geometry"]["coordinates"]])
-            s = last_speed  # arrin[i].speed()
-            if s is None:
-                s = last_speed
-            arc = standard_turn_flyby(li, lo, turnRadius(s))
-            last_speed = s
-
-            if arc is not None:
-                mid = arc[int(len(arc) / 2)]
-                mid["properties"] = self.moves[i]["properties"]
-                for p in arc:
-                    self.moves_st.append(MovePoint(geometry=p["geometry"], properties=mid["properties"]))
-            else:
+            mark = self.moves[i].getProp(FEATPROP.MARK.value)
+            if mark in [FLIGHT_PHASE.TOUCH_DOWN.value, FLIGHT_PHASE.END_ROLLOUT.value]:
+                logger.debug(":standard_turns: skipping %s" % (mark))
                 self.moves_st.append(self.moves[i])
+            else:
+                li = LineString([self.moves[i-1]["geometry"]["coordinates"], self.moves[i]["geometry"]["coordinates"]])
+                lo = LineString([self.moves[i]["geometry"]["coordinates"], self.moves[i+1]["geometry"]["coordinates"]])
+                s = last_speed  # arrin[i].speed()
+                if s is None:
+                    s = last_speed
+                arc = standard_turn_flyby(li, lo, turnRadius(s))
+                last_speed = s
+
+                if arc is not None:
+                    mid = arc[int(len(arc) / 2)]
+                    mid["properties"] = self.moves[i]["properties"]
+                    for p in arc:
+                        self.moves_st.append(MovePoint(geometry=p["geometry"], properties=mid["properties"]))
+                else:
+                    self.moves_st.append(self.moves[i])
+
         # Add last point too
         self.moves_st.append(self.moves[-1])
+        logger.debug(":standard_turns: completed %d, %d" % (len(self.moves), len(self.moves_st)))
         return (True, "Movement::standard_turns added")
 
 
@@ -740,15 +749,16 @@ class Movement:
         to_interp = self.moves_st
         # before = []
 
+        logger.debug(":interpolate: interpolating ..")
         for name in ["speed", "vspeed", "altitude"]:
-            logger.debug(":interpolate: interpolate %s .." % (name))
+            logger.debug(":interpolate: .. %s .." % (name))
             # before = list(map(lambda x: x.getProp(name), to_interp))
             status = doInterpolation(to_interp, name)
             if not status[0]:
                 logger.warning(status[1])
         logger.debug(":interpolate: .. done.")
 
-        logger.debug(":interpolate: checking and transposing altitudes..")
+        logger.debug(":interpolate: checking and transposing altitudes to geojson coordinates..")
         for f in to_interp:
             if len(f["geometry"]["coordinates"]) == 2:
                 a = f.altitude()
@@ -821,7 +831,7 @@ class Movement:
     def add_tmo(self):
         # We add a TMO point (Ten (nautical) Miles Out). Should be set before we interpolate.
         TMO = 10 * NAUTICAL_MILE  # km
-        idx = len(self.moves_st)
+        idx = len(self.moves_st) - 1  # last is end of roll, before last is touch down.
         totald = 0
         prev = 0
         while totald < TMO and idx > 1:
@@ -839,7 +849,7 @@ class Movement:
         tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
         tmomp.setProp(FEATPROP.MARK.value, "TMO")
 
-        d = distance(tmomp, self.moves_st[-1])
+        d = distance(tmomp, self.moves_st[-2])  # last is end of roll, before last is touch down.
 
         self.moves_st.insert(idx, tmomp)
         logger.debug(":add_tmo: added at ~%f km, ~%f nm from touch down" % (d, d / NAUTICAL_MILE))

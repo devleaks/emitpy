@@ -61,7 +61,7 @@ class Emit:
         pass
 
 
-    def emit(self):
+    def emit(self, frequency: int = 30):
         # Utility subfunctions
         def point_on_line(c, n, d):
             brng = bearing(c, n)
@@ -133,7 +133,7 @@ class Emit:
 
         # build emission points
         total_dist = 0   # sum of distances between emissions
-        total_dist2 = 0  # sum of distances between vertices
+        total_dist_vtx = 0  # sum of distances between vertices
         total_time = 0   # sum of times between emissions
 
         curridx = 0
@@ -211,8 +211,8 @@ class Emit:
                     # logger.debug(".. done jumping to next vertex. %f sec left before next emit" % (time_to_next_emit))
 
             controld = distance(self.moves[curridx], next_vtx) * 1000  # km
-            total_dist2 = total_dist2 + controld  # sum of distances between vertices
-            #logger.debug(":emit: END> %d: %f sec , %f m / %f m" % (curridx, round(total_time, 2), round(total_dist/1000,3), round(total_dist2/1000, 3)))
+            total_dist_vtx = total_dist_vtx + controld  # sum of distances between vertices
+            #logger.debug(":emit: END> %d: %f sec , %f m / %f m" % (curridx, round(total_time, 2), round(total_dist/1000,3), round(total_dist_vtx/1000, 3)))
             curridx = curridx + 1
 
         # transfert common data to each emit point for emission
@@ -221,8 +221,8 @@ class Emit:
             for f in self.broadcast:
                 f.addProps(self.props)
 
-        # logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist2/1000, 3), len(self.moves), len(self.broadcast)))
-        logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist2/1000, 3), len(self.moves), len(self.broadcast)))
+        # logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self.broadcast)))
+        logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self.broadcast)))
 
         #printFeatures(self.broadcast, "broadcast")
         return (True, "Emit::emit completed")
