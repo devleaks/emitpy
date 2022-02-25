@@ -57,6 +57,14 @@ class Flight:
         return self.operator.iata + " " + self.number + " " + self.scheduled_dt.strftime("%H:%M")
 
 
+    def is_arrival(self) -> bool:
+        return self.arrival.icao == self.managedAirport.icao
+
+
+    def is_departure(self) -> bool:
+        return self.departure.icao == self.managedAirport.icao
+
+
     def setLinkedFlight(self, linked_flight: 'Flight'):
         self.linked_flight = linked_flight
         logger.debug(":setLinkedFlight: %s linked to %s" % (self.getId(), linked_flight.getId()))
@@ -107,11 +115,11 @@ class Flight:
             logger.warning(":loadFlightPlan: flight_plan is too short %d" % fplen)
 
 
-    def trimFlightPlan(self):
+    def toAirspace(self):
         fpcp = self.flightplan.toAirspace(self.managedAirport.airspace)
         if fpcp[1] > 0:
-            logger.warning(":trimFlightPlan: unidentified %d waypoints" % fpcp[1])
-        logger.debug(":trimFlightPlan: identified %d waypoints, first=%s" % (len(fpcp[0]), fpcp[0][0]))
+            logger.warning(":toAirspace: unidentified %d waypoints" % fpcp[1])
+        logger.debug(":toAirspace: identified %d waypoints" % (len(fpcp[0])))
         return fpcp[0]
 
 
@@ -126,35 +134,26 @@ class Flight:
 
 
     def plan(self):
-        #
-        # LNAV DEPARTURE TO ARRIVAL
-        #
         if self.flightplan is None:
             self.loadFlightPlan()
-        normplan = self.trimFlightPlan()
+        normplan = self.toAirspace()
         planpts = []
 
         # ###########################
         # DEPARTURE AND CRUISE
         #
         depapt = self.departure
+        rwydep = None
 
         # RWY
         if depapt.has_rwys():
             rwydep = depapt.selectRunway(self)
-            if rwydep is not None:
-                if self.managedAirport.icao == depapt.icao:
-                    self.setRunway(rwydep)
-                ret = rwydep.getRoute()
-                logger.debug(":plan: departure airport %s using runway %s" % (depapt.icao, rwydep.name))
-                planpts = rwydep.getRoute()
-                planpts[0].setProp("_plan_segment_type", "origin/rwy")
-                planpts[0].setProp("_plan_segment_name", depapt.icao+"/"+rwydep.name)
-            else:  # no runway, we leave from airport
-                logger.warning(":plan: departure airport %s has no runway, first point is departure airport" % (rwydep.icao))
-                planpts = depapt
-                planpts[0].setProp("_plan_segment_type", "origin")
-                planpts[0].setProp("_plan_segment_name", depapt.icao)
+            logger.debug(":plan: departure airport %s using runway %s" % (depapt.icao, rwydep.name))
+            if self.is_departure():
+                self.setRunway(rwydep)
+            planpts = rwydep.getRoute()
+            planpts[0].setProp("_plan_segment_type", "origin/rwy")
+            planpts[0].setProp("_plan_segment_name", depapt.icao+"/"+rwydep.name)
         else:  # no runway, we leave from airport
             logger.warning(":plan: departure airport %s has no runway, first point is departure airport" % (rwydep.icao))
             planpts = depapt
@@ -181,22 +180,23 @@ class Flight:
 
         else:  # no sid, we go straight
             logger.debug(":plan: departure airport %s has no procedure, flying straight" % depapt.icao)
-            cruise = normplan[1:]  # remove departure airport and leave cruise
-            Flight.setProp(cruise, "_plan_segment_type", "cruise")
-            Flight.setProp(cruise, "_plan_segment_name", depapt.icao+"-"+self.arrival.icao)
-            planpts = planpts + cruise
+            ret = normplan[1:]  # remove departure airport and leave cruise
+            Flight.setProp(ret, "_plan_segment_type", "cruise")
+            Flight.setProp(ret, "_plan_segment_name", depapt.icao+"-"+self.arrival.icao)
+            planpts = planpts + ret
 
         # ###########################
         # ARRIVAL
         #
         arrapt = self.arrival
+        rwyarr = None
 
         # RWY
         if arrapt.has_rwys():
             rwyarr = arrapt.selectRunway(self)
-            if self.managedAirport.icao == arrapt.icao:
-                self.setRunway(rwyarr)
             logger.debug(":plan: arrival airport %s using runway %s" % (arrapt.icao, rwyarr.name))
+            if self.is_arrival():
+                self.setRunway(rwyarr)
             ret = rwyarr.getRoute()
             Flight.setProp(ret, "_plan_segment_type", "rwy")
             Flight.setProp(ret, "_plan_segment_name", rwyarr.name)
@@ -236,10 +236,6 @@ class Flight:
                 logger.warning(":plan: arrival airport %s has no APPCH for %s " % (arrapt.icao, rwyarr.name))
         else:
             logger.warning(":plan: arrival airport %s has no APPCH" % (arrapt.icao))
-
-        #
-        # END LNAV
-        # ###########################
 
         self.flightplan_cp = planpts
         # printFeatures(self.flightplan_cp, "plan")

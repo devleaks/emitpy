@@ -270,7 +270,7 @@ class AirportBase(Airport):
             rwy = random.choice(list(self.rops.keys()))
             return self.procedures.RWYS[rwy]
 
-        logger.warning(":getRunway: no qfu")
+        logger.warning(":getRunway: no METAR data")
         rwy = random.choice(list(self.procedures.RWYS.keys()))  ## formally random.choice(list(self.procedures.RWYS)) is faster
         return self.procedures.RWYS[rwy]
 
