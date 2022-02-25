@@ -60,6 +60,7 @@ def jitter(point: Point, r: float = 0):
 
 
 def moveOn(arr, idx, currpos, dist):
+    # move on dist (meters) on linestring from currpos (which is between idx and idx+1)
     # are we at the end of the line string?
     if idx == len(arr) - 1:
         logger.debug(":moveOn: arrived")
