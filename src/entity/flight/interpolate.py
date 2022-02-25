@@ -92,7 +92,7 @@ def time(wpts):
         currpos = nextpos
 
     # only show values of last iteration (can be moved inside loop)
-    logger.debug(":time: %3d: %10.3fm at %5.1fm/s = %6.1fs, total=%s" % (idx, d, currpos.speed(), t, timedelta(seconds=elapsed)))
+    # logger.debug(":time: %3d: %10.3fm at %5.1fm/s = %6.1fs, total=%s" % (idx, d, currpos.speed(), t, timedelta(seconds=elapsed)))
 
     return (True, ":time: computed")
 

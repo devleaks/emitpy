@@ -126,11 +126,12 @@ def main():
     logger.debug("..done")
 
 
-    logger.debug("*" * 30)
-    logger.info("****** (%s, %dnm) %s-%s %s-%s (%s, %dnm) ** %s at FL%d" % (
+    logger.debug("*" * 70)
+    logger.info("*** (%s, %dnm) %s-%s %s-%s (%s, %dnm) AC %s at FL%d" % (
                 origin_apt["properties"]["city"], arrrange/NAUTICAL_MILE, origin_apt.iata, MANAGED_AIRPORT["IATA"],
                 MANAGED_AIRPORT["IATA"], destination_apt.iata, destination_apt["properties"]["city"], deprange/NAUTICAL_MILE,
                 acperf.typeId, reqfl))
+    logger.debug("*" * 70)
 
     logger.debug("creating arrival..")
     arr = Arrival(operator=airline, number="196", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=origin_apt, aircraft=aircraft)
@@ -155,7 +156,7 @@ def main():
     dep.plan()
     logger.debug("..done")
 
-    logger.debug("flying..")
+    logger.debug("flying in..")
     am = Movement.create(arr, managed)
     am.make()
     am.save()
@@ -165,6 +166,7 @@ def main():
     ae.save()
     # f = ae.get("TOUCH_DOWN", datetime.now())
 
+    logger.debug("..flying out..")
     # metar may change between the two
     # managed.setMETAR(metar=metar)  # calls prepareRunways()
     dm = Movement.create(dep, managed)
@@ -177,6 +179,6 @@ def main():
 
     # f = ae.get("TAKE_OFF", datetime.now())
 
-    logger.debug("..done")
+    logger.debug("..gone")
 
 main()
