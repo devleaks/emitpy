@@ -14,7 +14,7 @@ from turfpy.measurement import distance, bearing, destination
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures
 
 from ..constants import FLIGHT_DATABASE, SLOW_SPEED
-from ..parameters import DATA_DIR
+from ..parameters import AODB_DIR
 
 logger = logging.getLogger("Emit")
 
@@ -32,32 +32,46 @@ class Emit:
     """
     Emit takes an array of MovePoints to produce a FeatureCollection of decorated features ready for emission.
     """
-    def __init__(self, move: 'Movement', frequency: int = 30):
+    def __init__(self, move: 'Movement' = None):
         self.move = move
-        self.frequency = frequency  # seconds
+        self.moves = None
+        self.frequency = 30  # seconds
         self.broadcast = []  # [ EmitPoint ]
         self.props = {}  # general purpose properties added to each emit point
-
-        self.moves = self.move.moves_st
+        if move is not None:
+            self.moves = self.move.moves_st
 
 
     def save(self):
         """
         Save flight paths to file for emitted positions.
         """
-        basename = os.path.join(DATA_DIR, "_DB", FLIGHT_DATABASE, self.move.flight_id)
+        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.move.flight_id)
 
         filename = os.path.join(basename + "-emit.json")
         with open(filename, "w") as fp:
-            json.dump(self.moves, fp, indent=4)
+            json.dump(self.broadcast, fp, indent=4)
 
         filename = os.path.join(basename + "-emit.geojson")
         with open(filename, "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self.moves)), fp, indent=4)
+            json.dump(FeatureCollection(features=cleanFeatures(self.broadcast)), fp, indent=4)
 
 
-    def load(self):
+    def load(self, flight_id):
         # load output of Movement file.
+        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, flight_id)
+
+        filename = os.path.join(basename, "-move.json")
+        if os.path.exists(filename):
+            with open(filename, "r") as fp:
+                self.moves = json.load(fp)
+            logger.debug(":loadAll: loaded %d " % self.flight_id)
+            return (True, "Movement::load loaded")
+
+        logger.debug(":loadAll: cannot find %s" % filename)
+        return (False, "Movement::load not loaded")
+
+
         pass
 
 
@@ -114,6 +128,7 @@ class Emit:
         def broadcast(idx, pos, time, reason, waypt=False):
             e = EmitPoint(geometry=pos["geometry"], properties=pos["properties"])
             e.setProp("broadcast_relative_time", time)
+            e.setProp("broadcast_index", len(self.broadcast))
             e.setProp("broadcast", not waypt)
             if waypt:
                 e.setColor("#eeeeee")
@@ -130,6 +145,8 @@ class Emit:
         # if self.move.flight.aircraft:  # may be added by above function?
         #   props = props + self.move.flight.aircraft.getEmitData()
         # alt, speed, and vspeed info will be added here.
+
+        self.frequency = frequency
 
         # build emission points
         total_dist = 0   # sum of distances between emissions

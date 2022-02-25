@@ -146,14 +146,14 @@ def main():
     arr.plan()
     logger.debug("..done")
 
-    # logger.debug("creating departure..")
-    # dep = Departure(operator=airline, number="195", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=origin_apt, aircraft=aircraft)
-    # dep.setFL(reqfl)
-    # dep.setRamp(ramp)
-    # dep.setGate(gate)
-    # logger.debug("..planning..")
-    # dep.plan()
-    # logger.debug("..done")
+    logger.debug("creating departure..")
+    dep = Departure(operator=airline, number="195", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=destination_apt, aircraft=aircraft)
+    dep.setFL(reqfl)
+    dep.setRamp(ramp)
+    dep.setGate(gate)
+    logger.debug("..planning..")
+    dep.plan()
+    logger.debug("..done")
 
     logger.debug("flying..")
     am = Movement.create(arr, managed)
@@ -161,19 +161,19 @@ def main():
     am.save()
 
     ae = Emit(am)
-    ae.emit()
+    ae.emit(30)
     ae.save()
     # f = ae.get("TOUCH_DOWN", datetime.now())
 
     # metar may change between the two
     # managed.setMETAR(metar=metar)  # calls prepareRunways()
-    # dm = Movement.create(dep, managed)
-    # dm.make()
-    # dm.save()
+    dm = Movement.create(dep, managed)
+    dm.make()
+    dm.save()
 
-    # de = Emit(am)
-    # de.emit()
-    # de.save()
+    de = Emit(dm)
+    de.emit(30)
+    de.save()
 
     # f = ae.get("TAKE_OFF", datetime.now())
 
