@@ -40,6 +40,18 @@ class FeatureWithProps(Feature):
     def __init__(self, geometry: Geometry, properties: dict):
         Feature.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
 
+    def geometry(self):
+        return self["geometry"] if "geometry" in self else None
+
+    def coords(self):
+        return self["geometry"]["coordinates"] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
+
+    def geomtype(self):
+        return self["geometry"]["type"] if (("geometry" in self) and ("type" in self["geometry"])) else None
+
+    def is_type(self, geomtype: str):
+        return geomtype == self.geomtype()
+
     def getProp(self, name: str):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
         if name == FEATPROP.ALTITUDE.value:

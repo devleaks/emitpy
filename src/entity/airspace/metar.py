@@ -52,7 +52,7 @@ class Metar:
             self.raw = metar
             if self.raw is not None:
                 logger.debug(":fetch: %s," % (self.raw.METAR))
-                self.metar = MetarLib.Metar(self.raw.METAR)
+                self.parse(self.raw.METAR)
 
 
     def save(self):
@@ -79,15 +79,7 @@ class Metar:
             with open(fn, "r") as fp:
                 self.raw = json.load(fp)
             if self.raw is not None:
-                parsed = None
-                try:
-                    parsed = MetarLib.Metar(self.raw["METAR"])
-                except MetarLib.ParserError:
-                    logger.debug(":load: METAR did not parse '%s'" % (self.raw["METAR"]))
-                    parsed = None
-
-                if parsed is not None:
-                    self.metar = parsed
+                self.parse(self.raw["METAR"])
             logger.debug(":load: found %s" % (fn))
         else:
             logger.debug(":load: not found %s" % (fn))
@@ -95,3 +87,14 @@ class Metar:
     def get(self):
         return None if self.raw is None else self.raw["METAR"]
 
+
+    def parse(self, metar: str):
+        parsed = None
+        try:
+            parsed = MetarLib.Metar(metar)
+        except MetarLib.ParserError:
+            logger.debug(":load: METAR did not parse '%s'" % (metar))
+            parsed = None
+
+        if parsed is not None:
+            self.metar = parsed
