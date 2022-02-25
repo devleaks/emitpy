@@ -129,16 +129,19 @@ class AircraftPerformance(AircraftType):
 
     @staticmethod
     def findAircraft(reqrange: int, pax: int = 0, load: int = 0):
+        # reqrange in km
         rdiff = inf
         best = None
         for ac in AircraftPerformance._DB_PERF.keys():
             if "cruise_range" in AircraftPerformance._DB_PERF[ac].perfraw:
-                r = int(AircraftPerformance._DB_PERF[ac].perfraw["cruise_range"]) * NAUTICAL_MILE
+                r = int(AircraftPerformance._DB_PERF[ac].perfraw["cruise_range"]) * NAUTICAL_MILE  # km
                 if r > reqrange:
-                    rd = reqrange - r
+                    rd = r - reqrange
+                    # logger.debug(":findAircraft: can use %s: %f (%f)" % (ac, r, rd))
                     if rd < rdiff:
                         rdiff = rd
                         best = ac
+                        # logger.debug(":findAircraft: best %f" % rdiff)
         return AircraftPerformance._DB_PERF[best]
 
 
@@ -317,14 +320,18 @@ class AircraftPerformance(AircraftType):
 
 
     def FLFor(self, reqrange: int):
+        max_ceiling = self.get("max_ceiling")
+        if max_ceiling is None:
+            logger.warning(":FLFor: no max ceiling for: %s" % self.typeId)
+            max_ceiling = 300
         # Set Flight Level for given flight range in km.
         if reqrange < 300:
-            return 200
+            return min(200, max_ceiling)
         if reqrange < 500:
-            return 240
+            return min(240, max_ceiling)
         if reqrange < 1000:
-            return 280
-        return 340
+            return min(280, max_ceiling)
+        return min(340, max_ceiling)
 
 
     def perfs(self):

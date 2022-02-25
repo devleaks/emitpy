@@ -4,6 +4,7 @@ A ProcedurePoint is either a waypoint or just a coordinate with mandatory proper
 """
 import os
 import logging
+import random
 from enum import Enum
 
 from turfpy.measurement import distance, bearing
@@ -272,6 +273,7 @@ class CIFP:
         self.RWYS = {}
         self.loadFromFile()
 
+
     def loadFromFile(self):
         """
         Loads Coded Instrument Flight Procedures
@@ -280,6 +282,10 @@ class CIFP:
         :rtype:     { return_type_description }
         """
         cipf_filename = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data", "CIFP", self.icao + ".dat")
+        if not os.path.exists(cipf_filename):
+            logger.warn("no procedure file for %s" % (self.icao))
+            return
+
         cifp_fp = open(cipf_filename, "r")
         line = cifp_fp.readline()
         prevline = None
@@ -337,7 +343,6 @@ class CIFP:
             #    logger.debug(":CIFP: %s: %s %s" % (procty, procedures[procty][p].runway, p))
 
 
-
     def pairRunways(self):
         if len(self.RWYS) == 2:
             rwk = list(self.RWYS.keys())
@@ -376,8 +381,22 @@ class CIFP:
         return procedure.getRoute(airspace)
 
 
+    def getRunway(self):
+        # Random for now, can use some logic if necessary.
+        rwy = random.choice(list(self.RWYS.keys()))
+        return {rwy: self.RWYS[rwy]}
+
+
+    def getRunways(self):
+        return self.RWYS
+
+
     def getOperationalRunways(self, wind_dir: float):
         # Fucntion should may be move to Procedures: oprationalRunways(windir: float) -> [ RWY ].
+        if wind_dir is None:
+            logger.debug(":getOperationalRunways: no wind direction, using all runways")
+            return self.getRunways()
+
         max1 = wind_dir - 90
         if max1 < 0:
             max1 = max1 + 360

@@ -2,7 +2,7 @@ import logging
 
 from math import pi
 
-from geojson import Point, LineString, Feature
+from geojson import Point, LineString, Feature, FeatureCollection
 from turfpy.measurement import destination, bearing, distance
 #from .movement import MovePoint
 
@@ -29,11 +29,12 @@ def turn(bi, bo):
 def extend_line(line, pct=40):
     # Extended line direction need to be returned (opposite direction)
     # New 6/2/22: distance to extend is now proportionnal to length of segment.
+    # New 25/2/22: ... with a minimum of 20-40 km...
     # We noticed segments can sometimes be as long as 300km
     #
     brng = bearing(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
     newdist = distance(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
-    dist = newdist * pct / 100
+    dist = max(30, newdist * pct / 100)  # km
     far0 = destination(Feature(geometry=Point(line["coordinates"][0])), dist, brng + 180, {"units": "km"})
     far1 = destination(Feature(geometry=Point(line["coordinates"][1])), dist, brng, {"units": "km"})
     return Feature(geometry=LineString([far1["geometry"]["coordinates"], far0["geometry"]["coordinates"]]),
@@ -114,7 +115,8 @@ def standard_turn_flyby(l0, l1, radius):
     l1b = line_offset(l1e, sign(oppositeTurnAngle) * radius / 1000)
     center = line_intersect(l0b, l1b)
     if center is None:
-        logger.warning("standard_turn: no arc center %s %s" % (l0, l1))
+        logger.warning("standard_turn: no arc center (turn=%f°)" % (turnAngle))
+        logger.debug("standard_turn: no arc center (%s)" % (FeatureCollection(features=[l0b, l1b])))
         return None
 
     arc0 = b_out + 90 if turnAngle > 0 else b_in - 90

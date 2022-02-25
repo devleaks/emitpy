@@ -9,6 +9,7 @@ from entity.flight import Arrival, Departure, Movement
 from entity.emit import Emit
 from entity.business import AirportManager
 from entity.parameters import MANAGED_AIRPORT
+from entity.utils import NAUTICAL_MILE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("mkFlight")
@@ -68,46 +69,71 @@ def main():
 
     # Create a pair of flights
     airline = qr
-    # other_airport = Airport.find("VOCL")
+    # origin_apt = Airport.find("VOCL")
 
-    reqrange = 45000
-    while(reqrange > 3000):
-        (airline, other_airport) = airportManager.getRandomAirroute(airline=airline)
-        reqrange = managed.miles(other_airport)
+    MAXRANGE = 2000  # km
 
-    # upgrade
-    logger.debug("..loading other airport..")
-    other_airport = AirportBase(icao=other_airport.icao,
-                                iata=other_airport.iata,
-                                name=other_airport["properties"]["name"],
-                                city=other_airport["properties"]["city"],
-                                country=other_airport["properties"]["country"],
-                                region=other_airport.region,
-                                lat=other_airport["geometry"]["coordinates"][1],
-                                lon=other_airport["geometry"]["coordinates"][0],
-                                alt=other_airport["geometry"]["coordinates"][2] if len(other_airport["geometry"]["coordinates"]) > 2 else None)
-    ret = other_airport.load()
+    arrrange = MAXRANGE + 1
+    while(arrrange > MAXRANGE):
+        (airline, origin_apt) = airportManager.getRandomAirroute(airline=airline)
+        arrrange = managed.miles(origin_apt)
+
+    logger.debug("..loading origin airport..")
+    origin_apt = AirportBase(icao=origin_apt.icao,
+                             iata=origin_apt.iata,
+                             name=origin_apt["properties"]["name"],
+                             city=origin_apt["properties"]["city"],
+                             country=origin_apt["properties"]["country"],
+                             region=origin_apt.region,
+                             lat=origin_apt["geometry"]["coordinates"][1],
+                             lon=origin_apt["geometry"]["coordinates"][0],
+                             alt=origin_apt["geometry"]["coordinates"][2] if len(origin_apt["geometry"]["coordinates"]) > 2 else None)
+    ret = origin_apt.load()
     if not ret[0]:
-        print("Other airport not loaded")
+        print("origin airport not loaded")
 
-    other_metar = Metar(icao=other_airport.icao)
-    other_airport.setMETAR(metar=other_metar)  # calls prepareRunways()
+    origin_metar = Metar(icao=origin_apt.icao)
+    origin_apt.setMETAR(metar=origin_metar)  # calls prepareRunways()
 
+    destination_apt = None
+    deprange = MAXRANGE + 1
+    while(deprange > MAXRANGE):
+        (airline, destination_apt) = airportManager.getRandomAirroute(airline=airline)
+        deprange = managed.miles(destination_apt)
+
+    logger.debug("..loading destination airport..")
+    destination_apt = AirportBase(icao=destination_apt.icao,
+                                  iata=destination_apt.iata,
+                                  name=destination_apt["properties"]["name"],
+                                  city=destination_apt["properties"]["city"],
+                                  country=destination_apt["properties"]["country"],
+                                  region=destination_apt.region,
+                                  lat=destination_apt["geometry"]["coordinates"][1],
+                                  lon=destination_apt["geometry"]["coordinates"][0],
+                                  alt=destination_apt["geometry"]["coordinates"][2] if len(destination_apt["geometry"]["coordinates"]) > 2 else None)
+    ret = destination_apt.load()
+    if not ret[0]:
+        print("destination airport not loaded")
+
+    destination_metar = Metar(icao=destination_apt.icao)
+    destination_apt.setMETAR(metar=destination_metar)  # calls prepareRunways()
     logger.debug("..done")
 
-
     logger.debug("loading aircraft..")
-    acperf = AircraftPerformance.findAircraft(reqrange=reqrange)
-    reqfl = acperf.FLFor(reqrange)
-
-    logger.info("FLIGHT ********** From/to %s (%dkm)(%s, %s) with %s (%s, %s)" % (other_airport["properties"]["city"], reqrange, other_airport.iata, other_airport.icao, airline.orgId, airline.iata, airline.icao))
-    logger.info("       ********** Range is %dkm, aircraft will be %s at FL%d" % (reqrange, acperf.typeId, reqfl))
-
+    acperf = AircraftPerformance.findAircraft(reqrange=arrrange)
+    reqfl = acperf.FLFor(max(arrrange, deprange))
     aircraft = Aircraft(registration="A7-PMA", icao24= "a2ec4f", actype=acperf, operator=airline)
     logger.debug("..done")
 
+
+    logger.debug("*" * 30)
+    logger.info("****** (%s, %dnm) %s-%s %s-%s (%s, %dnm) ** %s at FL%d" % (
+                origin_apt["properties"]["city"], arrrange/NAUTICAL_MILE, origin_apt.iata, MANAGED_AIRPORT["IATA"],
+                MANAGED_AIRPORT["IATA"], destination_apt.iata, destination_apt["properties"]["city"], deprange/NAUTICAL_MILE,
+                acperf.typeId, reqfl))
+
     logger.debug("creating arrival..")
-    arr = Arrival(operator=airline, number="196", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
+    arr = Arrival(operator=airline, number="196", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=origin_apt, aircraft=aircraft)
     arr.setFL(reqfl)
     ramp = managed.selectRamp(arr)  # Aircraft won't get towed
     arr.setRamp(ramp)
@@ -121,7 +147,7 @@ def main():
     logger.debug("..done")
 
     # logger.debug("creating departure..")
-    # dep = Departure(operator=airline, number="195", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft)
+    # dep = Departure(operator=airline, number="195", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=origin_apt, aircraft=aircraft)
     # dep.setFL(reqfl)
     # dep.setRamp(ramp)
     # dep.setGate(gate)

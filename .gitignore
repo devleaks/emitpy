@@ -118,3 +118,4 @@ dmypy.json
 
 data/
 src/entity/private.py
+*.sqlite

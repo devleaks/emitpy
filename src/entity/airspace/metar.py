@@ -79,7 +79,15 @@ class Metar:
             with open(fn, "r") as fp:
                 self.raw = json.load(fp)
             if self.raw is not None:
-                self.metar = MetarLib.Metar(self.raw["METAR"])
+                parsed = None
+                try:
+                    parsed = MetarLib.Metar(self.raw["METAR"])
+                except MetarLib.ParserError:
+                    logger.debug(":load: METAR did not parse '%s'" % (self.raw["METAR"]))
+                    parsed = None
+
+                if parsed is not None:
+                    self.metar = parsed
             logger.debug(":load: found %s" % (fn))
         else:
             logger.debug(":load: not found %s" % (fn))

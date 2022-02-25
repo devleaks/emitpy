@@ -34,6 +34,8 @@ class GeoJSONAirport(AirportBase):
     def loadFromFile(self):
         self.airport_base = os.path.join(SYSTEM_DIRECTORY, self.icao)
         airport_df = os.path.join(self.airport_base, "airport.yaml")
+        if os.path.exists(airport_df):
+            self.data = yaml.safe_load(airport_df)
 
         logger.debug(":loadFromFile: loaded")
         return [True, "GeoJSONAirport::loadFromFile: loaded"]

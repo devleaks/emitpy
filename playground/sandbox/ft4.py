@@ -1,15 +1,11 @@
-from geojson import Point, LineString
+from geojson import Point, Feature
 
-class Line(LineString):
+class Vertex(Feature):
+    def __init__(self, arr: [float]):
+        Feature.__init__(self, geometry=Point(arr))
 
-    def __init__(self, start: Point, end: Point, width: float=None):
-        LineString.__init__(self, ((start.coordinates, end.coordinates)))
-        self.start = start
-        self.end = end
-        self.width = width
+v = Vertex((1, 2))
 
-l = Line(start=Point((1.0, 1.0)), end=Point((1.0, 2.0)), width=1.0)
-print(isinstance(l, LineString))
-#True
-print(l)
-#{"coordinates": [[1.0, 1.0], [1.0, 2.0]], "end": {"coordinates": [1.0, 2.0], "type": "Point"}, "start": {"coordinates": [1.0, 1.0], "type": "Point"}, "type": "Line", "width": 1.0}
+print(isinstance(v, Feature), v)
+# True {"geometry": {"coordinates": [1, 2], "type": "Point"}, "properties": {}, "type": "Vertex"}
+# type="Vertex" is invalid geojson
