@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import os
 import csv
-import json
 import logging
 import random
+
+import geojson
 
 from ..graph import Graph
 from ..geo import Location
@@ -19,6 +20,7 @@ from ..airspace import CIFP
 from ..constants import AIRPORT_DATABASE
 from ..parameters import DATA_DIR
 from ..utils import FT
+
 logger = logging.getLogger("Airport")
 
 
@@ -150,10 +152,12 @@ class AirportBase(Airport):
         return [True, "no load implemented"]
 
     def loadGeometries(self, name):
+        # Loads GeoJSON file, returned dict has proper GeoJSON types,
+        # ie. not 'dict' but 'FeatureCollection', 'Feature', 'Point', etc.
         df = os.path.join(self.airport_base, "geometries", name)
         if os.path.exists(df):
             with open(df, "r") as fp:
-                self.data = json.load(fp)
+                self.data = geojson.load(fp)
         else:
             logger.warning(":file: %s not found" % df)
             return [False, "GeoJSONAirport::loadGeometries file %s not found", df]
@@ -184,7 +188,13 @@ class AirportBase(Airport):
             logger.debug(":setMETAR: %s" % self.metar)
             if self.procedures is not None:
                 # set which runways are usable
-                self.rops = self.procedures.getOperationalRunways(self.metar.wind_dir.value())
+                wind_dir = self.metar.wind_dir
+                if wind_dir is None:  # wind dir is variable, any runway is fine
+                    logger.debug(":setMETAR: no wind direction")
+                    self.rops = self.procedures.getRunways()
+                else:
+                    logger.debug(":setMETAR: wind direction %.1f" % (wind_dir.value()))
+                    self.rops = self.procedures.getOperationalRunways(wind_dir.value())
         else:
             logger.debug(":setMETAR: no metar")
 
