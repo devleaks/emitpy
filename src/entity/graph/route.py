@@ -7,7 +7,7 @@ logger = logging.getLogger("Route")
 
 class Route:
     # Container for route from src to dst on graph
-    def __init__(self, graph, src, dst, options = None):
+    def __init__(self, graph, src, dst, auto: True, options=None):
         self.graph = graph
         self.src = src
         self.dst = dst
@@ -16,6 +16,9 @@ class Route:
         self.vertices = None
         self.edges = None
         self.smoothed = None
+
+        if auto:  # auto route
+            self.find()
 
     def __str__(self):
         if self.found():

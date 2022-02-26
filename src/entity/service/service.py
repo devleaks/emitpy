@@ -85,7 +85,7 @@ class Service:
         # route from start to ramp
         logger.debug(":make: route from start %s to ramp %s (vertices)" % (startnv[0].id, rampnv[0].id))
         rt1 = Route(managedAirport.service_roads, startnv[0].id, rampnv[0].id)
-        rt1.find()
+        # rt1.find()  # auto route
         # r1 = managedAirport.service_roads.Dijkstra(startnv[0].id, rampnv[0].id)
 
         if rt1.found():

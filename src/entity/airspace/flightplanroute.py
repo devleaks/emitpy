@@ -70,5 +70,5 @@ class FlightPlanRoute:
         e = a.nearest_vertex(point=destination, with_connection=True)
         if s[0] is not None and e[0] is not None:
             self.flight_plan = Route(self.airspace, origin, destination)
-            self.flight_plan.find()
+            # self.flight_plan.find()  # auto route
         return self.flight_plan
