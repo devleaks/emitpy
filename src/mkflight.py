@@ -180,5 +180,7 @@ def main():
     # f = ae.get("TAKE_OFF", datetime.now())
 
     logger.debug("..gone")
+    print(arr)
+    print(dep)
 
 main()

@@ -34,6 +34,8 @@ class Flight:
         self.runway = None
         self.flightplan = None
         self.flightplan_cp = []
+        self.dep_procs = None
+        self.arr_procs = None
 
         self.flight_type = PAYLOAD.PAX
         try:
@@ -47,6 +49,40 @@ class Flight:
 
         if linked_flight is not None and linked_flight.linked_flight is None:
             linked_flight.setLinkedFlight(self)
+
+
+    def __str__(self):
+        def airc(ac):
+            return ac.actype.typeId + "(" + ac.registration + ")"
+
+        def dproc(a):
+            s = ""
+            if len(a) > 0:
+                e = a[0]
+                s = e.name if e is not None else "RW--"
+            if len(a) > 1:
+                e = a[1]
+                s = s + " SID " + (e.name if e is not None else "-")
+            return s
+
+        def aproc(a):
+            s = ""
+            if len(a) > 0:
+                e = a[0]
+                s = e.name if e is not None else "RW--"
+            if len(a) > 2:
+                e = a[2]
+                s = "APPCH " + (e.name if e is not None else "-") + " " + s
+            if len(a) > 1:
+                e = a[1]
+                s = "STAR " + (e.name if e is not None else "-") + " " + s
+            return s
+
+
+        s = self.getName()
+        s = s + f" {self.departure.iata}-{self.arrival.iata} {airc(self.aircraft)} FL{self.flight_level}"
+        s = s + f" //DEP {self.departure.icao} {dproc(self.dep_procs)} //ARR {self.arrival.icao} {aproc(self.arr_procs)}"
+        return s
 
 
     def getId(self) -> str:
@@ -65,12 +101,12 @@ class Flight:
         return self.departure.icao == self.managedAirport.icao
 
 
-    def setLinkedFlight(self, linked_flight: 'Flight'):
+    def setLinkedFlight(self, linked_flight: 'Flight') -> None:
         self.linked_flight = linked_flight
         logger.debug(":setLinkedFlight: %s linked to %s" % (self.getId(), linked_flight.getId()))
 
 
-    def setFL(self, flight_level: int):
+    def setFL(self, flight_level: int) -> None:
         self.flight_level = flight_level
         if flight_level <= 100:
             logger.warning(":setFL: %d" % self.flight_level)
@@ -154,6 +190,7 @@ class Flight:
             planpts = rwydep.getRoute()
             planpts[0].setProp("_plan_segment_type", "origin/rwy")
             planpts[0].setProp("_plan_segment_name", depapt.icao+"/"+rwydep.name)
+            self.dep_procs = [rwydep]
         else:  # no runway, we leave from airport
             logger.warning(":plan: departure airport %s has no runway, first point is departure airport" % (rwydep.icao))
             planpts = depapt
@@ -170,6 +207,7 @@ class Flight:
                 Flight.setProp(ret, "_plan_segment_type", "sid")
                 Flight.setProp(ret, "_plan_segment_name", sid.name)
                 planpts = planpts + ret
+                self.dep_procs = (rwydep, sid)
             else:
                 logger.warning(":plan: departure airport %s has no SID for %s" % (depapt.icao, rwydep.name))
 
@@ -201,6 +239,7 @@ class Flight:
             Flight.setProp(ret, "_plan_segment_type", "rwy")
             Flight.setProp(ret, "_plan_segment_name", rwyarr.name)
             planpts = planpts[:-1] + ret  # no need to add last point which is arrival airport, we replace it with the precise runway end.
+            self.arr_procs = [rwyarr]
         else:  # no star, we are done, we arrive in a straight line
             logger.warning(":plan: arrival airport %s has no runway, last point is arrival airport" % (arrapt.icao))
 
@@ -214,6 +253,7 @@ class Flight:
                 Flight.setProp(ret, "_plan_segment_type", "star")
                 Flight.setProp(ret, "_plan_segment_name", star.name)
                 planpts = planpts[:-1] + ret + [planpts[-1]]  # insert STAR before airport
+                self.arr_procs = (rwyarr, star)
             else:
                 logger.warning(":plan: arrival airport %s has no STAR for runway %s" % (arrapt.icao, rwyarr.name))
         else:  # no star, we are done, we arrive in a straight line
@@ -232,6 +272,7 @@ class Flight:
                     planpts = planpts[:-2] + ret + [planpts[-1]]  # remove last point of STAR
                 else:
                     planpts = planpts[:-1] + ret + [planpts[-1]]  # insert APPCH before airport
+                self.arr_procs = (rwyarr, star, appch)
             else:
                 logger.warning(":plan: arrival airport %s has no APPCH for %s " % (arrapt.icao, rwyarr.name))
         else:
