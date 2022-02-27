@@ -10,16 +10,17 @@ from math import inf
 from geojson import Point, LineString, Feature
 from turfpy.measurement import distance, destination, bearing, boolean_point_in_polygon, point_to_line_distance
 
-from ..geo import line_intersect, printFeatures
+from ..geo import FeatureWithProps, line_intersect, printFeatures
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Graph")
 
+USAGE_TAG = "usage"
 
-class Vertex(Feature):
+class Vertex(FeatureWithProps):
 
     def __init__(self, node: str, point: Point, usage: [str] = [], name: str = None):
-        Feature.__init__(self, geometry=point, id=node)
+        FeatureWithProps.__init__(self, id=node, geometry=point)
         self.name = name
         self.usage = usage
         self.adjacent = {}
@@ -34,80 +35,30 @@ class Vertex(Feature):
     def get_neighbors(self):
         return list(map(lambda a: (a, self.adjacent[a]), self.adjacent))
 
-    def use(self, what: str, mode: bool = None):
-        if mode is None:  # Query
-            return what in self.usage
 
-        # Else: set what
-        if mode and what not in self.usage:
-            self.usage.append(what)
-        elif mode and what in self.usage:
-            self.usage.remove(what)
-
-        return what in self.usage
-
-    def getProp(self, propname: str):
-        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
-        return self["properties"][propname] if propname in self["properties"] else None
-
-    def setProp(self, name: str, value):
-        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
-        self["properties"][name] = value
-
-    def setAltitude(self, alt):
-        # ALtitude in meters above sea level.
-        if len(self["geometry"]["coordinates"]) > 2:
-            self["geometry"]["coordinates"][2] = alt
-        else:
-            self["geometry"]["coordinates"].append(alt)
-
-    def altitude(self):
-        if len(self["geometry"]["coordinates"]) > 2:
-            return self["geometry"]["coordinates"][2]
-        else:
-            return None
-
-    def setColor(self, color: str):
-        # geojson.io specific
-        self["properties"]["marker-color"] = color
-        self["properties"]["marker-size"] = "medium"
-        self["properties"]["marker-symbol"] = ""
-
-class Edge(Feature):
+class Edge(FeatureWithProps):
 
     def __init__(self, src: Vertex, dst: Vertex, weight: float, directed: bool, usage: [str]=[], name=None):
-        Feature.__init__(self, geometry=LineString([src["geometry"]["coordinates"], dst["geometry"]["coordinates"]]))
+        FeatureWithProps.__init__(self, geometry=LineString([src["geometry"]["coordinates"], dst["geometry"]["coordinates"]]))
         # Feature.__init__(self, geometry=Line([src["geometry"], dst["geometry"]]))
         self.start = src
         self.end = dst
         self.name = name        # segment name, not unique!
-        self.usage = usage      # type of vertex: runway or taxiway or taxiway_X where X is width code (A-F)
         self.weight = weight    # weight = distance to next vertext
         self.directed = directed  # if edge is directed src to dst, False = twoway
-        self.widthCode = None
-        for s in self.usage:
+
+        for s in self.getTags(USAGE_TAG):
             if str.lower(str(self.usage[:8])) == "taxiway_" and len(self.usage) == 9:
-                self.widthCode = str.upper(self.usage[8])  # should check for A-F return...
+                w = str.upper(self.usage[8])  # should check for A-F return...
+                self.setProp("width-code", w)
+                if w not in list("ABCDEF"):
+                    logger.warning(":edge: invalid runway widthcode '%s'" % (w))
 
     def setColor(self, color: str):
         # geojson.io specific
-        self["properties"]["stroke"] = color
-        self["properties"]["stroke-width"] = "medium"
-        self["properties"]["stroke-opacity"] = ""
+        self.setStrokeColor(color)
 
-    def use(self, what: str, mode: bool = None):
-        if mode is None:  # Query
-            return what in self.usage
-
-        # Else: set what
-        if mode and what not in self.usage:
-            self.usage.append(what)
-        elif mode and what in self.usage:
-            self.usage.remove(what)
-
-        return what in self.usage
-
-    def widthCode(self, default: str = None):
+    def getWidthCode(self, default: str = None):
         return self.widthCode if not None else default
 
 
@@ -165,11 +116,11 @@ class Graph:  # Graph(FeatureCollection)?
                 d = self.get_vertex(dst)
                 txyOk = True
                 if "taxiwayOnly" in options:
-                    txyOk = ("taxiwayOnly" in options and options["taxiwayOnly"] and not v.use("runway")) or ("taxiwayOnly" not in options)
+                    txyOk = ("taxiwayOnly" in options and options["taxiwayOnly"] and not v.hasTag(USAGE_TAG, "runway")) or ("taxiwayOnly" not in options)
                 if txyOk:
                     scdOk = True
                     if "minSizeCode" in options:
-                        code = v.widthCode("F")
+                        code = v.getWidthCode("F")
                         scdOk = ("minSizeCode" in options and options["minSizeCode"] <= code) or ("minSizeCode" not in options)
                     if scdOk:
                         bbOk = True

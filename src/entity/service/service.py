@@ -17,8 +17,8 @@ logger = logging.getLogger("Service")
 class Service:
 
     def __init__(self, schedule: int, duration: int):
-        self.schedule = schedule  # in minutes
-        self.duration = duration  # in minutes
+        self.schedule = schedule  # scheduled service date/time in minutes after/before(negative) on-block
+        self.duration = duration  # scheduled duration in minutes, will be different from actual duration
         self.movement = None   # {arrival|departure}
         self.turnaround = None
         self.performer = None

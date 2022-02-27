@@ -42,6 +42,7 @@ class Parking(Identity):
     # ugly but perfectly works.
     pass
 
+
 class Parking(Identity):
     """
     A Parking uis a place to store an aircraft when it is on the ground.
@@ -54,15 +55,3 @@ class Parking(Identity):
         self.shared = shared    # List of overlaping parking to mark as busy when this one is busy. NB
                                 # Freeing this one does not mean the other shared are free.
 
-
-    def use(self, what: str, mode: bool = None):
-        if mode is None:  # Query
-            return what in self.usage
-
-        # Else: set what
-        if mode and what not in self.usage:
-            self.usage.append(what)
-        elif mode and what in self.usage:
-            self.usage.remove(what)
-
-        return what in self.usage

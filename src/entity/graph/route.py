@@ -7,7 +7,7 @@ logger = logging.getLogger("Route")
 
 class Route:
     # Container for route from src to dst on graph
-    def __init__(self, graph, src, dst, auto: True, options=None):
+    def __init__(self, graph, src, dst, auto=True, options=None):
         self.graph = graph
         self.src = src
         self.dst = dst

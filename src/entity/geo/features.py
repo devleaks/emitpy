@@ -37,8 +37,9 @@ class FeatureWithProps(Feature):
     It can also set colors for geojson.io map display.
     Altitude is stored in third geometry coordinates array value.
     """
-    def __init__(self, geometry: Geometry, properties: dict):
-        Feature.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
+    def __init__(self, id=None, geometry=None, properties=None, **extra):
+    # before: def __init__(self, geometry: Geometry, properties: dict):
+        Feature.__init__(self, id=id, geometry=geometry, properties=copy.deepcopy(properties) if properties is not None else None)
 
     def geometry(self):
         return self["geometry"] if "geometry" in self else None
@@ -70,14 +71,14 @@ class FeatureWithProps(Feature):
             self.setProp(name, value)
 
         # For historical reasons, tags are kept in |-separated strings like tag1|tag2.
-    def setTag(self, tagname, tagvalue, sep = TAG_SEP):
-        tags = self.getProp(tagname).split(sep)
+    def setTag(self, tagname, tagvalue):
+        tags = self.getTags(tagname)
         if tagvalue not in tags:
             tags.append(tagvalue)
-        self.setProp(tagname, sep.join(tags))
+        self.setTags(tagname, tags)
 
-    def unsetTag(self, tagname, tagvalue, sep = TAG_SEP):
-        tags = self.getProp(tagname).split(sep)
+    def unsetTag(self, tagname, tagvalue):
+        tags = self.getTags(tagname)
         ndx = -1
         try:
             ndx = tags.index(tagvalue)
@@ -85,13 +86,22 @@ class FeatureWithProps(Feature):
             ndx = -1
         if ndx != -1:
             del tags[ndx]
+        self.setTags(tagname, tags)
+
+    def hasTag(self, tagname, tagvalue):
+        tags = self.getTags(tagname)
+        return tagvalue in tags
+
+    def getTags(self, tagname, sep=TAG_SEP):
+        # If tagname does not exist, returns empty array, not None
+        tags = self.getProp(tagname)
+        return tags.split(sep) if tags is not None else []
+
+    def setTags(self, tagname, tags, sep=TAG_SEP):
         self.setProp(tagname, sep.join(tags))
 
-    def hasTag(self, tagname, tagvalue, sep = TAG_SEP):
-        return tagvalue in self.getProp(tagname).split(sep)
-
-        # geojson.io specific
     def setColor(self, color: str):
+        # geojson.io specific
         self.addProps({
             "marker-color": color,
             "marker-size": "medium",
@@ -99,6 +109,7 @@ class FeatureWithProps(Feature):
         })
 
     def setStrokeColor(self, color: str):
+        # geojson.io specific
         self.addProps({
             "stroke": color,
             "stroke-width": 2,
@@ -106,6 +117,7 @@ class FeatureWithProps(Feature):
         })
 
     def setFillColor(self, color: str):
+        # geojson.io specific
         self.addProps({
             "fill": color,
             "fill-opacity": 0.5

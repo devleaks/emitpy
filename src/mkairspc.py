@@ -2,6 +2,7 @@ import logging
 from geojson import Feature, Point
 
 from entity.airspace import XPAirspace
+from entity.graph import Route
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Airspace")
@@ -30,7 +31,8 @@ def main():
         print("no e1")
 
     if s[0] is not None and e[0] is not None:
-        r = a.AStar(s[0].id, e[0].id)  # debug prints route inside routine
+        r = Route(a, s[0].id, e[0].id)
+        # r = a.AStar(s[0].id, e[0].id)  # debug prints route inside routine
 
 main()
 
