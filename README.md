@@ -28,8 +28,6 @@ Better hold entry / exit
 Add ACARS messages, OOOI, TMO
 
 --
-Use Route() class for taxi routing
-
 Service(orig, ramp, dest, service)
 
 service

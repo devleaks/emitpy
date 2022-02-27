@@ -130,11 +130,11 @@ class Service:
                     self.route.append(rampnp[0])
 
                     logger.debug(":make: route from %s to %s" % (rampnv[0].id, endnv[0].id))
-                    r2 = managedAirport.service_roads.AStar(rampnv[0].id, endnv[0].id)
-                    if r2 is not None:
-                        for vid in r2:
-                            vtx = managedAirport.service_roads.get_vertex(vid)
+                    r2 = Route(managedAirport.service_roads, rampnv[0].id, endnv[0].id)
+                    if r2.found():
+                        for vtx in r2.get_vertices():
                             pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                            pos.setProp("_serviceroad", vtx.id)
                             self.route.append(pos)
                     else:
                         logger.debug(":make: no route from ramp %s to end %s" % (rampnv[0].id, endnv[0].id))

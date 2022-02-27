@@ -102,6 +102,30 @@ def standard_turn_flyby(l0, l1, radius):
     b_in = bearing(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
     b_out = bearing(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
     turnAngle = turn(b_in, b_out)
+
+    # Eliminate almost straight turns
+    if abs(turnAngle) < 10:
+        logger.warning("standard_turn: small turn, skipping (turn=%f°)" % (turnAngle))
+        return None
+
+    # Eliminate half turns and almost half turns
+    if abs(turnAngle) > 150:
+        logger.warning("standard_turn: turn too large, skipping (turn=%f°)" % (turnAngle))
+        return None
+
+    if abs(turnAngle) > 120:
+        logger.warning("standard_turn: large turn (turn=%f°)" % (turnAngle))
+
+    # Eliminate short segement turns (impossible)
+    d_in = distance(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
+    d_out = distance(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
+
+    r = 2 * radius / 1000  # km
+    if d_in < r or d_out < r:
+        logger.warning("standard_turn: segment too small, skipping in=%f out=%f (r=%f, turn=%f°)" % (d_in, d_out, r, turnAngle))
+        return None
+
+    # Here we go
     oppositeTurnAngle = turn(b_out, b_in)
 
     l0e = extend_line(l0, 20)
@@ -133,28 +157,3 @@ def standard_turn_flyby(l0, l1, radius):
         arc.reverse()
 
     return arc
-
-
-def standard_turns(arrin):
-    arrout = []
-    last_speed = 100
-    arrout.append(arrin[0])
-
-    for i in range(1, len(arrin) - 1):
-        li = LineString([arrin[i-1]["geometry"]["coordinates"], arrin[i]["geometry"]["coordinates"]])
-        lo = LineString([arrin[i]["geometry"]["coordinates"], arrin[i+1]["geometry"]["coordinates"]])
-        s = last_speed  # arrin[i].speed()
-        if s is None:
-            s = last_speed
-        arc = standard_turn_flyby(li, lo, turnRadius(s))
-        last_speed = s
-
-        if arc is not None:
-            arrout.append(arrin[i])
-            for p in arc:
-                arrout.append(p)
-                # arrout.append(MovePoint(geometry=p["geometry"], properties=p["properties"]))
-        else:
-            arrout.append(arrin[i])
-
-    return arrout
