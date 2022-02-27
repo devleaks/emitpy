@@ -25,6 +25,14 @@ Automatic runway exit findings?
 
 Better hold entry / exit
 
-Add ACARS messages, OOOI
+Add ACARS messages, OOOI, TMO
 
-Add sync message for "TMO" (Ten Miles Out)
+--
+Use Route() class for taxi routing
+
+Service(orig, ramp, dest, service)
+
+service
+    qty -> duration
+
+dest=code: DEPOT|REST|RAMP

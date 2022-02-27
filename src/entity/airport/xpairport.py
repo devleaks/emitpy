@@ -8,7 +8,7 @@ from geojson import Point, Polygon, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from .airport import AirportBase
-from ..graph import Vertex, Edge
+from ..graph import Vertex, Edge, USAGE_TAG
 from ..geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
 from ..parameters import DATA_DIR
 from ..constants import TAKEOFF_QUEUE_SIZE
@@ -214,8 +214,8 @@ class XPAirport(AirportBase):
             elif aptline.linecode() == 1204 and edge:
                 args = aptline.content().split()
                 if len(args) >= 2:
-                    edge.use(args[0], True)
-                    edge.use(args[1], True)
+                    edge.setTag(USAGE_TAG, args[0])
+                    edge.setTag(USAGE_TAG, args[1])
                     edgeActiveCount += 1
                 else:
                     logger.debug(":loadTaxiways: not enough params %d %s.", aptline.linecode(), aptline.content())
