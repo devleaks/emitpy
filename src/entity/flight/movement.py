@@ -16,6 +16,7 @@ from ..airspace import Restriction
 from ..airport import AirportBase
 from ..aircraft import ACPERF
 from ..geo import FeatureWithProps, moveOn, cleanFeatures, printFeatures, findFeatures, asLineString, toKML
+from ..graph import Route
 from ..utils import FT, NAUTICAL_MILE
 from ..constants import POSITION_COLOR, FEATPROP, TAKEOFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
 from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
@@ -134,14 +135,19 @@ class Movement:
             with open(filename, "w") as fp:
                 json.dump(FeatureCollection(features=cleanFeatures(arr)), fp, indent=4)
 
-        saveMe(self.moves, "plan")
-        ls = Feature(geometry=asLineString(self.moves_st))
-        saveMe(self.moves + [ls], "plan3d")
+        saveMe(self.flight.flightplan_cp, "1-plan")
+        ls = Feature(geometry=asLineString(self.flight.flightplan_cp))
+        saveMe(self.flight.flightplan_cp + [ls], "1-plan_ls")
 
-        saveMe(self.moves_st, "move")
+        saveMe(self.moves, "2-move")
+        ls = Feature(geometry=asLineString(self.moves))
+        saveMe(self.moves + [ls], "2-move_ls")
+
+        saveMe(self.moves_st, "3-movest")
         ls = Feature(geometry=asLineString(self.moves_st))
-        saveMe(self.moves_st + [ls], "move3d")
-        saveMe(self.taxipos, "taxi")
+        saveMe(self.moves_st + [ls], "3-movest_ls")
+
+        saveMe(self.taxipos, "4-taxi")
 
         filename = os.path.join(basename + "-move.kml")
         with open(filename, "w") as fp:
@@ -299,7 +305,7 @@ class Movement:
                 alt = 0
             currpos = MovePoint(geometry=deptapt["geometry"], properties=deptapt["properties"])
             currpos.setSpeed(actype.getSI(ACPERF.takeoff_speed))
-            currpos.setVSpeed(actype.getSI(ACPERF.initial_climb_speed))
+            currpos.setVSpeed(actype.getSI(ACPERF.initial_climb_vspeed))
             currpos.setColor(POSITION_COLOR.TAKE_OFF.value)
             currpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TAKE_OFF.value)
             currpos.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, fcidx)
@@ -717,8 +723,17 @@ class Movement:
 
 
     def standard_turns(self):
+        # @todo: Should supress ST when turn is too small (< 10°) (done in st_flyby())
+        #        Should supress ST when points too close (leg < 10 second move at constant speed)
         def turnRadius(speed): # speed in m/s, returns radius in m
             return 120 * speed / (2 * pi)
+
+        def should_do_st(path, idx):
+            mark = path[idx].getProp(FEATPROP.MARK.value)
+            return mark not in [FLIGHT_PHASE.TAKE_OFF.value,
+                                "end_initial_climb",
+                                FLIGHT_PHASE.TOUCH_DOWN.value,
+                                FLIGHT_PHASE.END_ROLLOUT.value]
 
         self.moves_st = []
         last_speed = 100  # @todo: should fetch another reasonable value from aircraft performance.
@@ -726,9 +741,8 @@ class Movement:
         self.moves_st.append(self.moves[0])
 
         for i in range(1, len(self.moves) - 1):
-            mark = self.moves[i].getProp(FEATPROP.MARK.value)
-            if mark in [FLIGHT_PHASE.TOUCH_DOWN.value, FLIGHT_PHASE.END_ROLLOUT.value]:
-                logger.debug(":standard_turns: skipping %s" % (mark))
+            if not should_do_st(self.moves, i):
+                logger.debug(":standard_turns: skipping %d (special mark)" % (i))
                 self.moves_st.append(self.moves[i])
             else:
                 li = LineString([self.moves[i-1]["geometry"]["coordinates"], self.moves[i]["geometry"]["coordinates"]])
@@ -947,24 +961,15 @@ class ArrivalMove(Movement):
         if show_pos:
             logger.debug(":taxi:in: parkingentry_vtx: %s " % parkingentry_vtx[0])
 
-        # Should use Route()
-        taxi_ride = self.airport.taxiways.AStar(taxistart_vtx[0].id, parkingentry_vtx[0].id)
-        logger.debug(":taxi:in: taxi_ride: %s -> %s: %s" % (taxistart_vtx[0].id, parkingentry_vtx[0].id, taxi_ride))
-
-        if taxi_ride is None:
-            taxi_ride = self.airport.taxiways.AStar(taxistart_vtx[0].id, parkingentry_vtx[0].id)
-            if taxi_ride is not None:
-                taxi_ride.reverse()
-                logger.debug(":taxi:in: taxi_ride inverted: %s -> %s: %s" % (taxistart_vtx[0].id, parkingentry_vtx[0].id, taxi_ride))
-
-        if taxi_ride is not None:
-            for vid in taxi_ride:
-                vtx = self.airport.taxiways.get_vertex(vid)
+        taxi_ride = Route(self.airport.taxiways, taxistart_vtx[0].id, parkingentry_vtx[0].id)
+        if taxi_ride.found():
+            for vtx in taxi_ride.get_vertices():
+                # vtx = self.airport.taxiways.get_vertex(vid)
                 taxipos = MovePoint(geometry=vtx["geometry"], properties=vtx["properties"])
                 taxipos.setSpeed(TAXI_SPEED)
                 taxipos.setColor("#880000")  # taxi
                 taxipos.setProp(FEATPROP.MARK.value, "taxi")
-                taxipos.setProp("_taxiways", vid)
+                taxipos.setProp("_taxiways", vtx.id)
                 fc.append(taxipos)
             fc[-1].setProp(FEATPROP.MARK.value, "taxi end vertex")
         else:
@@ -1060,28 +1065,18 @@ class DepartureMove(Movement):
             if queuerwy_vtx[0] is None:
                 logger.warning(":taxi:out: could not find start of queue vertex")
 
-            # Should use Route()
-            taxi_ride = self.airport.taxiways.AStar(pushback_vtx[0].id, queuerwy_vtx[0].id)
-            logger.debug(":taxi:out: taxi_ride: %s -> %s: %s" % (pushback_vtx[0].id, queuerwy_vtx[0].id, taxi_ride))
-
-            if taxi_ride is None:
-                taxi_ride = self.airport.taxiways.AStar(queuerwy_vtx[0].id, pushback_vtx[0].id)
-                if taxi_ride is not None:
-                    taxi_ride.reverse()
-                    logger.debug(":taxi:out: taxi_ride inverted: %s -> %s: %s" % (queuerwy_vtx[0].id, pushback_vtx[0].id, taxi_ride))
-
-            if taxi_ride is not None:
-                for vid in taxi_ride:
-                    vtx = self.airport.taxiways.get_vertex(vid)
+            taxi_ride = Route(self.airport.taxiways, pushback_vtx[0].id, queuerwy_vtx[0].id)
+            if taxi_ride.found():
+                for vtx in taxi_ride.get_vertices():
                     taxipos = MovePoint(geometry=vtx["geometry"], properties=vtx["properties"])
                     taxipos.setSpeed(TAXI_SPEED)
                     taxipos.setColor("#880000")  # taxi
                     taxipos.setProp(FEATPROP.MARK.value, "taxi")
-                    taxipos.setProp("_taxiways", vid)
+                    taxipos.setProp("_taxiways", vtx.id)
                     fc.append(taxipos)
                 fc[-1].setProp(FEATPROP.MARK.value, "taxi start of queue")
             else:
-                logger.warning(":taxi:out: no taxi route found")
+                logger.warning(":taxi:out: no taxi route found to start of queue")
 
             # Taxi from queue point 1 to last, stay on to taxiway edges
             #
