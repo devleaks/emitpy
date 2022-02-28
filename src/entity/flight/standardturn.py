@@ -98,7 +98,7 @@ def line_arc(center, radius, start, end, steps=8):
     return arc
 
 
-def standard_turn_flyby(l0, l1, radius):
+def standard_turn_flyby(l0, l1, radius, precision=8):
     b_in = bearing(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
     b_out = bearing(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
     turnAngle = turn(b_in, b_out)
@@ -150,7 +150,7 @@ def standard_turn_flyby(l0, l1, radius):
     newradius = distance(cross_ext, center)
 
     # New 6/2/22: Module number of point with turn
-    steps = 4 + round(abs(turnAngle / 36))
+    steps = min(precision, 2 + round(abs(turnAngle / 36)))
     arc = line_arc(center, radius/1000, arc0, arc1, steps)
 
     if turnAngle > 0:  # reverse coordinates order

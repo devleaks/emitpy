@@ -135,21 +135,23 @@ class Movement:
             with open(filename, "w") as fp:
                 json.dump(FeatureCollection(features=cleanFeatures(arr)), fp, indent=4)
 
-        saveMe(self.flight.flightplan_cp, "1-plan")
+        # saveMe(self.flight.flightplan_cp, "1-plan")
         ls = Feature(geometry=asLineString(self.flight.flightplan_cp))
         saveMe(self.flight.flightplan_cp + [ls], "1-plan_ls")
 
-        saveMe(self.moves, "2-move")
+        # saveMe(self.moves, "2-flight")
         ls = Feature(geometry=asLineString(self.moves))
-        saveMe(self.moves + [ls], "2-move_ls")
+        saveMe(self.moves + [ls], "2-flight_ls")
 
-        saveMe(self.moves_st, "3-movest")
+        # saveMe(self.moves_st, "3-move")
         ls = Feature(geometry=asLineString(self.moves_st))
-        saveMe(self.moves_st + [ls], "3-movest_ls")
+        saveMe(self.moves_st + [ls], "3-move_ls")
 
-        saveMe(self.taxipos, "4-taxi")
+        # saveMe(self.taxipos, "4-taxi")
+        ls = Feature(geometry=asLineString(self.taxipos))
+        saveMe(self.taxipos + [ls], "4-taxi_ls")
 
-        filename = os.path.join(basename + "-move.kml")
+        filename = os.path.join(basename + ".kml")
         with open(filename, "w") as fp:
             fp.write(toKML(cleanFeatures(self.moves_st)))
             logger.debug(":save: saved kml %s (%d)" % (filename, len(self.moves_st)))
@@ -165,15 +167,19 @@ class Movement:
         """
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.flight_id)
 
-        filename = os.path.join(basename, "-plan.json")
+        filename = os.path.join(basename, "1-plan.json")
         with open(filename, "r") as fp:
             self.moves = json.load(fp)
 
-        filename = os.path.join(basename, "-move.json")
+        filename = os.path.join(basename, "2-flight.json")
+        with open(filename, "r") as fp:
+            self.moves = json.load(fp)
+
+        filename = os.path.join(basename, "3-move.json")
         with open(filename, "r") as fp:
             self.moves_st = json.load(fp)
 
-        filename = os.path.join(basename, "-taxi.json")
+        filename = os.path.join(basename, "4-taxi.json")
         with open(filename, "r") as fp:
             self.taxipos = json.load(fp)
 
@@ -233,7 +239,6 @@ class Movement:
             mvpt.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, ix)
             arr.append(mvpt)
             return mvpt
-
 
         fc = self.flight.flightplan_cp
         ac = self.flight.aircraft
