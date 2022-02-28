@@ -120,7 +120,7 @@ def standard_turn_flyby(l0, l1, radius):
     d_in = distance(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
     d_out = distance(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
 
-    r = 2 * radius / 1000  # km
+    r = 1.5 * radius / 1000  # km
     if d_in < r or d_out < r:
         logger.warning("standard_turn: segment too small, skipping in=%f out=%f (r=%f, turn=%f°)" % (d_in, d_out, r, turnAngle))
         return None

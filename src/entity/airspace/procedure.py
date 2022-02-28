@@ -97,6 +97,21 @@ class ProcedureData:
     def param(self, name: PROC_DATA):
         return self.params[name.value]
 
+    def runway(self):
+        # This function reports the runway to which the procedure applies.
+        # IT IS NOT NECESSARILY A REAL RUNWAY NAME
+        # For exemple,
+        #   if a function relates to all runways, this procedure will return ALL
+        #   if a function relates to both NNL and NNR runways, this procedure will return NNB (both)
+        # This is taken into account when selecting procedures for a given runway.
+        if self.proc() == "RWY":
+            return self.name
+        if self.proc() == "APPCH":
+            s = self.param(PROC_DATA.PROCEDURE_IDENT)
+            l = -3 if s[-1] in list("LCR") else -2
+            return "RW" + s[l:]
+        return self.param(PROC_DATA.TRANS_IDENT)
+
 
 class Procedure:
     """
@@ -106,16 +121,11 @@ class Procedure:
     def __init__(self, name: str):
         self.name = name
         self.runway = None
-        self.route = {}  ## list of CIFP lines
+        self.route = {}  # list of CIFP lines
 
     def add(self, line: ProcedureData):
         if len(self.route) == 0:  # First time, sets runway CIFP name
-            if line.proc() == "RWY":
-                self.runway = self.name
-            elif line.proc() == "APPCH":
-                self.runway = "RW" + line.param(PROC_DATA.PROCEDURE_IDENT)[-3:]
-            else:
-                self.runway = line.param(PROC_DATA.TRANS_IDENT)
+            self.runway = line.runway()
         self.route[line.seq()] = line
 
 
@@ -262,6 +272,11 @@ class RWY(Procedure):
     def getRoute(self):
         return [self.point]
 
+    def both(self):
+        if self.runway[-1] in list("LR"):  # NNL + NNR -> NNB, I don't know if there is a NNC?
+            return self.runway[:-1] + "B"
+        return "ALL"
+
 
 class CIFP:
 
@@ -300,6 +315,7 @@ class CIFP:
             cifpline = ProcedureData(line.strip())
             procty = cifpline.proc()
             procname = cifpline.name().strip()  # RWY NAME IS  ALWAYS RWNNL, L can be a space.
+            procrwy = cifpline.runway()
 
             if procty == "PRDAT":  # continuation of last line of current procedure
                 if prevline is not None:
@@ -307,21 +323,26 @@ class CIFP:
                 else:
                     logger.warning(":loadCIFP: received PRDAT but no procedure to add to")
             else:
-                if procname not in procedures[procty].keys():
-                    if procty == "SID":
-                        procedures[procty][procname] = SID(procname)
-                    elif procty == "STAR":
-                        procedures[procty][procname] = STAR(procname)
-                    elif procty == "APPCH":
-                        procedures[procty][procname] = APPCH(procname)
-                    elif procty == "RWY":
-                        procedures[procty][procname] = RWY(procname, self.icao)
-                    else:
-                        logger.warning(":loadCIFP: invalid procedure %s", procty)
-                if procname in procedures[procty].keys():
+                if procty == "RWY":
+                    procedures[procty][procname] = RWY(procname, self.icao)
                     procedures[procty][procname].add(cifpline)
                 else:
-                    logger.warning(":loadCIFP: procedure not created %s", procty)
+                    if procrwy not in procedures[procty].keys():
+                        procedures[procty][procrwy] = {}
+                    if procname not in procedures[procty][procrwy].keys():
+                        if procty == "SID":
+                            procedures[procty][procrwy][procname] = SID(procname)
+                        elif procty == "STAR":
+                            procedures[procty][procrwy][procname] = STAR(procname)
+                        elif procty == "APPCH":
+                            procedures[procty][procrwy][procname] = APPCH(procname)
+                        else:
+                            logger.warning(":loadCIFP: invalid procedure %s", procty)
+
+                    if procname in procedures[procty][procrwy].keys():
+                        procedures[procty][procrwy][procname].add(cifpline)
+                    else:
+                        logger.warning(":loadCIFP: procedure not created %s", procty)
 
             prevline = cifpline
             line = cifp_fp.readline()
@@ -336,8 +357,13 @@ class CIFP:
         self.pairRunways()
 
         ## Print result
-        for procty in procedures.keys():
-            logger.debug(":loadFromFile: %s: %s" % (procty, procedures[procty].keys()))
+        for k, v in procedures.items():
+            if k == "RWY":
+                logger.debug(":loadFromFile: %s: %s" % (k, v.keys()))
+            else:
+                for r, p in v.items():
+                    logger.debug(":loadFromFile: %s %s: %s" % (k, r, p.keys()))
+
             # details:
             # for p in procedures[procty]:
             #    logger.debug(":CIFP: %s: %s %s" % (procty, procedures[procty][p].runway, p))

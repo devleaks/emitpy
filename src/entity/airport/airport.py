@@ -224,37 +224,45 @@ class AirportBase(Airport):
     def has_rwys(self) -> bool:
         return self.has_procedures() and len(self.procedures.RWYS) > 0
 
-    def getSID(self, runway: 'Runway'):
-        # @todo: Need to be a lot more clever to find procedure.
-        # Some procedure have no runway (i.e. that are valid on all runways)
-        # Approaches are also coded with rwy numbers and type letter (D,I...)
-        # So this routine will need rewriting...
-        procs = self.procedures.SIDS
-        validprocs = list(filter(lambda x: x.runway == runway.name or x.runway.strip() == "", procs.values()))
-        if len(validprocs) > 0:
-            return random.choice(validprocs)
-        logger.warning(":getSID: no SID found for runway %s" % runway.name)
+
+    def getProc(self, runway, all_procs, procname):
+        sel_procs = {}
+        # Runway specific procs:
+        if runway.name in all_procs:
+            sel_procs.update(all_procs[runway.name])
+            logger.debug(":getProc: added rwy specific %ss: %s: %s" % (procname, runway.name, all_procs[runway.name].keys()))
+
+        # Procedures valid for "both" runways:
+        both = runway.both()
+        if both in all_procs:
+            sel_procs.update(all_procs[both])
+            logger.debug(":getProc: added both-rwys %ss: %s: %s" % (procname, both, all_procs[both].keys()))
+
+        # Procedures valid for all runways:
+        if "ALL" in all_procs:
+            sel_procs.update(all_procs["ALL"])
+            logger.debug(":getProc: added all-rwys %ss: %s" % (procname, all_procs["ALL"].keys()))
+
+        if len(sel_procs) > 0:
+            logger.debug(":getProc: selected %ss for %s: %s" % (procname, runway.name, sel_procs.keys()))
+            ret = random.choice(list(sel_procs.values()))
+            # logger.debug(":getProc: returning %s for %s: %s" % (procname, runway.name, ret.name))
+            return ret
+
+        logger.warning(":getProc: no %s found for runway %s" % (procname, runway.name))
         return None
 
-    def getSTAR(self, runway: 'Runway'):
+    def selectSID(self, runway: 'Runway'):
         # @todo: Need to be a lot more clever to find procedure.
-        # Some procedure have no runway (i.e. that are valid on all runways)
-        # Approaches are also coded with rwy numbers and type letter (D,I...)
-        # So this routine will need rewriting...
-        procs = self.procedures.STARS
-        validprocs = list(filter(lambda x: x.runway == runway.name or x.runway.strip() == "", procs.values()))
-        if len(validprocs) > 0:
-            return random.choice(validprocs)
-        logger.warning(":getSTAR: no STAR found for runway %s" % runway.name)
-        return None
+        return self.getProc(runway, self.procedures.SIDS, "SID")
 
-    def getApproach(self, procedure: 'Procedure', runway: 'Runway'):  # Procedure should be a STAR
-        procs = self.procedures.APPCHS
-        validappchs = list(filter(lambda x: x.runway == runway.name, procs.values()))
-        if len(validappchs) > 0:
-            return random.choice(validappchs)
-        logger.warning(":getApproach: no approach found for runway %s" % runway.name)
-        return None
+    def selectSTAR(self, runway: 'Runway'):
+        # @todo: Need to be a lot more clever to find procedure.
+        return self.getProc(runway, self.procedures.STARS, "STAR")
+
+    def selectApproach(self, procedure: 'STAR', runway: 'Runway'):  # Procedure should be a STAR
+        # @todo: Need to be a lot more clever to find procedure.
+        return self.getProc(runway, self.procedures.APPCHS, "APPCH")
 
     def selectRunway(self, flight: 'Flight'):
         """
