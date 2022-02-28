@@ -127,7 +127,7 @@ TAXIWAY_ACTIVE_DEPARTURE = "departure"
 TAXIWAY_ACTIVE_ARRIVAL = "arrival"
 TAXIWAY_ACTIVE_ILS = "ils"
 
-
+# @todo: Should distinguish "points" (top_of_descent) and "phases" ("climb")
 class FLIGHT_PHASE(Enum):
     OFFBLOCK = "OFFBLOCK"
     PUSHBACK = "PUSHBACK"
@@ -196,6 +196,8 @@ class FLIGHT_COLOR(Enum):
     CANCELLED = "#FF9900"
     TOWED = "#CCCCCC"
     UNKNOWN = "#666666"
+    TOP_OF_ASCENT = "#DDDD00"
+    TOP_OF_DESCENT = "#00DDDD"
 
 
 class POSITION_COLOR(Enum):
@@ -234,6 +236,7 @@ class POSITION_COLOR(Enum):
     TOP_OF_ASCENT = "#00FF00"
     TOP_OF_DESCENT = "#0000FF"
     HOLDING = "#AAAAFF"
+    FLIGHT_PLAN = "#880000"
 
 
 class EDGE_COLOR(Enum):
