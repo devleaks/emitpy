@@ -253,13 +253,12 @@ class Movement:
         # PART 1: FORWARD: From takeoff to top of ascent
         #
         #
-        TOH_BLASTOFF = 0.2  # km, distance of take-off hold position from runway threshold
+        logger.debug(":vnav: departure")
         groundmv = 0
         fcidx = 0
+        TOH_BLASTOFF = 0.2  # km, distance at which take-off hold, from runway threshold
 
-        logger.debug(":vnav: departure")
-
-        if type(self).__name__ == "DepartureMove": # take off self.flight.is_departure()
+        if self.flight.departure.has_rwys(): # take off self.flight.is_departure()
             rwy = self.flight.runway
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
@@ -321,7 +320,7 @@ class Movement:
             # we go in straight line and ignore self.moves, skipping eventual points
             fcidx = newidx
 
-        else:  # no runway, simpler departure
+        else:  # No runway, simpler departure
             deptapt = fc[0]
             alt = deptapt.altitude()
             if alt is None:
@@ -355,6 +354,8 @@ class Movement:
                                       mark=FLIGHT_PHASE.INITIAL_CLIMB.value,
                                       mark_tr=FLIGHT_PHASE.INITIAL_CLIMB.value)
 
+        # After initial climb
+        # @todo: should mark SID: if "_plan_segment_type" == "sid"
         logger.debug(":vnav: climbToFL100")
         step = actype.climbToFL100(currpos.altitude())  # (t, d, altend)
         groundmv = groundmv + step[1]
@@ -480,6 +481,7 @@ class Movement:
         #
         #
         logger.debug(":vnav: arrival")
+        FINAL_ALT = 3000*FT     # Altitude ABG at which we start final
         APPROACH_ALT = 3000*FT  # Altitude ABG at which we perform approach path before final
         STAR_ALT = 6000*FT      # Altitude ABG at which we perform STAR path before approach
         LAND_TOUCH_DOWN = 0.4   # km, distance of touch down from the runway threshold (given in CIFP)
@@ -490,7 +492,7 @@ class Movement:
         fc.reverse()
         fcidx = 0
 
-        if type(self).__name__ == "ArrivalMove": # the path starts at the of roll out
+        if self.flight.arrival.has_rwys():
             rwy = self.flight.runway
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
@@ -528,7 +530,32 @@ class Movement:
                                    ix=len(fc)-fcidx)
             logger.debug(":vnav:(rev) touch down at %s, %f, %f" % (rwy.name, LAND_TOUCH_DOWN, alt))
 
-        else:
+            # # final, commonly accepted to start at 3000ft AGL, 3° slope
+            # logger.debug(":vnav:(rev) final")
+            # step = actype.descentFinal(alt+FINAL_ALT, alt)  # (t, d, altend)
+            # final_distance = step[1] / 1000  # km
+            # # find initial approach point
+
+            # # we climb on path to see if we reach indices...
+            # currpos, newidx = moveOn(fc, fcidx, p, final_distance)
+            # # we ignore currpos for now, we will climb straight, we ignore points
+            # # between fcidx and newidx during initial climb...
+            # final_descent = destination(touch_down, final_distance, brg, {"units": "km"})
+            # currpos = addMovepoint(arr=self.moves,
+            #                        src=final_descent,
+            #                        alt=alt,
+            #                        speed=actype.getSI(ACPERF.landing_speed),
+            #                        vspeed=actype.getSI(ACPERF.approach_vspeed),
+            #                        color=POSITION_COLOR.FINAL.value,
+            #                        mark="start_of_final",
+            #                        ix=newidx)
+            # logger.debug(":vnav: start of final at %d, %f" % (newidx, final_distance))
+            # groundmv = groundmv + final_distance
+            # # we ignore vertices between takeoff and initial_climb
+            # # we go in straight line and ignore self.moves, skipping eventual points
+            # fcidx = newidx
+
+        else:  # no runways(!?). Simpler arrival
             arrvapt = fc[fcidx]
             alt = arrvapt.altitude()
             if alt is None:
@@ -546,7 +573,8 @@ class Movement:
             logger.debug(":vnav:(rev) destination added last point")
 
         # we move to the final fix at max 3000ft, approach speed
-        logger.debug(":vnav:(rev) final")
+        # @todo: If possible, should align final with runway.
+        logger.debug(":vnav:(rev) descent to final")
         step = actype.descentFinal(alt+APPROACH_ALT, alt)  # (t, d, altend)
         groundmv = groundmv + step[1]
         # find initial climb point
@@ -562,7 +590,8 @@ class Movement:
                                   mark="start_of_final",
                                   mark_tr=FLIGHT_PHASE.FINAL.value)
 
-        if type(self).__name__ == "ArrivalMove":
+        # We are at start of final, aligned with runway if we have one.
+        if self.flight.arrival.has_approaches():
             # find first point of approach:
             k = len(fc) - 1
             while fc[k].getProp("_plan_segment_type") != "appch" and k > 0:
@@ -602,6 +631,7 @@ class Movement:
 
                     fcidx = k
 
+        if self.flight.arrival.has_stars():
             # find first point of star:
             k = len(fc) - 1
             while fc[k].getProp("_plan_segment_type") != "star" and k > 0:
@@ -841,7 +871,7 @@ class Movement:
                 last_speed = s
 
                 if arc is not None:
-                    mid = arc[int(len(arc) / 2)]
+                    mid = arc[int(len(arc) / 2)]  # @todo: not correct, cannot replicate "point" mark, cannot eliminate it either
                     mid["properties"] = self.moves[i]["properties"]
                     for p in arc:
                         self.moves_st.append(MovePoint(geometry=p["geometry"], properties=mid["properties"]))
@@ -1209,18 +1239,29 @@ class DepartureMove(Movement):
         if taxiend_vtx[0] is None:
             logger.warning(":taxi:out: could not find taxi end vertex")
 
-        taxi_ride = Route(self.airport.taxiways, last_vtx[0].id, taxiend_vtx[0].id)
-        if taxi_ride.found():
-            for vtx in taxi_ride.get_vertices():
+        taxi_ride = self.airport.taxiways.AStar(last_vtx[0].id, taxiend_vtx[0].id)
+        logger.debug(":taxi:out: taxi_ride: %s -> %s: %s" % (last_vtx[0].id, taxiend_vtx[0].id, taxi_ride))
+
+        dummy = self.airport.taxiways.AStar(taxiend_vtx[0].id, last_vtx[0].id)
+        logger.debug(":taxi:out: taxi_ride inverted: %s -> %s: %s" % (taxiend_vtx[0].id, last_vtx[0].id, dummy))
+
+        if taxi_ride is None and dummy is not None:
+            logger.debug(":taxi:out: using taxi_ride inverted")
+            taxi_ride = dummy
+            taxi_ride.reverse()
+
+        if taxi_ride is not None:
+            for vid in taxi_ride:
+                vtx = self.airport.taxiways.get_vertex(vid)
                 taxipos = MovePoint(geometry=vtx["geometry"], properties=vtx["properties"])
                 taxipos.setSpeed(TAXI_SPEED)
                 taxipos.setColor("#880000")  # taxi
                 taxipos.setProp(FEATPROP.MARK.value, "taxi")
-                taxipos.setProp("_taxiways", vtx.id)
+                taxipos.setProp("_taxiways", vid)
                 fc.append(taxipos)
-            fc[-1].setProp(FEATPROP.MARK.value, "taxi start of queue")
+            fc[-1].setProp(FEATPROP.MARK.value, "taxi end vertex")
         else:
-            logger.warning(":taxi:out: no taxi route found to runway hold")
+            logger.warning(":taxi:out: no taxi route found")
 
         taxiendpos = MovePoint(geometry=taxi_end[0]["geometry"], properties=taxi_end[0]["properties"])
         taxiendpos.setSpeed(TAXI_SPEED)

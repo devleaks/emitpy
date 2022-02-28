@@ -200,7 +200,7 @@ class Flight:
         # SID
         if depapt.has_sids() and rwydep is not None:
             logger.debug(":plan: using procedures for departure airport %s" % depapt.icao)
-            sid = depapt.getSID(rwydep)
+            sid = depapt.selectSID(rwydep)
             if sid is not None:  # inserts it
                 logger.debug(":plan: %s using SID %s" % (depapt.icao, sid.name))
                 ret = depapt.procedures.getRoute(sid, self.managedAirport.airspace)
@@ -246,7 +246,7 @@ class Flight:
         # STAR
         star = None  # used in APPCH
         if arrapt.has_stars() and rwyarr is not None:
-            star = arrapt.getSTAR(rwyarr)
+            star = arrapt.selectSTAR(rwyarr)
             if star is not None:
                 logger.debug(":plan: %s using STAR %s" % (arrapt.icao, star.name))
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airspace)
@@ -261,7 +261,7 @@ class Flight:
 
         # APPCH, we found airports with approaches and no STAR
         if arrapt.has_approaches() and rwyarr is not None:
-            appch = arrapt.getApproach(star, rwyarr)  # star won't be used, we can safely pass star=None
+            appch = arrapt.selectApproach(star, rwyarr)  # star won't be used, we can safely pass star=None
             if appch is not None:
                 logger.debug(":plan: %s using APPCH %s" % (arrapt.icao, appch.name))
                 ret = arrapt.procedures.getRoute(appch, self.managedAirport.airspace)
