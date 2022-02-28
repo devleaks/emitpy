@@ -224,6 +224,25 @@ class AirportBase(Airport):
     def has_rwys(self) -> bool:
         return self.has_procedures() and len(self.procedures.RWYS) > 0
 
+    def has_proc(self, runway, all_procs):
+        sel_procs = {}
+        # Runway specific procs:
+        if runway.name in all_procs:
+            sel_procs.update(all_procs[runway.name])
+            # logger.debug(":has_proc: added rwy specific %ss: %s: %s" % (procname, runway.name, all_procs[runway.name].keys()))
+
+        # Procedures valid for "both" runways:
+        both = runway.both()
+        if both in all_procs:
+            sel_procs.update(all_procs[both])
+            # logger.debug(":has_proc: added both-rwys %ss: %s: %s" % (procname, both, all_procs[both].keys()))
+
+        # Procedures valid for all runways:
+        if "ALL" in all_procs:
+            sel_procs.update(all_procs["ALL"])
+            # logger.debug(":has_proc: added all-rwys %ss: %s" % (procname, all_procs["ALL"].keys()))
+
+        return len(sel_procs) > 0
 
     def getProc(self, runway, all_procs, procname):
         sel_procs = {}
@@ -274,13 +293,27 @@ class AirportBase(Airport):
         :returns:   The runway.
         :rtype:     { return_type_description }
         """
+        candidates = []
         if len(self.rops) > 0:
-            rwy = random.choice(list(self.rops.keys()))
-            return self.procedures.RWYS[rwy]
+            for v in self.rops.values():
+                if flight.is_departure():
+                    if self.has_proc(v, self.procedures.SIDS):
+                        candidates.append(v)
+                else:
+                    if self.has_proc(v, self.procedures.STARS) or self.has_proc(v, self.procedures.APPCHS) :
+                        candidates.append(v)
 
-        logger.warning(":getRunway: no METAR data")
-        rwy = random.choice(list(self.procedures.RWYS.keys()))  ## formally random.choice(list(self.procedures.RWYS)) is faster
-        return self.procedures.RWYS[rwy]
+        if len(candidates) == 0:
+            logger.warning(":selectRunway: could not select runway")
+            if len(self.rops) > 0:
+                logger.warning(":selectRunway: choosing random operational runway")
+                return random.choice(list(self.rops.values()))
+            if len(self.procedures.RWYS) > 0:
+                logger.warning(":selectRunway: choosing random runway")
+                return random.choice(list(self.procedures.RWYS.values()))
+            return None
+
+        return random.choice(candidates)
 
     def selectRamp(self, flight: 'Flight'):
         """
