@@ -166,7 +166,7 @@ class FlightMovement(Movement):
 
 
     def getMoves(self):
-        # Your choice... moves? moves_st?
+        # Your choice... moves? (default from super()) moves_st? includes standard turns
         return self.moves_st
 
 
@@ -1024,7 +1024,7 @@ class ArrivalMove(Movement):
     Movement for an arrival flight
     """
     def __init__(self, flight: Flight, airport: AirportBase):
-        Movement.__init__(self, flight=flight, airport=airport)
+        FlightMovement.__init__(self, flight=flight, airport=airport)
 
 
     def getMoves(self):
@@ -1132,7 +1132,7 @@ class DepartureMove(Movement):
     Movement for an departure flight
     """
     def __init__(self, flight: Flight, airport: AirportBase):
-        Movement.__init__(self, flight=flight, airport=airport)
+        FlightMovement.__init__(self, flight=flight, airport=airport)
 
 
     def getMoves(self):

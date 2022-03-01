@@ -9,8 +9,6 @@ import copy
 
 from geojson import Point, LineString, FeatureCollection, Feature
 
-from ..airspace import Restriction
-from ..airport import AirportBase
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, asLineString
 from ..constants import FLIGHT_DATABASE, FEATPROP
 from ..parameters import AODB_DIR
@@ -31,18 +29,9 @@ class MovePoint(FeatureWithProps):
         FeatureWithProps.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
 
 
-class RestrictedMovePoint(MovePoint, Restriction):
-    """
-    A RestrictedMovePoint is a MovePoint with altitude and/or speed restrictions.
-    """
-    def __init__(self, geometry: Union[Point, LineString], properties: dict):
-        MovePoint.__init__(self, geometry=geometry, properties=properties)
-        Restriction.__init__(self)
-
-
 class Movement:
 
-    def __init__(self, airport: AirportBase):
+    def __init__(self, airport: "AirportBase"):
         self.airport = airport
         self.moves = []  # Array of Features<Point>
 
