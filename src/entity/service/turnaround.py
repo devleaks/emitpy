@@ -20,9 +20,8 @@ class Turnaround:
         self.arrival = arrival
         self.departure = departure
         self.managedAirport = None
-        self.services = {}
+        self.services = []
         self.ramp = arrival.ramp  # should check that aircraft was not towed to another ramp for departure.
-        self.gse_pois = None      # If it is the case, we can schedule towing :-)!
         self.aircraft = arrival.aircraft
         self.actype = arrival.aircraft.actype
 
@@ -31,11 +30,23 @@ class Turnaround:
         self.managedAirport = airport
 
 
-    def plan(self):
+    def addService(self, service: "Service"):
+        self.services.append(service)
+
+
+    def schedule(self):
+        for s in self.services:
+            # https://stackoverflow.com/questions/3061/calling-a-function-of-a-module-by-using-its-name-a-string
+            logger.debug(":schedule:  %s" % (type(s).__name__))
+
+        return (True, "Turnaround::schedule: planned")
+
+
+    def scheduleOLD(self):
         # From dict, make append appropriate service to list
         if self.actype.tarraw is None:
-            logger.warning(":plan: no turnaround profile")
-            return (False, "Turnaround::plan: no turnaround profile")
+            logger.warning(":schedule: no turnaround profile")
+            return (False, "Turnaround::schedule: no turnaround profile")
 
         svcs = self.actype.tarraw["services"]
         for s in svcs:
@@ -46,11 +57,11 @@ class Turnaround:
                     svc = getattr(service, cn)(s[st][0], s[st][1])  ## getattr(sys.modules[__name__], str) if same module...
                     svc.setTurnaround(self)
                     self.services[st] = svc
-                    logger.debug(":plan: added %s(schedule=%d, duration=%d)" % (type(svc).__name__, svc.schedule, svc.duration))
+                    logger.debug(":schedule: added %s(schedule=%d, duration=%d)" % (type(svc).__name__, svc.schedule, svc.duration))
                 else:
-                    logger.warning(":plan: service %s not found" % (cn))
+                    logger.warning(":schedule: service %s not found" % (cn))
 
-        return (True, "Turnaround::plan: planned")
+        return (True, "Turnaround::schedule: planned")
 
 
     def make(self):
@@ -67,19 +78,20 @@ class Turnaround:
             else:
                 logger.debug(":make:create service points %s" % (self.ramp.service_pois.keys()))
 
-        for name, svc in self.services.items():
-            logger.debug(":make: doing %s .." % name)
+        for svc in self.services:
+            logger.debug(":make: doing %s .." % type(svc).__name__)
             svc.make(self.managedAirport)
-            logger.debug(":make: %s ..done" % name)
+            logger.debug(":make: %s ..done" % type(svc).__name__)
 
         return (True, "Turnaround::make: made")
 
 
     def run(self, moment: datetime):
-        for name, svc in self.services.items():
-            logger.debug(":run: running %s .." % name)
+
+        for svc in self.services:
+            logger.debug(":run: doing %s .." % type(svc).__name__)
             svc.run(moment)
-            logger.debug(":run: %s ..done" % name)
+            logger.debug(":run: %s ..done" % type(svc).__name__)
 
         return (True, "Turnaround::run ran")
 

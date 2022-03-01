@@ -7,12 +7,9 @@ import csv
 import logging
 import random
 
-from typing import Union
 
 from .airline import Airline
 from ..airport import Airport
-
-from ..constants import PAYLOAD, LOCAL, REMOTE
 from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
@@ -31,7 +28,7 @@ class AirportManager:
         self.data = None
         self.airline_route_frequencies = None
         self.airline_frequencies = None
-
+        self.service_vehicle_numbers =  {}
 
     def load(self):
 
@@ -143,3 +140,22 @@ class AirportManager:
     def hub(self, airport, airline):
         airport.addHub(airline)
         airline.addHub(airport)
+
+
+    def selectServiceVehicle(self, service: "Service"):
+        # We currently only instanciate new vehicle, starting from a Depot
+        sty = type(service).__name__
+        vnid = 0
+        if sty not in self.service_vehicle_numbers:
+            self.service_vehicle_numbers[sty] = vnid
+        else:
+            vnid = self.service_vehicle_numbers[sty] + 1
+            self.service_vehicle_numbers[sty] = vnid
+
+        vty = sty.replace("Service", "Vehicle")
+        logger.debug(":selectServiceVehicle: creating %s" % (vty))
+
+        logger.warning(":selectServiceVehicle: no vehicle for service %s" % (sty))
+        return None
+
+
