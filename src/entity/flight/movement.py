@@ -57,6 +57,7 @@ class Movement:
     def __init__(self, flight: Flight, airport: AirportBase):
         self.flight = flight
         self.flight_id = self.flight.getId()
+        self.is_arrival = self.flight.is_arrival()
         self.airport = airport
         self.pauses = {}  # Dict of "variable" pauses that can be added to point: "pause-name": {Feature-properties-select}
         self.moves = []  # Array of Features<Point>

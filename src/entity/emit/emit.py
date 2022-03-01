@@ -39,7 +39,10 @@ class Emit:
         self.broadcast = []  # [ EmitPoint ]
         self.props = {}  # general purpose properties added to each emit point
         if move is not None:
-            self.moves = self.move.moves_st
+            if self.move.is_arrival:
+                self.moves = self.move.moves_st + self.move.taxipos
+            else:
+                self.moves = self.move.taxipos + self.move.moves_st
 
 
     def save(self):
@@ -48,11 +51,10 @@ class Emit:
         """
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.move.flight_id)
 
-        filename = os.path.join(basename + "-emit.json")
-        with open(filename, "w") as fp:
-            json.dump(self.broadcast, fp, indent=4)
-
-        filename = os.path.join(basename + "-emit.geojson")
+        # filename = os.path.join(basename + "-5-emit.json")
+        # with open(filename, "w") as fp:
+        #     json.dump(self.broadcast, fp, indent=4)
+        filename = os.path.join(basename + "-5-emit.geojson")
         with open(filename, "w") as fp:
             json.dump(FeatureCollection(features=cleanFeatures(self.broadcast)), fp, indent=4)
 
@@ -61,7 +63,7 @@ class Emit:
         # load output of Movement file.
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, flight_id)
 
-        filename = os.path.join(basename, "-move.json")
+        filename = os.path.join(basename, "-4-move.json")
         if os.path.exists(filename):
             with open(filename, "r") as fp:
                 self.moves = json.load(fp)

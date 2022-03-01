@@ -6,7 +6,6 @@ import logging
 import random
 from datetime import datetime
 
-from geojson import Feature
 from .servicevehicle import ServiceVehicle
 from ..geo import FeatureWithProps, printFeatures, asLineString
 from ..graph import Route
@@ -16,20 +15,21 @@ logger = logging.getLogger("Service")
 
 class Service:
 
-    def __init__(self, schedule: int, duration: int):
-        self.schedule = schedule  # scheduled service date/time in minutes after/before(negative) on-block
-        self.duration = duration  # scheduled duration in minutes, will be different from actual duration
-        self.movement = None   # {arrival|departure}
+    def __init__(self, operator: "Company", quantity: float):
+        self.operator = operator
+        self.quantity = quantity  # scheduled service date/time in minutes after/before(negative) on-block
+        self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
+        self.duration = None      # scheduled duration in minutes, will be different from actual duration
+        self.movement = None      # {arrival|departure}
         self.turnaround = None
         self.performer = None
         self.vehicle = None
         self.starttime = None
-        self.pos_start = None
-        self.pos_end = None
+        self.pos_next = None
         self.route = []
 
 
-    def setTurnaround(self, turnaround: 'Turnaround'):
+    def setTurnaround(self, turnaround: "Turnaround"):
         self.turnaround = turnaround
 
 
@@ -37,12 +37,12 @@ class Service:
         self.vehicle = vehicle
 
 
-    def setStartPosition(self, position):
-        self.pos_start = position
+    def setNextPosition(self, position):
+        self.pos_next = position
 
 
-    def setEndPosition(self, position):
-        self.pos_end = position
+    def serviceDuration(self):
+        self.duration = self.quantity
 
 
     def make(self, managedAirport):
@@ -164,42 +164,42 @@ class Service:
 
 class CleaningService(Service):
 
-    def __init__(self, schedule: int, duration: int):
-        Service.__init__(self, schedule, duration)
+    def __init__(self, operator: "Company", quantity: float):
+        Service.__init__(self, operator=operator, quantity=quantity)
 
 
 class SewageService(Service):
 
-    def __init__(self, schedule: int, duration: int):
-        Service.__init__(self, schedule, duration)
+    def __init__(self, operator: "Company", quantity: float):
+        Service.__init__(self, operator=operator, quantity=quantity)
 
 
 class CateringService(Service):
 
-    def __init__(self, schedule: int, duration: int):
-        Service.__init__(self, schedule, duration)
+    def __init__(self, operator: "Company", quantity: float):
+        Service.__init__(self, operator=operator, quantity=quantity)
 
 
 class WaterService(Service):
 
-    def __init__(self, schedule: int, duration: int):
-        Service.__init__(self, schedule, duration)
+    def __init__(self, operator: "Company", quantity: float):
+        Service.__init__(self, operator=operator, quantity=quantity)
 
 
 class FuelService(Service):
 
-    def __init__(self, schedule: int, duration: int):
-        Service.__init__(self, schedule, duration)
+    def __init__(self, operator: "Company", quantity: float):
+        Service.__init__(self, operator=operator, quantity=quantity)
 
 
 class CargoService(Service):
 
-    def __init__(self, schedule: int, duration: int):
-        Service.__init__(self, schedule, duration)
+    def __init__(self, operator: "Company", quantity: float):
+        Service.__init__(self, operator=operator, quantity=quantity)
 
 
 class BaggageService(Service):
 
-    def __init__(self, schedule: int, duration: int):
-        Service.__init__(self, schedule, duration)
+    def __init__(self, operator: "Company", quantity: float):
+        Service.__init__(self, operator=operator, quantity=quantity)
 

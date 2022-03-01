@@ -1,13 +1,13 @@
 import logging
 from datetime import datetime
 
-from entity.business import Airline
+from entity.business import Airline, AirportManager, Company
 from entity.airport import Airport, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
-from entity.business import AirportManager
 from entity.flight import Arrival, Departure
-from entity.service import Turnaround
-from entity.service import ServiceVehicle, FuelTruck, CateringTruck
+
+from entity.service import Turnaround, CateringService, FuelService
+
 from entity.parameters import MANAGED_AIRPORT
 
 logging.basicConfig(level=logging.DEBUG)
@@ -92,16 +92,25 @@ def main():
     logger.debug("..done")
 
     # managed.service_roads.print(vertex=False)
+    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
 
     logger.debug("creating service..")
     turnaround = Turnaround(arrival=arr, departure=dep)
-
     turnaround.setManagedAirport(managed)
-    turnaround.plan()
+
+    fuel_service = FuelService(operator=operator, quantity=24)
+    catering_service = CateringService(operator=operator, quantity=2)
+
+    turnaround.addService(fuel_service)
+    turnaround.addService(catering_service)
+    turnaround.schedule()
+
+    fuel_vehicle = airportManager.selectServiceVehicle(fuel_service)
+    catering_vehicle = airportManager.selectServiceVehicle(catering_service)
 
     # AirportManager will provide some automagic randomization to instanciate vehicle.
-    turnaround.setVehicle("Fuel", ServiceVehicle(svcType=FuelTruck("pump"), operator="MATAR", registration="FUEL01"))
-    turnaround.setVehicle("Catering", ServiceVehicle(svcType=CateringTruck(), operator="MATAR", registration="CAT01"))
+    fuel_service.setVehicle(fuel_vehicle)
+    catering_service.setVehicle(catering_vehicle)
 
     turnaround.make()
     turnaround.run(datetime.now())

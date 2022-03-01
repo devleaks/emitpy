@@ -126,12 +126,12 @@ def main():
     logger.debug("..done")
 
 
-    logger.debug("*" * 70)
+    logger.debug("*" * 90)
     logger.info("*** (%s, %dnm) %s-%s %s-%s (%s, %dnm) AC %s at FL%d" % (
                 origin_apt["properties"]["city"], arrrange/NAUTICAL_MILE, origin_apt.iata, MANAGED_AIRPORT["IATA"],
                 MANAGED_AIRPORT["IATA"], destination_apt.iata, destination_apt["properties"]["city"], deprange/NAUTICAL_MILE,
                 acperf.typeId, reqfl))
-    logger.debug("*" * 70)
+    logger.debug("*" * 90)
 
     logger.debug("creating arrival..")
     arr = Arrival(operator=airline, number="196", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=origin_apt, aircraft=aircraft)
@@ -155,24 +155,24 @@ def main():
     ae.save()
     logger.debug("..arrived.")
 
-    # logger.debug("creating departure..")
-    # dep = Departure(operator=airline, number="195", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=destination_apt, aircraft=aircraft)
-    # dep.setFL(reqfl)
-    # dep.setRamp(ramp)
-    # dep.setGate(gate)
-    # logger.debug("..planning..")
-    # dep.plan()
-    # logger.debug("..flying..")
-    # dm = Movement.create(dep, managed)
-    # dm.make()
-    # dm.save()
+    logger.debug("creating departure..")
+    dep = Departure(operator=airline, number="195", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=destination_apt, aircraft=aircraft)
+    dep.setFL(reqfl)
+    dep.setRamp(ramp)
+    dep.setGate(gate)
+    logger.debug("..planning..")
+    dep.plan()
+    logger.debug("..flying..")
+    dm = Movement.create(dep, managed)
+    dm.make()
+    dm.save()
     # logger.debug("..broadcasting..")
     # de = Emit(dm)
     # de.emit(30)
     # de.save()
-    # logger.debug("..gone.")
+    logger.debug("..gone.")
 
     print(arr)
-    # print(dep)
+    print(dep)
 
 main()
