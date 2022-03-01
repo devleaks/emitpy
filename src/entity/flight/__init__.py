@@ -1,2 +1,2 @@
 from .flight import Flight, Arrival, Departure
-from .movement import MovePoint, Movement
+from .flightmovement import ArrivalMove, DepartureMove

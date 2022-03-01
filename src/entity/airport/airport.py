@@ -325,5 +325,4 @@ class AirportBase(Airport):
         :returns:   The runway.
         :rtype:     { return_type_description }
         """
-        ramp = random.choice(list(self.ramps.keys()))
-        return self.ramps[ramp]
+        return random.choice(list(self.ramps.values()))

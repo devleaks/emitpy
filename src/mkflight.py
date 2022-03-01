@@ -1,11 +1,11 @@
 import logging
 from datetime import datetime
 
+from entity.airport import Airport, AirportBase, XPAirport
 from entity.business import Airline
 from entity.airspace import XPAirspace, Metar
-from entity.airport import Airport, AirportBase, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
-from entity.flight import Arrival, Departure, Movement
+from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from entity.emit import Emit
 from entity.business import AirportManager
 from entity.parameters import MANAGED_AIRPORT
@@ -75,7 +75,7 @@ def main():
 
     arrrange = MAXRANGE + 1
     while(arrrange > MAXRANGE):
-        (airline, origin_apt) = airportManager.getRandomAirroute(airline=airline)
+        (airline, origin_apt) = airportManager.selectRandomAirroute(airline=airline)
         arrrange = managed.miles(origin_apt)
 
     logger.debug("..loading origin airport..")
@@ -98,7 +98,7 @@ def main():
     destination_apt = None
     deprange = MAXRANGE + 1
     while(deprange > MAXRANGE):
-        (airline, destination_apt) = airportManager.getRandomAirroute(airline=airline)
+        (airline, destination_apt) = airportManager.selectRandomAirroute(airline=airline)
         deprange = managed.miles(destination_apt)
 
     logger.debug("..loading destination airport..")
@@ -146,7 +146,7 @@ def main():
     logger.debug("..planning..")
     arr.plan()
     logger.debug("..flying..")
-    am = Movement.create(arr, managed)
+    am = ArrivalMove(arr, managed)
     am.make()
     am.save()
     logger.debug("..broadcasting..")
@@ -163,7 +163,7 @@ def main():
     logger.debug("..planning..")
     dep.plan()
     logger.debug("..flying..")
-    dm = Movement.create(dep, managed)
+    dm = DepartureMove(dep, managed)
     dm.make()
     dm.save()
     # logger.debug("..broadcasting..")

@@ -38,11 +38,9 @@ class Emit:
         self.frequency = 30  # seconds
         self.broadcast = []  # [ EmitPoint ]
         self.props = {}  # general purpose properties added to each emit point
+
         if move is not None:
-            if self.move.is_arrival:
-                self.moves = self.move.moves_st + self.move.taxipos
-            else:
-                self.moves = self.move.taxipos + self.move.moves_st
+            self.moves = self.move.getMoves()
 
 
     def save(self):
