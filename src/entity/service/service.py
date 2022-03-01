@@ -20,17 +20,20 @@ class Service:
         self.quantity = quantity  # scheduled service date/time in minutes after/before(negative) on-block
         self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
         self.duration = None      # scheduled duration in minutes, will be different from actual duration
-        self.movement = None      # {arrival|departure}
+        self.ramp = None
+        self.next_position = None
         self.turnaround = None
-        self.performer = None
         self.vehicle = None
         self.starttime = None
-        self.pos_next = None
         self.route = []
 
 
     def setTurnaround(self, turnaround: "Turnaround"):
         self.turnaround = turnaround
+
+
+    def setRamp(self, ramp: "Ramp"):
+        self.ramp = ramp
 
 
     def setVehicle(self, vehicle: ServiceVehicle):
@@ -45,7 +48,7 @@ class Service:
         self.duration = self.quantity
 
 
-    def make(self, managedAirport):
+    def makeMove(self, managedAirport):
         if self.vehicle is None:
             logger.warning(":make: %s: no vehicle" % (type(self).__name__))
             return (False, "Service::make no vehicle")

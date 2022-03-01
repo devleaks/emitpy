@@ -5,17 +5,16 @@ import os
 import json
 import logging
 from math import pi
-from typing import Union
 import copy
 
-from geojson import Point, LineString, FeatureCollection, Feature
+from geojson import LineString, FeatureCollection, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from ..flight import Flight
-from ..airspace import Restriction
 from ..airport import AirportBase
 from ..aircraft import ACPERF
-from ..geo import FeatureWithProps, moveOn, cleanFeatures, printFeatures, findFeatures, asLineString, toKML
+from ..geo import MovePoint, Movement
+from ..geo import moveOn, cleanFeatures, printFeatures, findFeatures, asLineString, toKML
 from ..graph import Route
 from ..utils import FT, NAUTICAL_MILE
 from ..constants import POSITION_COLOR, FEATPROP, TAKEOFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
@@ -25,42 +24,20 @@ from ..parameters import AODB_DIR
 from .standardturn import standard_turn_flyby
 from .interpolate import interpolate as doInterpolation, time as doTime
 
-logger = logging.getLogger("Movement")
+logger = logging.getLogger("FlightMovement")
 
 
-class MovePoint(FeatureWithProps):
-    """
-    A MovePoint is an application waypoint through which vehicle passes.
-    It is a GeoJSON Feature<Point> with facilities to set a few standard
-    properties like altitude, speed, vertical speed and properties.
-    It can also set colors for geojson.io map display.
-    Altitude is stored in third geometry coordinates array value.
-    """
-    def __init__(self, geometry: Union[Point, LineString], properties: dict):
-        FeatureWithProps.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
-
-
-class RestrictedMovePoint(MovePoint, Restriction):
-    """
-    A RestrictedMovePoint is a MovePoint with altitude and/or speed restrictions.
-    """
-    def __init__(self, geometry: Union[Point, LineString], properties: dict):
-        MovePoint.__init__(self, geometry=geometry, properties=properties)
-        Restriction.__init__(self)
-
-
-class Movement:
+class FlightMovement(Movement):
     """
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
     from takeoff to landing and roll out.
     """
     def __init__(self, flight: Flight, airport: AirportBase):
+        Movement.__init__(self, airport=airport)
         self.flight = flight
         self.flight_id = self.flight.getId()
         self.is_arrival = self.flight.is_arrival()
-        self.airport = airport
         self.pauses = {}  # Dict of "variable" pauses that can be added to point: "pause-name": {Feature-properties-select}
-        self.moves = []  # Array of Features<Point>
         self.moves_st = []  # Array of Features<Point>
         self.takeoff_hold = None
         self.end_rollout = None
@@ -186,6 +163,11 @@ class Movement:
 
         logger.debug(":loadAll: loaded %d " % self.flight_id)
         return (True, "Movement::load loaded")
+
+
+    def getMoves(self):
+        # Your choice... moves? moves_st?
+        return self.moves_st
 
 
     def vnav(self):
@@ -1045,6 +1027,10 @@ class ArrivalMove(Movement):
         Movement.__init__(self, flight=flight, airport=airport)
 
 
+    def getMoves(self):
+        return super().getMoves() + self.move.taxipos
+
+
     def taxi(self):
         """
         Compute taxi path for arrival, from roll out position, to runway exit to parking.
@@ -1147,6 +1133,10 @@ class DepartureMove(Movement):
     """
     def __init__(self, flight: Flight, airport: AirportBase):
         Movement.__init__(self, flight=flight, airport=airport)
+
+
+    def getMoves(self):
+        return self.move.taxipos + super().getMoves()
 
 
     def taxi(self):

@@ -5,7 +5,6 @@ It has a Service Vehicle Type that is ued to represent it.
 import logging
 from math import inf
 
-from ..constants import SERVICE
 from ..business import Identity, Company
 
 logging.basicConfig(level=logging.DEBUG)
@@ -32,6 +31,8 @@ class ServiceVehicle(Identity):
         self.max_capacity = 30
         self.current_load = 0
 
+        self.position = None
+
         self.speed = {
             "slow": 5,
             "normal": 30,
@@ -39,34 +40,49 @@ class ServiceVehicle(Identity):
         }
 
         self.setup_time = 0
-        self.service_time = 0
+        self.quantity_time = 0
         self.flow = 1
 
         self.mapicons = {}
         self.models3d = {}
 
+    def setPosition(self, position):
+        self.position = position
+
+    def getPosition(self):
+        return self.position
+
     def refill(self, quantity: float=None):
-        """
-        Time in seconds to perform a service operation provided the supplied quantity.
-        """
         if quantity is None or self.current_load + quantity > self.max_capacity:
             self.current_load = self.max_capacity
         else:
             self.current_load = self.current_load + quantity
 
     def service_time(self, quantity: float):
-        return 0
-
-    def service(self, quantity: float=None):
         """
         Time in seconds to perform a service operation provided the supplied quantity.
         """
-        if quantity is None or quantity > self.current_load:
-            self.current_load = 0
-        else:
-            self.current_load = self.current_load - quantity
+        service_time = self.setup_time + quantity * self.quantity_time
+        return service_time
 
-        return self.service_time(quantity)
+    def service(self, quantity: float=None):
+        """
+        Serve quantity. Returns quantity served.
+        """
+        if quantity is None:
+            logger.debug(":service: served %f." % (self.current_load))
+            served = self.current_load
+            self.current_load = 0
+        elif self.current_load > quantity:
+            self.current_load = self.current_load - quantity
+            served = quantity
+            logger.debug(":service: served %f. %f remaning" % (quantity, self.current_load))
+        else:
+            served = self.current_load
+            logger.warning(":service: can only serve %f out of %f. %f remaning to serve" % (self.current_load, quantity, quantity-self.current_load))
+            self.current_load = 0
+
+        return served
 
 
 class CleaningVehicle(ServiceVehicle):

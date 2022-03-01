@@ -94,16 +94,27 @@ def main():
     # managed.service_roads.print(vertex=False)
     operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
 
+    logger.debug("creating service..")
+    turnaround = Turnaround(arrival=arr, departure=dep)
+    turnaround.setManagedAirport(managed)
+
     fuel_service = FuelService(operator=operator, quantity=24)
-    fuel_service.setRamp(ramp)
-    fuel_vehicle = airportManager.selectServiceVehicle(fuel_service, "pump")
-    fuel_depot = airportManager.selectRandomServiceDepot("Fuel")
-    fuel_vehicle.setPosition(fuel_depot)
-    fuel_rest = airportManager.selectRandomServiceRestArea("Fuel")
-    fuel_vehicle.nextPosition(fuel_rest)
+    turnaround.addService(fuel_service)
+    fuel_vehicle = airportManager.selectServiceVehicle(fuel_service)
 
-    fsm = ServiceMovement(fuel_service)
+    catering_service = CateringService(operator=operator, quantity=2)
+    turnaround.addService(catering_service)
 
+    turnaround.schedule()
+
+    catering_vehicle = airportManager.selectServiceVehicle(catering_service)
+
+    # AirportManager will provide some automagic randomization to instanciate vehicle.
+    fuel_service.setVehicle(fuel_vehicle)
+    catering_service.setVehicle(catering_vehicle)
+
+    turnaround.make()
+    # turnaround.run(datetime.now())
 
     logger.debug("..done")
 
