@@ -1,11 +1,11 @@
 import logging
 from datetime import datetime
 
-from entity.airport import Airport, AirportBase, XPAirport
-from entity.business import Airline
 from entity.airspace import XPAirspace, Metar
+from entity.business import Airline
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
+from entity.airport import Airport, AirportBase, XPAirport
 from entity.emit import Emit
 from entity.business import AirportManager
 from entity.parameters import MANAGED_AIRPORT
