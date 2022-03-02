@@ -16,6 +16,7 @@ logger = logging.getLogger("Service")
 class Service:
 
     def __init__(self, operator: "Company", quantity: float):
+        self.ident = None
         self.operator = operator
         self.quantity = quantity  # scheduled service date/time in minutes after/before(negative) on-block
         self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
@@ -26,6 +27,14 @@ class Service:
         self.vehicle = None
         self.starttime = None
         self.route = []
+
+
+    def setId(self, ident: str):
+        self.ident = ident
+
+
+    def getId(self):
+        return self.ident
 
 
     def setTurnaround(self, turnaround: "Turnaround"):

@@ -11,7 +11,7 @@ from geojson import Point, LineString, FeatureCollection, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from ..airport import AirportBase
-from ..geo import MovePoint, Movement
+from ..geo import MovePoint, Movement, FeatureWithProps, printFeatures
 from ..service import Service, ServiceVehicle
 from ..graph import Route
 
@@ -43,13 +43,13 @@ class ServiceMove(Movement):
         # starting position to network
         startnp = self.airport.service_roads.nearest_point_on_edge(startpos)
         if startnp[0] is None:
-            logger.warning(":move: no nearest_point_on_edge for pos_start")
+            logger.warning(":move: no nearest_point_on_edge for startpos")
         else:
             self.moves.append(startnp[0])
 
         startnv = self.airport.service_roads.nearest_vertex(startpos)
         if startnv[0] is None:
-            logger.warning(":move: no nearest_vertex for pos_start")
+            logger.warning(":move: no nearest_vertex for startpos")
 
         # find ramp position, use ramp center if none is given
         ramp_stop = self.service.ramp.getServicePOI(service_type)
@@ -98,8 +98,8 @@ class ServiceMove(Movement):
 
         finalpos = self.service.next_position
         if finalpos is None:
-            finalpos = self.airport.selectRandomServiceReatArea(service_type)
-            logger.debug(f":move: end position { finalpos }")
+            finalpos = self.airport.selectRandomServiceRestArea(service_type)
+            # logger.debug(f":move: end position { finalpos }")
 
             if finalpos is None:
                 logger.warning(f":move: no end rest area for { service_type }, using start position")
@@ -111,7 +111,7 @@ class ServiceMove(Movement):
         if endnp[0] is None:
             logger.warning(":move: no nearest_point_on_edge for end")
 
-        endnv = self.airport.service_roads.nearest_vertex(endnp)
+        endnv = self.airport.service_roads.nearest_vertex(finalpos)
         if endnv[0] is None:
             logger.warning(":move: no nearest_vertex for end")
 
