@@ -6,7 +6,7 @@ from entity.airport import Airport, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure
 
-from entity.service import Turnaround, CateringService, FuelService
+from entity.service import FuelService, ServiceMove
 
 from entity.parameters import MANAGED_AIRPORT
 
@@ -94,15 +94,24 @@ def main():
     # managed.service_roads.print(vertex=False)
     operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
 
+    logger.debug("creating single service..")
     fuel_service = FuelService(operator=operator, quantity=24)
     fuel_service.setRamp(ramp)
-    fuel_vehicle = airportManager.selectServiceVehicle(fuel_service, "pump")
-    fuel_depot = airportManager.selectRandomServiceDepot("Fuel")
+    fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="pump")
+    fuel_depot = managed.selectRandomServiceDepot("Fuel")
     fuel_vehicle.setPosition(fuel_depot)
-    fuel_rest = airportManager.selectRandomServiceRestArea("Fuel")
-    fuel_vehicle.nextPosition(fuel_rest)
+    fuel_rest = managed.selectRandomServiceRestArea("Fuel")
+    fuel_service.setNextPosition(fuel_rest)
 
-    fsm = ServiceMovement(fuel_service)
+    logger.debug(".. moving ..")
+
+    fsm = ServiceMove(fuel_service, managed)
+    fsm.move()
+    fsm.save()
+
+    # se = Emit(fsm)
+    # se.emit()
+    # se.save()
 
 
     logger.debug("..done")

@@ -6,7 +6,7 @@ import yaml
 import csv
 import logging
 import random
-
+import importlib
 
 from .airline import Airline
 from ..airport import Airport
@@ -23,8 +23,7 @@ class AirportManager:
     def __init__(self, icao):
         self.icao = icao
         self.airlines = {}
-
-        self.airport_base = None
+        self.airport_base_path = None
         self.data = None
         self.airline_route_frequencies = None
         self.airline_frequencies = None
@@ -45,8 +44,8 @@ class AirportManager:
 
 
     def loadFromFile(self):
-        self.airport_base = os.path.join(SYSTEM_DIRECTORY, self.icao)
-        business = os.path.join(self.airport_base, "airport.yaml")
+        self.airport_base_path = os.path.join(SYSTEM_DIRECTORY, self.icao)
+        business = os.path.join(self.airport_base_path, "airport.yaml")
         if os.path.exists(business):
             with open(business, "r") as fp:
                 self.data = yaml.safe_load(fp)
@@ -57,7 +56,7 @@ class AirportManager:
 
 
     def loadAirRoutes(self):
-        routes = os.path.join(self.airport_base, "airline-routes.csv")
+        routes = os.path.join(self.airport_base_path, "airline-routes.csv")
         file = open(routes, "r")
         csvdata = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
         cnt = 0
@@ -78,7 +77,7 @@ class AirportManager:
         file.close()
         logger.debug(":loadAirRoutes: loaded %d airline routes for %d airlines" % (cnt, len(self.airlines)))
 
-        fn = os.path.join(self.airport_base, "airline-frequencies.csv")
+        fn = os.path.join(self.airport_base_path, "airline-frequencies.csv")
         if os.path.exists(fn):
             self.airline_frequencies = {}
             with open(fn, "r") as file:
@@ -87,7 +86,7 @@ class AirportManager:
                     self.airline_frequencies[row["AIRLINE CODE"]] = int(row["COUNT"])
                 logger.debug(":loadAirRoutes: airline-frequencies loaded")
 
-        fn = os.path.join(self.airport_base, "airline-route-frequencies.csv")
+        fn = os.path.join(self.airport_base_path, "airline-route-frequencies.csv")
         if os.path.exists(fn):
             self.airline_route_frequencies = {}
             with open(fn, "r") as file:
@@ -143,32 +142,27 @@ class AirportManager:
         airline.addHub(airport)
 
 
-    def selectServiceVehicle(self, service: "Service", model: str=None, use: bool=True):
+    def selectServiceVehicle(self, operator: "Company", service: "Service", model: str=None, use: bool=True):
         # We currently only instanciate new vehicle, starting from a Depot
-        sty = type(service).__name__[0:3]
+        sty = type(service).__name__[0:3].upper()
         self.vehicle_number = self.vehicle_number + 1
         vname = sty + ("%03d" % self.vehicle_number)
         if vname not in self.service_vehicles.keys():
-            logger.debug(":selectServiceVehicle: creating %s" % (vname))
-            vehicle = None
+            vcl = type(service).__name__.replace("Service", "Vehicle")
+            logger.debug(":selectServiceVehicle: creating %s %s" % (vcl, vname))
+            servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="entity")
+            if hasattr(servicevehicleclasses, vcl):
+                vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator, model=model)  ## getattr(sys.modules[__name__], str) if same module...
             self.service_vehicles[vname] = vehicle
             if use:
                 logger.debug(":selectServiceVehicle: using %s" % (vname))
                 service.setVehicle(vehicle)
-        else:
-            return self.service_vehicles[vname]
+
+        logger.debug(":selectServiceVehicle: returning %s %s" % (vname, self.service_vehicles[vname]))
+        return self.service_vehicles[vname]
 
 
-    def getDepots(self, service_name: str):
-        return None
 
-    def getRestAreas(self, service_name: str):
-        return None
 
-    def selectRandomServiceDepot(self, service: str):
-        return random.choice(self.getDepots(service))
-
-    def selectRandomServiceRestArea(self, service: str):
-        return random.choice(self.getRestAreas(service))
 
 

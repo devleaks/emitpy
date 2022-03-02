@@ -53,7 +53,7 @@ class FlightMovement(Movement):
         return DepartureMove(flight, airport)
 
 
-    def make(self):
+    def move(self):
         """
         Chains local function calls to do the work.
         """
@@ -1019,7 +1019,7 @@ class FlightMovement(Movement):
         f.setProp(FEATPROP.DELAY.value, seconds)
 
 
-class ArrivalMove(Movement):
+class ArrivalMove(FlightMovement):
     """
     Movement for an arrival flight
     """
@@ -1028,7 +1028,7 @@ class ArrivalMove(Movement):
 
 
     def getMoves(self):
-        return super().getMoves() + self.move.taxipos
+        return super().getMoves() + self.taxipos
 
 
     def taxi(self):
@@ -1127,7 +1127,7 @@ class ArrivalMove(Movement):
         return (True, "ArrivalMove::taxi completed")
 
 
-class DepartureMove(Movement):
+class DepartureMove(FlightMovement):
     """
     Movement for an departure flight
     """
@@ -1136,7 +1136,7 @@ class DepartureMove(Movement):
 
 
     def getMoves(self):
-        return self.move.taxipos + super().getMoves()
+        return self.taxipos + super().getMoves()
 
 
     def taxi(self):

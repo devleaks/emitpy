@@ -3,6 +3,7 @@
 import os.path
 import re
 import logging
+import random
 
 from geojson import Point, Polygon, Feature
 from turfpy.measurement import distance, destination, bearing
@@ -72,7 +73,7 @@ class XPAirport(AirportBase):
         if not status[0]:
             return status
         logger.debug(":load: ..done. loading complement.. %s" % status)
-        status = self.makeAdditionalPOIS()
+        status = self.makeAdditionalAerowayPOIS()
         if not status[0]:
             return status
         logger.debug(":load: ..done %s" % status)
@@ -344,16 +345,6 @@ class XPAirport(AirportBase):
         res = list(filter(lambda f: f.name == name, self.aeroway_pois))
         return res[0] if len(res) == 1 else None
 
-    def getServicePOI(self, name):
-        res = list(filter(lambda f: f.name == name, self.service_pois))
-        return res[0] if len(res) == 1 else None
-
-    def getServicePOIs(self, service):
-        return findFeatures(self.service_pois.values(), criteria={
-                "services": service,
-                "poi": "supply"
-            })
-
     def getRamp(self, name):
         return self.ramps[name] if name in self.ramps.keys() else None
 
@@ -361,7 +352,7 @@ class XPAirport(AirportBase):
         return distance(self, airport)
 
 
-    def makeAdditionalPOIS(self):
+    def makeAdditionalAerowayPOIS(self):
         # build additional points and positions
 
         def makeQueue(poiskey):
@@ -404,8 +395,8 @@ class XPAirport(AirportBase):
 
 
         if self.procedures is None:
-            logger.warning(":makeAdditionalPOIS: procedures not loaded")
-            return [False, ":XPAirport::makeAdditionalPOIS: procedures not loaded"]
+            logger.warning(":makeAdditionalAerowayPOIS: procedures not loaded")
+            return [False, ":XPAirport::makeAdditionalAerowayPOIS: procedures not loaded"]
 
         for k in self.aeroway_pois.keys():
             if TAKEOFF_QUEUE_SIZE > 0 and k.startswith("Q:"):
@@ -420,7 +411,7 @@ class XPAirport(AirportBase):
             # for f in self.runway_exits[name]:
             #     logger.debug(":makeRunwayExits: added %d runway exits for %s at %f" % (len(self.runway_exits[name]), name, f["properties"]["length"]))
 
-        return [True, ":XPAirport::makeAdditionalPOIS: loaded"]
+        return [True, ":XPAirport::makeAdditionalAerowayPOIS: loaded"]
 
 
     def closest_runway_exit(self, runway, dist):
@@ -443,3 +434,57 @@ class XPAirport(AirportBase):
         # no extra checks
         res = list(filter(lambda f: f["properties"]["queuepos"] == qid, self.takeoff_queues[runway]))
         return res[0]
+
+    """
+    In Service POI Feature<Point>, property "service" is a list of | separated services, and "poi" is {depot|rest}.
+    """
+    def getServicePOI(self, service_name: str):
+        sl = []
+        for f in self.service_pois.values():
+            s = f.getProp("services")
+            if s is not None:
+                if s == "*":
+                    sl.append(f)
+                else:
+                    if service_name in s.split("|"):
+                        sl.append(f)
+        return sl
+
+    def getDepots(self, service_name: str):
+        return list(filter(lambda f: f.getProp("poi") == "depot", self.getServicePOI(service_name)))
+
+    def getRestAreas(self, service_name: str):
+        return list(filter(lambda f: f.getProp("poi") == "rest", self.getServicePOI(service_name)))
+
+    def selectRandomServiceDepot(self, service: str):
+        l = self.getDepots(service)
+        if len(l) == 0:
+            logger.warning(f":selectRandomServiceDepot: no depot for { service }")
+            return None
+        return random.choice(l)
+
+    def selectRandomServiceRestArea(self, service: str):
+        l = self.getRestAreas(service)
+        if len(l) == 0:
+            logger.warning(f":selectRandomServiceRestArea: no rest area for { service }")
+            return None
+        return random.choice(l)
+
+    def getServiceDepot(self, name: str, service_name: str=None):
+        dl = self.service_pois if service_name is None else self.getServicePOI(service_name)
+        dn = list(filter(lambda f: f.getProp("name") == name, dl))
+        if len(dn) == 0:
+            logger.warning(f":getServiceDepot: { name } not found")
+            return None
+        return dn[0]  # name may not be unique
+
+    def getServiceRestArea(self, name: str, service_name: str=None):
+        dl = self.service_pois if service_name is None else self.getServicePOI(service_name)
+        dn = list(filter(lambda f: f.getProp("name") == name, dl))
+        if len(dn) == 0:
+            logger.warning(f":getServiceRestArea: { name } not found")
+            return None
+
+        return dn[0]
+
+
