@@ -1,13 +1,12 @@
 """
 """
-
+import json
 
 class FlightRequest:
 
-    def __init__(self, flight: str, scheduled: str, apt_from; str, apt_to: str, actype: str, ramp: str, icao24: str,
+    def __init__(self, flight: str, scheduled: str, apt_from: str, apt_to: str, actype: str, ramp: str, icao24: str,
                  acreg: str=None, runway: str=None):
         pass
-
 
 class ServiceRequest:
 
@@ -18,9 +17,15 @@ class ServiceRequest:
 
 class EmitRequest:
 
-    def __init__(self, id: str, sync_name: str, sync_time: str):
+    def __init__(self, ident: str, sync_name: str, sync_time: str):
         pass
 
+    def run(self):
+        return {
+            "errno": 0,
+            "errmsg": "no error",
+            "data": "no data"
+        }
 
 class StartQueueRequest:
 
