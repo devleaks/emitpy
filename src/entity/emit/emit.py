@@ -11,7 +11,7 @@ from random import randrange
 from geojson import FeatureCollection, Point, LineString
 from turfpy.measurement import distance, bearing, destination
 
-from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures
+from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement
 
 from ..constants import FLIGHT_DATABASE, SLOW_SPEED
 from ..parameters import AODB_DIR
@@ -32,7 +32,7 @@ class Emit:
     """
     Emit takes an array of MovePoints to produce a FeatureCollection of decorated features ready for emission.
     """
-    def __init__(self, move: 'Movement' = None):
+    def __init__(self, move: Movement = None):
         self.move = move
         self.moves = None
         self.frequency = 30  # seconds

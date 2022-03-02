@@ -196,11 +196,11 @@ class Graph:  # Graph(FeatureCollection)?
                     edge = e
                     nconn = (len(e.start.adjacent), len(e.end.adjacent))
         if dist == 0:
-            d = distance(pureFeature(pureFeature(point)), Feature(geometry=Point(edge.start["geometry"]["coordinates"])))
+            d = distance(pureFeature(point), Feature(geometry=Point(edge.start["geometry"]["coordinates"])))
             if d == 0:
                 logger.debug(":nearest_point_on_edge: nearest point is start of edge")
                 return(edge.start, 0, edge, nconn)
-            d = distance(pureFeature(pureFeature(point)), Feature(geometry=Point(edge.end["geometry"]["coordinates"])))
+            d = distance(pureFeature(point), Feature(geometry=Point(edge.end["geometry"]["coordinates"])))
             if d == 0:
                 logger.debug(":nearest_point_on_edge: nearest point is end of edge")
                 return(edge.end, 0, edge, nconn)

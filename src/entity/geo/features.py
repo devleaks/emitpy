@@ -39,6 +39,7 @@ class FeatureWithProps(Feature):
     """
     def __init__(self, id=None, geometry=None, properties=None, **extra):
     # before: def __init__(self, geometry: Geometry, properties: dict):
+        self["type"] = "Feature"  # see https://github.com/jazzband/geojson/issues/178
         Feature.__init__(self, id=id, geometry=geometry, properties=copy.deepcopy(properties) if properties is not None else None)
 
     def geometry(self):
@@ -178,7 +179,7 @@ class FeatureWithProps(Feature):
 # LOCATION
 #
 #
-class Location(Feature):  # Location(Feature)
+class Location(FeatureWithProps):  # Location(Feature)
     """
     A Location is a named Feature<Point> in a city in a country.
     """
@@ -256,7 +257,7 @@ class Ramp(FeatureWithProps):
 # RUNWAY
 #
 #
-class Runway(Feature):
+class Runway(FeatureWithProps):
 
     def __init__(self, name: str, width: float, lat1: float, lon1: float, lat2: float, lon2: float, surface: Polygon):
         p1 = Feature(geometry=Point((lon1, lat1)))
