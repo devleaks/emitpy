@@ -3,7 +3,8 @@ A Route is a collection of ordered graph vertices.
 """
 import logging
 logger = logging.getLogger("Route")
-
+from networkx import shortest_path, exception, all_shortest_paths
+import itertools
 
 class Route:
     # Container for route from src to dst on graph
@@ -26,31 +27,45 @@ class Route:
         return ""
 
     def find(self):
+        logger.debug(":find: trying networkx..")
+        try:
+            atry = all_shortest_paths(self.graph.nx, source=self.src, target=self.dst, weight="weight", method="bellman-ford")
+            # logger.debug(":find: .. found %s", atry)
+            self.route = None
+            for p in atry:
+                if self.route is None:
+                    self.route = p
+                print(self.route)
+            logger.debug(":find: .. found %s", self.route)
+            return
+        except (exception.NetworkXNoPath):
+                logger.debug(":find: .. not found")
+
         logger.debug(":find: trying AStar..")
         atry = self.graph.AStar(self.src, self.dst)
         if atry is not None:
             logger.debug(":find: .. found")
             self.route = atry
             return
-        logger.debug(":find: trying AStar.. (reverse)")
-        atry = self.graph.AStar(self.dst, self.src)
-        if atry is not None:
-            logger.debug(":find: .. found")
-            atry.reverse()
-            self.route = atry
-            return
-        logger.debug(":find: trying Dijkstra..")
-        atry = self.graph.Dijkstra(self.src, self.dst)
-        if atry is not None and len(atry) > 2:
-            logger.debug(":find: .. found (%d)", len(atry))
-            self.route = atry
-            return
-        logger.debug(":find: trying Dijkstra.. (reverse)")
-        atry = self.graph.Dijkstra(self.dst, self.src)
-        if atry is not None and len(atry) > 2:
-            logger.debug(":find: .. found (%d)", len(atry))
-            atry.reverse()
-            self.route = atry
+        # logger.debug(":find: trying AStar.. (reverse)")
+        # atry = self.graph.AStar(self.dst, self.src)
+        # if atry is not None:
+        #     logger.debug(":find: .. found")
+        #     atry.reverse()
+        #     self.route = atry
+        #     return
+        # logger.debug(":find: trying Dijkstra..")
+        # atry = self.graph.Dijkstra(self.src, self.dst)
+        # if atry is not None and len(atry) > 2:
+        #     logger.debug(":find: .. found (%d)", len(atry))
+        #     self.route = atry
+        #     return
+        # logger.debug(":find: trying Dijkstra.. (reverse)")
+        # atry = self.graph.Dijkstra(self.dst, self.src)
+        # if atry is not None and len(atry) > 2:
+        #     logger.debug(":find: .. found (%d)", len(atry))
+        #     atry.reverse()
+        #     self.route = atry
 
 
     def found(self):
