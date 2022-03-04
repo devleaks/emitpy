@@ -6,6 +6,7 @@
 import logging
 import time
 from math import inf
+import networkx as nx
 
 from geojson import Point, LineString, Feature
 from turfpy.measurement import distance, destination, bearing, boolean_point_in_polygon, point_to_line_distance
@@ -67,6 +68,7 @@ class Graph:  # Graph(FeatureCollection)?
     def __init__(self):
         self.vert_dict = {}
         self.edges_arr = []
+        self.nx = nx.Graph()
 
 
     def print(self, vertex: bool = True, edge: bool = True):
@@ -84,6 +86,7 @@ class Graph:  # Graph(FeatureCollection)?
         if vertex.id in self.vert_dict.keys():
             logger.warning(":add_vertex: duplicate %s" % vertex.id)
         self.vert_dict[vertex.id] = vertex
+        self.nx.add_node(vertex.id)
         return vertex
 
 
@@ -144,7 +147,7 @@ class Graph:  # Graph(FeatureCollection)?
             self.vert_dict[edge.start.id].add_neighbor(self.vert_dict[edge.end.id].id, edge.weight)
             self.vert_dict[edge.start.id].connected = True
             self.vert_dict[edge.end.id].connected = True
-
+            self.nx.add_edge(edge.start.id, edge.end.id, weight=edge.weight)
             if not edge.directed:
                 self.vert_dict[edge.end.id].add_neighbor(self.vert_dict[edge.start.id].id, edge.weight)
 

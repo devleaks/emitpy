@@ -34,3 +34,31 @@ service
     qty -> duration
 
 dest=code: DEPOT|REST|RAMP
+
+
+--
+
+Solution for broadcaster:
+
+PUSH
+----
+set emit_item.version = versions[emit_item.id] + 1
+versions[emit_item.id] = versions[emit_item.id] + 1
+
+store new emit in datetime-based heapq
+
+POP
+---
+
+
+while emitdate < now():
+    item = heapq.pop()
+
+    if item[item.id].version != versions[item.id]:
+        discard
+    else:
+        send
+
+    emitdate = item.emitdate
+
+sleep until emitdate
