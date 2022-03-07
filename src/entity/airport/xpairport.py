@@ -184,7 +184,7 @@ class XPAirport(AirportBase):
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
-        logger.debug(":loadTaxiways: added %d vertices" % len(v))
+        logger.debug(":loadTaxiways: loaded %d vertices" % len(v))
 
         # 1202 20 21 twoway runway 16L/34R
         # 1204 departure 16L,34R
@@ -223,8 +223,9 @@ class XPAirport(AirportBase):
             else:
                 edge = False
 
+        self.taxiways.purge()
         # Info 6
-        logger.info(":loadTaxiways: added %d nodes, %d edges (%d enhanced).", len(vertexlines), edgeCount, edgeActiveCount)
+        logger.info(":loadTaxiways: added %d nodes, %d edges (%d enhanced).", len(self.taxiways.vert_dict), edgeCount, edgeActiveCount)
         return [True, "XPAirport::loadTaxiways loaded"]
 
     def loadServiceRoads(self):
@@ -236,7 +237,7 @@ class XPAirport(AirportBase):
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
-        logger.debug(":loadServiceNetwork: added %d vertices" % len(v))
+        logger.debug(":loadServiceNetwork: loaded %d vertices" % len(v))
 
         # 1206 107 11 twoway C
         edgeCount = 0   # just for info
@@ -249,13 +250,8 @@ class XPAirport(AirportBase):
                     dst = self.service_roads.get_vertex(args[1])
                     cost = distance(src["geometry"], dst["geometry"])
                     edge = None
-                    if len(args) == 5:
-                        # args[2] = {oneway|twoway}
-                        edge = Edge(src=src, dst=dst, weight=cost, directed=False, usage=["ground"], name=args[4])
-                        #edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=["ground"], name=args[4])
-                    else:
-                        edge = Edge(src=src, dst=dst, weight=cost, directed=False, usage=["ground"], name="")
-                        #edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=["ground"], name="")
+                    name = args[4] if len(args) == 5 else ""
+                    edge = Edge(src=src, dst=dst, weight=cost, directed=False, usage=["ground"], name=name)
                     # if args[2] == "oneway":
                     #     edge.setColor("#AA4444")
                     self.service_roads.add_edge(edge)
@@ -265,8 +261,9 @@ class XPAirport(AirportBase):
             else:
                 edge = False
 
+        self.service_roads.purge()
         # Info 6
-        logger.info(":loadServiceNetwork: added %d nodes, %d edges.", len(vertexlines), edgeCount)
+        logger.info(":loadServiceNetwork: added %d nodes, %d edges.", len(self.service_roads.vert_dict), edgeCount)
         return [True, "XPAirport::loadServiceNetwork loaded"]
 
 
