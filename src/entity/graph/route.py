@@ -2,9 +2,13 @@
 A Route is a collection of ordered graph vertices.
 """
 import logging
+from networkx import shortest_path, exception
+
+# from geojson import Point, Feature
+# from turfpy.measurement import distance
+
 logger = logging.getLogger("Route")
-from networkx import shortest_path, exception, all_shortest_paths
-import itertools
+
 
 class Route:
     # Container for route from src to dst on graph
@@ -27,17 +31,18 @@ class Route:
         return ""
 
     def find(self):
+        def heuristic_distance(src, dst):
+            n0 = self.graph.nx.nodes[src]
+            n1 = self.graph.nx.nodes[dst]
+            d = distance(n0['v'], n1['v'])
+            # logger.debug(":find:heuristic: %s->%s=%f" % (i0, i1, d))
+            return d
+
         logger.debug(":find: trying networkx..")
         try:
-            atry = all_shortest_paths(self.graph.nx, source=self.src, target=self.dst, weight="weight", method="bellman-ford")
-            # logger.debug(":find: .. found %s", atry)
-            self.route = None
-            for p in atry:
-                if self.route is None:
-                    self.route = p
-                print(self.route)
+            self.route = shortest_path(self.graph.nx, source=self.src, target=self.dst, weight="weight")
             logger.debug(":find: .. found %s", self.route)
-            return
+            return self.route
         except (exception.NetworkXNoPath):
                 logger.debug(":find: .. not found")
 
@@ -47,6 +52,8 @@ class Route:
             logger.debug(":find: .. found")
             self.route = atry
             return
+
+        logger.warning(":find: route not found")
         # logger.debug(":find: trying AStar.. (reverse)")
         # atry = self.graph.AStar(self.dst, self.src)
         # if atry is not None:

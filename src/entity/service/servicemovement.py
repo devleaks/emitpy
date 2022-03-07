@@ -38,6 +38,7 @@ class ServiceMove(Movement):
 
     def move(self):
         startpos = self.service.vehicle.getPosition()
+        logger.debug(":move: start position %s" % (startpos))
         service_type = type(self.service).__name__.replace("Service", "")
 
         # starting position to network
@@ -46,6 +47,8 @@ class ServiceMove(Movement):
             logger.warning(":move: no nearest_point_on_edge for startpos")
         else:
             self.moves.append(startnp[0])
+
+        logger.debug(":move: start vertex %s" % (startnp[0]))
 
         startnv = self.airport.service_roads.nearest_vertex(startpos)
         if startnv[0] is None:
@@ -62,6 +65,8 @@ class ServiceMove(Movement):
             logger.warning(f":move: failed to find ramp stop and/or center for { service_type }")
             return (False, ":move: failed to find ramp stop")
 
+        logger.debug(":move: ramp %s" % (ramp_stop))
+
         # find closest point on network to ramp
         rampnp = self.airport.service_roads.nearest_point_on_edge(ramp_stop)
         if rampnp[0] is None:
@@ -69,6 +74,8 @@ class ServiceMove(Movement):
         rampnv = self.airport.service_roads.nearest_vertex(ramp_stop)
         if rampnv[0] is None:
             logger.warning(":move: no nearest_vertex for ramp_stop")
+
+        logger.debug(":move: ramp vertex %s" % (rampnv[0]))
 
         # route from start to ramp
         logger.debug(":move: route from start %s to ramp %s (vertices)" % (startnv[0].id, rampnv[0].id))
@@ -80,6 +87,7 @@ class ServiceMove(Movement):
             for vtx in rt1.get_vertices():
                 # vtx = self.airport.service_roads.get_vertex(vid)
                 pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                pos.setProp("_serviceroad", vtx.id)
                 self.moves.append(pos)
         else:
             logger.debug(":move: no route from start %s to ramp %s" % (startnv[0].id, rampnv[0].id))

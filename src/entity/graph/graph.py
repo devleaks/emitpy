@@ -21,7 +21,7 @@ USAGE_TAG = "usage"
 class Vertex(FeatureWithProps):
 
     def __init__(self, node: str, point: Point, usage: [str] = [], name: str = None):
-        FeatureWithProps.__init__(self, id=node, geometry=point)
+        FeatureWithProps.__init__(self, id=node, geometry=point, properties={"name": name})
         self.name = name
         self.usage = usage
         self.adjacent = {}
@@ -41,7 +41,6 @@ class Edge(FeatureWithProps):
 
     def __init__(self, src: Vertex, dst: Vertex, weight: float, directed: bool, usage: [str]=[], name=None):
         FeatureWithProps.__init__(self, geometry=LineString([src["geometry"]["coordinates"], dst["geometry"]["coordinates"]]))
-        # Feature.__init__(self, geometry=Line([src["geometry"], dst["geometry"]]))
         self.start = src
         self.end = dst
         self.name = name        # segment name, not unique!
@@ -82,11 +81,12 @@ class Graph:  # Graph(FeatureCollection)?
             txt = txt + ", edges"
         printFeatures(all, f"graph {txt}")
 
+
     def add_vertex(self, vertex: Vertex):
         if vertex.id in self.vert_dict.keys():
             logger.warning(":add_vertex: duplicate %s" % vertex.id)
         self.vert_dict[vertex.id] = vertex
-        self.nx.add_node(vertex.id)
+        self.nx.add_node(vertex.id, v=vertex)
         return vertex
 
 
@@ -167,10 +167,19 @@ class Graph:  # Graph(FeatureCollection)?
         return None
 
 
+    def purge(self):
+        # Only keeps edge start/end vertices
+        n = len(self.vert_dict)
+        v = set([e.start.id for e in self.edges_arr])
+        v.union(set([e.end.id for e in self.edges_arr]))
+        nd = dict(filter(lambda i: i[0] in v, self.vert_dict.items()))
+        # for ident in v:
+        #     nd[ident] = self.vert_dict[ident]
+        self.vert_dict = nd
+        logger.debug(":purge: purged %d vertices" % (n - len(self.vert_dict)))
+
+
     def nearest_point_on_edge(self, point: Feature, with_connection: bool = False):  # @todo: construct array of lines on "add_edge"
-        def pureFeature(f):
-            # See https://github.com/omanges/turfpy/issues/97
-            return Feature(geometry=f["geometry"], properties=f["properties"])
 
         def nearest_point_on_line(point, line, dist):
             LINE_LENGTH = 0.5  # km
@@ -193,17 +202,17 @@ class Graph:  # Graph(FeatureCollection)?
         dist = inf
         for e in self.edges_arr:
             if (not with_connection) or (with_connection and (len(e.start.adjacent) > 0 or len(e.end.adjacent) > 0)):
-                d = point_to_line_distance(pureFeature(point), Feature(geometry=e["geometry"]))
+                d = point_to_line_distance(point, Feature(geometry=e["geometry"]))
                 if d < dist:
                     dist = d
                     edge = e
                     nconn = (len(e.start.adjacent), len(e.end.adjacent))
         if dist == 0:
-            d = distance(pureFeature(point), Feature(geometry=Point(edge.start["geometry"]["coordinates"])))
+            d = distance(point, Feature(geometry=Point(edge.start["geometry"]["coordinates"])))
             if d == 0:
                 logger.debug(":nearest_point_on_edge: nearest point is start of edge")
                 return(edge.start, 0, edge, nconn)
-            d = distance(pureFeature(point), Feature(geometry=Point(edge.end["geometry"]["coordinates"])))
+            d = distance(point, Feature(geometry=Point(edge.end["geometry"]["coordinates"])))
             if d == 0:
                 logger.debug(":nearest_point_on_edge: nearest point is end of edge")
                 return(edge.end, 0, edge, nconn)
@@ -215,20 +224,18 @@ class Graph:  # Graph(FeatureCollection)?
 
 
     def nearest_vertex(self, point: Feature, with_connection: bool = False):
-        def pureFeature(f):
-            # See https://github.com/omanges/turfpy/issues/97
-            return Feature(geometry=f["geometry"], properties=f["properties"])
 
         closest = None
         nconn = 0
         dist = inf
         for p in self.vert_dict.values():
             if (not with_connection) or (with_connection and len(p.adjacent) > 0):
-                d = distance(pureFeature(point), pureFeature(p))
+                d = distance(point, p)
                 if d < dist:
                     dist = d
                     closest = p
                     nconn = len(p.adjacent)
+        logger.debug(":nearest_vertex: returning %s" % (closest.name if closest is not None else "None"))
         return [closest, dist, nconn]
 
 # #################
@@ -344,7 +351,16 @@ class Graph:  # Graph(FeatureCollection)?
         """
         Heuristic function is straight distance (to goal)
         """
-        return distance(self.get_vertex(a), self.get_vertex(b))
+        va = self.get_vertex(a)
+        if va is None:
+            logger.warning(":heuristic: invalid vertex id a=%s" % (a))
+            return inf
+        vb = self.get_vertex(b)
+        if vb is None:
+            logger.warning(":heuristic: invalid vertex id b=%s" % (b))
+            return inf
+        return distance(va, vb)
+
 
 
     def get_neighbors(self, a):
