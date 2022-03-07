@@ -185,7 +185,7 @@ class Location(FeatureWithProps):  # Location(Feature)
     """
     def __init__(self, name: str, city: str, country: str, lat: float, lon: float, alt: float):
 
-        Feature.__init__(self, geometry=Point((lon, lat, alt)), properties={
+        FeatureWithProps.__init__(self, geometry=Point((lon, lat, alt)), properties={
             "country": country,
             "city": city,
             "name": name
@@ -200,7 +200,7 @@ class Ramp(FeatureWithProps):
 
     def __init__(self, name: str, ramptype: str, position: [float], orientation: float, use: str):
 
-        Feature.__init__(self, geometry=Point(position), properties={
+        FeatureWithProps.__init__(self, geometry=Point(position), properties={
             "name": name,
             "type": "ramp",
             "sub-type": ramptype,
@@ -263,7 +263,7 @@ class Runway(FeatureWithProps):
         p1 = Feature(geometry=Point((lon1, lat1)))
         p2 = Feature(geometry=Point((lon2, lat2)))
         brng = bearing(p1, p2)
-        Feature.__init__(self, geometry=surface, properties={
+        FeatureWithProps.__init__(self, geometry=surface, properties={
             "type": "runway",
             "name": name,
             "width": width,
@@ -277,7 +277,7 @@ class Runway(FeatureWithProps):
 class ServiceParking(FeatureWithProps):
 
     def __init__(self, name: str, parking_type: str, position: [float], orientation: float, use: str):
-        Feature.__init__(self, geometry=Point(position), properties={
+        FeatureWithProps.__init__(self, geometry=Point(position), properties={
             "type": "service-parking",
             "sub-type": parking_type,
             "parking-use": use,
