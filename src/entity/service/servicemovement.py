@@ -29,12 +29,8 @@ class ServiceMove(Movement):
         self.service = service
 
 
-    def load(self):
-        pass
-
-
-    def save(self):
-        pass
+    def getId(self):
+        return self.service.getId()
 
 
     def move(self):

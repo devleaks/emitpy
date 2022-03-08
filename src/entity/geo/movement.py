@@ -36,14 +36,15 @@ class Movement:
         self.moves = []  # Array of Features<Point>
 
     def getId(self):
-        return "flight_id-service-vehicle"
+        return "id"
 
-    def save(self, ident: str):
+    def save(self):
         """
         Save flight paths to 3 files for flight plan, detailed movement, and taxi path.
         Save a technical json file which can be loaded later, and GeoJSON files for display.
         @todo should save file format version number.
         """
+        ident = self.getId()
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, ident)
 
         def saveMe(arr, name):

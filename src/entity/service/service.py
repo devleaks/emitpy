@@ -16,29 +16,29 @@ logger = logging.getLogger("Service")
 class Service:
 
     def __init__(self, operator: "Company", quantity: float):
-        self.ident = None
         self.operator = operator
         self.quantity = quantity  # scheduled service date/time in minutes after/before(negative) on-block
         self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
         self.duration = None      # scheduled duration in minutes, will be different from actual duration
         self.ramp = None
         self.next_position = None
+        self.flight = None
         self.turnaround = None
         self.vehicle = None
         self.starttime = None
         self.route = []
 
-
-    def setId(self, ident: str):
-        self.ident = ident
-
-
     def getId(self):
-        return self.ident
-
+        f = self.flight.getId() if self.flight is not None else "noflight"
+        v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
+        return f + "-" + v
 
     def setTurnaround(self, turnaround: "Turnaround"):
         self.turnaround = turnaround
+
+
+    def setFlight(self, flight: "Flight"):
+        self.flight = flight
 
 
     def setRamp(self, ramp: "Ramp"):

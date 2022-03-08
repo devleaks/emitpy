@@ -86,7 +86,7 @@ def main():
     logger.debug("..done")
 
     logger.debug("creating departure..")
-    dep = Departure(operator=airline, number="3", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft, linked_flight=arr)
+    dep = Departure(operator=airline, number="321", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft, linked_flight=arr)
     dep.setFL(reqfl)
     dep.setRamp(ramp)
     dep.setGate(gate)
@@ -98,6 +98,7 @@ def main():
     logger.debug("creating single service..")
     fuel_service = FuelService(operator=operator, quantity=24)
     fuel_service.setRamp(ramp)
+    fuel_service.setFlight(dep)
     fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="pump")
     fuel_depot = managed.selectRandomServiceDepot("Fuel")
     fuel_vehicle.setPosition(fuel_depot)
@@ -110,10 +111,11 @@ def main():
     fsm.move()
     fsm.save()
 
+    logger.debug(".. bradcasting positions ..")
+
     se = Emit(fsm)
     se.emit()
     se.save()
-
 
     logger.debug("..done")
 
