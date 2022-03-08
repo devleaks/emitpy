@@ -56,7 +56,7 @@ class SERVICE(Enum):
     CATERING = "catering"
     FUEL = "fuel"
     CARGO = "cargo"
-    ULD = "ULD"
+    ULD = "uld"
     BAGGAGE = "baggage"
     MARSHALL = "marshall"
     PUSHBACK = "pushback"

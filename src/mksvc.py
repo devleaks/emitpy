@@ -7,6 +7,7 @@ from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure
 
 from entity.service import FuelService, ServiceMove
+from entity.emit import Emit
 
 from entity.parameters import MANAGED_AIRPORT
 
@@ -109,9 +110,9 @@ def main():
     fsm.move()
     fsm.save()
 
-    # se = Emit(fsm)
-    # se.emit()
-    # se.save()
+    se = Emit(fsm)
+    se.emit()
+    se.save()
 
 
     logger.debug("..done")

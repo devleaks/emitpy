@@ -1,0 +1,174 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate flight or service vehicle</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/css/bootstrap-datetimepicker.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.43/css/bootstrap-datetimepicker-standalone.css">
+</head>
+
+<body>
+    <div class="container">
+        <form>
+            <fieldset>
+                <legend>Synchronize Flight</legend>
+                <div class="form-group row">
+                    <label for="flightnumber" class="col-4 col-form-label">Flight</label>
+                    <div class="col-8">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <i class="fa fa-plane"></i>
+                                </div>
+                            </div>
+                            <select id="flight" name="flight" class="custom-select">
+                                <option value="f001">"QR0195-07MAR 10:50 DOH-BRU A351 C12"</option>
+                            </select>
+                        </div>
+                        <span id="flightHelpBlock" class="form-text text-muted">Flight</span>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="syncname" class="col-4 col-form-label">Sync Time Mark</label>
+                    <div class="col-8">
+                        <select id="syncname" name="syncname" class="custom-select">
+                            <option value="takeoff">Take-off</option>
+                            <option value="touchdown">Touch-down</option>
+                            <option value="On Block Time">On-Block</option>
+                            <option value="Off-Block Time">Off-Block</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label for="synctime" class="col-4 col-form-label">Synchronisation Time</label>
+                    <div class="col-8">
+                        <div class="input-group">
+                            <div class='input-group date' id='datetimepicker1'>
+                                <input name="synctime" placeholder="2022-03-07T16:30:00+02:00" type="text" class="form-control" required="required" />
+                                <div class="input-group-append">
+                                    <i class="fa fa-calendar input-group-text"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="offset-4 col-8">
+                        <button name="submit" type="submit" class="btn btn-primary">Synchronize Flight</button>
+                    </div>
+                </div>
+            </fieldset>
+        </form>
+        <form>
+            <fieldset>
+                <legend>Synchronize Service</legend>
+                <form>
+                    <div class="form-group row">
+                        <label for="flightnumber" class="col-4 col-form-label">Flight number</label>
+                        <div class="col-8">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <i class="fa fa-plane"></i>
+                                    </div>
+                                </div>
+                                <select id="flight" name="flight" class="custom-select">
+                                    <option value="f001">"QR0195-07MAR 10:50 DOH-BRU A351 C12"</option>
+                                </select>
+                            </div>
+                            <span id="flightHelpBlock" class="form-text text-muted">Flight</span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="ramp" class="col-4 col-form-label">Ramp</label>
+                        <div class="col-8">
+                            <select id="ramp" name="ramp" class="custom-select" aria-describedby="rampHelpBlock">
+                                <option value="A1">A1</option>
+                                <option value="C12">C12</option>
+                                <option value="512">512</option>
+                            </select>
+                            <span id="rampHelpBlock" class="form-text text-muted">Jetway, parking, or tie down</span>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="service" class="col-4 col-form-label">Service</label>
+                        <div class="col-8">
+                            <select id="service" name="service" class="custom-select">
+                                <option value="fuel">Fuel—FUEL003</option>
+                                <option value="catering">Catering—CAT012</option>
+                                <option value="Water">Water</option>
+                                <option value="baggage">Baggage</option>
+                                <option value="cargo">Cargo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="syncname" class="col-4 col-form-label">Sync Time Mark</label>
+                        <div class="col-8">
+                            <select id="syncname" name="syncname" class="custom-select">
+                                <option value="takeoff">Start</option>
+                                <option value="touchdown">Arrive</option>
+                                <option value="On Block Time">Serve</option>
+                                <option value="Off-Block Time">Leave</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="synctime" class="col-4 col-form-label">Synchronisation Time</label>
+                        <div class="col-8">
+                            <div class="input-group">
+                                <div class='input-group date' id='datetimepicker2'>
+                                    <input name="synctime" placeholder="2022-03-07T16:30:00+02:00" type="text" class="form-control" required="required" />
+                                    <div class="input-group-append">
+                                        <i class="fa fa-calendar input-group-text"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="offset-4 col-8">
+                            <button name="submit" type="submit" class="btn btn-primary">Synchronize Service</button>
+                        </div>
+                    </div>
+            </fieldset>
+        </form>
+    </div>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.1/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.7.14/js/bootstrap-datetimepicker.min.js"></script>
+<script language="javascript">
+$(function() {
+    $('#datetimepicker1').datetimepicker({
+        icons: {
+            time: "fa fa-clock-o",
+            date: "fa fa-calendar",
+            up: "fa fa-arrow-up",
+            down: "fa fa-arrow-down",
+            previous: "fa fa-arrow-left",
+            next: "fa fa-arrow-right"
+        },
+        format: 'DD-MM-YYYYTHH:mm:00.000Z',
+        sideBySide: true
+    });
+    $('#datetimepicker2').datetimepicker({
+        icons: {
+            time: "fa fa-clock-o",
+            date: "fa fa-calendar",
+            up: "fa fa-arrow-up",
+            down: "fa fa-arrow-down",
+            previous: "fa fa-arrow-left",
+            next: "fa fa-arrow-right"
+        },
+        format: 'DD-MM-YYYYTHH:mm:00.000Z',
+        sideBySide: true
+    });
+});
+</script>
+
+</html>

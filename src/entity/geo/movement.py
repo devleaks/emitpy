@@ -35,6 +35,9 @@ class Movement:
         self.airport = airport
         self.moves = []  # Array of Features<Point>
 
+    def getId(self):
+        return "flight_id-service-vehicle"
+
     def save(self, ident: str):
         """
         Save flight paths to 3 files for flight plan, detailed movement, and taxi path.
