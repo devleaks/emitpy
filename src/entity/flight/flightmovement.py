@@ -53,6 +53,10 @@ class FlightMovement(Movement):
         return DepartureMove(flight, airport)
 
 
+    def getId(self):
+        return self.flight_id
+
+
     def move(self):
         """
         Chains local function calls to do the work.

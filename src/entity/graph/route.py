@@ -46,7 +46,7 @@ class Route:
         except (exception.NetworkXNoPath):
                 logger.debug(":find: .. not found")
 
-        logger.debug(":find: trying AStar..")
+        logger.debug(":find: trying local AStar..")
         atry = self.graph.AStar(self.src, self.dst)
         if atry is not None:
             logger.debug(":find: .. found")
