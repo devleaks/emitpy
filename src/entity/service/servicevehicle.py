@@ -46,6 +46,9 @@ class ServiceVehicle(Identity):
         self.mapicons = {}
         self.models3d = {}
 
+    def getId(self):
+        return self.name  # registration
+
     def setPosition(self, position):
         self.position = position
 

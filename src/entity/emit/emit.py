@@ -47,7 +47,8 @@ class Emit:
         """
         Save flight paths to file for emitted positions.
         """
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.move.getId())
+        ident = self.move.getId()
+        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, ident)
 
         # filename = os.path.join(basename + "-5-emit.json")
         # with open(filename, "w") as fp:
@@ -56,6 +57,7 @@ class Emit:
         with open(filename, "w") as fp:
             json.dump(FeatureCollection(features=cleanFeatures(self.broadcast)), fp, indent=4)
 
+        logger.debug(":save: saved %s" % ident)
 
     def load(self, flight_id):
         # load output of Movement file.
