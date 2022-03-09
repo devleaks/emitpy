@@ -86,7 +86,7 @@ def time(wpts):
         # if nextpos.speed() is None or nextpos.speed() is None:
         #     logger.debug(":time: positions: %d %s %s" % (idx, nextpos, currpos))
         s = (nextpos.speed() + currpos.speed()) / 2
-        t = d / s  # km
+        t = d / s  if s != 0 else 0 # km
         elapsed = elapsed + t
         nextpos.setTime(elapsed)
         currpos = nextpos

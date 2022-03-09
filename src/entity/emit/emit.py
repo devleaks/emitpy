@@ -4,16 +4,16 @@ Emit
 import os
 import json
 import logging
-from typing import Union
 from datetime import datetime, timedelta
 from random import randrange
 
 from geojson import FeatureCollection, Point, LineString
+from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
 
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement
 
-from ..constants import FLIGHT_DATABASE, SLOW_SPEED
+from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP
 from ..parameters import AODB_DIR
 
 logger = logging.getLogger("Emit")
@@ -24,8 +24,12 @@ class EmitPoint(FeatureWithProps):
     An EmitPoint is a Feature<Point> with additional information for emission.
     All information to be emited in included into the EmitPoint.
     """
-    def __init__(self, geometry: Union[Point, LineString], properties: dict):
+    def __init__(self, geometry: Geometry, properties: dict):
         FeatureWithProps.__init__(self, geometry=geometry, properties=properties)
+
+    def getBroadcastTime(self):
+        t = self.getProp("broadcast_absolute_time")
+        return t if t is not None else 0
 
 
 class Emit:
@@ -36,6 +40,7 @@ class Emit:
         self.move = move
         self.moves = None
         self.frequency = 30  # seconds
+        self._emit = []  # [ EmitPoint ]
         self.broadcast = []  # [ EmitPoint ]
         self.props = {}  # general purpose properties added to each emit point
 
@@ -52,10 +57,10 @@ class Emit:
 
         # filename = os.path.join(basename + "-5-emit.json")
         # with open(filename, "w") as fp:
-        #     json.dump(self.broadcast, fp, indent=4)
+        #     json.dump(self._emit, fp, indent=4)
         filename = os.path.join(basename + "-5-emit.geojson")
         with open(filename, "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self.broadcast)), fp, indent=4)
+            json.dump(FeatureCollection(features=cleanFeatures(self._emit)), fp, indent=4)
 
         logger.debug(":save: saved %s" % ident)
 
@@ -80,8 +85,9 @@ class Emit:
     def emit(self, frequency: int = 30):
         # Utility subfunctions
         def point_on_line(c, n, d):
-            brng = bearing(c, n)
-            return destination(c, d / 1000, brng, {"units": "km"})
+            # brng = bearing(c, n)
+            # dest = destination(c, d / 1000, brng, {"units": "km"})
+            return FeatureWithProps.convert(destination(c, d / 1000, bearing(c, n), {"units": "km"}))
 
         def time_distance_to_next_vtx(c0, idx):  # time it takes to go from c0 to vtx[idx+1]
             totald = distance(self.moves[idx], self.moves[idx+1]) * 1000  # km
@@ -129,16 +135,16 @@ class Emit:
 
         def broadcast(idx, pos, time, reason, waypt=False):
             e = EmitPoint(geometry=pos["geometry"], properties=pos["properties"])
-            e.setProp("broadcast_relative_time", time)
-            e.setProp("broadcast_index", len(self.broadcast))
-            e.setProp("broadcast", not waypt)
+            e.setProp(FEATPROP.BROADCAST_REL_TIME.value, time)
+            e.setProp(FEATPROP.BROADCAST_INDEX.value, len(self._emit))
+            e.setProp(FEATPROP.BROADCAST.value, not waypt)
             if waypt:
                 e.setColor("#eeeeee")
                 #logger.debug(":broadcast: %s (%s)" % (reason, timedelta(seconds=time)))
             else:
                 e.setColor("#ccccff")
                 #logger.debug(":broadcast: %s (%d, %f (%s))" % (reason, idx, time, timedelta(seconds=time)))
-            self.broadcast.append(e)
+            self._emit.append(e)
 
         # collect common props from flight
         # if self.move.flight:
@@ -237,46 +243,55 @@ class Emit:
         # transfert common data to each emit point for emission
         # (may be should think about a FeatureCollection-level property to avoid repetition.)
         if len(self.props) > 0:
-            for f in self.broadcast:
+            for f in self._emit:
                 f.addProps(self.props)
 
-        # logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self.broadcast)))
-        # logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self.broadcast)))
-        logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=self.moves[-1].time()), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self.broadcast)))
+        # logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
+        # logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
+        logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=self.moves[-1].time()), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
 
-        printFeatures(self.broadcast, "broadcast")
+        printFeatures(self._emit, "broadcast")
         return (True, "Emit::emit completed")
 
 
-    def get(self, synch, moment: datetime):
+    def getMarkList(self):
+        l = set()
+        [l.add(f.getProp(FEATPROP.MARK.value)) for f in self._emit]
+        if None in l:
+            l.remove(None)
+        return l
+
+    def schedule(self, sync, moment: datetime):
         """
         Adjust a emission track to synchronize moment at position mkar synch.
 
-        :param      synch:   The synchronize
-        :type       synch:   { type_description }
+        :param      sync:   The synchronize
+        :type       sync:   { string }
         :param      moment:  The moment
         :type       moment:  datetime
         """
-        f = findFeatures(self.broadcast, {"_mark": synch})
+        f = findFeatures(self._emit, {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
-            copy = []
+            self.broadcast = []
             r = f[0]
-            logger.debug(f":get: found {synch} mark")
+            logger.debug(f":get: found {sync} mark at {moment}")
             offset = r.getProp("broadcast_relative_time")
             if offset is not None:
-                logger.debug(f":get: {synch} offset {offset} sec")
-                for e in self.broadcast:
+                logger.debug(f":get: {sync} offset {offset} sec")
+                when = moment + timedelta(seconds=(- offset))
+                logger.debug(f":get: broadcast starts at {when}")
+                for e in self._emit:
                     p = EmitPoint(geometry=e["geometry"], properties=e["properties"])
-                    t = e.getProp("broadcast_relative_time")
+                    t = e.getProp(FEATPROP.BROADCAST_REL_TIME.value)
                     if t is not None:
-                        p.setProp("broadcast_absolute_time", moment + timedelta(seconds=(t - offset)))
-                    else:
-                        copy.append(p)
-                    copy.append(p)
-                return copy
+                        when = moment + timedelta(seconds=(t - offset))
+                        p.setProp(FEATPROP.BROADCAST_ABS_TIME.value, when.timestamp())
+                        # logger.debug(f":get: done at {when.timestamp()}")
+                    self.broadcast.append(p)
+                logger.debug(f":get: broadcast finishes at {when} ({len(self.broadcast)} positions)")
             else:
-                logger.warning(f":get: _mark {synch} has no time offset")
+                logger.warning(f":get: {FEATPROP.MARK.value} {sync} has no time offset")
         else:
-            logger.warning(f":get: _mark {synch} not found")
+            logger.warning(f":get: {FEATPROP.MARK.value} {sync} not found")
 
         return None

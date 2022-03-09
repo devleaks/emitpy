@@ -1,0 +1,33 @@
+
+
+
+
+Vérifier altitude présente partout.
+!! altitude > 0 au sol?? au décollage??
+
+Faire une option pour exporter LiveTraffic format
+
+Nettoyer passage des propriétés, faire un jeu de "staticAdminProps" qui sont rajoutées dans LineString properties et/ou emit properties.
+Dans emit, copier toutes les propriétés (device.getFeature, copier toutes les props?)
+
+
+Emettre plus rapidement que toutes les 30 secs.
+
+
+
+A FAIRE:
+GSE? Quel nom? Quel type
+
+
+
+
+
+FUTURE
+
+o Follow the greens
+
+o Historical data
+o Accelerated replays
+
+
+===

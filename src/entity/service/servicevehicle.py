@@ -34,9 +34,9 @@ class ServiceVehicle(Identity):
         self.position = None
 
         self.speed = {
-            "slow": 5,
-            "normal": 30,
-            "fast": 50
+            "slow": 5/3.6,       # km/h to m/s
+            "normal": 30/3.6,
+            "fast": 50/3.6,
         }
 
         self.setup_time = 0

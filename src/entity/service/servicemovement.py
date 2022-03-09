@@ -15,6 +15,7 @@ from ..geo import MovePoint, Movement, FeatureWithProps, printFeatures, asLineSt
 from ..service import Service, ServiceVehicle
 from ..graph import Route
 from ..flight.interpolate import time as doTime
+from ..constants import FEATPROP, SERVICE_PHASE
 
 logger = logging.getLogger("ServiceMove")
 
@@ -37,10 +38,11 @@ class ServiceMove(Movement):
         speeds = self.service.vehicle.speed
 
         startpos = self.service.vehicle.getPosition()
-        logger.debug(":move: start position %s" % (startpos))
-        service_type = type(self.service).__name__.replace("Service", "")
+        # logger.debug(":move: start position %s" % (startpos))
+        service_type = type(self.service).__name__.replace("Service", "").lower()
 
         startpos.setSpeed(0)  # starts at rest
+        startpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.START.value)
         self.moves.append(startpos)
 
         # starting position to network
@@ -51,13 +53,21 @@ class ServiceMove(Movement):
             startnp[0].setSpeed(speeds["slow"])  # starts moving
             self.moves.append(startnp[0])
 
-        logger.debug(":move: start vertex %s" % (startnp[0]))
+        # logger.debug(":move: start vertex %s" % (startnp[0]))
 
         startnv = self.airport.service_roads.nearest_vertex(startpos)
         if startnv[0] is None:
             logger.warning(":move: no nearest_vertex for startpos")
 
         # find ramp position, use ramp center if none is given
+        gseraw = self.service.flight.aircraft.actype.gseraw
+        if gseraw is not None:
+            status = self.service.ramp.makeServicePOIs(gseraw)
+            if not status[0]:
+                logger.warning(f":move:create ramp service points failed {gseraw}")
+            else:
+                logger.debug(f':move:created ramp service points {list(gseraw["services"].keys())}')
+
         ramp_stop = self.service.ramp.getServicePOI(service_type)
 
         if ramp_stop is None:
@@ -68,7 +78,7 @@ class ServiceMove(Movement):
             logger.warning(f":move: failed to find ramp stop and/or center for { service_type }")
             return (False, ":move: failed to find ramp stop")
 
-        logger.debug(":move: ramp %s" % (ramp_stop))
+        # logger.debug(":move: ramp %s" % (ramp_stop))
 
         # find closest point on network to ramp
         rampnp = self.airport.service_roads.nearest_point_on_edge(ramp_stop)
@@ -78,7 +88,7 @@ class ServiceMove(Movement):
         if rampnv[0] is None:
             logger.warning(":move: no nearest_vertex for ramp_stop")
 
-        logger.debug(":move: ramp vertex %s" % (rampnv[0]))
+        # logger.debug(":move: ramp vertex %s" % (rampnv[0]))
 
         # route from start to ramp
         logger.debug(":move: route from start %s to ramp %s (vertices)" % (startnv[0].id, rampnv[0].id))
@@ -98,9 +108,11 @@ class ServiceMove(Movement):
 
         if rampnp[0] is not None:
             rampnp[0].setSpeed(speeds["slow"])
+            rampnp[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
             self.moves.append(rampnp[0])
 
         ramp_stop.setSpeed(0)
+        ramp_stop.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
         self.moves.append(ramp_stop)
 
         self.service.vehicle.setPosition(ramp_stop)
@@ -130,10 +142,17 @@ class ServiceMove(Movement):
         if endnv[0] is None:
             logger.warning(":move: no nearest_vertex for end")
 
+        svc_end = ramp_stop.copy()
+        svc_end.setSpeed(0)
+        svc_end.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_END.value)
+        self.moves.append(svc_end)
+
         # route ramp to end position
         if rampnp[0] is not None:
-            rampnp[0].setSpeed(speeds["slow"])
-            self.moves.append(rampnp[0])
+            ramp_leave = rampnp[0].copy()
+            ramp_leave.setSpeed(speeds["slow"])
+            ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
+            self.moves.append(ramp_leave)
 
         logger.debug(":move: route from %s to %s" % (rampnv[0].id, endnv[0].id))
         r2 = Route(self.airport.service_roads, rampnv[0].id, endnv[0].id)
@@ -150,10 +169,13 @@ class ServiceMove(Movement):
             endnp[0].setSpeed(speeds["slow"])
             self.moves.append(endnp[0])
 
+        if finalpos == startpos:
+            finalpos = finalpos.copy()  # in case same as start...
+
         finalpos.setSpeed(0)
+        finalpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.END.value)
         self.moves.append(finalpos)
         self.service.vehicle.setPosition(finalpos)
-
 
         ret = doTime(self.moves)
         if not ret[0]:

@@ -126,14 +126,14 @@ class Flight:
         name = ramp.getProp("name")
         if name in self.managedAirport.ramps.keys():
             self.ramp = ramp
-            logger.debug(":setRamp: %s: %s" % (self.getName(), self.ramp.getProp("name")))
+            logger.debug(":setRamp: flight %s: ramp %s" % (self.getName(), self.ramp.getProp("name")))
         else:
             logger.warning(":setRamp: %s not found" % name)
 
 
     def setGate(self, gate):
         self.gate = gate
-        logger.debug(":setGate: %s: %s" % (self.getName(), self.gate))
+        logger.debug(":setGate: flight %s: gate %s" % (self.getName(), self.gate))
 
 
     def setRunway(self, rwy):

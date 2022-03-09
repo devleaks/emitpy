@@ -6,7 +6,7 @@ from geojson import Polygon, Point, Feature
 from geojson.geometry import Geometry
 from turfpy.measurement import bearing, destination
 from .utils import printFeatures
-from ..constants import FEATPROP, TAG_SEP
+from ..constants import FEATPROP, POI_TYPE, TAG_SEP
 
 # from ..business.identity import Identity
 
@@ -41,11 +41,12 @@ class FeatureWithProps(Feature):
         Feature.__init__(self, id=id, geometry=geometry, properties=copy.deepcopy(properties) if properties is not None else None)
 
     @staticmethod
+    def convert(f):
+        return FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+
+    @staticmethod
     def betterFeatures(arr):
-        res = []
-        for f in arr:
-            res.append(FeatureWithProps(geometry=f["geometry"], properties=f["properties"]))
-        return res
+        return [ FeatureWithProps.convert(f) for f in arr ]
 
 
     def geometry(self):
@@ -252,7 +253,8 @@ class Ramp(FeatureWithProps):
             poiax = destination(origin, positions[svc][0]/1000, heading - 180, {"units": "km"})
             poilat = destination(poiax, positions[svc][1]/1000, heading + sign(positions[svc][1]) * 90, {"units": "km"})
             pos = FeatureWithProps(geometry=poilat["geometry"], properties=poilat["properties"])
-            pos.setProp("service", svc)
+            pos.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.RAMP_SERVICE_POINT.value)
+            pos.setProp(FEATPROP.SERVICE.value, svc)
             pos.setProp("heading", positions[svc][2])
             self.service_pois[svc] = pos
 

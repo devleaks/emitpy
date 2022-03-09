@@ -165,6 +165,22 @@ class FLIGHT_PHASE(Enum):
     TOP_OF_DESCENT = "TOP_OF_DESCENT"
 
 
+class SERVICE_PHASE(Enum):
+    START = "start"
+    ARRIVED = "arrived"
+    SERVICE_START = "service-start"
+    SERVICE_END = "service-end"
+    LEAVE = "leave"
+    END = "end"
+
+class SERVICE_PHASE_COLOR(Enum):
+    START = "#008800"
+    ARRIVED = "#00dd00"
+    SERVICE_START = "#0000dd"
+    SERVICE_END = "#000088"
+    LEAVE = "#dd0000"
+    END = "#880000"
+
 # geojson.io color for point and linestring features
 #
 class FLIGHT_COLOR(Enum):
@@ -271,7 +287,11 @@ class FEATPROP(Enum):
     POI_TYPE = "poi-type"
     RUNWAY = "runway"
     SERVICE = "service"
-
+    STOP_TIME = "stop-time"
+    BROADCAST = "broadcast"
+    BROADCAST_INDEX = "broadcast_index"
+    BROADCAST_REL_TIME = "broadcast_relative_time"
+    BROADCAST_ABS_TIME = "broadcast_absolute_time"
 
 class POI_TYPE(Enum):
     # Feature property names
@@ -279,6 +299,7 @@ class POI_TYPE(Enum):
     TAKEOFF_QUEUE = "takeoff-queue"
     DEPOT = "depot"
     REST_AREA = "rest-area"
+    RAMP_SERVICE_POINT = "ramp-service-point"
 
 
 class ARRIVAL_DELAY(IntEnum):
