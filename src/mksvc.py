@@ -10,6 +10,7 @@ from entity.service import FuelService, ServiceMove
 from entity.emit import Emit
 
 from entity.parameters import MANAGED_AIRPORT
+from entity.constants import SERVICE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("mkService")
@@ -100,9 +101,9 @@ def main():
     fuel_service.setRamp(ramp)
     fuel_service.setFlight(dep)
     fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="pump")
-    fuel_depot = managed.selectRandomServiceDepot("Fuel")
+    fuel_depot = managed.selectRandomServiceDepot(SERVICE.FUEL.value)
     fuel_vehicle.setPosition(fuel_depot)
-    fuel_rest = managed.selectRandomServiceRestArea("Fuel")
+    fuel_rest = managed.selectRandomServiceRestArea(SERVICE.FUEL.value)
     fuel_service.setNextPosition(fuel_rest)
 
     logger.debug(".. moving ..")

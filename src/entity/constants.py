@@ -127,6 +127,7 @@ TAXIWAY_ACTIVE_DEPARTURE = "departure"
 TAXIWAY_ACTIVE_ARRIVAL = "arrival"
 TAXIWAY_ACTIVE_ILS = "ils"
 
+
 # @todo: Should distinguish "points" (top_of_descent) and "phases" ("climb")
 class FLIGHT_PHASE(Enum):
     OFFBLOCK = "OFFBLOCK"
@@ -267,6 +268,17 @@ class FEATPROP(Enum):
     DELAY = "delay"  # was pause in emitjs
     FLIGHT_PLAN_INDEX = "fpidx"
     MOVE_INDEX = "mvidx"
+    POI_TYPE = "poi-type"
+    RUNWAY = "runway"
+    SERVICE = "service"
+
+
+class POI_TYPE(Enum):
+    # Feature property names
+    RUNWAY_EXIT = "runway-exit"
+    TAKEOFF_QUEUE = "takeoff-queue"
+    DEPOT = "depot"
+    REST_AREA = "rest-area"
 
 
 class ARRIVAL_DELAY(IntEnum):
@@ -283,6 +295,7 @@ class DEPARTURE_DELAY(IntEnum):
     TAKEOFF_QUEUE = 3
     TAKEOFF_HOLD = 4
 
+TAG_SEP = "|"
 
 # Simulation
 #
