@@ -239,7 +239,7 @@ class Graph:  # Graph(FeatureCollection)?
                     dist = d
                     closest = p
                     nconn = len(p.adjacent)
-        logger.debug(":nearest_vertex: returning %s" % (closest.name if closest is not None else "None"))
+        # logger.debug(":nearest_vertex: returning %s" % (closest.name if closest is not None else "None"))
         return [closest, dist, nconn]
 
 # #################

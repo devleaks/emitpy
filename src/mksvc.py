@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from entity.business import Airline, AirportManager, Company
 from entity.airport import Airport, XPAirport
@@ -7,10 +7,10 @@ from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure
 
 from entity.service import FuelService, ServiceMove
-from entity.emit import Emit
+from entity.emit import Emit, Broadcast
 
 from entity.parameters import MANAGED_AIRPORT
-from entity.constants import SERVICE
+from entity.constants import SERVICE, SERVICE_PHASE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("mkService")
@@ -77,7 +77,7 @@ def main():
     logger.debug("creating arrival..")
     arr = Arrival(operator=airline, number="4L", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
     arr.setFL(reqfl)
-    ramp = managed.selectRamp(arr)  # Aircraft won't get towed
+    ramp = managed.selectRamp(arr)
     arr.setRamp(ramp)
     gate = "C99"
     ramp_name = ramp.getProp("name")
@@ -112,11 +112,21 @@ def main():
     fsm.move()
     fsm.save()
 
-    logger.debug(".. bradcasting positions ..")
+    logger.debug(".. emission positions ..")
 
     se = Emit(fsm)
     se.emit()
     se.save()
+
+    logger.debug(".. scheduling broadcast ..")
+
+    print(se.getMarkList())
+    se.schedule(SERVICE_PHASE.SERVICE_START.value, datetime.now() + timedelta(minutes=5))
+
+    logger.debug(".. broadcasting position ..")
+
+    b = Broadcast(se, datetime.now())
+    b.run()
 
     logger.debug("..done")
 
