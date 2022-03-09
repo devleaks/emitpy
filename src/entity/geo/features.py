@@ -6,7 +6,7 @@ from geojson import Polygon, Point, Feature
 from geojson.geometry import Geometry
 from turfpy.measurement import bearing, destination
 from .utils import printFeatures
-from ..constants import FEATPROP
+from ..constants import FEATPROP, TAG_SEP
 
 # from ..business.identity import Identity
 
@@ -28,8 +28,6 @@ from ..constants import FEATPROP
 # FEATUREWITHPROPS
 #
 #
-TAG_SEP = "|"
-
 class FeatureWithProps(Feature):
     """
     A FeatureWithProps is a GeoJSON Feature<Point> with facilities to set a few standard
@@ -42,6 +40,14 @@ class FeatureWithProps(Feature):
         self["type"] = "Feature"  # see https://github.com/jazzband/geojson/issues/178
         Feature.__init__(self, id=id, geometry=geometry, properties=copy.deepcopy(properties) if properties is not None else None)
 
+    @staticmethod
+    def betterFeatures(arr):
+        res = []
+        for f in arr:
+            res.append(FeatureWithProps(geometry=f["geometry"], properties=f["properties"]))
+        return res
+
+
     def geometry(self):
         return self["geometry"] if "geometry" in self else None
 
@@ -53,6 +59,9 @@ class FeatureWithProps(Feature):
 
     def is_type(self, geomtype: str):
         return geomtype == self.geomtype()
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def getProp(self, name: str):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
@@ -173,7 +182,6 @@ class FeatureWithProps(Feature):
         if a is None or a == "None":
             return None
         return float(a)
-
 
 # ################################@
 # LOCATION

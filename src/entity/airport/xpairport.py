@@ -12,7 +12,7 @@ from .airport import AirportBase
 from ..graph import Vertex, Edge, USAGE_TAG
 from ..geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
 from ..parameters import DATA_DIR
-from ..constants import TAKEOFF_QUEUE_SIZE
+from ..constants import TAKEOFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
@@ -284,6 +284,9 @@ class XPAirport(AirportBase):
     def loadServiceDestinations(self):
         # 1400 47.44374472 -122.30463464 88.1 baggage_train 3 Svc Baggage
         # 1401 47.44103438 -122.30382493 0.0 baggage_train Luggage Train Destination South 2
+        # @todo: need to map X-Plane service names to ours.
+        # X-Plane: baggage_loader, baggage_train, crew_car, crew_ferrari, crew_limo, pushback, fuel_liners, fuel_jets, fuel_props, food, gpu
+        # Baggage train have additional param: 0 to 10 if type is baggage_train, 0 if not
         service_destinations = {}
         svc_dest = 0
         svc_park = 0
@@ -308,14 +311,28 @@ class XPAirport(AirportBase):
 
     def loadAerowaysPOIS(self):
         self.loadGeometries("aeroway-pois.geojson")
+        if self.data is not None and self.data["features"] is not None:
+            self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
+
         self.aeroway_pois = {}
+
         if self.data is not None:  # parse runways
             for f in self.data["features"]:
-                n = f["properties"]["name"] if "name" in f["properties"] else None
-                if n is None:
-                    n = f"at-poi-{len(self.aeroway_pois)}"
-                    logger.warning(":loadAerowaysPOIS: feature with no name. naming %s." % n)
-                self.aeroway_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                poi_type = f.getProp(FEATPROP.POI_TYPE.value)
+                if poi_type is None:
+                    logger.warning(":loadAerowaysPOIS: feature with no poi type %s, skipping" % (f))
+                else:
+                    poi_rwy = f.getProp(FEATPROP.RUNWAY.value)
+                    if poi_rwy is None:
+                        logger.warning(":loadAerowaysPOIS: poi runway exit has no runway %s, skipping" % (f))
+                    else:
+                        poi_name = f.getProp("name")
+                        if poi_name is None:
+                            poi_name = f"aeroway-poi-{len(self.aeroway_pois)}"
+                            logger.warning(f":loadAerowaysPOIS: feature with no name. naming {poi_name}.")
+                        n = poi_type + ":" + poi_rwy + ":" + poi_name
+                        self.aeroway_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+
             logger.info(":loadAerowaysPOIS: loaded %d features.", len(self.data["features"]))
             self.data = None
 
@@ -324,14 +341,28 @@ class XPAirport(AirportBase):
 
     def loadServicePOIS(self):
         self.loadGeometries("service-pois.geojson")
+        if self.data is not None and self.data["features"] is not None:
+            self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
+
         self.service_pois = {}
         if self.data is not None:  # parse runways
             for f in self.data["features"]:
-                n = f["properties"]["name"] if "name" in f["properties"] else None
-                if n is None:
-                    n = f"sr-poi-{len(self.service_pois)}"
-                    logger.warning(":loadServicePOIS: feature with no name. naming %s." % n)
-                self.service_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                poi_type = f.getProp(FEATPROP.POI_TYPE.value)
+                if poi_type is None:
+                    logger.warning(":loadServicePOIS: feature with no poi type %s, skipping" % (f))
+                else:
+                    if poi_type in [POI_TYPE.DEPOT.value, POI_TYPE.REST_AREA.value]:
+                        poi_svc = f.getProp(FEATPROP.SERVICE.value)
+                        if poi_svc is None:
+                            logger.warning(f":loadServicePOIS: poi {poi_type} has no service {f}, skipping")
+                        else:
+                            poi_name = f.getProp("name")
+                            if poi_name is None:
+                                poi_name = f"service-poi-{len(self.service_pois)}"
+                                logger.warning(f":loadServicePOIS: feature with no name. naming {poi_name}.")
+                            n = poi_type + ":" + poi_name
+                            self.service_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+
             logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))
             self.data = None
 
@@ -438,20 +469,20 @@ class XPAirport(AirportBase):
     def getServicePOI(self, service_name: str):
         sl = []
         for f in self.service_pois.values():
-            s = f.getProp("services")
+            s = f.getProp(FEATPROP.SERVICE.value)
             if s is not None:
                 if s == "*":
                     sl.append(f)
                 else:
-                    if service_name in s.split("|"):
+                    if service_name in s.split(TAG_SEP):
                         sl.append(f)
         return sl
 
     def getDepots(self, service_name: str):
-        return list(filter(lambda f: f.getProp("poi") == "depot", self.getServicePOI(service_name)))
+        return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOI(service_name)))
 
     def getRestAreas(self, service_name: str):
-        return list(filter(lambda f: f.getProp("poi") == "rest", self.getServicePOI(service_name)))
+        return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOI(service_name)))
 
     def selectRandomServiceDepot(self, service: str):
         l = self.getDepots(service)

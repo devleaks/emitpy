@@ -160,4 +160,3 @@ def findFeaturesCWL(arr, criteria):
         if ok:
             res.append(f)
     return res
-
