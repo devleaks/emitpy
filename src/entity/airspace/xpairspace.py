@@ -244,7 +244,7 @@ class XPAirspace(Airspace):
                     self._cached_vectex_idents[a[CPIDENT.IDENT]] = []
                 self._cached_vectex_idents[a[CPIDENT.IDENT]].append(v)
 
-            logger.debug(":createIndex: created (%f sec)." % (time.perf_counter() - ss))
+            logger.debug(f":createIndex: created ({time.perf_counter() - ss:f} sec).")
 
 
     def dropIndex(self):
@@ -428,7 +428,7 @@ class XPAirspace(Airspace):
         file.close()
 
         # logger.info(":loadHolds: %d holds loaded.", len(self.holds))
-        logger.debug(":loadHolds: %d holds loaded. %s" % (len(self.holds), self.holds.keys()))
+        logger.debug(f":loadHolds: {len(self.holds)} holds loaded. {self.holds.keys()}")
         return [True, "XPXPAirspace::Holds loaded"]
 
 

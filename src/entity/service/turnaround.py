@@ -37,7 +37,7 @@ class Turnaround:
     def schedule(self):
         for s in self.services:
             # https://stackoverflow.com/questions/3061/calling-a-function-of-a-module-by-using-its-name-a-string
-            logger.debug(":schedule:  %s" % (type(s).__name__))
+            logger.debug(f":schedule:  {type(s).__name__}")
 
         return (True, "Turnaround::schedule: planned")
 
@@ -59,7 +59,7 @@ class Turnaround:
                     self.services[st] = svc
                     logger.debug(":schedule: added %s(schedule=%d, duration=%d)" % (type(svc).__name__, svc.schedule, svc.duration))
                 else:
-                    logger.warning(":schedule: service %s not found" % (cn))
+                    logger.warning(f":schedule: service {cn} not found")
 
         return (True, "Turnaround::schedule: planned")
 
@@ -69,19 +69,19 @@ class Turnaround:
             logger.warning(":plan: no support equipment profile")
             return (False, "Turnaround::plan: no support equipment profile")
 
-        logger.debug(":make:ramp is %s" % (self.ramp.getProp("name")))
+        logger.debug(f":make:ramp is {self.ramp.getProp('name')}")
 
         if len(self.ramp.service_pois) == 0:
             status = self.ramp.makeServicePOIs(self.actype.gseraw)
             if not status[0]:
                 return status
             else:
-                logger.debug(":make:create service points %s" % (self.ramp.service_pois.keys()))
+                logger.debug(f":make:create service points {self.ramp.service_pois.keys()}")
 
         for svc in self.services:
-            logger.debug(":make: doing %s .." % type(svc).__name__)
+            logger.debug(f":make: doing {type(svc).__name__} ..")
             svc.make(self.managedAirport)
-            logger.debug(":make: %s ..done" % type(svc).__name__)
+            logger.debug(f":make: {type(svc).__name__} ..done")
 
         return (True, "Turnaround::make: made")
 
@@ -89,9 +89,9 @@ class Turnaround:
     def run(self, moment: datetime):
 
         for svc in self.services:
-            logger.debug(":run: doing %s .." % type(svc).__name__)
+            logger.debug(f":run: doing {type(svc).__name__} ..")
             svc.run(moment)
-            logger.debug(":run: %s ..done" % type(svc).__name__)
+            logger.debug(f":run: {type(svc).__name__} ..done")
 
         return (True, "Turnaround::run ran")
 

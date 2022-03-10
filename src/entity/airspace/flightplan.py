@@ -64,31 +64,31 @@ class FlightPlan(FlightPlanBase):
                             wpts.append(v)
                             last = wid[0]
                         else:
-                            logger.debug(":toAirspace: %s same as previous" % (last))
+                            logger.debug(f":toAirspace: {last} same as previous")
                         # logger.debug(":toAirspace: added %s %s as %s" % (fty, fid, v.id))
                     else:
                         if len(wid) == 0:
                             errs = errs + 1
-                            logger.warning(":toAirspace: ident %s not found" % fid)
+                            logger.warning(f":toAirspace: ident {fid} not found")
                         else:
-                            logger.warning(":toAirspace: ambiguous ident %s has %d entries" % (fid, len(wid)))
+                            logger.warning(f":toAirspace: ambiguous ident {fid} has {len(wid)} entries")
                             # @todo use proximity to previous point, choose closest. Use navaid rather than fix.
                             if len(wpts) > 0:
-                                logger.warning(":toAirspace: will search for closest to previous %s" % wpts[-1].id)
+                                logger.warning(f":toAirspace: will search for closest to previous {wpts[-1].id}")
                                 wid2 = airspace.findClosestControlledPoint(reference=wpts[-1].id, vertlist=wid)  # returns (wpt, dist)
                                 if wid2[0] != last:
                                     v = airspace.vert_dict[wid2[0]]
                                     wpts.append(v)
                                     last = wid2[0]
                                 else:
-                                    logger.debug(":toAirspace: %s same as previous" % (last))
-                                logger.debug(":toAirspace: added %s %s as %s (closest waypoint at %f)" % (fty, fid, v.id, wid2[1]))
+                                    logger.debug(f":toAirspace: {last} same as previous")
+                                logger.debug(f":toAirspace: added {fty} {fid} as {v.id} (closest waypoint at {wid2[1]:f})")
                             else:
                                 errs = errs + 1
-                                logger.warning(":toAirspace: cannot eliminate ambiguous ident %s has %d entries" % (fid, len(wid)))
+                                logger.warning(f":toAirspace: cannot eliminate ambiguous ident {fid} has {len(wid)} entries")
                 else:
                     errs = errs + 1
-                    logger.warning(":toAirspace: no ident for feature %s" % (fid))
+                    logger.warning(f":toAirspace: no ident for feature {fid}")
         return (copy.deepcopy(wpts), errs)
 
 

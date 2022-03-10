@@ -105,16 +105,16 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
 
     # Eliminate almost straight turns
     if abs(turnAngle) < 10:
-        logger.warning("standard_turn: small turn, skipping (turn=%f°)" % (turnAngle))
+        logger.warning(f"standard_turn: small turn, skipping (turn={turnAngle:f}°)")
         return None
 
     # Eliminate half turns and almost half turns
     if abs(turnAngle) > 150:
-        logger.warning("standard_turn: turn too large, skipping (turn=%f°)" % (turnAngle))
+        logger.warning(f"standard_turn: turn too large, skipping (turn={turnAngle:f}°)")
         return None
 
     if abs(turnAngle) > 120:
-        logger.warning("standard_turn: large turn (turn=%f°)" % (turnAngle))
+        logger.warning(f"standard_turn: large turn (turn={turnAngle:f}°)")
 
     # Eliminate short segement turns (impossible)
     d_in = distance(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
@@ -122,7 +122,7 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
 
     r = 1.5 * radius / 1000  # km
     if d_in < r or d_out < r:
-        logger.warning("standard_turn: segment too small, skipping in=%f out=%f (r=%f, turn=%f°)" % (d_in, d_out, r, turnAngle))
+        logger.warning(f"standard_turn: segment too small, skipping in={d_in:f} out={d_out:f} (r={r:f}, turn={turnAngle:f}°)")
         return None
 
     # Here we go
@@ -139,8 +139,8 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
     l1b = line_offset(l1e, sign(oppositeTurnAngle) * radius / 1000)
     center = line_intersect(l0b, l1b)
     if center is None:
-        logger.warning("standard_turn: no arc center (turn=%f°)" % (turnAngle))
-        logger.debug("standard_turn: no arc center (%s)" % (FeatureCollection(features=[l0b, l1b])))
+        logger.warning(f"standard_turn: no arc center (turn={turnAngle:f}°)")
+        logger.debug(f"standard_turn: no arc center ({FeatureCollection(features=[l0b, l1b])})")
         return None
 
     arc0 = b_out + 90 if turnAngle > 0 else b_in - 90

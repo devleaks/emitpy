@@ -311,7 +311,7 @@ class Hold(Restriction):
         perpendicular = self.course + 90 * (1 if self.turn == "R" else -1)
         c23 = destination(p2, radius, perpendicular, {"units": "km"})
 
-        logger.debug(":Hold:getRoute: fix:%s turn=%s course=%f perp=%f" % (self.fix.id, self.turn, self.course, perpendicular))
+        logger.debug(f":Hold:getRoute: fix:{self.fix.id} turn={self.turn} course={self.course:f} perp={perpendicular:f}")
 
         start_angle = perpendicular
         if self.turn == "L":
@@ -408,7 +408,7 @@ class Airspace(Graph):
         if not status[0]:
             return status
 
-        return [True, "Airspace loaded (%s)" % self.simairspacetype]
+        return [True, f"Airspace loaded ({self.simairspacetype})"]
 
 
     def loadAirports(self):

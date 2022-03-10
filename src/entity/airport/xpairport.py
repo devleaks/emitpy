@@ -72,11 +72,11 @@ class XPAirport(AirportBase):
         status = super().load()
         if not status[0]:
             return status
-        logger.debug(":load: ..done. loading complement.. %s" % status)
+        logger.debug(f":load: ..done. loading complement.. {status}")
         status = self.makeAdditionalAerowayPOIS()
         if not status[0]:
             return status
-        logger.debug(":load: ..done %s" % status)
+        logger.debug(f":load: ..done {status}")
         return [True, ":XPAirport::load loaded"]
 
 
@@ -114,10 +114,10 @@ class XPAirport(AirportBase):
                                     if testline.linecode() is not None:
                                         self.lines.append(testline)
                                     else:
-                                        logger.debug(":loadFromFile: did not load empty line '%s'" % line)
+                                        logger.debug(f":loadFromFile: did not load empty line '{line}'")
                                     line = apt_dat.readline()  # next line in apt.dat
                                 # Info 4.b
-                                logger.info(":loadFromFile: read %d lines for %s." % (len(self.lines), self.name))
+                                logger.info(f":loadFromFile: read {len(self.lines)} lines for {self.name}.")
                                 self.loaded = True
 
                         if(line):  # otherwize we reached the end of file
@@ -143,7 +143,7 @@ class XPAirport(AirportBase):
                 runways[args[16]] = Runway(args[16], float(args[0]), float(args[17]), float(args[18]), float(args[8]), float(args[9]), runway)
 
         self.runways = runways
-        logger.debug(":loadRunways: added %d runways: %s" % (len(runways.keys()), runways.keys()))
+        logger.debug(f":loadRunways: added {len(runways.keys())} runways: {runways.keys()}")
         return [True, "XPAirport::loadRunways loaded"]
 
     def loadRamps(self):
@@ -171,7 +171,7 @@ class XPAirport(AirportBase):
                 ramp = None
 
         self.ramps = ramps
-        logger.debug(":loadRamps: added %d ramps: %s" % (len(ramps.keys()), ramps.keys()))
+        logger.debug(f":loadRamps: added {len(ramps.keys())} ramps: {ramps.keys()}")
         return [True, "XPAirport::loadRamps loaded"]
 
     def loadTaxiways(self):
@@ -184,7 +184,7 @@ class XPAirport(AirportBase):
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
-        logger.debug(":loadTaxiways: loaded %d vertices" % len(v))
+        logger.debug(f":loadTaxiways: loaded {len(v)} vertices")
 
         # 1202 20 21 twoway runway 16L/34R
         # 1204 departure 16L,34R
@@ -237,7 +237,7 @@ class XPAirport(AirportBase):
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
-        logger.debug(":loadServiceNetwork: loaded %d vertices" % len(v))
+        logger.debug(f":loadServiceNetwork: loaded {len(v)} vertices")
 
         # 1206 107 11 twoway C
         edgeCount = 0   # just for info
@@ -320,11 +320,11 @@ class XPAirport(AirportBase):
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
                 if poi_type is None:
-                    logger.warning(":loadAerowaysPOIS: feature with no poi type %s, skipping" % (f))
+                    logger.warning(f":loadAerowaysPOIS: feature with no poi type {f}, skipping")
                 else:
                     poi_rwy = f.getProp(FEATPROP.RUNWAY.value)
                     if poi_rwy is None:
-                        logger.warning(":loadAerowaysPOIS: poi runway exit has no runway %s, skipping" % (f))
+                        logger.warning(f":loadAerowaysPOIS: poi runway exit has no runway {f}, skipping")
                     else:
                         poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.aeroway_pois))
                         n = poi_type + ":" + poi_rwy + ":" + poi_name
@@ -334,7 +334,7 @@ class XPAirport(AirportBase):
             logger.info(":loadAerowaysPOIS: loaded %d features.", len(self.data["features"]))
             self.data = None
 
-        logger.debug(":loadAerowaysPOIS: added %d points of interest: %s" % (len(self.aeroway_pois), self.aeroway_pois.keys()))
+        logger.debug(f":loadAerowaysPOIS: added {len(self.aeroway_pois)} points of interest: {self.aeroway_pois.keys()}")
         return [True, "XPAirport::loadAerowaysPOIS loaded"]
 
     def loadServicePOIS(self):
@@ -347,7 +347,7 @@ class XPAirport(AirportBase):
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
                 if poi_type is None:
-                    logger.warning(":loadServicePOIS: feature with no poi type %s, skipping" % (f))
+                    logger.warning(f":loadServicePOIS: feature with no poi type {f}, skipping")
                 else:
                     if poi_type in [POI_TYPE.DEPOT.value, POI_TYPE.REST_AREA.value]:
                         poi_svc = f.getProp(FEATPROP.SERVICE.value)
@@ -363,7 +363,7 @@ class XPAirport(AirportBase):
             logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))
             self.data = None
 
-        logger.debug(":loadServicePOIS: added %d points of interest: %s" % (len(self.service_pois), self.service_pois.keys()))
+        logger.debug(f":loadServicePOIS: added {len(self.service_pois)} points of interest: {self.service_pois.keys()}")
         return [True, "XPAirport::loadServicePOIS loaded"]
 
     def getAerowayPOI(self, name):
@@ -430,7 +430,7 @@ class XPAirport(AirportBase):
         logger.debug(":makeQueue: added %d queue points for %s" % (TAKEOFF_QUEUE_SIZE, self.runway_exits.keys()))
         for name in self.runway_exits.keys():
             self.runway_exits[name] = sorted(self.runway_exits[name], key=lambda f: f["properties"]["length"])
-            logger.debug(":makeRunwayExits: added %d runway exits for %s" % (len(self.runway_exits[name]), name))
+            logger.debug(f":makeRunwayExits: added {len(self.runway_exits[name])} runway exits for {name}")
             # for f in self.runway_exits[name]:
             #     logger.debug(":makeRunwayExits: added %d runway exits for %s at %f" % (len(self.runway_exits[name]), name, f["properties"]["length"]))
 
@@ -449,7 +449,7 @@ class XPAirport(AirportBase):
         if closest is None:
             closest = self.runway_exits[runway][-1]
 
-        logger.debug(":closest_runway_exit: runway %s, landing: %f, runway exit at %f" % (runway, dist, closest["properties"]["length"]))
+        logger.debug(f":closest_runway_exit: runway {runway}, landing: {dist:f}, runway exit at {closest['properties']['length']:f}")
         return closest
 
 

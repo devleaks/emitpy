@@ -60,7 +60,7 @@ class Movement:
         ls = Feature(geometry=asLineString(self.moves))
         saveMe(self.moves + [ls], "moves_ls")
 
-        logger.debug(":save: saved %s" % ident)
+        logger.debug(f":save: saved {ident}")
         return (True, "Movement::save saved")
 
     def load(self, ident):
@@ -111,7 +111,7 @@ class Movement:
     def addDelay(self, name: str, seconds: int):
         farr = findFeatures(self.moves, {FEATPROP.MARK.value: name})
         if len(farr) == 0:
-            logger.warning(":addDelay: feature mark %s not found" % name)
+            logger.warning(f":addDelay: feature mark {name} not found")
             return
         ## assume at most one...
         f = farr[0]

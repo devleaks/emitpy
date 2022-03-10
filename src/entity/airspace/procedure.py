@@ -205,7 +205,7 @@ class APPCH(Procedure):
                     logger.warning(":getRoute: vertex not found %s", vid)
             else:
                 if not interrupted:
-                    logger.debug(":getRoute: interrupted%s", "" if len(self.route[v].param(PROC_DATA.FIX_IDENT).strip()) == 0 else (" at %s " % self.route[v].param(PROC_DATA.FIX_IDENT)))
+                    logger.debug(":getRoute: interrupted%s", "" if len(self.route[v].param(PROC_DATA.FIX_IDENT).strip()) == 0 else (f" at {self.route[v].param(PROC_DATA.FIX_IDENT)} "))
                 interrupted = True
 
             # print("%s %s: %d: %s [%s], A: %s [%s,%s], S: %s %s " % (type(self).__name__, self.name, v,
@@ -298,7 +298,7 @@ class CIFP:
         """
         cipf_filename = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data", "CIFP", self.icao + ".dat")
         if not os.path.exists(cipf_filename):
-            logger.warn("no procedure file for %s" % (self.icao))
+            logger.warn(f"no procedure file for {self.icao}")
             return
 
         cifp_fp = open(cipf_filename, "r")
@@ -359,10 +359,10 @@ class CIFP:
         ## Print result
         for k, v in procedures.items():
             if k == "RWY":
-                logger.debug(":loadFromFile: %s: %s" % (k, v.keys()))
+                logger.debug(f":loadFromFile: {k}: {v.keys()}")
             else:
                 for r, p in v.items():
-                    logger.debug(":loadFromFile: %s %s: %s" % (k, r, p.keys()))
+                    logger.debug(f":loadFromFile: {k} {r}: {p.keys()}")
 
             # details:
             # for p in procedures[procty]:
@@ -373,9 +373,9 @@ class CIFP:
         if len(self.RWYS) == 2:
             rwk = list(self.RWYS.keys())
             self.RWYS[rwk[0]].end, self.RWYS[rwk[1]].end = self.RWYS[rwk[1]], self.RWYS[rwk[0]]
-            logger.debug(":pairRunways: %s: %s and %s paired" % (self.icao, self.RWYS[rwk[0]].name, self.RWYS[rwk[1]].name))
+            logger.debug(f":pairRunways: {self.icao}: {self.RWYS[rwk[0]].name} and {self.RWYS[rwk[1]].name} paired")
         else:
-            logger.debug(":pairRunways: %s: pairing %s" % (self.icao, self.RWYS.keys()))
+            logger.debug(f":pairRunways: {self.icao}: pairing {self.RWYS.keys()}")
             for k, r in self.RWYS.items():
                 if r.end is None:
                     rh = int(k[2:4])
@@ -396,7 +396,7 @@ class CIFP:
                     #     rw = rw
                     r.end = self.RWYS[rw]
                     self.RWYS[rw].end = r
-                    logger.debug(":pairRunways: %s: %s and %s paired" % (self.icao, r.name, rw))
+                    logger.debug(f":pairRunways: {self.icao}: {r.name} and {rw} paired")
         # bearing and length
         for k, r in self.RWYS.items():
             r.bearing = bearing(r.getPoint(), r.end.getPoint())
@@ -453,6 +453,6 @@ class CIFP:
         if len(rops.keys()) == 0:
             logger.debug(":getOperationalRunways: could not find runway for operations")
 
-        logger.info(":getOperationalRunways: wind direction is %f, runway in use: %s" % (wind_dir, rops.keys()))
+        logger.info(f":getOperationalRunways: wind direction is {wind_dir:f}, runway in use: {rops.keys()}")
         return rops
 

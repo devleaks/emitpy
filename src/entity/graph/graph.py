@@ -52,7 +52,7 @@ class Edge(FeatureWithProps):
                 w = str.upper(self.usage[8])  # should check for A-F return...
                 self.setProp("width-code", w)
                 if w not in list("ABCDEF"):
-                    logger.warning(":edge: invalid runway widthcode '%s'" % (w))
+                    logger.warning(f":edge: invalid runway widthcode '{w}'")
 
     def setColor(self, color: str):
         # geojson.io specific
@@ -84,7 +84,7 @@ class Graph:  # Graph(FeatureCollection)?
 
     def add_vertex(self, vertex: Vertex):
         if vertex.id in self.vert_dict.keys():
-            logger.warning(":add_vertex: duplicate %s" % vertex.id)
+            logger.warning(f":add_vertex: duplicate {vertex.id}")
         self.vert_dict[vertex.id] = vertex
         self.nx.add_node(vertex.id, v=vertex)
         return vertex
@@ -340,7 +340,7 @@ class Graph:  # Graph(FeatureCollection)?
             # Including the source in the path
             route.insert(0, source)
             if len(route) > 2:
-                logger.debug(":Dijkstra: route: %s (%f sec)" % ("-".join(route), (time.perf_counter() - ss)))
+                logger.debug(f":Dijkstra: route: {'-'.join(route)} ({time.perf_counter() - ss:f} sec)")
                 return route
             logger.debug(":Dijkstra: route not found")
             return None
@@ -357,11 +357,11 @@ class Graph:  # Graph(FeatureCollection)?
         """
         va = self.get_vertex(a)
         if va is None:
-            logger.warning(":heuristic: invalid vertex id a=%s" % (a))
+            logger.warning(f":heuristic: invalid vertex id a={a}")
             return inf
         vb = self.get_vertex(b)
         if vb is None:
-            logger.warning(":heuristic: invalid vertex id b=%s" % (b))
+            logger.warning(f":heuristic: invalid vertex id b={b}")
             return inf
         return distance(va, vb)
 
@@ -421,7 +421,7 @@ class Graph:  # Graph(FeatureCollection)?
                 reconst_path.append(start_node)
                 reconst_path.reverse()
 
-                logger.debug(":AStart: route: %s (%f sec)" % (reconst_path, (time.perf_counter() - ss)))
+                logger.debug(f":AStart: route: {reconst_path} ({time.perf_counter() - ss:f} sec)")
                 return reconst_path
 
             # for all neighbors of the current node do

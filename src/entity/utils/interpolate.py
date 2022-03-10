@@ -12,9 +12,9 @@ def interpolate_value(arr, value, istart, iend):
     endval = arr[iend].getProp(value)  # last known speed
 
     if startval is None:
-        logger.warning(":interpolate_value: istart has no value %s" % (arr[istart]))
+        logger.warning(f":interpolate_value: istart has no value {arr[istart]}")
     if endval is None:
-        logger.warning(":interpolate_value: iend has no value %s" % (arr[iend]))
+        logger.warning(f":interpolate_value: iend has no value {arr[iend]}")
 
     if startval == endval:  # simply copy
         for idx in range(istart, iend):
@@ -67,7 +67,7 @@ def interpolate(arr: list, value: str):
     #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
     #     i = i + 1
 
-    return (True, ":interpolate: interpolated %s" % value)
+    return (True, f":interpolate: interpolated {value}")
 
 
 

@@ -82,16 +82,16 @@ class ServiceVehicle(Identity):
         Serve quantity. Returns quantity served.
         """
         if quantity is None:
-            logger.debug(":service: served %f." % (self.current_load))
+            logger.debug(f":service: served {self.current_load:f}.")
             served = self.current_load
             self.current_load = 0
         elif self.current_load > quantity:
             self.current_load = self.current_load - quantity
             served = quantity
-            logger.debug(":service: served %f. %f remaning" % (quantity, self.current_load))
+            logger.debug(f":service: served {quantity:f}. {self.current_load:f} remaning")
         else:
             served = self.current_load
-            logger.warning(":service: can only serve %f out of %f. %f remaning to serve" % (self.current_load, quantity, quantity-self.current_load))
+            logger.warning(f":service: can only serve {self.current_load:f} out of {quantity:f}. {quantity - self.current_load:f} remaning to serve")
             self.current_load = 0
 
         return served

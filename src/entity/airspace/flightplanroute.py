@@ -44,7 +44,7 @@ class FlightPlanRoute:
             #print("create new fpdb file cache")
             #os.mkdir(self.flightplan_cache)
 
-        self.filename = "%s-%s" % (fromICAO.lower(), toICAO.lower())
+        self.filename = f"{fromICAO.lower()}-{toICAO.lower()}"
 
 
     def setAirspace(self, airspace):

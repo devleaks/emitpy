@@ -72,7 +72,7 @@ class AircraftType(Identity):
             if row["ICAO Code"] != "tbd":
                 AircraftType._DB[row["ICAO Code"]] = AircraftType(orgId=row["Manufacturer"], classId=row["Wake Category"], typeId=row["ICAO Code"], name=row["Model"])
         file.close()
-        logger.debug(":loadAll: loaded %d aircraft types" % len(AircraftType._DB))
+        logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft types")
 
 
     @staticmethod
@@ -121,9 +121,9 @@ class AircraftPerformance(AircraftType):
                 acperf.toSI()
                 AircraftPerformance._DB_PERF[ac] = acperf
             else:
-                logger.warning(":loadAll: AircraftType %s not found" % ac)
+                logger.warning(f":loadAll: AircraftType {ac} not found")
         file.close()
-        logger.debug(":loadAll: loaded %d aircraft types with their performances" % len(AircraftPerformance._DB_PERF))
+        logger.debug(f":loadAll: loaded {len(AircraftPerformance._DB_PERF)} aircraft types with their performances")
 
 
     @staticmethod
@@ -163,7 +163,7 @@ class AircraftPerformance(AircraftType):
         if not status[0]:
             return status
 
-        return (True, "AircraftPerformance loaded (%s)" % self.typeId)
+        return (True, f"AircraftPerformance loaded ({self.typeId})")
 
     """
     {
@@ -206,9 +206,9 @@ class AircraftPerformance(AircraftType):
                     data = yaml.safe_load(file)
                 else:  # JSON or GeoJSON
                     data = json.load(file)
-            logger.debug(":loadFromFile: loaded %s for aircraft type %s" % (filename, self.typeId.upper()))
+            logger.debug(f":loadFromFile: loaded {filename} for aircraft type {self.typeId.upper()}")
         else:  # fall back on aircraft performance category (A-F)
-            logger.warning(":loadFromFile: file not found %s" % filename)
+            logger.warning(f":loadFromFile: file not found {filename}")
             filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.classId.upper()+extension)
             if os.path.exists(filename):
                 with open(filename, "r") as file:
@@ -216,9 +216,9 @@ class AircraftPerformance(AircraftType):
                         data = yaml.safe_load(file)
                     else:  # JSON or GeoJSON
                         data = json.load(file)
-                logger.debug(":loadFromFile: loaded class %s data for aircraft class %s" % (filename, self.classId.upper()))
+                logger.debug(f":loadFromFile: loaded class {filename} data for aircraft class {self.classId.upper()}")
             else:
-                logger.warning(":loadFromFile: file not found %s" % filename)
+                logger.warning(f":loadFromFile: file not found {filename}")
                 filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "STD" + extension)
                 if os.path.exists(filename):
                     with open(filename, "r") as file:
@@ -226,10 +226,10 @@ class AircraftPerformance(AircraftType):
                             data = yaml.safe_load(file)
                         else:  # JSON or GeoJSON
                             data = json.load(file)
-                    logger.debug(":loadFromFile: loaded %s standard data for aircraft, ignoring model" % (filename))
+                    logger.debug(f":loadFromFile: loaded {filename} standard data for aircraft, ignoring model")
                 else:
-                    logger.warning(":loadFromFile: standard data file %s for aircraft not found" % (filename))
-                    logger.warning(":loadFromFile: no data file for %s" % self.typeId.upper())
+                    logger.warning(f":loadFromFile: standard data file {filename} for aircraft not found")
+                    logger.warning(f":loadFromFile: no data file for {self.typeId.upper()}")
         return data
 
 
@@ -240,7 +240,7 @@ class AircraftPerformance(AircraftType):
                 self.perfraw = data
                 self.toSI()
             else:
-                logger.warning(":loadPerformance: no performance data file for %s" % self.typeId.upper())
+                logger.warning(f":loadPerformance: no performance data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadPerformance: loaded"]
 
 
@@ -250,7 +250,7 @@ class AircraftPerformance(AircraftType):
             if data is not None:
                 self.tarraw = data
             else:
-                logger.warning(":loadTurnaroundProfile: no turnaround profile data file for %s" % self.typeId.upper())
+                logger.warning(f":loadTurnaroundProfile: no turnaround profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadTurnaroundProfile: not implemented"]
 
 
@@ -259,7 +259,7 @@ class AircraftPerformance(AircraftType):
         if data is not None:
             self.gseraw = data
         else:
-            logger.warning(":loadGSEProfile: no GSE profile data file for %s" % self.typeId.upper())
+            logger.warning(f":loadGSEProfile: no GSE profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadGSEProfile: not implemented"]
 
 
@@ -272,14 +272,14 @@ class AircraftPerformance(AircraftType):
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     self.perfdata[name] = self.perfraw[name] * FT / 60
                 else:
-                    logger.warning(":toSI: %s no value for: %s" % (self.name, name))
+                    logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
 
             for name in ["takeoff_speed", "initial_climb_speed", "climbFL150_speed", "climbFL240_speed", "cruise_speed", "descentFL100_speed", "approach_speed", "landing_speed"]:  # speed: kn -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     self.perfdata[name] = self.perfraw[name] * NAUTICAL_MILE / 3.600
                 else:
-                    logger.warning(":toSI: %s no value for: %s" % (self.name, name))
+                    logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
 
             for name in ["climbmach_mach", "descentFL240_mach"]:  # speed: mach -> m/s
@@ -287,7 +287,7 @@ class AircraftPerformance(AircraftType):
                     kmh = machToKmh(self.perfraw[name], 24000)
                     self.perfdata[name] = kmh / 3.6
                 else:
-                    logger.warning(":toSI: %s no value for: %s" % (self.name, name))
+                    logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
 
             for name in ["cruise_mach"]:  # speed: mach -> m/s
@@ -295,7 +295,7 @@ class AircraftPerformance(AircraftType):
                     kmh = machToKmh(self.perfraw[name], 30000)
                     self.perfdata[name] = kmh / 3.6
                 else:
-                    logger.warning(":toSI: %s no value for: %s" % (self.name, name))
+                    logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
 
         # copy others verbatim
@@ -304,14 +304,14 @@ class AircraftPerformance(AircraftType):
                 if self.perfraw[n] != "no data":
                     self.perfdata[n] = self.perfraw[n]
                 else:
-                    logger.warning(":toSI: %s no value for: %s" % (self.name, n))
+                    logger.warning(f":toSI: {self.name} no value for: {n}")
 
 
     def get(self, name: str):
         if name in self.perfraw.keys():
             return self.perfraw[name]
         else:
-            logger.warning(":get: no value for: %s" % name)
+            logger.warning(f":get: no value for: {name}")
         return None
 
 
@@ -319,14 +319,14 @@ class AircraftPerformance(AircraftType):
         if name in self.perfdata.keys():
             return self.perfdata[name]
         else:
-            logger.warning(":getSI: no value for: %s" % name)
+            logger.warning(f":getSI: no value for: {name}")
         return None
 
 
     def FLFor(self, reqrange: int):
         max_ceiling = self.get("max_ceiling")
         if max_ceiling is None:
-            logger.warning(":FLFor: no max ceiling for: %s" % self.typeId)
+            logger.warning(f":FLFor: no max ceiling for: {self.typeId}")
             max_ceiling = 300
         # Set Flight Level for given flight range in km.
         if reqrange < 300:
@@ -340,7 +340,7 @@ class AircraftPerformance(AircraftType):
 
     def perfs(self):
         for name in self.perfdata.keys():
-            logger.debug(":perfs: %s %s %s" % (name, self.get(name), self.getSI(name)))
+            logger.debug(f":perfs: {name} {self.get(name)} {self.getSI(name)}")
 
     #
     # Take-off helper functions

@@ -49,9 +49,9 @@ class AirportManager:
         if os.path.exists(business):
             with open(business, "r") as fp:
                 self.data = yaml.safe_load(fp)
-            logger.warning(":file: %s loaded" % business)
+            logger.warning(f":file: {business} loaded")
             return [True, "AirportManager::loadFromFile: loaded"]
-        logger.warning(":file: %s not found" % business)
+        logger.warning(f":file: {business} not found")
         return [False, "AirportManager::loadFromFile file %s not found", business]
 
 
@@ -71,9 +71,9 @@ class AirportManager:
                     airport.addAirline(airline)
                     cnt = cnt + 1
                 else:
-                    logger.warning(":loadAirRoutes: airport %s not found" % row["AIRPORT"])
+                    logger.warning(f":loadAirRoutes: airport {row['AIRPORT']} not found")
             else:
-                logger.warning(":loadAirRoutes: airline %s not found" % row["AIRLINE CODE"])
+                logger.warning(f":loadAirRoutes: airline {row['AIRLINE CODE']} not found")
         file.close()
         logger.debug(":loadAirRoutes: loaded %d airline routes for %d airlines" % (cnt, len(self.airlines)))
 
@@ -110,13 +110,13 @@ class AirportManager:
             a = a = random.choices(population=list(self.airline_frequencies.keys()), weights=list(self.airline_frequencies.values()))
             aln = Airline.findIATA(a[0])
             if aln is not None:
-                logger.debug(":selectRandomAirline: with density: %s(%s)" % (aln.icao, aln.iata))
+                logger.debug(f":selectRandomAirline: with density: {aln.icao}({aln.iata})")
             else:
-                logger.warning(":selectRandomAirline: with density: %s not found" % (a[0]))
+                logger.warning(f":selectRandomAirline: with density: {a[0]} not found")
         else:
             a = random.choice(list(self.airlines.keys()))
             aln = Airline.find(a)
-            logger.debug(":selectRandomAirline: %s" % a)
+            logger.debug(f":selectRandomAirline: {a}")
         return aln
 
 
@@ -128,13 +128,13 @@ class AirportManager:
             a = random.choices(population=list(aptlist.keys()), weights=list(aptlist.values()))
             apt = Airport.findIATA(a[0])
             if apt is None:
-                logger.warning(":selectRandomAirroute: with density: %s not found" % (a[0]))
+                logger.warning(f":selectRandomAirroute: with density: {a[0]} not found")
             else:
-                logger.debug(":selectRandomAirroute: with density: %s(%s)" % (apt.icao, apt.iata))
+                logger.debug(f":selectRandomAirroute: with density: {apt.icao}({apt.iata})")
         else:
             a = random.choice(list(aln.routes.keys()))
             apt = Airport.find(a)
-            logger.debug(":selectRandomAirroute: %s" % a)
+            logger.debug(f":selectRandomAirroute: {a}")
         return (aln, apt)
 
     def hub(self, airport, airline):
@@ -149,16 +149,16 @@ class AirportManager:
         vname = sty + ("%03d" % self.vehicle_number)
         if vname not in self.service_vehicles.keys():
             vcl = type(service).__name__.replace("Service", "Vehicle")
-            logger.debug(":selectServiceVehicle: creating %s %s" % (vcl, vname))
+            logger.debug(f":selectServiceVehicle: creating {vcl} {vname}")
             servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="entity")
             if hasattr(servicevehicleclasses, vcl):
                 vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator, model=model)  ## getattr(sys.modules[__name__], str) if same module...
             self.service_vehicles[vname] = vehicle
             if use:
-                logger.debug(":selectServiceVehicle: using %s" % (vname))
+                logger.debug(f":selectServiceVehicle: using {vname}")
                 service.setVehicle(vehicle)
 
-        logger.debug(":selectServiceVehicle: returning %s %s" % (vname, self.service_vehicles[vname]))
+        logger.debug(f":selectServiceVehicle: returning {vname} {self.service_vehicles[vname]}")
         return self.service_vehicles[vname]
 
 

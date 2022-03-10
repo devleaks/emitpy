@@ -51,15 +51,15 @@ class OSMAirport(AirportBase):
                 else:  # JSON or GeoJSON
                     self.data = json.load(fptr)
         else:
-            logger.warning(":file: %s not found" % fname)
+            logger.warning(f":file: {fname} not found")
             return [False, "OSMAirport::loadJSONOrYAMLFromFile file %s not found", fname]
 
-        return [True, "OSMAirport::file %s loaded" % name]
+        return [True, f"OSMAirport::file {name} loaded"]
 
     def loadRunways(self):
         self.loadJSONOrYAMLFromFile("overpass-runway.json")
         if self.data is None:
-            return [False, "OSMAirport::loadRunways: could not load %s" % fn1]
+            return [False, f"OSMAirport::loadRunways: could not load {fn1}"]
 
         points = {}
         for el in self.data["elements"]:
@@ -84,14 +84,14 @@ class OSMAirport(AirportBase):
 
         self.data = None
 
-        logger.info(":loadRunways: added %d runways: %s." % (len(self.runways), self.runways.keys()))
+        logger.info(f":loadRunways: added {len(self.runways)} runways: {self.runways.keys()}.")
         return [True, "OSMAirport::loadRunways loaded"]
 
 
     def loadRamps(self):
         self.loadJSONOrYAMLFromFile("overpass-parking_position.json")
         if self.data is None:
-            return [False, "OSMAirport::loadRamps: could not load %s" % fn1]
+            return [False, f"OSMAirport::loadRamps: could not load {fn1}"]
 
         points = {}
         for el in self.data["elements"]:
@@ -115,14 +115,14 @@ class OSMAirport(AirportBase):
                                                use="pax|cargo")
         self.data = None
 
-        logger.info(":loadRamps: added %d parkings: %s" % (len(self.ramps), sorted(self.ramps.keys()) ))
+        logger.info(f":loadRamps: added {len(self.ramps)} parkings: {sorted(self.ramps.keys())}")
         return [True, "OSMAirport::loadRamps loaded"]
 
 
     def loadOSM(self, filename, graph):
         self.loadJSONOrYAMLFromFile(filename)
         if self.data is None:
-            return [False, "OSMAirport::loadOSM: could not load %s" % fn1]
+            return [False, f"OSMAirport::loadOSM: could not load {fn1}"]
 
         points = {}
         for el in self.data["elements"]:
