@@ -275,6 +275,7 @@ class EDGE_COLOR(Enum):
 
 class FEATPROP(Enum):
     # Feature property names
+    NAME = "name"
     MARK = "_mark"
     ALTITUDE = "altitude"
     SPEED = "speed"
@@ -298,10 +299,11 @@ class FEATPROP(Enum):
 class POI_TYPE(Enum):
     # Feature property names
     RUNWAY_EXIT = "runway-exit"
-    TAKEOFF_QUEUE = "takeoff-queue"
+    TAKEOFF_QUEUE = "takeoff-queue"  # lineString
     DEPOT = "depot"
     REST_AREA = "rest-area"
     RAMP_SERVICE_POINT = "ramp-service-point"
+    QUEUE_POSITION = "toq-pos"
 
 
 class ARRIVAL_DELAY(IntEnum):
@@ -322,7 +324,7 @@ TAG_SEP = "|"
 
 # Simulation
 #
-TAKEOFF_QUEUE_SIZE = 0
+TAKEOFF_QUEUE_SIZE = 1
 
 TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
 SLOW_SPEED = 1.4 # 1.4m/s = 5km/h = slow speed

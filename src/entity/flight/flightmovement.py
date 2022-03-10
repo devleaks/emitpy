@@ -251,7 +251,7 @@ class FlightMovement(Movement):
 
         if self.flight.departure.has_rwys():  # take off self.flight.is_departure()
             if self.flight.is_departure():    # we are at the managed airport, we must use the selected runway
-                rwy = self.flight.runway
+                rwy = self.flight.rwy
             else:
                 rwy = self.flight.departure.selectRWY(self.flight)
                 logger.debug(":vnav: remote departure: using runway %s" % (rwy.name))
@@ -492,7 +492,7 @@ class FlightMovement(Movement):
         if self.flight.arrival.has_rwys():  # the path starts at the of roll out
 
             if self.flight.is_arrival():  # we are at the managed airport, we must use the selected runway
-                rwy = self.flight.runway
+                rwy = self.flight.rwy
             else:
                 rwy = self.flight.arrival.selectRWY(self.flight)
                 logger.debug(":vnav: remote arrival: using runway %s" % (rwy.name))
@@ -1052,7 +1052,7 @@ class ArrivalMove(FlightMovement):
         endrolloutpos.setProp(FEATPROP.MARK.value, "end rollout")
         fc.append(endrolloutpos)
 
-        rwy = self.flight.runway
+        rwy = self.flight.rwy
         rwy_threshold = rwy.getPoint()
         landing_distance = distance(rwy_threshold, endrolloutpos)
         rwy_exit = self.airport.closest_runway_exit(rwy.name, landing_distance)
@@ -1191,7 +1191,7 @@ class DepartureMove(FlightMovement):
         if TAKEOFF_QUEUE_SIZE > 0:
             # Taxi from pushback to start of queue
             #
-            rwy = self.flight.runway
+            rwy = self.flight.rwy
 
             queuepnt = self.airport.queue_point(rwy.name, 0)
             queuerwy = self.airport.taxiways.nearest_point_on_edge(queuepnt)
@@ -1221,7 +1221,7 @@ class DepartureMove(FlightMovement):
 
             # Taxi from queue point 1 to last, stay on to taxiway edges
             #
-            last_queue_on = None
+            last_queue_on = queuerwy
             cnt = 0
             for i in range(1, len(self.airport.takeoff_queues[rwy.name])):
                 queuepnt = self.airport.queue_point(rwy.name, i)
@@ -1291,7 +1291,7 @@ class DepartureMove(FlightMovement):
         if show_pos:
             logger.debug(":taxi:out: taxi end: %s" % takeoffholdpos)
         else:
-            rwy_name = self.flight.runway.name if self.flight.runway is not None else "no runway"
+            rwy_name = self.flight.rwy.name if self.flight.rwy is not None else "no runway"
             logger.debug(":taxi:out: taxi end: holding for runway %s" % rwy_name)
 
         self.taxipos = fc

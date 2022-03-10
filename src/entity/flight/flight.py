@@ -155,8 +155,8 @@ class Flight:
 
 
     def setRWY(self, rwy):
-        self.runway = self.airport.getRunway(rwy)
         self.rwy = rwy
+        self._setRunway()
         logger.debug(":setRunway: %s: %s" % (self.getName(), self.rwy.name))
 
 
@@ -313,9 +313,17 @@ class Arrival(Flight):
         Flight.__init__(self, number=number, scheduled=scheduled, departure=origin, arrival=managedAirport, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
         self.managedAirport = managedAirport
 
+    def _setRunway(self):
+        self.runway = self.arrival.getRunway(self.rwy)
+
+
 
 class Departure(Flight):
 
     def __init__(self, number: str, scheduled: str, managedAirport: Airport, destination: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
         Flight.__init__(self, number=number, scheduled=scheduled, departure=managedAirport, arrival=destination, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
         self.managedAirport = managedAirport
+
+    def _setRunway(self):
+        self.runway = self.departure.getRunway(self.rwy)
+

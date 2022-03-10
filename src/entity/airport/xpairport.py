@@ -143,7 +143,7 @@ class XPAirport(AirportBase):
                 runways[args[16]] = Runway(args[16], float(args[0]), float(args[17]), float(args[18]), float(args[8]), float(args[9]), runway)
 
         self.runways = runways
-        logger.debug(":loadRunways: added %d runways", len(runways.keys()))
+        logger.debug(":loadRunways: added %d runways: %s" % (len(runways.keys()), runways.keys()))
         return [True, "XPAirport::loadRunways loaded"]
 
     def loadRamps(self):
@@ -326,12 +326,10 @@ class XPAirport(AirportBase):
                     if poi_rwy is None:
                         logger.warning(":loadAerowaysPOIS: poi runway exit has no runway %s, skipping" % (f))
                     else:
-                        poi_name = f.getProp("name")
-                        if poi_name is None:
-                            poi_name = f"aeroway-poi-{len(self.aeroway_pois)}"
-                            logger.warning(f":loadAerowaysPOIS: feature with no name. naming {poi_name}.")
+                        poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.aeroway_pois))
                         n = poi_type + ":" + poi_rwy + ":" + poi_name
-                        self.aeroway_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                        f.setProp(FEATPROP.NAME.value, n)
+                        self.aeroway_pois[n] = f
 
             logger.info(":loadAerowaysPOIS: loaded %d features.", len(self.data["features"]))
             self.data = None
@@ -356,12 +354,11 @@ class XPAirport(AirportBase):
                         if poi_svc is None:
                             logger.warning(f":loadServicePOIS: poi {poi_type} has no service {f}, skipping")
                         else:
-                            poi_name = f.getProp("name")
-                            if poi_name is None:
-                                poi_name = f"service-poi-{len(self.service_pois)}"
-                                logger.warning(f":loadServicePOIS: feature with no name. naming {poi_name}.")
+                            poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.service_pois))
                             n = poi_type + ":" + poi_name
-                            self.service_pois[n] = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                            p = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                            p.setProp(FEATPROP.NAME.value, n)
+                            self.service_pois[n] = p
 
             logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))
             self.data = None
@@ -383,10 +380,9 @@ class XPAirport(AirportBase):
     def makeAdditionalAerowayPOIS(self):
         # build additional points and positions
 
-        def makeQueue(poiskey):
+        def makeQueue(line):
             # place TAKEOFF_QUEUE_SIZE points on line
-            name = "RW"+poiskey[2:]
-            line = self.aeroway_pois[poiskey]
+            name = line.getProp("runway")
             q0 = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
             q1 = Feature(geometry=Point(line["geometry"]["coordinates"][-1]))
             rwy = self.procedures.RWYS[name]
@@ -399,23 +395,21 @@ class XPAirport(AirportBase):
             segment = length / TAKEOFF_QUEUE_SIZE
             self.takeoff_queues[name] = []
             for i in range(TAKEOFF_QUEUE_SIZE):
-                p = destination(start, i * segment, brng, {"units": "km"})
-                p["properties"]["runway"] = "RW" + name
-                p["properties"]["category"] = "takeoff queue"
-                p["properties"]["queuepos"] = i
+                f = destination(start, i * segment, brng, {"units": "km"})
+                p = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                p.setProp(FEATPROP.RUNWAY.value, name)
+                p.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.QUEUE_POSITION.value)
+                p.setProp(FEATPROP.NAME.value, i)
                 self.takeoff_queues[name].append(p)
             # logger.debug(":makeQueue: added %d queue points for %s" % (len(self.takeoff_queues[name]), name))
 
 
-        def makeRunwayExits(poiskey):
-            exitpt = self.aeroway_pois[poiskey]
-            name = "RW" + poiskey[3:poiskey.rfind(":")]
+        def makeRunwayExits(exitpt):
+            name = exitpt.getProp("runway")
             rwy = self.procedures.RWYS[name]
             rwypt = rwy.getPoint()
             dist = distance(Feature(geometry=Point(rwypt["geometry"]["coordinates"])), Feature(geometry=Point(exitpt["geometry"]["coordinates"])))
-            exitpt["properties"]["runway"] = "RW" + name
-            exitpt["properties"]["category"] = "runway exit"
-            exitpt["properties"]["length"] = dist
+            exitpt.setProp("length", dist)
             # logger.debug(":makeRunwayExits: added exit for %s at %f" % (name, round(dist, 3)))
             if not name in self.runway_exits:
                 self.runway_exits[name] = []
@@ -426,10 +420,11 @@ class XPAirport(AirportBase):
             logger.warning(":makeAdditionalAerowayPOIS: procedures not loaded")
             return [False, ":XPAirport::makeAdditionalAerowayPOIS: procedures not loaded"]
 
-        for k in self.aeroway_pois.keys():
-            if TAKEOFF_QUEUE_SIZE > 0 and k.startswith("Q:"):
+        for k in self.aeroway_pois.values():
+            pt = k.getProp(FEATPROP.POI_TYPE.value)
+            if TAKEOFF_QUEUE_SIZE > 0 and  pt == POI_TYPE.TAKEOFF_QUEUE.value:
                 makeQueue(k)
-            if k.startswith("RE:"):
+            if pt == POI_TYPE.RUNWAY_EXIT.value:
                 makeRunwayExits(k)
 
         logger.debug(":makeQueue: added %d queue points for %s" % (TAKEOFF_QUEUE_SIZE, self.runway_exits.keys()))
@@ -460,7 +455,7 @@ class XPAirport(AirportBase):
 
     def queue_point(self, runway, qid):
         # no extra checks
-        res = list(filter(lambda f: f["properties"]["queuepos"] == qid, self.takeoff_queues[runway]))
+        res = list(filter(lambda f: f["properties"][FEATPROP.NAME.value] == qid, self.takeoff_queues[runway]))
         return res[0]
 
     """

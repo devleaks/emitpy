@@ -17,7 +17,7 @@ from ..graph import Graph
 from ..geo import Location
 
 from ..airspace import CIFP
-from ..constants import AIRPORT_DATABASE
+from ..constants import AIRPORT_DATABASE, FEATPROP
 from ..parameters import DATA_DIR
 from ..utils import FT
 
@@ -94,9 +94,9 @@ class Airport(Location):
         return {
             "icao": self.icao,
             "iata": self.iata,
-            "name": self.name,
-            "city": self.city,
-            "country": self.country
+            "name": self.getProp(FEATPROP.NAME.value),
+            "city": self.getProp("city"),
+            "country": self.getProp("country")
         }
 
 
@@ -326,13 +326,14 @@ class AirportBase(Airport):
         return random.choice(candidates)
 
     def getRunway(self, rwy):
-        if rwy.name in self.runways.keys():
-            return self.runways[rwy.name]
-        logger.warning(f":getRunway: runway {rwy.name} not found")
+        n = rwy.name.replace("RW", "")
+        if n in self.runways.keys():
+            return self.runways[n]
+        logger.warning(f":getRunway: runway {n} not found")
         return None
 
     def getRWY(self, runway):
-        n = runway.getProp("name")
+        n = "RW" + runway.getProp("name")
         if n in self.procedures.RWYS.keys():
             return self.procedures.RWYS[n]
         logger.warning(f":getRWY: RWY {n} not found")
