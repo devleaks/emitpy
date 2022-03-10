@@ -2,6 +2,7 @@
 #
 import logging
 import datetime
+import json
 
 logger = logging.getLogger("Formatter")
 
@@ -39,6 +40,7 @@ class LiveTraffic(Formatter):
         #
         f = self.feature
         icao24x = f.getProp("icao24")
+        print(">>>", icao24x)
         icao24 = int(icao24x, 16)
         coords = f["geometry"]["coordinates"]
         vspeed = f.getProp("vspeed")

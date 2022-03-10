@@ -418,7 +418,6 @@ class CIFP:
 
 
     def getOperationalRunways(self, wind_dir: float):
-        # Fucntion should may be move to Procedures: oprationalRunways(windir: float) -> [ RWY ].
         if wind_dir is None:
             logger.debug(":getOperationalRunways: no wind direction, using all runways")
             return self.getRunways()

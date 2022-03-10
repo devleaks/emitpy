@@ -90,6 +90,16 @@ class Airport(Location):
         self.hub[airline.icao] = airline
 
 
+    def getInfo(self):
+        return {
+            "icao": self.icao,
+            "iata": self.iata,
+            "name": self.name,
+            "city": self.city,
+            "country": self.country
+        }
+
+
 # ################################@
 # AIRPORT BASE
 #
@@ -105,13 +115,13 @@ class AirportBase(Airport):
         Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.airspace = None
         self.procedures = None
-        self.runways = {}
         self.taxiways = Graph()
-        self.ramps = {}
         self.service_roads = Graph()
-        self.service_destinations = {}
+        self.runways = {}               # GeoJSON Features
+        self.ramps = {}                 # GeoJSON Features
+        self.service_destinations = {}  # GeoJSON Features
         self.metar = None
-        self.rops = {}  # runway(s) in operation if metar provided.
+        self.operational_rwys = {}  # runway(s) in operation if metar provided, runways in here are RWY objects, not GeoJSON Feature.
 
     def setAirspace(self, airspace):
         self.airspace = airspace
@@ -121,11 +131,11 @@ class AirportBase(Airport):
         if not status[0]:
             return status
 
-        status = self.loadProcedures()
+        status = self.loadRunways()  # These are the GeoJSON features
         if not status[0]:
             return status
 
-        status = self.loadRunways()
+        status = self.loadProcedures()  # which includes runways that are RWY objects
         if not status[0]:
             return status
 
@@ -191,10 +201,10 @@ class AirportBase(Airport):
                 wind_dir = self.metar.wind_dir
                 if wind_dir is None:  # wind dir is variable, any runway is fine
                     logger.debug(":setMETAR: no wind direction")
-                    self.rops = self.procedures.getRunways()
+                    self.operational_rwys = self.procedures.getRunways()
                 else:
                     logger.debug(":setMETAR: wind direction %.1f" % (wind_dir.value()))
-                    self.rops = self.procedures.getOperationalRunways(wind_dir.value())
+                    self.operational_rwys = self.procedures.getOperationalRunways(wind_dir.value())
         else:
             logger.debug(":setMETAR: no metar")
 
@@ -283,7 +293,7 @@ class AirportBase(Airport):
         # @todo: Need to be a lot more clever to find procedure.
         return self.getProc(runway, self.procedures.APPCHS, "APPCH")
 
-    def selectRunway(self, flight: 'Flight'):
+    def selectRWY(self, flight: 'Flight'):
         """
         Gets a valid runway for flight, depending on QFU, flight type (pax, cargo), destination, etc.
 
@@ -294,8 +304,8 @@ class AirportBase(Airport):
         :rtype:     { return_type_description }
         """
         candidates = []
-        if len(self.rops) > 0:
-            for v in self.rops.values():
+        if len(self.operational_rwys) > 0:
+            for v in self.operational_rwys.values():
                 if flight.is_departure():
                     if self.has_proc(v, self.procedures.SIDS):
                         candidates.append(v)
@@ -305,15 +315,28 @@ class AirportBase(Airport):
 
         if len(candidates) == 0:
             logger.warning(":selectRunway: could not select runway")
-            if len(self.rops) > 0:
+            if len(self.operational_rwys) > 0:
                 logger.warning(":selectRunway: choosing random operational runway")
-                return random.choice(list(self.rops.values()))
+                return random.choice(list(self.operational_rwys.values()))
             if len(self.procedures.RWYS) > 0:
                 logger.warning(":selectRunway: choosing random runway")
                 return random.choice(list(self.procedures.RWYS.values()))
             return None
 
         return random.choice(candidates)
+
+    def getRunway(self, rwy):
+        if rwy.name in self.runways.keys():
+            return self.runways[rwy.name]
+        logger.warning(f":getRunway: runway {rwy.name} not found")
+        return None
+
+    def getRWY(self, runway):
+        n = runway.getProp("name")
+        if n in self.procedures.RWYS.keys():
+            return self.procedures.RWYS[n]
+        logger.warning(f":getRWY: RWY {n} not found")
+        return None
 
     def selectRamp(self, flight: 'Flight'):
         """

@@ -33,6 +33,13 @@ class Service:
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
         return f + "-" + v
 
+    def getInfo(self):
+        return {
+            "operator": self.operator.getInfo(),
+            "ramp": self.ramp.getInfo(),
+            "vehicle": self.vehicle.getInfo()
+        }
+
     def setTurnaround(self, turnaround: "Turnaround"):
         self.turnaround = turnaround
 

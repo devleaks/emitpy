@@ -8,7 +8,7 @@ import yaml
 import logging
 from math import inf
 
-from ..business import Company
+from ..business import Identity, Company
 from ..constants import AIRCRAFT_TYPE_DATABASE
 from ..parameters import DATA_DIR
 from ..utils import machToKmh, NAUTICAL_MILE, FT, toKmh
@@ -47,17 +47,14 @@ class ACPERF:
     landing_apc = "landing_apc"
 
 
-class AircraftType:
+class AircraftType(Identity):
     """
     """
 
     _DB = {}
 
     def __init__(self, orgId: str, classId: str, typeId: str, name: str):
-        self.orgId = orgId          # Manufacturer
-        self.classId = classId      # Aircraft
-        self.typeId = typeId        # ICAO aircraft model
-        self.name = name            # display name
+        Identity.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name)
 
     @staticmethod
     def loadAll():
@@ -83,6 +80,13 @@ class AircraftType:
         return AircraftType._DB[icao] if icao in AircraftType._DB else None
 
 
+    def getInfo(self):
+        return {
+            "actype-manufacturer": self.orgId,
+            "actype": self.typeId,
+            "acmodel": self.name
+        }
+
 class AircraftPerformance(AircraftType):
     """
     """
@@ -94,7 +98,7 @@ class AircraftPerformance(AircraftType):
         self.gseraw = None
         self.tarraw = None
 
-        self.perfdata = None
+        self.perfdata = None  # computed
 
 
     @staticmethod
@@ -416,3 +420,12 @@ class Aircraft:
 
     def setICAO24(self, icao24: str):
         self.icao24 = icao24
+
+    def getInfo(self):
+        return {
+            "actype": self.actype.getInfo(),
+            "operator": self.operator,
+            "acreg": self.registration,
+            "callsign": self.callsign,
+            "icao24": self.icao24
+        }

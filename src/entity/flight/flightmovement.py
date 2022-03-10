@@ -22,7 +22,7 @@ from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
 from ..parameters import AODB_DIR
 
 from .standardturn import standard_turn_flyby
-from .interpolate import interpolate as doInterpolation, time as doTime
+from ..utils import interpolate as doInterpolation, compute_time as doTime
 
 logger = logging.getLogger("FlightMovement")
 
@@ -55,6 +55,10 @@ class FlightMovement(Movement):
 
     def getId(self):
         return self.flight_id
+
+
+    def getInfo(self):
+        return self.flight.getInfo()
 
 
     def move(self):
@@ -249,7 +253,7 @@ class FlightMovement(Movement):
             if self.flight.is_departure():    # we are at the managed airport, we must use the selected runway
                 rwy = self.flight.runway
             else:
-                rwy = self.flight.departure.selectRunway(self.flight)
+                rwy = self.flight.departure.selectRWY(self.flight)
                 logger.debug(":vnav: remote departure: using runway %s" % (rwy.name))
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
@@ -490,7 +494,7 @@ class FlightMovement(Movement):
             if self.flight.is_arrival():  # we are at the managed airport, we must use the selected runway
                 rwy = self.flight.runway
             else:
-                rwy = self.flight.arrival.selectRunway(self.flight)
+                rwy = self.flight.arrival.selectRWY(self.flight)
                 logger.debug(":vnav: remote arrival: using runway %s" % (rwy.name))
 
             rwy_threshold = rwy.getPoint()

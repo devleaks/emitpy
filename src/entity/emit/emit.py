@@ -4,6 +4,7 @@ Emit
 import os
 import json
 import logging
+import flatdict
 from datetime import datetime, timedelta
 from random import randrange
 
@@ -12,6 +13,7 @@ from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
 
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement
+from ..utils import compute_headings
 
 from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP
 from ..parameters import AODB_DIR
@@ -46,6 +48,8 @@ class Emit:
 
         if move is not None:
             self.moves = self.move.getMoves()
+            # collect common props from movement
+            self.props = self.move.getInfo()
 
 
     def save(self):
@@ -146,14 +150,6 @@ class Emit:
                 #logger.debug(":broadcast: %s (%d, %f (%s))" % (reason, idx, time, timedelta(seconds=time)))
             self._emit.append(e)
 
-        # collect common props from flight
-        # if self.move.flight:
-        #   props = props + self.move.flight.getEmitData()
-        # collect common props from aircraft
-        # if self.move.flight.aircraft:  # may be added by above function?
-        #   props = props + self.move.flight.aircraft.getEmitData()
-        # alt, speed, and vspeed info will be added here.
-
         self.frequency = frequency
 
         # build emission points
@@ -243,8 +239,15 @@ class Emit:
         # transfert common data to each emit point for emission
         # (may be should think about a FeatureCollection-level property to avoid repetition.)
         if len(self.props) > 0:
+            p = flatdict.FlatDict(self.props)
             for f in self._emit:
-                f.addProps(self.props)
+                f.addProps(p)
+            logger.debug(f":emit: added { len(self.props) } properties to { len(self._emit) } features")
+
+        res = compute_headings(self._emit)
+        if not res[0]:
+            logger.warning(":emit: problem computing headings")
+            return res
 
         # logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
         # logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))

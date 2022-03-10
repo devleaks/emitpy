@@ -1,8 +1,8 @@
 import logging
 from datetime import timedelta
 
-from turfpy.measurement import distance
-
+from turfpy.measurement import distance, bearing
+from ..constants import FEATPROP
 
 logger = logging.getLogger("interpolate")
 
@@ -71,7 +71,24 @@ def interpolate(arr: list, value: str):
 
 
 
-def time(wpts):
+def compute_headings(wpts):
+    """
+    Compute heading "from" for each point.
+    """
+    currpos = wpts[0]
+
+    for idx in range(1, len(wpts)):
+        nextpos = wpts[idx]
+        d = bearing(currpos, nextpos)
+        nextpos.setProp(FEATPROP.HEADING.value, d)
+        if idx == 1:  # first post
+            currpos.setProp(FEATPROP.HEADING.value, d)
+        currpos = nextpos
+
+    return (True, ":heading: computed")
+
+
+def compute_time(wpts):
     """
     Time 0 is start of array.
     """
