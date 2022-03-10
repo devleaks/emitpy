@@ -66,7 +66,7 @@ class Emit:
         with open(filename, "w") as fp:
             json.dump(FeatureCollection(features=cleanFeatures(self._emit)), fp, indent=4)
 
-        logger.debug(":save: saved %s" % ident)
+        logger.debug(f":save: saved {ident}")
 
     def load(self, flight_id):
         # load output of Movement file.
@@ -79,7 +79,7 @@ class Emit:
             logger.debug(":loadAll: loaded %d " % self.flight_id)
             return (True, "Movement::load loaded")
 
-        logger.debug(":loadAll: cannot find %s" % filename)
+        logger.debug(f":loadAll: cannot find {filename}")
         return (False, "Movement::load not loaded")
 
 

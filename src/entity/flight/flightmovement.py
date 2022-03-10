@@ -140,9 +140,9 @@ class FlightMovement(Movement):
         filename = os.path.join(basename + ".kml")
         with open(filename, "w") as fp:
             fp.write(toKML(cleanFeatures(self.moves_st)))
-            logger.debug(":save: saved kml %s (%d)" % (filename, len(self.moves_st)))
+            logger.debug(f":save: saved kml {filename} ({len(self.moves_st)})")
 
-        logger.debug(":save: saved %s" % self.flight_id)
+        logger.debug(f":save: saved {self.flight_id}")
         return (True, "Movement::save saved")
 
 
@@ -192,7 +192,7 @@ class FlightMovement(Movement):
                     i = idx if not reverse else len(self.flight.flightplan_cp) - idx - 1
                     wpt = self.flight.flightplan_cp[i]
                     p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
-                    logger.debug(":addCurrentpoint:%s adding %s %s" % (("(rev)" if reverse else ""), p.getProp("_plan_segment_type"), p.getProp("_plan_segment_name")))
+                    logger.debug(f":addCurrentpoint:{'(rev)' if reverse else ''} adding {p.getProp('_plan_segment_type')} {p.getProp('_plan_segment_name')}")
                     p.setColor(color)
                     p.setProp(FEATPROP.MARK.value, mark)
                     p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
@@ -254,16 +254,16 @@ class FlightMovement(Movement):
                 rwy = self.flight.rwy
             else:
                 rwy = self.flight.departure.selectRWY(self.flight)
-                logger.debug(":vnav: remote departure: using runway %s" % (rwy.name))
+                logger.debug(f":vnav: remote departure: using runway {rwy.name}")
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
             if alt is None:
-                logger.warning(":vnav: departure airport has no altitude: %s" % rwy_threshold)
+                logger.warning(f":vnav: departure airport has no altitude: {rwy_threshold}")
                 alt = 0
 
             brg = bearing(rwy_threshold, rwy.end.getPoint())
             takeoff_hold = destination(rwy_threshold, TOH_BLASTOFF, brg, {"units": "km"})
-            logger.debug(":vnav: departure from %s, %f" % (rwy.name, brg))
+            logger.debug(f":vnav: departure from {rwy.name}, {brg:f}")
 
             p = addMovepoint(arr=self.moves,
                              src=takeoff_hold,
@@ -274,7 +274,7 @@ class FlightMovement(Movement):
                              mark=FLIGHT_PHASE.TAKEOFF_HOLD.value,
                              ix=0)
             self.takeoff_hold = copy.deepcopy(p)  # we keep this special position for taxiing (end_of_taxi)
-            logger.debug(":vnav: takeoff hold at %s, %f" % (rwy.name, TOH_BLASTOFF))
+            logger.debug(f":vnav: takeoff hold at {rwy.name}, {TOH_BLASTOFF:f}")
 
             takeoff_distance = actype.getSI(ACPERF.takeoff_distance) * self.airport.runwayIsWet() / 1000  # must be km for destination()
             takeoff = destination(takeoff_hold, takeoff_distance, brg, {"units": "km"})
@@ -288,7 +288,7 @@ class FlightMovement(Movement):
                              mark=FLIGHT_PHASE.TAKE_OFF.value,
                              ix=0)
             groundmv = takeoff_distance
-            logger.debug(":vnav: takeoff at %s, %f" % (rwy.name, takeoff_distance))
+            logger.debug(f":vnav: takeoff at {rwy.name}, {takeoff_distance:f}")
 
             # initial climb, commonly accepted to above 1500ft AGL
             logger.debug(":vnav: initialClimb")
@@ -319,7 +319,7 @@ class FlightMovement(Movement):
             deptapt = fc[0]
             alt = deptapt.altitude()
             if alt is None:
-                logger.warning(":vnav: departure airport has no altitude: %s" % deptapt)
+                logger.warning(f":vnav: departure airport has no altitude: {deptapt}")
                 alt = 0
             currpos = addMovepoint(arr=self.moves,
                                    src=deptapt,
@@ -435,7 +435,7 @@ class FlightMovement(Movement):
                                           mark=FLIGHT_PHASE.TOP_OF_ASCENT.value,
                                           mark_tr=FLIGHT_PHASE.CLIMB.value)
                 cruise_speed = (actype.getSI(ACPERF.climbFL240_speed) + actype.getSI(ACPERF.cruise_mach))/ 2
-                logger.warning(":vnav: cruise speed below FL240: %f m/s" % (cruise_speed))
+                logger.warning(f":vnav: cruise speed below FL240: {cruise_speed:f} m/s")
         else:
             logger.debug(":vnav: climbToCruise below FL150")
             step = actype.climbToCruise(currpos.altitude(), self.flight.getCruiseAltitude())  # (t, d, altend)
@@ -451,7 +451,7 @@ class FlightMovement(Movement):
                                       color=POSITION_COLOR.TOP_OF_ASCENT.value,
                                       mark=FLIGHT_PHASE.TOP_OF_ASCENT.value,
                                       mark_tr=FLIGHT_PHASE.CLIMB.value)
-            logger.warning(":vnav: cruise speed below FL150: %f m/s" % (cruise_speed))
+            logger.warning(f":vnav: cruise speed below FL150: {cruise_speed:f} m/s")
             cruise_speed = (actype.getSI(ACPERF.climbFL150_speed) + actype.getSI(ACPERF.cruise_mach))/ 2
 
         # accelerate to cruise speed smoothly
@@ -471,7 +471,7 @@ class FlightMovement(Movement):
 
         top_of_ascent_idx = fcidx + 1 # we reach top of ascent between idx and idx+1, so we cruise from idx+1 on.
         logger.debug(":vnav: cruise at %d after %f" % (top_of_ascent_idx, groundmv))
-        logger.debug(":vnav: ascent added (+%d %d)" % (len(self.moves), len(self.moves)))
+        logger.debug(f":vnav: ascent added (+{len(self.moves)} {len(self.moves)})")
         # cruise until top of descent
 
         # PART 2: REVERSE: From brake on runway (end of roll out) to top of descent
@@ -495,17 +495,17 @@ class FlightMovement(Movement):
                 rwy = self.flight.rwy
             else:
                 rwy = self.flight.arrival.selectRWY(self.flight)
-                logger.debug(":vnav: remote arrival: using runway %s" % (rwy.name))
+                logger.debug(f":vnav: remote arrival: using runway {rwy.name}")
 
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
             if alt is None:
-                logger.warning(":vnav:(rev) departure airport has no altitude: %s" % rwy_threshold)
+                logger.warning(f":vnav:(rev) departure airport has no altitude: {rwy_threshold}")
                 alt = 0
 
             brg = bearing(rwy_threshold, rwy.end.getPoint())
             touch_down = destination(rwy_threshold, LAND_TOUCH_DOWN, brg, {"units": "km"})
-            logger.debug(":vnav:(rev) arrival runway %s, %f" % (rwy.name, brg))
+            logger.debug(f":vnav:(rev) arrival runway {rwy.name}, {brg:f}")
 
             # First point is end off roll out, read to exit the runway and taxi
             rollout_distance = actype.getSI(ACPERF.landing_distance) * self.airport.runwayIsWet() / 1000 # must be km for destination()
@@ -519,7 +519,7 @@ class FlightMovement(Movement):
                                    color=POSITION_COLOR.ROLL_OUT.value,
                                    mark=FLIGHT_PHASE.END_ROLLOUT.value,
                                    ix=len(fc)-fcidx)
-            logger.debug(":vnav:(rev) end roll out at %s, %f, %f" % (rwy.name, rollout_distance, alt))
+            logger.debug(f":vnav:(rev) end roll out at {rwy.name}, {rollout_distance:f}, {alt:f}")
             self.end_rollout = copy.deepcopy(currpos)  # we keep this special position for taxiing (start_of_taxi)
 
             # Point just before before is touch down
@@ -531,7 +531,7 @@ class FlightMovement(Movement):
                              color=POSITION_COLOR.TOUCH_DOWN.value,
                              mark=FLIGHT_PHASE.TOUCH_DOWN.value,
                              ix=len(fc)-fcidx)
-            logger.debug(":vnav:(rev) touch down at %s, %f, %f" % (rwy.name, LAND_TOUCH_DOWN, alt))
+            logger.debug(f":vnav:(rev) touch down at {rwy.name}, {LAND_TOUCH_DOWN:f}, {alt:f}")
 
             # we move to the final fix at max FINAL_ALT ft, approach speed, from touchdown
             logger.debug(":vnav:(rev) final")
@@ -579,7 +579,7 @@ class FlightMovement(Movement):
             arrvapt = fc[fcidx]
             alt = arrvapt.altitude()
             if alt is None:
-                logger.warning(":vnav:(rev) arrival airport has no altitude: %s" % arrvapt)
+                logger.warning(f":vnav:(rev) arrival airport has no altitude: {arrvapt}")
                 alt = 0
 
             currpos = addMovepoint(arr=revmoves,
@@ -850,7 +850,7 @@ class FlightMovement(Movement):
         #
         revmoves.reverse()
         self.moves = self.moves + revmoves
-        logger.debug(":vnav: descent added (+%d %d)" % (len(revmoves), len(self.moves)))
+        logger.debug(f":vnav: descent added (+{len(revmoves)} {len(self.moves)})")
         # printFeatures(self.moves, "holding")
         return (True, "Movement::vnav completed without restriction")
 
@@ -896,7 +896,7 @@ class FlightMovement(Movement):
 
         # Add last point too
         self.moves_st.append(self.moves[-1])
-        logger.debug(":standard_turns: completed %d, %d" % (len(self.moves), len(self.moves_st)))
+        logger.debug(f":standard_turns: completed {len(self.moves)}, {len(self.moves_st)}")
         return (True, "Movement::standard_turns added")
 
 
@@ -911,7 +911,7 @@ class FlightMovement(Movement):
 
         logger.debug(":interpolate: interpolating ..")
         for name in ["speed", "vspeed", "altitude"]:
-            logger.debug(":interpolate: .. %s .." % (name))
+            logger.debug(f":interpolate: .. {name} ..")
             # before = list(map(lambda x: x.getProp(name), to_interp))
             status = doInterpolation(to_interp, name)
             if not status[0]:
@@ -925,7 +925,7 @@ class FlightMovement(Movement):
                 if a is not None:
                     f["geometry"]["coordinates"].append(float(a))
                 else:
-                    logger.warning(":interpolate: not altitude?%s" % (f["geometry"]["name"]if name in f["geometry"] else "?"))
+                    logger.warning(f":interpolate: not altitude?{f['geometry']['name'] if name in f['geometry'] else '?'}")
         logger.debug(":interpolate: .. done.")
         # for i in range(len(to_interp)):
         #     v = to_interp[i].getProp(name) if to_interp[i].getProp(name) is not None and to_interp[i].getProp(name) != "None" else -1
@@ -1012,7 +1012,7 @@ class FlightMovement(Movement):
         d = distance(tmomp, self.moves_st[-2])  # last is end of roll, before last is touch down.
 
         self.moves_st.insert(idx, tmomp)
-        logger.debug(":add_tmo: added at ~%f km, ~%f nm from touch down" % (d, d / NAUTICAL_MILE))
+        logger.debug(f":add_tmo: added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down")
 
         return (True, "Movement::add_tmo added")
 
@@ -1020,7 +1020,7 @@ class FlightMovement(Movement):
     def addDelay(self, name: str, seconds: int):
         farr = findFeatures(self.moves_st, {FEATPROP.MARK.value: name})
         if len(farr) == 0:
-            logger.warning(":addDelay: feature mark %s not found" % name)
+            logger.warning(f":addDelay: feature mark {name} not found")
             return
         ## assume at most one...
         f = farr[0]
@@ -1059,9 +1059,9 @@ class ArrivalMove(FlightMovement):
 
         taxi_start = self.airport.taxiways.nearest_point_on_edge(rwy_exit)
         if show_pos:
-            logger.debug(":taxi:in: taxi start: %s" % taxi_start)
+            logger.debug(f":taxi:in: taxi start: {taxi_start}")
         else:
-            logger.debug(":taxi:in: taxi start: exit runway %s" % rwy.name)
+            logger.debug(f":taxi:in: taxi start: exit runway {rwy.name}")
         if taxi_start[0] is None:
             logger.warning(":taxi:in: could not find taxi start")
         taxistartpos = MovePoint(geometry=taxi_start[0]["geometry"], properties=taxi_start[0]["properties"])
@@ -1072,7 +1072,7 @@ class ArrivalMove(FlightMovement):
 
         taxistart_vtx = self.airport.taxiways.nearest_vertex(taxi_start[0])
         if show_pos:
-            logger.debug(":taxi:in: taxi start vtx: %s" % taxistart_vtx)
+            logger.debug(f":taxi:in: taxi start vtx: {taxistart_vtx}")
         if taxistart_vtx[0] is None:
             logger.warning(":taxi:in: could not find taxi start vertex")
         taxistartpos = MovePoint(geometry=taxistart_vtx[0]["geometry"], properties=taxistart_vtx[0]["properties"])
@@ -1083,11 +1083,11 @@ class ArrivalMove(FlightMovement):
 
         parking = self.flight.ramp
         if show_pos:
-            logger.debug(":taxi:in: parking: %s" % parking)
+            logger.debug(f":taxi:in: parking: {parking}")
         # we call the move from packing position to taxiway network the "parking entry"
         parking_entry = self.airport.taxiways.nearest_point_on_edge(parking)
         if show_pos:
-            logger.debug(":taxi:in: parking_entry: %s" % parking_entry[0])
+            logger.debug(f":taxi:in: parking_entry: {parking_entry[0]}")
 
         if parking_entry[0] is None:
             logger.warning(":taxi:in: could not find parking entry")
@@ -1096,7 +1096,7 @@ class ArrivalMove(FlightMovement):
         if parkingentry_vtx[0] is None:
             logger.warning(":taxi:in: could not find parking entry vertex")
         if show_pos:
-            logger.debug(":taxi:in: parkingentry_vtx: %s " % parkingentry_vtx[0])
+            logger.debug(f":taxi:in: parkingentry_vtx: {parkingentry_vtx[0]} ")
 
         taxi_ride = Route(self.airport.taxiways, taxistart_vtx[0].id, parkingentry_vtx[0].id)
         if taxi_ride.found():
@@ -1125,12 +1125,12 @@ class ArrivalMove(FlightMovement):
         fc.append(parkingpos)
 
         if show_pos:
-            logger.debug(":taxi:in: taxi end: %s" % parking)
+            logger.debug(f":taxi:in: taxi end: {parking}")
         else:
-            logger.debug(":taxi:in: taxi end: parking %s" % parking.getProp("name"))
+            logger.debug(f":taxi:in: taxi end: parking {parking.getProp('name')}")
 
         self.taxipos = fc
-        logger.debug(":taxi:in: taxi %d moves" % (len(self.taxipos)))
+        logger.debug(f":taxi:in: taxi {len(self.taxipos)} moves")
 
         return (True, "ArrivalMove::taxi completed")
 
@@ -1156,21 +1156,21 @@ class DepartureMove(FlightMovement):
 
         parking = self.flight.ramp
         if show_pos:
-            logger.debug(":taxi:out: parking: %s" % parking)
+            logger.debug(f":taxi:out: parking: {parking}")
         else:
-            logger.debug(":taxi:out: taxi start: parking %s" % parking.getProp("name"))
+            logger.debug(f":taxi:out: taxi start: parking {parking.getProp('name')}")
         parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
         parkingpos.setSpeed(0)
         parkingpos.setColor("#880088")  # parking
         parkingpos.setProp(FEATPROP.MARK.value, "parking")
         fc.append(parkingpos)
         if show_pos:
-            logger.debug(":taxi:out: taxi start: %s" % parkingpos)
+            logger.debug(f":taxi:out: taxi start: {parkingpos}")
 
         # we call the move from packing position to taxiway network the "pushback"
         pushback_end = self.airport.taxiways.nearest_point_on_edge(parking)
         if show_pos:
-            logger.debug(":taxi:out: pushback_end: %s" % pushback_end[0])
+            logger.debug(f":taxi:out: pushback_end: {pushback_end[0]}")
         if pushback_end[0] is None:
             logger.warning(":taxi:out: could not find pushback end")
 
@@ -1182,7 +1182,7 @@ class DepartureMove(FlightMovement):
 
         pushback_vtx = self.airport.taxiways.nearest_vertex(pushback_end[0])
         if show_pos:
-            logger.debug(":taxi:out: pushback_vtx: %s" % pushback_vtx[0])
+            logger.debug(f":taxi:out: pushback_vtx: {pushback_vtx[0]}")
         if pushback_vtx[0] is None:
             logger.warning(":taxi:out: could not find pushback end vertex")
 
@@ -1196,13 +1196,13 @@ class DepartureMove(FlightMovement):
             queuepnt = self.airport.queue_point(rwy.name, 0)
             queuerwy = self.airport.taxiways.nearest_point_on_edge(queuepnt)
             if show_pos:
-                logger.debug(":taxi:out: start of queue point: %s" % queuerwy[0])
+                logger.debug(f":taxi:out: start of queue point: {queuerwy[0]}")
             if queuerwy[0] is None:
                 logger.warning(":taxi:out: could not find start of queue point")
 
             queuerwy_vtx = self.airport.taxiways.nearest_vertex(queuerwy[0])
             if show_pos:
-                logger.debug(":taxi:out: queuerwy_vtx %s" % queuerwy_vtx[0])
+                logger.debug(f":taxi:out: queuerwy_vtx {queuerwy_vtx[0]}")
             if queuerwy_vtx[0] is None:
                 logger.warning(":taxi:out: could not find start of queue vertex")
 
@@ -1234,7 +1234,7 @@ class DepartureMove(FlightMovement):
                     qspos = MovePoint(geometry=queuerwy[0]["geometry"], properties=queuerwy[0]["properties"])
                     qspos.setSpeed(TAXI_SPEED)
                     qspos.setColor("#880000")
-                    qspos.setProp(FEATPROP.MARK.value, "queue %s" % i)
+                    qspos.setProp(FEATPROP.MARK.value, f"queue {i}")
                     fc.append(qspos)
                     cnt = cnt + 1
             logger.warning(":taxi:out: added %d queue points" % cnt)
@@ -1253,13 +1253,13 @@ class DepartureMove(FlightMovement):
         #
         taxi_end = self.airport.taxiways.nearest_point_on_edge(self.takeoff_hold)
         if show_pos:
-            logger.debug(":taxi:out: taxi_end: %s" % taxi_end[0])
+            logger.debug(f":taxi:out: taxi_end: {taxi_end[0]}")
         if taxi_end[0] is None:
             logger.warning(":taxi:out: could not find taxi end")
 
         taxiend_vtx = self.airport.taxiways.nearest_vertex(taxi_end[0])
         if show_pos:
-            logger.debug(":taxi: taxiend_vtx %s" % taxiend_vtx[0])
+            logger.debug(f":taxi: taxiend_vtx {taxiend_vtx[0]}")
         if taxiend_vtx[0] is None:
             logger.warning(":taxi:out: could not find taxi end vertex")
 
@@ -1289,12 +1289,12 @@ class DepartureMove(FlightMovement):
         fc.append(takeoffholdpos)
 
         if show_pos:
-            logger.debug(":taxi:out: taxi end: %s" % takeoffholdpos)
+            logger.debug(f":taxi:out: taxi end: {takeoffholdpos}")
         else:
             rwy_name = self.flight.rwy.name if self.flight.rwy is not None else "no runway"
-            logger.debug(":taxi:out: taxi end: holding for runway %s" % rwy_name)
+            logger.debug(f":taxi:out: taxi end: holding for runway {rwy_name}")
 
         self.taxipos = fc
-        logger.debug(":taxi:out: taxi %d moves" % (len(self.taxipos)))
+        logger.debug(f":taxi:out: taxi {len(self.taxipos)} moves")
 
         return (True, "DepartureMove::taxi completed")

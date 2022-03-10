@@ -61,7 +61,7 @@ class FlightPlanBase:
             #print("create new fpdb file cache")
             #os.mkdir(self.flightplan_cache)
 
-        self.filename = "%s-%s" % (fromICAO.lower(), toICAO.lower())
+        self.filename = f"{fromICAO.lower()}-{toICAO.lower()}"
         self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
 
         # For development
@@ -184,7 +184,7 @@ class FlightPlanBase:
                 apt = aptresp._to_api_dict()
                 with open(fn, "w") as outfile:
                     json.dump(apt, outfile)
-                    logger.debug("cacheAirports: new airport %s" % (f))
+                    logger.debug(f"cacheAirports: new airport {f}")
 
 
     def getFPDBAirport(self, icao: str):

@@ -51,7 +51,7 @@ class Metar:
         if metar is not None and metar.METAR is not None:
             self.raw = metar
             if self.raw is not None:
-                logger.debug(":fetch: %s," % (self.raw.METAR))
+                logger.debug(f":fetch: {self.raw.METAR},")
                 self.parse(self.raw.METAR)
 
 
@@ -74,15 +74,15 @@ class Metar:
         now2 = round_dt(now - timedelta(minutes=90), timedelta(minutes=60))
         nowstr = now2.strftime('%d%H%MZ')
         fn = os.path.join(METAR_DIR, self.icao + "-" + nowstr + ".json")
-        logger.debug(":load: trying %s" % (fn))
+        logger.debug(f":load: trying {fn}")
         if os.path.exists(fn):
             with open(fn, "r") as fp:
                 self.raw = json.load(fp)
             if self.raw is not None:
                 self.parse(self.raw["METAR"])
-            logger.debug(":load: found %s" % (fn))
+            logger.debug(f":load: found {fn}")
         else:
-            logger.debug(":load: not found %s" % (fn))
+            logger.debug(f":load: not found {fn}")
 
     def get(self):
         return None if self.raw is None else self.raw["METAR"]
@@ -93,7 +93,7 @@ class Metar:
         try:
             parsed = MetarLib.Metar(metar)
         except MetarLib.ParserError:
-            logger.debug(":load: METAR did not parse '%s'" % (metar))
+            logger.debug(f":load: METAR did not parse '{metar}'")
             parsed = None
 
         if parsed is not None:

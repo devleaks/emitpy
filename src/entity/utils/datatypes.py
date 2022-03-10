@@ -75,11 +75,11 @@ class temperature:
             units = units.upper()
         val = self.value(units)
         if units == "C":
-            return "%.1f C" % val
+            return f"{val:.1f} C"
         elif units == "F":
-            return "%.1f F" % val
+            return f"{val:.1f} F"
         elif units == "K":
-            return "%.1f K" % val
+            return f"{val:.1f} K"
 
 
 class pressure:
@@ -126,11 +126,11 @@ class pressure:
             units = units.upper()
         val = self.value(units)
         if units == "MB":
-            return "%.1f mb" % val
+            return f"{val:.1f} mb"
         elif units == "HPA":
-            return "%.1f hPa" % val
+            return f"{val:.1f} hPa"
         elif units == "IN":
-            return "%.2f inches" % val
+            return f"{val:.2f} inches"
 
 
 class speed:
@@ -191,13 +191,13 @@ class speed:
             units = units.upper()
         val = self.value(units)
         if units == "KMH":
-            text = "%.0f km/h" % val
+            text = f"{val:.0f} km/h"
         elif units == "KT":
-            text = "%.0f knots" % val
+            text = f"{val:.0f} knots"
         elif units == "MPH":
-            text = "%.0f mph" % val
+            text = f"{val:.0f} mph"
         elif units == "MPS":
-            text = "%.0f mps" % val
+            text = f"{val:.0f} mps"
         if self._gtlt == ">":
             text = "greater than " + text
         elif self._gtlt == "<":
@@ -293,9 +293,9 @@ class distance:
                 text = "%d/%d" % (self._num, self._den)
         else:
             if units == "KM":
-                text = "%.1f" % self.value(units)
+                text = f"{self.value(units):.1f}"
             else:
-                text = "%.0f" % self.value(units)
+                text = f"{self.value(units):.0f}"
         if units == "SM" or units == "MI":
             text += " miles"
         elif units == "M":
@@ -354,7 +354,7 @@ class direction:
 
     def string(self):
         """Return a string representation of the numerical direction."""
-        return "%.0f degrees" % self._degrees
+        return f"{self._degrees:.0f} degrees"
 
     def compass(self):
         """Return the compass direction, e.g., "N", "ESE", etc.)."""
@@ -431,7 +431,7 @@ class precipitation:
                 raise UnitsError("unrecognized precipitation unit: '" + units +
                                  "'")
             units = units.upper()
-        text = "%.2f" % self.value(units)
+        text = f"{self.value(units):.2f}"
         if units == "CM":
             text += "cm"
         else:

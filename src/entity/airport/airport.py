@@ -63,7 +63,7 @@ class Airport(Location):
                 Airport._DB[row["ident"]] = a
                 Airport._DB_IATA[row["iata_code"]] = a
         file.close()
-        logger.debug(":loadAll: loaded %d airports" % (len(Airport._DB)))
+        logger.debug(f":loadAll: loaded {len(Airport._DB)} airports")
 
 
     @staticmethod
@@ -169,9 +169,9 @@ class AirportBase(Airport):
             with open(df, "r") as fp:
                 self.data = geojson.load(fp)
         else:
-            logger.warning(":file: %s not found" % df)
+            logger.warning(f":file: {df} not found")
             return [False, "GeoJSONAirport::loadGeometries file %s not found", df]
-        return [True, "GeoJSONAirport::file %s loaded" % name]
+        return [True, f"GeoJSONAirport::file {name} loaded"]
 
     def loadProcedures(self):
         self.procedures = CIFP(self.icao)
@@ -195,7 +195,7 @@ class AirportBase(Airport):
     def setMETAR(self, metar: 'Metar'):
         if metar.metar is not None:
             self.metar = metar.metar
-            logger.debug(":setMETAR: %s" % self.metar)
+            logger.debug(f":setMETAR: {self.metar}")
             if self.procedures is not None:
                 # set which runways are usable
                 wind_dir = self.metar.wind_dir
@@ -203,7 +203,7 @@ class AirportBase(Airport):
                     logger.debug(":setMETAR: no wind direction")
                     self.operational_rwys = self.procedures.getRunways()
                 else:
-                    logger.debug(":setMETAR: wind direction %.1f" % (wind_dir.value()))
+                    logger.debug(f":setMETAR: wind direction {wind_dir.value():.1f}")
                     self.operational_rwys = self.procedures.getOperationalRunways(wind_dir.value())
         else:
             logger.debug(":setMETAR: no metar")
@@ -259,26 +259,26 @@ class AirportBase(Airport):
         # Runway specific procs:
         if runway.name in all_procs:
             sel_procs.update(all_procs[runway.name])
-            logger.debug(":getProc: added rwy specific %ss: %s: %s" % (procname, runway.name, all_procs[runway.name].keys()))
+            logger.debug(f":getProc: added rwy specific {procname}s: {runway.name}: {all_procs[runway.name].keys()}")
 
         # Procedures valid for "both" runways:
         both = runway.both()
         if both in all_procs:
             sel_procs.update(all_procs[both])
-            logger.debug(":getProc: added both-rwys %ss: %s: %s" % (procname, both, all_procs[both].keys()))
+            logger.debug(f":getProc: added both-rwys {procname}s: {both}: {all_procs[both].keys()}")
 
         # Procedures valid for all runways:
         if "ALL" in all_procs:
             sel_procs.update(all_procs["ALL"])
-            logger.debug(":getProc: added all-rwys %ss: %s" % (procname, all_procs["ALL"].keys()))
+            logger.debug(f":getProc: added all-rwys {procname}s: {all_procs['ALL'].keys()}")
 
         if len(sel_procs) > 0:
-            logger.debug(":getProc: selected %ss for %s: %s" % (procname, runway.name, sel_procs.keys()))
+            logger.debug(f":getProc: selected {procname}s for {runway.name}: {sel_procs.keys()}")
             ret = random.choice(list(sel_procs.values()))
             # logger.debug(":getProc: returning %s for %s: %s" % (procname, runway.name, ret.name))
             return ret
 
-        logger.warning(":getProc: no %s found for runway %s" % (procname, runway.name))
+        logger.warning(f":getProc: no {procname} found for runway {runway.name}")
         return None
 
     def selectSID(self, runway: 'Runway'):

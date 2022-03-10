@@ -121,7 +121,7 @@ class Flight:
 
     def setLinkedFlight(self, linked_flight: 'Flight') -> None:
         self.linked_flight = linked_flight
-        logger.debug(":setLinkedFlight: %s linked to %s" % (self.getId(), linked_flight.getId()))
+        logger.debug(f":setLinkedFlight: {self.getId()} linked to {linked_flight.getId()}")
 
 
     def setFL(self, flight_level: int) -> None:
@@ -144,20 +144,20 @@ class Flight:
         name = ramp.getProp("name")
         if name in self.managedAirport.ramps.keys():
             self.ramp = ramp
-            logger.debug(":setRamp: flight %s: ramp %s" % (self.getName(), self.ramp.getProp("name")))
+            logger.debug(f":setRamp: flight {self.getName()}: ramp {self.ramp.getProp('name')}")
         else:
-            logger.warning(":setRamp: %s not found" % name)
+            logger.warning(f":setRamp: {name} not found")
 
 
     def setGate(self, gate):
         self.gate = gate
-        logger.debug(":setGate: flight %s: gate %s" % (self.getName(), self.gate))
+        logger.debug(f":setGate: flight {self.getName()}: gate {self.gate}")
 
 
     def setRWY(self, rwy):
         self.rwy = rwy
         self._setRunway()
-        logger.debug(":setRunway: %s: %s" % (self.getName(), self.rwy.name))
+        logger.debug(f":setRunway: {self.getName()}: {self.rwy.name}")
 
 
     def loadFlightPlan(self):
@@ -174,7 +174,7 @@ class Flight:
         fpcp = self.flightplan.toAirspace(self.managedAirport.airspace)
         if fpcp[1] > 0:
             logger.warning(":toAirspace: unidentified %d waypoints" % fpcp[1])
-        logger.debug(":toAirspace: identified %d waypoints" % (len(fpcp[0])))
+        logger.debug(f":toAirspace: identified {len(fpcp[0])} waypoints")
         return fpcp[0]
 
 
@@ -203,7 +203,7 @@ class Flight:
         # RWY
         if depapt.has_rwys():
             rwydep = depapt.selectRWY(self)
-            logger.debug(":plan: departure airport %s using runway %s" % (depapt.icao, rwydep.name))
+            logger.debug(f":plan: departure airport {depapt.icao} using runway {rwydep.name}")
             if self.is_departure():
                 self.setRWY(rwydep)
             planpts = rwydep.getRoute()
@@ -211,24 +211,24 @@ class Flight:
             planpts[0].setProp("_plan_segment_name", depapt.icao+"/"+rwydep.name)
             self.dep_procs = [rwydep]
         else:  # no runway, we leave from airport
-            logger.warning(":plan: departure airport %s has no runway, first point is departure airport" % (rwydep.icao))
+            logger.warning(f":plan: departure airport {rwydep.icao} has no runway, first point is departure airport")
             planpts = depapt
             planpts[0].setProp("_plan_segment_type", "origin")
             planpts[0].setProp("_plan_segment_name", depapt.icao)
 
         # SID
         if depapt.has_sids() and rwydep is not None:
-            logger.debug(":plan: using procedures for departure airport %s" % depapt.icao)
+            logger.debug(f":plan: using procedures for departure airport {depapt.icao}")
             sid = depapt.selectSID(rwydep)
             if sid is not None:  # inserts it
-                logger.debug(":plan: %s using SID %s" % (depapt.icao, sid.name))
+                logger.debug(f":plan: {depapt.icao} using SID {sid.name}")
                 ret = depapt.procedures.getRoute(sid, self.managedAirport.airspace)
                 Flight.setProp(ret, "_plan_segment_type", "sid")
                 Flight.setProp(ret, "_plan_segment_name", sid.name)
                 planpts = planpts + ret
                 self.dep_procs = (rwydep, sid)
             else:
-                logger.warning(":plan: departure airport %s has no SID for %s" % (depapt.icao, rwydep.name))
+                logger.warning(f":plan: departure airport {depapt.icao} has no SID for {rwydep.name}")
 
             normplan = normplan[1:]
             Flight.setProp(normplan, "_plan_segment_type", "cruise")
@@ -236,7 +236,7 @@ class Flight:
             planpts = planpts + normplan
 
         else:  # no sid, we go straight
-            logger.debug(":plan: departure airport %s has no procedure, flying straight" % depapt.icao)
+            logger.debug(f":plan: departure airport {depapt.icao} has no procedure, flying straight")
             ret = normplan[1:]  # remove departure airport and leave cruise
             Flight.setProp(ret, "_plan_segment_type", "cruise")
             Flight.setProp(ret, "_plan_segment_name", depapt.icao+"-"+self.arrival.icao)
@@ -251,7 +251,7 @@ class Flight:
         # RWY
         if arrapt.has_rwys():
             rwyarr = arrapt.selectRWY(self)
-            logger.debug(":plan: arrival airport %s using runway %s" % (arrapt.icao, rwyarr.name))
+            logger.debug(f":plan: arrival airport {arrapt.icao} using runway {rwyarr.name}")
             if self.is_arrival():
                 self.setRWY(rwyarr)
             ret = rwyarr.getRoute()
@@ -260,42 +260,42 @@ class Flight:
             planpts = planpts[:-1] + ret  # no need to add last point which is arrival airport, we replace it with the precise runway end.
             self.arr_procs = [rwyarr]
         else:  # no star, we are done, we arrive in a straight line
-            logger.warning(":plan: arrival airport %s has no runway, last point is arrival airport" % (arrapt.icao))
+            logger.warning(f":plan: arrival airport {arrapt.icao} has no runway, last point is arrival airport")
 
         # STAR
         star = None  # used in APPCH
         if arrapt.has_stars() and rwyarr is not None:
             star = arrapt.selectSTAR(rwyarr)
             if star is not None:
-                logger.debug(":plan: %s using STAR %s" % (arrapt.icao, star.name))
+                logger.debug(f":plan: {arrapt.icao} using STAR {star.name}")
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airspace)
                 Flight.setProp(ret, "_plan_segment_type", "star")
                 Flight.setProp(ret, "_plan_segment_name", star.name)
                 planpts = planpts[:-1] + ret + [planpts[-1]]  # insert STAR before airport
                 self.arr_procs = (rwyarr, star)
             else:
-                logger.warning(":plan: arrival airport %s has no STAR for runway %s" % (arrapt.icao, rwyarr.name))
+                logger.warning(f":plan: arrival airport {arrapt.icao} has no STAR for runway {rwyarr.name}")
         else:  # no star, we are done, we arrive in a straight line
-            logger.warning(":plan: arrival airport %s has no STAR" % (arrapt.icao))
+            logger.warning(f":plan: arrival airport {arrapt.icao} has no STAR")
 
         # APPCH, we found airports with approaches and no STAR
         if arrapt.has_approaches() and rwyarr is not None:
             appch = arrapt.selectApproach(star, rwyarr)  # star won't be used, we can safely pass star=None
             if appch is not None:
-                logger.debug(":plan: %s using APPCH %s" % (arrapt.icao, appch.name))
+                logger.debug(f":plan: {arrapt.icao} using APPCH {appch.name}")
                 ret = arrapt.procedures.getRoute(appch, self.managedAirport.airspace)
                 Flight.setProp(ret, "_plan_segment_type", "appch")
                 Flight.setProp(ret, "_plan_segment_name", appch.name)
                 if len(planpts) > 2 and len(ret) > 0 and planpts[-2].id == ret[0].id:
-                    logger.debug(":plan: duplicate end STAR/begin APPCH %s removed" % ret[0].id)
+                    logger.debug(f":plan: duplicate end STAR/begin APPCH {ret[0].id} removed")
                     planpts = planpts[:-2] + ret + [planpts[-1]]  # remove last point of STAR
                 else:
                     planpts = planpts[:-1] + ret + [planpts[-1]]  # insert APPCH before airport
                 self.arr_procs = (rwyarr, star, appch)
             else:
-                logger.warning(":plan: arrival airport %s has no APPCH for %s " % (arrapt.icao, rwyarr.name))
+                logger.warning(f":plan: arrival airport {arrapt.icao} has no APPCH for {rwyarr.name} ")
         else:
-            logger.warning(":plan: arrival airport %s has no APPCH" % (arrapt.icao))
+            logger.warning(f":plan: arrival airport {arrapt.icao} has no APPCH")
 
         self.flightplan_cp = planpts
         # printFeatures(self.flightplan_cp, "plan")

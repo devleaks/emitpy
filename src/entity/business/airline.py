@@ -45,7 +45,7 @@ class Airline(Company):
             Airline._DB[row["ICAO"]] = a
             Airline._DB_IATA[row["IATA"]] = a
         file.close()
-        logger.debug(":loadAll: loaded %d airlines" % len(Airline._DB))
+        logger.debug(f":loadAll: loaded {len(Airline._DB)} airlines")
 
 
     @staticmethod

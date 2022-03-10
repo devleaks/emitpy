@@ -95,7 +95,7 @@ class ServiceMove(Movement):
         # logger.debug(":move: ramp vertex %s" % (rampnv[0]))
 
         # route from start to ramp
-        logger.debug(":move: route from start %s to ramp %s (vertices)" % (startnv[0].id, rampnv[0].id))
+        logger.debug(f":move: route from start {startnv[0].id} to ramp {rampnv[0].id} (vertices)")
         rt1 = Route(self.airport.service_roads, startnv[0].id, rampnv[0].id)
         # rt1.find()  # auto route
         # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, rampnv[0].id)
@@ -108,7 +108,7 @@ class ServiceMove(Movement):
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
         else:
-            logger.debug(":move: no route from start %s to ramp %s" % (startnv[0].id, rampnv[0].id))
+            logger.debug(f":move: no route from start {startnv[0].id} to ramp {rampnv[0].id}")
 
         if rampnp[0] is not None:
             rampnp[0].setSpeed(speeds["slow"])
@@ -158,7 +158,7 @@ class ServiceMove(Movement):
             ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
             self.moves.append(ramp_leave)
 
-        logger.debug(":move: route from %s to %s" % (rampnv[0].id, endnv[0].id))
+        logger.debug(f":move: route from {rampnv[0].id} to {endnv[0].id}")
         r2 = Route(self.airport.service_roads, rampnv[0].id, endnv[0].id)
         if r2.found():
             for vtx in r2.get_vertices():
@@ -167,7 +167,7 @@ class ServiceMove(Movement):
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
         else:
-            logger.debug(":move: no route from ramp %s to end %s" % (rampnv[0].id, endnv[0].id))
+            logger.debug(f":move: no route from ramp {rampnv[0].id} to end {endnv[0].id}")
 
         if endnp is not None:
             endnp[0].setSpeed(speeds["slow"])

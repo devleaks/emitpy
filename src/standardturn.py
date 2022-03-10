@@ -38,7 +38,7 @@ def extend_line(line, pct=40):
     far1 = destination(Feature(geometry=Point(line["coordinates"][1])), dist, brng, {"units": "km"})
     return Feature(geometry=LineString([far1["geometry"]["coordinates"], far0["geometry"]["coordinates"]]),
                    properties={
-                    "name": "B %f" % brng,
+                    "name": f"B {brng:f}",
                     "bearing": brng
                    })
 
@@ -125,7 +125,7 @@ def standard_turn_flyby(l0, l1, radius):
     # print(FeatureCollection(features=ARRINPUT + [l0e, l1e]))
     # print(">>>cross_ext", cross_ext)
     if cross_ext is None:
-        logger.warning("standard_turn: lines do not cross close %s %s" % (l0e, l1e))
+        logger.warning(f"standard_turn: lines do not cross close {l0e} {l1e}")
         print(">>>extend_line")
         print(FeatureCollection(features=ARRINPUT + [l0e, l1e]))
         print(">>>cross_ext", cross_ext)
@@ -139,7 +139,7 @@ def standard_turn_flyby(l0, l1, radius):
     # print(">>>line_offset")
     # print(FeatureCollection(features=ARRINPUT + [l0b, l1b, center]))
     if center is None:
-        logger.warning("standard_turn: no arc center %s %s" % (l0, l1))
+        logger.warning(f"standard_turn: no arc center {l0} {l1}")
         return None
 
     color(center, "#00ff00")
