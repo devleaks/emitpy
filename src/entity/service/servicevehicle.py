@@ -24,9 +24,9 @@ class ServiceVehicle(Identity):
         Identity.__init__(self, operator, "GSE", type(self).__name__, registration)
 
         self.registration = registration
+        self.icao24 = None
         self.operator = operator
-
-        self.models = []
+        self.model = model
 
         self.max_capacity = 30
         self.current_load = 0
@@ -43,11 +43,20 @@ class ServiceVehicle(Identity):
         self.quantity_time = 0
         self.flow = 1
 
-        self.mapicons = {}
-        self.models3d = {}
-
     def getId(self):
         return self.name  # registration
+
+    def getInfo(self):
+        return {
+            "registration": self.registration,
+            "icao24": self.icao24,
+            "operator": self.operator.getInfo(),
+            "service": type(self).__name__.replace("Vehicle", "").lower(),  # a try...
+            "model": self.model
+        }
+
+    def setICAO24(self, icao24):
+        self.icao24 = icao24
 
     def setPosition(self, position):
         self.position = position
@@ -142,7 +151,7 @@ class FuelVehicle(ServiceVehicle):
                 "fast": 50
             }
         }
-        if model in self.models:
+        if model in FuelVehicle.MODELS:
             self.speeds = SPEEDS[model]
         if model == "pump":
             self.max_capacity = inf

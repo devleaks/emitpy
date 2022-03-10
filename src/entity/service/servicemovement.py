@@ -14,7 +14,7 @@ from ..airport import AirportBase
 from ..geo import MovePoint, Movement, FeatureWithProps, printFeatures, asLineString
 from ..service import Service, ServiceVehicle
 from ..graph import Route
-from ..flight.interpolate import time as doTime
+from ..utils import compute_time as doTime
 from ..constants import FEATPROP, SERVICE_PHASE
 
 logger = logging.getLogger("ServiceMove")
@@ -32,6 +32,10 @@ class ServiceMove(Movement):
 
     def getId(self):
         return self.service.getId()
+
+
+    def getInfo(self):
+        return self.service.getInfo()
 
 
     def move(self):

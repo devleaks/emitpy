@@ -71,7 +71,7 @@ def main():
     logger.info("FLIGHT ********** From/to %s (%dkm)(%s, %s) with %s (%s, %s)" % (other_airport["properties"]["city"], reqrange, other_airport.iata, other_airport.icao, airline.orgId, airline.iata, airline.icao))
     logger.info("       ********** Range is %dkm, aircraft will be %s at FL%d" % (reqrange, acperf.typeId, reqfl))
 
-    aircraft = Aircraft(registration="A7-PMA", icao24= "a2ec4f", actype=acperf, operator=airline)
+    aircraft = Aircraft(registration="A7-PMA", icao24= "efface", actype=acperf, operator=airline)
     logger.debug("..done")
 
     logger.debug("creating arrival..")
@@ -101,6 +101,7 @@ def main():
     fuel_service.setRamp(ramp)
     fuel_service.setFlight(dep)
     fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="pump")
+    fuel_vehicle.setICAO24("abcdef")
     fuel_depot = managed.selectRandomServiceDepot(SERVICE.FUEL.value)
     fuel_vehicle.setPosition(fuel_depot)
     fuel_rest = managed.selectRandomServiceRestArea(SERVICE.FUEL.value)

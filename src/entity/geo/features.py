@@ -184,6 +184,17 @@ class FeatureWithProps(Feature):
             return None
         return float(a)
 
+
+    def setPause(self, time):
+        self.setProp(FEATPROP.PAUSE.value, time)
+
+    def pause(self):
+        a = self.getProp(FEATPROP.PAUSE.value)
+        if a is None or a == "None":
+            return None
+        return float(a)
+
+
 # ################################@
 # LOCATION
 #
@@ -218,6 +229,16 @@ class Ramp(FeatureWithProps):
             "available": None})
 
         self.service_pois = {}
+
+    def getInfo(self):
+        a = self.getProp("name")[0]
+        if a == "5":
+            a = "J"
+
+        return {
+            "name": self.getProp("name"),
+            "apron": a.upper()
+        }
 
     def busy(self):
         self["properties"]["available"] = False
@@ -278,6 +299,11 @@ class Runway(FeatureWithProps):
             "name": name,
             "width": width,
             "orientation": brng})
+
+    def getInfo(self):
+        return {
+            "name": self.getProp("name")
+        }
 
 
 # ################################@

@@ -19,3 +19,11 @@ class Identity:
         self.classId = classId
         self.typeId = typeId
         self.name = name
+
+    def getInfo(self):
+        return {
+            "orgId": self.orgId,
+            "classId": self.classId,
+            "typeId": self.typeId,
+            "name": self.name
+        }

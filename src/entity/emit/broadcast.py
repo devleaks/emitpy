@@ -33,4 +33,5 @@ class Broadcast:
         for idx in range(curr, len(bq)):
             e = bq[idx]
             f = LiveTraffic(e)
-            logger.debug(f':run: broadcasting at {e.getProp(FEATPROP.BROADCAST_REL_TIME.value)}: {0}')
+            print(f)
+            logger.debug(f':run: broadcasting at {e.getProp(FEATPROP.BROADCAST.value)}: {e.getProp(FEATPROP.BROADCAST_ABS_TIME.value)}: {0}')

@@ -1,0 +1,4399 @@
+{
+    "features": [
+    {
+        "geometry":
+        {
+            "coordinates": [51.600037, 25.277414],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_mark": "start",
+            "broadcast": true,
+            "broadcast_index": 0,
+            "broadcast_relative_time": 0,
+            "heading": 180.0,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "poi-type": "depot",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "service": "fuel",
+            "speed": 0,
+            "time": 0,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.600037, 25.277413],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": false,
+            "broadcast_index": 1,
+            "broadcast_relative_time": 0.07974149188291071,
+            "heading": 180.0,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 1.3888888888888888,
+            "time": 0.16012091570088471,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.600163, 25.277436],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2015",
+            "broadcast": false,
+            "broadcast_index": 2,
+            "broadcast_relative_time": 2.7354893370971425,
+            "heading": 78.5871432018929,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2015 2946821161",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 2.818903901309647,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.600405, 25.277013],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2016",
+            "broadcast": false,
+            "broadcast_index": 3,
+            "broadcast_relative_time": 9.090303574604079,
+            "heading": 152.6462292284033,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2016 2946821165",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 9.173718138816582,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.600361, 25.276953],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2012",
+            "broadcast": false,
+            "broadcast_index": 4,
+            "broadcast_relative_time": 10.05093824683807,
+            "heading": -146.45084800353857,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2012 2946821155",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 10.134352811050574,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.600007, 25.276808],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3058",
+            "broadcast": false,
+            "broadcast_index": 5,
+            "broadcast_relative_time": 14.740022104095596,
+            "heading": -114.36924375482215,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3058 8772170961",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 14.8234366683081,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.599784, 25.276736],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2019",
+            "broadcast": false,
+            "broadcast_index": 6,
+            "broadcast_relative_time": 17.59708043955161,
+            "heading": -109.64936396212684,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2019 2946821172",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 17.680495003764115,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.59998, 25.27629],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 7,
+            "broadcast_relative_time": 24.0,
+            "heading": 158.32773972492316,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.600237, 25.275708],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "964",
+            "broadcast": false,
+            "broadcast_index": 8,
+            "broadcast_relative_time": 32.362082442334724,
+            "heading": 158.23289804014894,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "964 2165054136",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 32.44641418413549,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.60029, 25.27559],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1047",
+            "broadcast": false,
+            "broadcast_index": 9,
+            "broadcast_relative_time": 34.0615164634004,
+            "heading": 157.89533458277873,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1047 2165080404",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 34.14584820520117,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.600906, 25.274203],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 10,
+            "broadcast_relative_time": 54.0,
+            "heading": 158.11908488195408,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.600906, 25.274203],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 11,
+            "broadcast_relative_time": 84.0,
+            "heading": 0.0,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.602167, 25.271366],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1054",
+            "broadcast": false,
+            "broadcast_index": 12,
+            "broadcast_relative_time": 94.80095580117688,
+            "heading": 158.10256039070887,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1054 2165080411",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 94.88858825700231,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.602226, 25.271331],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1048",
+            "broadcast": false,
+            "broadcast_index": 13,
+            "broadcast_relative_time": 95.65238590048985,
+            "heading": 123.26495381880153,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1048 2165080405",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 95.74001835631528,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.602316, 25.27132],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1055",
+            "broadcast": false,
+            "broadcast_index": 14,
+            "broadcast_relative_time": 96.74823568692474,
+            "heading": 97.69727807121211,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1055 2165080413",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 96.83586814275017,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.602376, 25.271342],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1056",
+            "broadcast": false,
+            "broadcast_index": 15,
+            "broadcast_relative_time": 97.52946996318062,
+            "heading": 67.92881895798018,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1056 _split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 97.61710241900605,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.60244, 25.271171],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1103",
+            "broadcast": false,
+            "broadcast_index": 16,
+            "broadcast_relative_time": 99.93833479996373,
+            "heading": 161.30158256704044,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1103 2211061192",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 100.02596725578915,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.602542, 25.271011],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1102",
+            "broadcast": false,
+            "broadcast_index": 17,
+            "broadcast_relative_time": 102.4026397791631,
+            "heading": 150.03695874318115,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1102 2211061191",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 102.49027223498852,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.602668, 25.270877],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1104",
+            "broadcast": false,
+            "broadcast_index": 18,
+            "broadcast_relative_time": 104.74966586402299,
+            "heading": 139.6250883909072,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1104 2211061193",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 104.83729831984841,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.602744, 25.270833],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "187",
+            "broadcast": false,
+            "broadcast_index": 19,
+            "broadcast_relative_time": 105.8385544083353,
+            "heading": 122.62801268039516,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "187 R_split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 105.92618686416073,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.602867, 25.27076],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "271",
+            "broadcast": false,
+            "broadcast_index": 20,
+            "broadcast_relative_time": 107.61382348598814,
+            "heading": 123.2770269547967,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "271 H_split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 107.70145594181356,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.602912, 25.270733],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1099",
+            "broadcast": false,
+            "broadcast_index": 21,
+            "broadcast_relative_time": 108.2654633787308,
+            "heading": 123.564111789921,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1099 2211060606",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 108.35309583455623,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.603343, 25.270552],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 22,
+            "broadcast_relative_time": 114.0,
+            "heading": 114.90985628179558,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.603958, 25.270295],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "267",
+            "broadcast": false,
+            "broadcast_index": 23,
+            "broadcast_relative_time": 122.17491839412872,
+            "heading": 114.80193183821417,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "267 S_split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 122.26209679454107,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.604974, 25.269869],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1100",
+            "broadcast": false,
+            "broadcast_index": 24,
+            "broadcast_relative_time": 135.68819272501923,
+            "heading": 114.87510457719499,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1100 2211060607",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 135.77537112543158,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.60561, 25.269631],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 25,
+            "broadcast_relative_time": 143.99999999999997,
+            "heading": 112.48023996902911,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.607262, 25.269012],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "1137",
+            "broadcast": false,
+            "broadcast_index": 26,
+            "broadcast_relative_time": 165.57742932169046,
+            "heading": 112.50610176175331,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "1137 2211065030",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 165.65825492358135,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.60734, 25.269007],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2722",
+            "broadcast": false,
+            "broadcast_index": 27,
+            "broadcast_relative_time": 166.5209878469896,
+            "heading": 94.05463139216312,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2722 7164764491",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 166.6018134488805,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.607903, 25.268773],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 28,
+            "broadcast_relative_time": 173.99999999999997,
+            "heading": 114.68379030202684,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.608439, 25.268551],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2723",
+            "broadcast": false,
+            "broadcast_index": 29,
+            "broadcast_relative_time": 181.11381307570178,
+            "heading": 114.60778600197492,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2723 7164764492",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 181.19232342091584,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.608065, 25.267742],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2724",
+            "broadcast": false,
+            "broadcast_index": 30,
+            "broadcast_relative_time": 192.81401926879008,
+            "heading": -157.31175641361432,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2724 7164764493",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 192.89252961400413,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.608774, 25.267451],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2872",
+            "broadcast": false,
+            "broadcast_index": 31,
+            "broadcast_relative_time": 202.20928220468272,
+            "heading": 114.41128318444285,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2872 8771956149",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 202.28779254989678,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.60889, 25.267406],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2871",
+            "broadcast": false,
+            "broadcast_index": 32,
+            "broadcast_relative_time": 203.7323828869176,
+            "heading": 113.21799443496963,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2871 8771956148",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 203.81089323213166,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.60891, 25.267398],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 33,
+            "broadcast_relative_time": 204.0,
+            "heading": 113.86069313375278,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609593, 25.267119],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2870",
+            "broadcast": false,
+            "broadcast_index": 34,
+            "broadcast_relative_time": 213.04342633092878,
+            "heading": 114.30894900822592,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2870 8771956147",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 213.11820952633994,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609714, 25.267074],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2869",
+            "broadcast": false,
+            "broadcast_index": 35,
+            "broadcast_relative_time": 214.62215745389676,
+            "heading": 112.35467320100912,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2869 8771956146",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 214.69694064930792,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610077, 25.266933],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2730",
+            "broadcast": false,
+            "broadcast_index": 36,
+            "broadcast_relative_time": 219.38937909374712,
+            "heading": 113.24455031848417,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2730 7164764499",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 219.46416228915828,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610395, 25.266807],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2729",
+            "broadcast": false,
+            "broadcast_index": 37,
+            "broadcast_relative_time": 223.5787933849787,
+            "heading": 113.66026599121011,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2729 7164764498",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 223.65357658038985,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610594, 25.266484],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2728",
+            "broadcast": false,
+            "broadcast_index": 38,
+            "broadcast_relative_time": 228.512523150537,
+            "heading": 150.8752593975346,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2728 7164764497",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 228.58730634594815,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610637, 25.26639],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2868",
+            "broadcast": false,
+            "broadcast_index": 39,
+            "broadcast_relative_time": 229.86989259797815,
+            "heading": 157.52588789804068,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2868 8771956145",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 229.9446757933893,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610775, 25.266107],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 40,
+            "broadcast_relative_time": 233.99999999999997,
+            "heading": 156.2033199059657,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.61095, 25.265745],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2867",
+            "broadcast": false,
+            "broadcast_index": 41,
+            "broadcast_relative_time": 239.27173073989388,
+            "heading": 156.38601106955497,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2867 8771956144",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 239.3434601138374,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610995, 25.265648],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2866",
+            "broadcast": false,
+            "broadcast_index": 42,
+            "broadcast_relative_time": 240.6753344596683,
+            "heading": 157.24007206091923,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2866 8771956143",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 240.74706383361183,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611181, 25.265251],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3421",
+            "broadcast": false,
+            "broadcast_index": 43,
+            "broadcast_relative_time": 246.42853675958597,
+            "heading": 157.03778791320505,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3421 9517146704",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 246.5002661335295,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.61103, 25.26521],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3422",
+            "broadcast": false,
+            "broadcast_index": 44,
+            "broadcast_relative_time": 248.33101088195392,
+            "heading": -106.7120371567286,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3422 9517146705",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 248.40274025589744,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610964, 25.265162],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3423",
+            "broadcast": false,
+            "broadcast_index": 45,
+            "broadcast_relative_time": 249.35302262502327,
+            "heading": -128.80625955820895,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3423 9517146706",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 249.4247519989668,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610912, 25.265075],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3424",
+            "broadcast": false,
+            "broadcast_index": 46,
+            "broadcast_relative_time": 250.67263302122984,
+            "heading": -151.6075882598632,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3424 9517146707",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 250.74436239517337,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610833, 25.264971],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3425",
+            "broadcast": false,
+            "broadcast_index": 47,
+            "broadcast_relative_time": 252.35623712326577,
+            "heading": -145.5127450975503,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3425 9517146708",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 252.4279664972093,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610743, 25.264909],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3426",
+            "broadcast": false,
+            "broadcast_index": 48,
+            "broadcast_relative_time": 253.72147639160505,
+            "heading": -127.29851607618681,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3426 9517146709",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 253.79320576554858,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610391, 25.264788],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3418",
+            "broadcast": false,
+            "broadcast_index": 49,
+            "broadcast_relative_time": 258.26557910436065,
+            "heading": -110.81220008288916,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3418 9517146701",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 258.3373084783042,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610535, 25.264462],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3405",
+            "broadcast": false,
+            "broadcast_index": 50,
+            "broadcast_relative_time": 262.9497578051629,
+            "heading": 158.2249493270074,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3405 9517146687",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 263.02148717910643,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610567, 25.264389],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 51,
+            "broadcast_relative_time": 263.99999999999994,
+            "heading": 158.3753115540846,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610801, 25.263853],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3419",
+            "broadcast": false,
+            "broadcast_index": 52,
+            "broadcast_relative_time": 271.6893018167383,
+            "heading": 158.45537201116474,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3419 9517146702",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 271.7586055084631,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610812, 25.263829],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "381",
+            "broadcast": false,
+            "broadcast_index": 53,
+            "broadcast_relative_time": 272.03596354062654,
+            "heading": 157.4862499788734,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "381 _split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 272.10526723235137,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611079, 25.263245],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3406",
+            "broadcast": false,
+            "broadcast_index": 54,
+            "broadcast_relative_time": 280.46832479955793,
+            "heading": 157.53664092819685,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3406 9517146688",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 280.53762849128276,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611086, 25.26323],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "384",
+            "broadcast": false,
+            "broadcast_index": 55,
+            "broadcast_relative_time": 280.6855705803233,
+            "heading": 157.1186456102746,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "384 _split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 280.75487427204814,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611349, 25.262642],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3420",
+            "broadcast": false,
+            "broadcast_index": 56,
+            "broadcast_relative_time": 289.1490681607769,
+            "heading": 157.97658094485243,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3420 9517146703",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 289.2183718525017,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611376, 25.26259],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "387",
+            "broadcast": false,
+            "broadcast_index": 57,
+            "broadcast_relative_time": 289.9156150061073,
+            "heading": 154.84655118318096,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "387 _split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 289.98491869783214,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611519, 25.262312],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 58,
+            "broadcast_relative_time": 293.99999999999994,
+            "heading": 155.052421063911,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611572, 25.262209],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2698",
+            "broadcast": false,
+            "broadcast_index": 59,
+            "broadcast_relative_time": 295.51589636058316,
+            "heading": 155.04496801105284,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2698 7164764465",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 295.5920152568197,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611604, 25.26205],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2004",
+            "broadcast": false,
+            "broadcast_index": 60,
+            "broadcast_relative_time": 297.6723542103645,
+            "heading": 169.68447899175467,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2004 2946817172",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 297.74847310660107,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.61175, 25.261658],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2772",
+            "broadcast": false,
+            "broadcast_index": 61,
+            "broadcast_relative_time": 303.19172004873803,
+            "heading": 161.3848730434817,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2772 7164764570",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 303.2678389449746,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611775, 25.261645],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2768",
+            "broadcast": false,
+            "broadcast_index": 62,
+            "broadcast_relative_time": 303.53971871857567,
+            "heading": 119.8983337490261,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2768 7164764566",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 303.6158376148122,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611793, 25.261626],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2549",
+            "broadcast": false,
+            "broadcast_index": 63,
+            "broadcast_relative_time": 303.87356909218977,
+            "heading": 139.41101379470302,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2549 6461584493",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 303.9496879884263,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611803, 25.261603],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2785",
+            "broadcast": false,
+            "broadcast_index": 64,
+            "broadcast_relative_time": 304.20333986453863,
+            "heading": 158.53505895231714,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2785 7164764583",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 304.2794587607752,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611804, 25.261578],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2784",
+            "broadcast": false,
+            "broadcast_index": 65,
+            "broadcast_relative_time": 304.5371433008445,
+            "heading": 177.9282424905985,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2784 7164764582",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 304.61326219708104,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611797, 25.261555],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2771",
+            "broadcast": false,
+            "broadcast_index": 66,
+            "broadcast_relative_time": 304.8554546046072,
+            "heading": -164.61081775159036,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2771 7164764569",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 304.93157350084374,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611833, 25.261402],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2030",
+            "broadcast": false,
+            "broadcast_index": 67,
+            "broadcast_relative_time": 306.9427058871832,
+            "heading": 167.98703910765957,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2030 2947595604",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 307.01882478341975,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611841, 25.261312],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3263",
+            "broadcast": false,
+            "broadcast_index": 68,
+            "broadcast_relative_time": 308.1474868212835,
+            "heading": 175.40396011679974,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3263 8772268241",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 308.22360571752006,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.61182, 25.261242],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3264",
+            "broadcast": false,
+            "broadcast_index": 69,
+            "broadcast_relative_time": 309.11529235753727,
+            "heading": -164.82041382121733,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3264 8772268242",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 309.1914112537738,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611777, 25.261211],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3265",
+            "broadcast": false,
+            "broadcast_index": 70,
+            "broadcast_relative_time": 309.7788871931954,
+            "heading": -128.5604966497982,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3265 8772268243",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 309.8550060894319,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.61068, 25.260823],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 71,
+            "broadcast_relative_time": 323.99999999999983,
+            "heading": -111.35977042812864,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.60907, 25.260253],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3266",
+            "broadcast": false,
+            "broadcast_index": 72,
+            "broadcast_relative_time": 344.8642937306626,
+            "heading": -111.37856025924246,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3266 8772268244",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 344.9336392821374,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.608982, 25.2602],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3267",
+            "broadcast": false,
+            "broadcast_index": 73,
+            "broadcast_relative_time": 346.14016570418505,
+            "heading": -123.66167923172966,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3267 8772268245",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 346.20951125565983,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609003, 25.260139],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2745",
+            "broadcast": false,
+            "broadcast_index": 74,
+            "broadcast_relative_time": 346.99265136924896,
+            "heading": 162.706345817085,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2745 7164764514",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 347.06199692072374,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609191, 25.259736],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2744",
+            "broadcast": false,
+            "broadcast_index": 75,
+            "broadcast_relative_time": 352.829032558042,
+            "heading": 157.12532546928765,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2744 7164764513",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 352.8983781095168,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609261, 25.259675],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 76,
+            "broadcast_relative_time": 353.9999999999999,
+            "heading": 133.93685091251962,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609298, 25.259643],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2743",
+            "broadcast": false,
+            "broadcast_index": 77,
+            "broadcast_relative_time": 354.6178009315657,
+            "heading": 133.72043238022727,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2743 7164764512",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 354.68924242453335,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609141, 25.259533],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_mark": "arrived",
+            "broadcast": false,
+            "broadcast_index": 78,
+            "broadcast_relative_time": 358.72633286974144,
+            "heading": -127.76534011938503,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 1.3888888888888888,
+            "time": 358.7977743627091,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609141, 25.259534],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_mark": "service-start",
+            "broadcast": false,
+            "broadcast_index": 79,
+            "broadcast_relative_time": 358.88518298395974,
+            "heading": 0.0,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "poi-type": "ramp-service-point",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "service": "fuel",
+            "speed": 0,
+            "time": 358.95789527784115,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609141, 25.259534],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_mark": "service-end",
+            "broadcast": false,
+            "broadcast_index": 80,
+            "broadcast_relative_time": 358.88518298395974,
+            "heading": 0.0,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "poi-type": "ramp-service-point",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "service": "fuel",
+            "speed": 0,
+            "time": 358.95789527784115,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609141, 25.259533],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_mark": "leave",
+            "broadcast": false,
+            "broadcast_index": 81,
+            "broadcast_relative_time": 358.96492447555937,
+            "heading": 180.0,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 1.3888888888888888,
+            "time": 359.1180161929732,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609298, 25.259643],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2743",
+            "broadcast": false,
+            "broadcast_index": 82,
+            "broadcast_relative_time": 363.06876630878287,
+            "heading": 52.234592885478385,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2743 7164764512",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 363.22654813114895,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609191, 25.259736],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2744",
+            "broadcast": false,
+            "broadcast_index": 83,
+            "broadcast_relative_time": 364.85963062379943,
+            "heading": -46.13777260912575,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2744 7164764513",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 365.0174124461655,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609003, 25.260139],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2745",
+            "broadcast": false,
+            "broadcast_index": 84,
+            "broadcast_relative_time": 370.6960118125925,
+            "heading": -22.87459430609769,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2745 7164764514",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 370.85379363495855,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.608982, 25.2602],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3267",
+            "broadcast": false,
+            "broadcast_index": 85,
+            "broadcast_relative_time": 371.5484974776564,
+            "heading": -17.293645221544445,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3267 8772268245",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 371.70627930002246,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.60907, 25.260253],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3266",
+            "broadcast": false,
+            "broadcast_index": 86,
+            "broadcast_relative_time": 372.8243694511788,
+            "heading": 56.33828321600427,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3266 8772268244",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 372.9821512735449,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609932, 25.260558],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 87,
+            "broadcast_relative_time": 384.0,
+            "heading": 68.63241369465293,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611777, 25.261211],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3265",
+            "broadcast": false,
+            "broadcast_index": 88,
+            "broadcast_relative_time": 407.90867769479087,
+            "heading": 68.62656534044704,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3265 8772268243",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 408.0607844662503,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.61182, 25.261242],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3264",
+            "broadcast": false,
+            "broadcast_index": 89,
+            "broadcast_relative_time": 408.57227253044897,
+            "heading": 51.43948499973913,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3264 8772268242",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 408.7243793019084,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611841, 25.261312],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3263",
+            "broadcast": false,
+            "broadcast_index": 90,
+            "broadcast_relative_time": 409.54007806670273,
+            "heading": 15.17957721707713,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3263 8772268241",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 409.6921848381622,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611833, 25.261402],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2030",
+            "broadcast": false,
+            "broadcast_index": 91,
+            "broadcast_relative_time": 410.74485900080305,
+            "heading": -4.596036469142054,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2030 2947595604",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 410.8969657722625,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611797, 25.261555],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2771",
+            "broadcast": false,
+            "broadcast_index": 92,
+            "broadcast_relative_time": 412.83211028337905,
+            "heading": -12.012945529518998,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2771 7164764569",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 412.9842170548385,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611804, 25.261578],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2784",
+            "broadcast": false,
+            "broadcast_index": 93,
+            "broadcast_relative_time": 413.15042158714175,
+            "heading": 15.38917926069353,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2784 7164764582",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 413.3025283586012,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611803, 25.261603],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2785",
+            "broadcast": false,
+            "broadcast_index": 94,
+            "broadcast_relative_time": 413.4842250234476,
+            "heading": -2.071757082680842,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2785 7164764583",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 413.63633179490705,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611793, 25.261626],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2549",
+            "broadcast": false,
+            "broadcast_index": 95,
+            "broadcast_relative_time": 413.8139957957965,
+            "heading": -21.46493677958259,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2549 6461584493",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 413.9661025672559,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611783, 25.261637],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 96,
+            "broadcast_relative_time": 413.99999999999994,
+            "heading": -39.42544075381006,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611775, 25.261645],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2768",
+            "broadcast": false,
+            "broadcast_index": 97,
+            "broadcast_relative_time": 414.1438352337822,
+            "heading": -42.125194913690585,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2768 7164764566",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 414.29995294087,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.61175, 25.261658],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2772",
+            "broadcast": false,
+            "broadcast_index": 98,
+            "broadcast_relative_time": 414.49183390361986,
+            "heading": -60.101655580092,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2772 7164764570",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 414.64795161070765,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611604, 25.26205],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2004",
+            "broadcast": false,
+            "broadcast_index": 99,
+            "broadcast_relative_time": 420.0111997419934,
+            "heading": -18.615064650085895,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2004 2946817172",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 420.16731744908117,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611572, 25.262209],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2698",
+            "broadcast": false,
+            "broadcast_index": 100,
+            "broadcast_relative_time": 422.16765759177474,
+            "heading": -10.315507351658916,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2698 7164764465",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 422.32377529886253,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611376, 25.26259],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "387",
+            "broadcast": false,
+            "broadcast_index": 101,
+            "broadcast_relative_time": 427.7747541507623,
+            "heading": -24.949526745907797,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "387 _split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 427.9308718578501,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611349, 25.262642],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3420",
+            "broadcast": false,
+            "broadcast_index": 102,
+            "broadcast_relative_time": 428.54130099609273,
+            "heading": -25.153437294030542,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3420 9517146703",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 428.6974187031805,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611086, 25.26323],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "384",
+            "broadcast": false,
+            "broadcast_index": 103,
+            "broadcast_relative_time": 437.0047985765463,
+            "heading": -22.02330681389667,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "384 _split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 437.1609162836341,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.611079, 25.263245],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3406",
+            "broadcast": false,
+            "broadcast_index": 104,
+            "broadcast_relative_time": 437.2220443573117,
+            "heading": -22.88135140132238,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3406 9517146688",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 437.3781620643995,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610864, 25.263714],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 105,
+            "broadcast_relative_time": 443.9999999999999,
+            "heading": -22.517690469404478,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610812, 25.263829],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "381",
+            "broadcast": false,
+            "broadcast_index": 106,
+            "broadcast_relative_time": 445.65781790656416,
+            "heading": -22.24085177760649,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "381 _split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 445.81052332333087,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610801, 25.263853],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3419",
+            "broadcast": false,
+            "broadcast_index": 107,
+            "broadcast_relative_time": 446.0044796304524,
+            "heading": -22.513745327209886,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3419 9517146702",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 446.1571850472191,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610535, 25.264462],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3405",
+            "broadcast": false,
+            "broadcast_index": 108,
+            "broadcast_relative_time": 454.7415979598091,
+            "heading": -21.554127890229434,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3405 9517146687",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 454.8943033765758,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.610391, 25.264788],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3418",
+            "broadcast": false,
+            "broadcast_index": 109,
+            "broadcast_relative_time": 459.42577666061135,
+            "heading": -21.774989213963725,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3418 9517146701",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 459.57848207737806,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609957, 25.26464],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "378",
+            "broadcast": false,
+            "broadcast_index": 110,
+            "broadcast_relative_time": 465.02284383244876,
+            "heading": -110.66054083836482,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "378 W1_split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 465.17554924921546,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609887, 25.264616],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3427",
+            "broadcast": false,
+            "broadcast_index": 111,
+            "broadcast_relative_time": 465.9262060797017,
+            "heading": -110.762782910696,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3427 9517146710",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 466.07891149646844,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609741, 25.264568],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2903",
+            "broadcast": false,
+            "broadcast_index": 112,
+            "broadcast_relative_time": 467.8008070600655,
+            "heading": -109.97825501894931,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2903 8772066972",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 467.9535124768322,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609265, 25.264394],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 113,
+            "broadcast_relative_time": 473.9999999999999,
+            "heading": -112.00894941370828,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.60907, 25.264323],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "2904",
+            "broadcast": false,
+            "broadcast_index": 114,
+            "broadcast_relative_time": 476.536635661275,
+            "heading": -111.93032688234123,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "2904 8772066975",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 476.68557000461664,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.609014, 25.264304],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "364",
+            "broadcast": false,
+            "broadcast_index": 115,
+            "broadcast_relative_time": 477.2583853643407,
+            "heading": -110.56464262503914,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "364 W2_split",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 477.40731970768235,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.608942, 25.264278],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3428",
+            "broadcast": false,
+            "broadcast_index": 116,
+            "broadcast_relative_time": 478.19392080991537,
+            "heading": -111.76706575905867,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3428 9517146711",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 478.342855153257,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.608464, 25.264113],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3429",
+            "broadcast": false,
+            "broadcast_index": 117,
+            "broadcast_relative_time": 484.36790012802277,
+            "heading": -110.8916487853939,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3429 9517146712",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 484.5168344713644,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.608111, 25.263984],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3430",
+            "broadcast": false,
+            "broadcast_index": 118,
+            "broadcast_relative_time": 488.96222915866167,
+            "heading": -112.00307068069544,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3430 9517146713",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 489.1111635020033,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.607597, 25.263816],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3432",
+            "broadcast": false,
+            "broadcast_index": 119,
+            "broadcast_relative_time": 495.55740012378266,
+            "heading": -109.87061844644032,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3432 9517146715",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 495.7063344671243,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.607419, 25.263847],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_serviceroad": "3431",
+            "broadcast": false,
+            "broadcast_index": 120,
+            "broadcast_relative_time": 497.7448179520457,
+            "heading": -79.09956309178521,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "3431 9517146714",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 8.333333333333334,
+            "time": 497.89375229538734,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.607055, 25.2638],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": true,
+            "broadcast_index": 121,
+            "broadcast_relative_time": 503.99999999999983,
+            "heading": -98.1255360833021,
+            "marker-color": "#ccccff",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.606989, 25.263791],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "broadcast": false,
+            "broadcast_index": 122,
+            "broadcast_relative_time": 507.49145977417885,
+            "heading": -98.57478706978107,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "speed": 1.3888888888888888,
+            "time": 506.88072056790406,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    },
+    {
+        "geometry":
+        {
+            "coordinates": [51.606989, 25.263792],
+            "type": "Point"
+        },
+        "properties":
+        {
+            "_mark": "end",
+            "broadcast": false,
+            "broadcast_index": 123,
+            "broadcast_relative_time": 507.65030988839715,
+            "heading": 0.0,
+            "marker-color": "#eeeeee",
+            "marker-size": "medium",
+            "marker-symbol": "",
+            "name": "G-side",
+            "operator:classId": "Airport Operator",
+            "operator:name": "MARTAR",
+            "operator:orgId": "Airport Operator",
+            "operator:typeId": "Airport Operator",
+            "poi-type": "rest-area",
+            "ramp:apron": "A",
+            "ramp:name": "A11",
+            "service": "*",
+            "speed": 0,
+            "time": 507.0408414830361,
+            "vehicle:icao24": "abcdef",
+            "vehicle:model": "pump",
+            "vehicle:operator:classId": "Airport Operator",
+            "vehicle:operator:name": "MARTAR",
+            "vehicle:operator:orgId": "Airport Operator",
+            "vehicle:operator:typeId": "Airport Operator",
+            "vehicle:registration": "FUE001",
+            "vehicle:service": "fuel"
+        },
+        "type": "Feature"
+    }],
+    "type": "FeatureCollection"
+}

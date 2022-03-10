@@ -26,16 +26,17 @@ class Flight:
         self.schedule_history = None  # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
         self.operator = operator
         self.aircraft = aircraft
-        self.ramp = None
+        self.ramp = None              # GeoJSON Feature
+        self.runway = None            # GeoJSON Feature
         self.turnaround = None
         self.codeshare = None
         self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
         self.flight_level = 0
-        self.runway = None
         self.flightplan = None
         self.flightplan_cp = []
         self.dep_procs = None
         self.arr_procs = None
+        self.rwy = None               # RWY object
 
         self.flight_type = PAYLOAD.PAX
         try:
@@ -85,11 +86,28 @@ class Flight:
         return s
 
 
+    def getInfo(self):
+        return {
+            "identifier": self.getId(),  # IATA/ICAO flight identifier
+            "airline": self.operator.getInfo(),
+            "departure": self.departure.getInfo(),
+            "arrival": self.arrival.getInfo(),
+            "aircraft": self.aircraft.getInfo(),
+            "flightnumber": self.getName(),
+            "codeshare": self.codeshare,
+            "ramp": self.ramp.getInfo() if self.ramp is not None else {},
+            "runway": self.runway.getInfo() if self.runway is not None else {}  # note: this is the GeoJSON feature, not the RWY procedure
+        }
+
+
     def getId(self) -> str:
         return self.operator.iata + self.number + "-S" + self.scheduled_dt.astimezone(tz=timezone.utc).strftime("%Y%m%d%H%M")
 
 
     def getName(self) -> str:
+        return self.operator.iata + " " + self.number
+
+    def getLongName(self) -> str:
         return self.operator.iata + " " + self.number + " " + self.scheduled_dt.strftime("%H:%M")
 
 
@@ -136,9 +154,10 @@ class Flight:
         logger.debug(":setGate: flight %s: gate %s" % (self.getName(), self.gate))
 
 
-    def setRunway(self, rwy):
-        self.runway = rwy
-        logger.debug(":setRunway: %s: %s" % (self.getName(), self.runway.name))
+    def setRWY(self, rwy):
+        self.runway = self.airport.getRunway(rwy)
+        self.rwy = rwy
+        logger.debug(":setRunway: %s: %s" % (self.getName(), self.rwy.name))
 
 
     def loadFlightPlan(self):
@@ -183,10 +202,10 @@ class Flight:
 
         # RWY
         if depapt.has_rwys():
-            rwydep = depapt.selectRunway(self)
+            rwydep = depapt.selectRWY(self)
             logger.debug(":plan: departure airport %s using runway %s" % (depapt.icao, rwydep.name))
             if self.is_departure():
-                self.setRunway(rwydep)
+                self.setRWY(rwydep)
             planpts = rwydep.getRoute()
             planpts[0].setProp("_plan_segment_type", "origin/rwy")
             planpts[0].setProp("_plan_segment_name", depapt.icao+"/"+rwydep.name)
@@ -231,10 +250,10 @@ class Flight:
 
         # RWY
         if arrapt.has_rwys():
-            rwyarr = arrapt.selectRunway(self)
+            rwyarr = arrapt.selectRWY(self)
             logger.debug(":plan: arrival airport %s using runway %s" % (arrapt.icao, rwyarr.name))
             if self.is_arrival():
-                self.setRunway(rwyarr)
+                self.setRWY(rwyarr)
             ret = rwyarr.getRoute()
             Flight.setProp(ret, "_plan_segment_type", "rwy")
             Flight.setProp(ret, "_plan_segment_name", rwyarr.name)
