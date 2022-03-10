@@ -424,7 +424,7 @@ class Aircraft:
     def getInfo(self):
         return {
             "actype": self.actype.getInfo(),
-            "operator": self.operator,
+            "operator": self.operator.getInfo(),
             "acreg": self.registration,
             "callsign": self.callsign,
             "icao24": self.icao24
