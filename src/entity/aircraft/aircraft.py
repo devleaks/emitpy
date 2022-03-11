@@ -426,6 +426,6 @@ class Aircraft:
             "actype": self.actype.getInfo(),
             "operator": self.operator.getInfo(),
             "acreg": self.registration,
-            "callsign": self.callsign,
+            "ident": self.callsign,
             "icao24": self.icao24
         }

@@ -37,7 +37,9 @@ class Service:
         return {
             "operator": self.operator.getInfo(),
             "ramp": self.ramp.getInfo(),
-            "vehicle": self.vehicle.getInfo()
+            "vehicle": self.vehicle.getInfo(),
+            "icao24": self.vehicle.icao24,
+            "ident": self.vehicle.registration
         }
 
     def setTurnaround(self, turnaround: "Turnaround"):

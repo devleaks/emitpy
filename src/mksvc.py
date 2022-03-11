@@ -7,7 +7,7 @@ from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure
 
 from entity.service import FuelService, ServiceMove
-from entity.emit import Emit, Broadcast
+from entity.emit import Emit, BroadcastToFile, LiveTraffic
 
 from entity.parameters import MANAGED_AIRPORT
 from entity.constants import SERVICE, SERVICE_PHASE
@@ -126,7 +126,7 @@ def main():
 
     logger.debug(".. broadcasting position ..")
 
-    b = Broadcast(se, datetime.now())
+    b = BroadcastToFile(se, datetime.now(), LiveTraffic)
     b.run()
 
     logger.debug("..done")

@@ -50,6 +50,7 @@ class Emit:
             self.moves = self.move.getMoves()
             # collect common props from movement
             self.props = self.move.getInfo()
+        logger.debug(f":__init__: emit with props {self.props}")
 
 
     def save(self):
@@ -83,7 +84,8 @@ class Emit:
         return (False, "Movement::load not loaded")
 
 
-        pass
+    def getId(self):
+        return self.move.getId()
 
 
     def emit(self, frequency: int = 30):

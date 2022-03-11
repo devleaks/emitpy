@@ -93,6 +93,8 @@ class Flight:
             "departure": self.departure.getInfo(),
             "arrival": self.arrival.getInfo(),
             "aircraft": self.aircraft.getInfo(),
+            "icao24": self.aircraft.icao24,
+            "ident": self.aircraft.callsign,
             "flightnumber": self.getName(),
             "codeshare": self.codeshare,
             "ramp": self.ramp.getInfo() if self.ramp is not None else {},

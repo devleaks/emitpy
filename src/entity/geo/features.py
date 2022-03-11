@@ -141,7 +141,7 @@ class FeatureWithProps(Feature):
             self["geometry"]["coordinates"].append(alt)
         self["properties"][FEATPROP.ALTITUDE.value] = alt
 
-    def altitude(self):
+    def altitude(self, default=None):
         # Altitude can be stored at two places
         if len(self["geometry"]["coordinates"]) > 2:
             return self["geometry"]["coordinates"][2]
@@ -153,45 +153,45 @@ class FeatureWithProps(Feature):
             else:
                 self["geometry"]["coordinates"].append(alt)
             return alt
-        return None
+        return default
 
     def setSpeed(self, speed):
         self.setProp(name=FEATPROP.SPEED.value, value=speed)
 
-    def speed(self):
+    def speed(self, default=None):
         a = self.getProp(FEATPROP.SPEED.value)
         if a is None or a == "None":
-            return None
+            return default
         return float(a)
 
 
     def setVSpeed(self, vspeed):
         self.setProp(FEATPROP.VERTICAL_SPEED.value, vspeed)
 
-    def vspeed(self):
+    def vspeed(self, default=None):
         a = self.getProp(FEATPROP.VERTICAL_SPEED.value)
         if a is None or a == "None":
-            return None
+            return default
         return float(a)
 
 
     def setTime(self, time):
         self.setProp(FEATPROP.TIME.value, time)
 
-    def time(self):
+    def time(self, default=None):
         a = self.getProp(FEATPROP.TIME.value)
         if a is None or a == "None":
-            return None
+            return default
         return float(a)
 
 
     def setPause(self, time):
         self.setProp(FEATPROP.PAUSE.value, time)
 
-    def pause(self):
+    def pause(self, default=None):
         a = self.getProp(FEATPROP.PAUSE.value)
         if a is None or a == "None":
-            return None
+            return default
         return float(a)
 
 
