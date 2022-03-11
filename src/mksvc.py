@@ -18,19 +18,9 @@ logger = logging.getLogger("mkService")
 
 def main():
 
-    logger.debug("loading airport..")
-    Airport.loadAll()
-    logger.debug("..done")
-
-    logger.debug("loading airlines..")
-    Airline.loadAll()
-    logger.debug("..done")
-
     logger.debug("loading aircrafts..")
     AircraftType.loadAll()
     AircraftPerformance.loadAll()
-    logger.debug("..done")
-
     logger.debug("..done")
 
     logger.debug("loading managed airport..")
@@ -53,45 +43,15 @@ def main():
     ret = managed.load()
     if not ret[0]:
         print("Managed airport not loaded")
+
     logger.debug("..done")
 
-    airline = Airline.findIATA(iata="QR")
-
-    (airline, other_airport) = airportManager.selectRandomAirroute(airline=airline)
-    reqrange = managed.miles(other_airport)
-
-
-    ramp = managed.getRamp(None)
 
     logger.debug("loading aircraft..")
-    acperf = AircraftPerformance.findAircraft(reqrange=reqrange)
-    acperf.load()
-    reqfl = acperf.FLFor(reqrange)
+    actype = AircraftPerformance.find("A321")
+    actype.load()
 
-    logger.info("FLIGHT ********** From/to %s (%dkm)(%s, %s) with %s (%s, %s)" % (other_airport["properties"]["city"], reqrange, other_airport.iata, other_airport.icao, airline.orgId, airline.iata, airline.icao))
-    logger.info("       ********** Range is %dkm, aircraft will be %s at FL%d" % (reqrange, acperf.typeId, reqfl))
-
-    aircraft = Aircraft(registration="A7-PMA", icao24= "efface", actype=acperf, operator=airline)
-    logger.debug("..done")
-
-    logger.debug("creating arrival..")
-    arr = Arrival(operator=airline, number="4L", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=other_airport, aircraft=aircraft)
-    arr.setFL(reqfl)
-    ramp = managed.selectRamp(arr)
-    arr.setRamp(ramp)
-    gate = "C99"
-    ramp_name = ramp.getProp("name")
-    if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
-        gate = ramp_name
-    arr.setGate(gate)
-    logger.debug("..done")
-
-    logger.debug("creating departure..")
-    dep = Departure(operator=airline, number="321", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=other_airport, aircraft=aircraft, linked_flight=arr)
-    dep.setFL(reqfl)
-    dep.setRamp(ramp)
-    dep.setGate(gate)
-    logger.debug("..done")
+    ramp = managed.selectRamp(None)
 
     # managed.service_roads.print(vertex=False)
     operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
@@ -99,7 +59,7 @@ def main():
     logger.debug("creating single service..")
     fuel_service = FuelService(operator=operator, quantity=24)
     fuel_service.setRamp(ramp)
-    fuel_service.setFlight(dep)
+    fuel_service.setAircraftType(actype)
     fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="pump")
     fuel_vehicle.setICAO24("abcdef")
     fuel_depot = managed.selectRandomServiceDepot(SERVICE.FUEL.value)
