@@ -1,11 +1,9 @@
 import logging
 from datetime import datetime, timedelta
 
-from entity.business import Airline, AirportManager, Company
-from entity.airport import Airport, XPAirport
-from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
-from entity.flight import Arrival, Departure
-
+from entity.business import AirportManager, Company
+from entity.airport import XPAirport
+from entity.aircraft import AircraftType, AircraftPerformance
 from entity.service import FuelService, ServiceMove
 from entity.emit import Emit, BroadcastToFile, LiveTraffic
 
