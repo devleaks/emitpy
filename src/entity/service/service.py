@@ -22,16 +22,16 @@ class Service:
         self.duration = None      # scheduled duration in minutes, will be different from actual duration
         self.ramp = None
         self.next_position = None
-        self.flight = None
+        self.actype = None
         self.turnaround = None
         self.vehicle = None
         self.starttime = None
         self.route = []
 
     def getId(self):
-        f = self.flight.getId() if self.flight is not None else "noflight"
+        r = self.ramp.getProp("name") if self.ramp is not None else "noramp"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
-        return f + "-" + v
+        return type(self).__name__ + "-" + v + "-" + r
 
     def getInfo(self):
         return {
@@ -46,8 +46,8 @@ class Service:
         self.turnaround = turnaround
 
 
-    def setFlight(self, flight: "Flight"):
-        self.flight = flight
+    def setAircraftType(self, actype: "AircraftType"):
+        self.actype = actype
 
 
     def setRamp(self, ramp: "Ramp"):

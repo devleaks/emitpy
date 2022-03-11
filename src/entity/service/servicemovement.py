@@ -64,7 +64,7 @@ class ServiceMove(Movement):
             logger.warning(":move: no nearest_vertex for startpos")
 
         # find ramp position, use ramp center if none is given
-        gseraw = self.service.flight.aircraft.actype.gseraw
+        gseraw = self.service.actype.gseraw
         if gseraw is not None:
             status = self.service.ramp.makeServicePOIs(gseraw)
             if not status[0]:
