@@ -1,14 +1,15 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from entity.airspace import XPAirspace, Metar
 from entity.business import Airline
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from entity.airport import Airport, AirportBase, XPAirport
-from entity.emit import Emit
+from entity.emit import Emit, BroadcastToFile, ADSB
 from entity.business import AirportManager
 from entity.parameters import MANAGED_AIRPORT
+from entity.constants import FLIGHT_PHASE
 from entity.utils import NAUTICAL_MILE
 
 logging.basicConfig(level=logging.DEBUG)
@@ -35,8 +36,6 @@ def main():
     AircraftPerformance.loadAll()
     logger.debug("..done")
 
-    logger.debug("..done")
-
     logger.debug("loading managed airport..")
 
     logger.debug("..loading airport manager..")
@@ -59,82 +58,58 @@ def main():
         print("Managed airport not loaded")
     managed.setAirspace(airspace)
 
+    logger.debug("..collecting METAR..")
     # Prepare airport for each movement
     metar = Metar(icao=MANAGED_AIRPORT["ICAO"])
     managed.setMETAR(metar=metar)  # calls prepareRunways()
 
+    logger.debug("..done")
+
     # Add pure commercial stuff
     qr = Airline.findIATA(iata="QR")
     airportManager.hub(managed, qr)
-
-    # Create a pair of flights
     airline = qr
-    # origin_apt = Airport.find("VOCL")
 
-    MAXRANGE = 2000  # km
+    (airline, remote_apt) = airportManager.selectRandomAirroute(airline=airline)
+    aptrange = managed.miles(remote_apt)
 
-    arrrange = MAXRANGE + 1
-    while(arrrange > MAXRANGE):
-        (airline, origin_apt) = airportManager.selectRandomAirroute(airline=airline)
-        arrrange = managed.miles(origin_apt)
-
-    logger.debug("..loading origin airport..")
-    origin_apt = AirportBase(icao=origin_apt.icao,
-                             iata=origin_apt.iata,
-                             name=origin_apt["properties"]["name"],
-                             city=origin_apt["properties"]["city"],
-                             country=origin_apt["properties"]["country"],
-                             region=origin_apt.region,
-                             lat=origin_apt["geometry"]["coordinates"][1],
-                             lon=origin_apt["geometry"]["coordinates"][0],
-                             alt=origin_apt["geometry"]["coordinates"][2] if len(origin_apt["geometry"]["coordinates"]) > 2 else None)
-    ret = origin_apt.load()
+    logger.debug("loading other airport..")
+    remote_apt = AirportBase(icao=remote_apt.icao,
+                             iata=remote_apt.iata,
+                             name=remote_apt["properties"]["name"],
+                             city=remote_apt["properties"]["city"],
+                             country=remote_apt["properties"]["country"],
+                             region=remote_apt.region,
+                             lat=remote_apt["geometry"]["coordinates"][1],
+                             lon=remote_apt["geometry"]["coordinates"][0],
+                             alt=remote_apt["geometry"]["coordinates"][2] if len(remote_apt["geometry"]["coordinates"]) > 2 else None)
+    ret = remote_apt.load()
     if not ret[0]:
         print("origin airport not loaded")
 
-    origin_metar = Metar(icao=origin_apt.icao)
-    origin_apt.setMETAR(metar=origin_metar)  # calls prepareRunways()
-
-    destination_apt = None
-    deprange = MAXRANGE + 1
-    while(deprange > MAXRANGE):
-        (airline, destination_apt) = airportManager.selectRandomAirroute(airline=airline)
-        deprange = managed.miles(destination_apt)
-
-    logger.debug("..loading destination airport..")
-    destination_apt = AirportBase(icao=destination_apt.icao,
-                                  iata=destination_apt.iata,
-                                  name=destination_apt["properties"]["name"],
-                                  city=destination_apt["properties"]["city"],
-                                  country=destination_apt["properties"]["country"],
-                                  region=destination_apt.region,
-                                  lat=destination_apt["geometry"]["coordinates"][1],
-                                  lon=destination_apt["geometry"]["coordinates"][0],
-                                  alt=destination_apt["geometry"]["coordinates"][2] if len(destination_apt["geometry"]["coordinates"]) > 2 else None)
-    ret = destination_apt.load()
-    if not ret[0]:
-        print("destination airport not loaded")
-
-    destination_metar = Metar(icao=destination_apt.icao)
-    destination_apt.setMETAR(metar=destination_metar)  # calls prepareRunways()
+    logger.debug("..collecting METAR..")
+    origin_metar = Metar(icao=remote_apt.icao)
+    remote_apt.setMETAR(metar=origin_metar)  # calls prepareRunways()
     logger.debug("..done")
 
+
     logger.debug("loading aircraft..")
-    acperf = AircraftPerformance.findAircraft(reqrange=arrrange)
-    reqfl = acperf.FLFor(max(arrrange, deprange))
+    acperf = AircraftPerformance.findAircraft(reqrange=aptrange)
+    reqfl = acperf.FLFor(aptrange)
     aircraft = Aircraft(registration="A7-PMA", icao24= "a2ec4f", actype=acperf, operator=airline)
     logger.debug("..done")
 
 
     logger.debug("*" * 90)
-    logger.info("*** (%s, %dnm) %s-%s %s-%s (%s, %dnm) AC %s at FL%d" % (
-                origin_apt["properties"]["city"], arrrange/NAUTICAL_MILE, origin_apt.iata, MANAGED_AIRPORT["IATA"],
-                MANAGED_AIRPORT["IATA"], destination_apt.iata, destination_apt["properties"]["city"], deprange/NAUTICAL_MILE,
+    logger.info("*** (%s, %dnm) %s-%s AC %s at FL%d" % (
+                remote_apt["properties"]["city"], aptrange/NAUTICAL_MILE, remote_apt.iata, MANAGED_AIRPORT["IATA"],
+#                 MANAGED_AIRPORT["IATA"], destination_apt.iata, destination_apt["properties"]["city"], deprange/NAUTICAL_MILE,
                 acperf.typeId, reqfl))
     logger.debug("*" * 90)
 
-    logger.debug("creating arrival..")
-    arr = Arrival(operator=airline, number="196", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=origin_apt, aircraft=aircraft)
+    logger.debug("creating flight..")
+    arr = Arrival(operator=airline, number="196", scheduled="2022-01-18T14:00:00+02:00", managedAirport=managed, origin=remote_apt, aircraft=aircraft)
+    # dep = Departure(operator=airline, number="195", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=destination_apt, aircraft=aircraft)
     arr.setFL(reqfl)
     ramp = managed.selectRamp(arr)  # Aircraft won't get towed
     arr.setRamp(ramp)
@@ -149,30 +124,20 @@ def main():
     am = ArrivalMove(arr, managed)
     am.move()
     am.save()
-    logger.debug("..broadcasting..")
+    logger.debug("..emission positions..")
     ae = Emit(am)
     ae.emit(30)
     ae.save()
-    logger.debug("..arrived.")
 
-    logger.debug("creating departure..")
-    dep = Departure(operator=airline, number="195", scheduled="2022-01-18T16:00:00+02:00", managedAirport=managed, destination=destination_apt, aircraft=aircraft)
-    dep.setFL(reqfl)
-    dep.setRamp(ramp)
-    dep.setGate(gate)
-    logger.debug("..planning..")
-    dep.plan()
-    logger.debug("..flying..")
-    dm = DepartureMove(dep, managed)
-    dm.move()
-    dm.save()
-    # logger.debug("..broadcasting..")
-    # de = Emit(dm)
-    # de.emit(30)
-    # de.save()
-    logger.debug("..gone.")
+    print(ae.getMarkList())
+    ae.schedule(FLIGHT_PHASE.TOUCH_DOWN.value, datetime.now() + timedelta(minutes=5))
 
-    print(arr)
-    print(dep)
+    logger.debug("..broadcasting positions..")
+
+    b = BroadcastToFile(ae, datetime.now(), ADSB)
+    b.run()
+
+    logger.debug("..done.")
+
 
 main()
