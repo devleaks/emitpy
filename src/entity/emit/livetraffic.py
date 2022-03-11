@@ -4,24 +4,20 @@ import logging
 import datetime
 import json
 
-logger = logging.getLogger("Formatter")
+from ..constants import FEATPROP
+from ..airport import Airport
 
+from .broadcast import Formatter
 
-class Formatter:
-
-    def __init__(self, feature: "Feature"):
-        self.feature = feature
-
-    def __str__(self):
-        return json.dumps(self.feature)
-
+logger = logging.getLogger("LiveTraffic")
 
 
 class LiveTraffic(Formatter):
 
-    def __init__(self, feature: "Feature"):
+    FILE_FORMAT = "csv"
+
+    def __init__(self, feature: "FeatureWithProps"):
         Formatter.__init__(self, feature=feature)
-        self.metar = None
 
     def __str__(self):
         # Sample SendTraffic.py file:
@@ -39,40 +35,47 @@ class LiveTraffic(Formatter):
         # AITFC,10674098,34.3683,-118.7518,8600,-64,1,296,123,N28431,AA5,N28431,FUL,,1593034599
         #
         f = self.feature
+
         icao24x = f.getProp("icao24")
-        print(">>>", icao24x)
         icao24 = int(icao24x, 16)
-        coords = f["geometry"]["coordinates"]
-        vspeed = f.getProp("vspeed")
-        speed = f.getProp("speed")
+
+        coords = f.coords()
+        alt = f.altitude(0)
+
+        vspeed = f.vspeed(0)
+        speed = f.speed(0)
         airborne = ((vspeed != 0) and (speed > 20))  # @todo
         heading = f.getProp("heading")
 
         actype = f.getProp("actype")  # ICAO
-        callsign = f.getProp("callsign")
+        callsign = f.getProp("ident")
         tailnumber = f.getProp("acreg")
         aptfrom = f.getProp("origin")     # IATA
         aptto = f.getProp("destination")  # IATA
-        ts = f.getProp("emission_ts")
+        ts = f.getProp(FEATPROP.BROADCAST_ABS_TIME.value)
 
-        #        AITFC ,hexid   ,lat        ,lon        ,alt        ,vs      ,airborne              ,hdg               ,spd ### ,cs,type,tail,from,to,timestamp
-        part1 = f"AITFC,{icao24},{coords[1]},{coords[0]},{coords[2]},{vspeed},{1 if airborne else 0},{round(heading,0)},{speed}"
-        #      ###,cs        ,type    ,tail   ,from     ,to     ,timestamp
-        part2 = f",{callsign},{actype},{acreg},{aptfrom},{aptto},{ts}"
+        #        AITFC ,hexid   ,lat        ,lon        ,alt  ,vs      ,airborne              ,hdg               ,spd ### ,cs,type,tail,from,to,timestamp
+        part1 = f"AITFC,{icao24},{coords[1]},{coords[0]},{alt},{vspeed},{1 if airborne else 0},{round(heading,0)},{speed}"
+        #      ###,cs        ,type    ,tail        ,from     ,to     ,timestamp
+        part2 = f",{callsign},{actype},{tailnumber},{aptfrom},{aptto},{round(ts, 3)}"
 
-        return part1 + part2
+        return (part1 + part2).replace("None", "")
 
 
-class LiveTrafficWeather:
+class LiveTrafficWeather(Formatter):
+
+    FILE_FORMAT = "csv"
 
     def __init__(self, metar):
+        Formatter.__init__(self, feature=None)
+        self.fileformat = "json"
         self.metar = metar
 
     def __str__(self):
         weather = {
-            "ICAO": "EDKB",
-            "QNH": "1013",
-            "METAR": "EDKB Q1013",
-            "NAME": "Bonn/Hangelar airport"
+            "ICAO": self.metar.station_id,
+            "QNH": self.metar.pressure("MB"),
+            "METAR": self.metar.metarcode,
+            "NAME": Airport.findICAO(self.metar.station_id)
         }
         return json.dumps(weather)

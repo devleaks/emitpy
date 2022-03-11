@@ -77,6 +77,9 @@ class Movement:
         logger.debug(":load: loaded %d " % ident)
         return (True, "Movement::load loaded")
 
+    def getId(self):
+        return "move-name"
+
     def getInfo(self):
         # Drill down on original object to get info
         return {}

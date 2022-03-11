@@ -1,19 +1,28 @@
 #  Python classes to format features for output to different channel requirements
 #
 import logging
-import datetime
+from datetime import datetime
 
-from .formatter import LiveTraffic
 from ..constants import FEATPROP
 
-logger = logging.getLogger("Broadcast")
+logger = logging.getLogger("Formatter")
+
+
+class Formatter:
+
+    def __init__(self, feature: "Feature"):
+        self.feature = feature
+
+    def __str__(self):
+        return json.dumps(self.feature)
 
 
 class Broadcast:
 
-    def __init__(self, emit: "Emit", starttime: datetime):
+    def __init__(self, emit: "Emit", starttime: datetime, formatter: Formatter):
         self.emit = emit
         self.starttime = starttime
+        self.broadcast = []
 
 
     def run(self):
@@ -30,8 +39,13 @@ class Broadcast:
 
         logger.debug(f':run: skipped {curr} / {len(bq)}')
 
+        sent = 0
         for idx in range(curr, len(bq)):
             e = bq[idx]
-            f = LiveTraffic(e)
-            print(f)
-            logger.debug(f':run: broadcasting at {e.getProp(FEATPROP.BROADCAST.value)}: {e.getProp(FEATPROP.BROADCAST_ABS_TIME.value)}: {0}')
+            if e.getProp(FEATPROP.BROADCAST.value):
+                f = self.formatter(e)
+                self.broadcast.append(f)
+                logger.debug(f':run: broadcasting at {e.getProp(FEATPROP.BROADCAST_ABS_TIME.value)}')
+                sent = sent + 1
+
+        logger.debug(f':run: bradcasted {sent} / {len(bq)}')
