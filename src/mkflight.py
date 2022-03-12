@@ -85,7 +85,7 @@ def main():
                              alt=remote_apt["geometry"]["coordinates"][2] if len(remote_apt["geometry"]["coordinates"]) > 2 else None)
     ret = remote_apt.load()
     if not ret[0]:
-        print("origin airport not loaded")
+        print(f"other airport not loaded: {ret}")
 
     logger.debug("..collecting METAR..")
     origin_metar = Metar(icao=remote_apt.icao)
@@ -131,6 +131,8 @@ def main():
 
     print(ae.getMarkList())
     ae.schedule(FLIGHT_PHASE.TOUCH_DOWN.value, datetime.now() + timedelta(minutes=5))
+
+    ae.pause(FLIGHT_PHASE.TOUCH_DOWN.value, 300)
 
     logger.debug("..broadcasting positions..")
 

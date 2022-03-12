@@ -1,8 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 
-from entity.business import AirportManager, Company
-from entity.airport import XPAirport
+from entity.business import AirportManager, Company, Airline
+from entity.airport import Airport, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance
 from entity.service import FuelService, ServiceMove
 from entity.emit import Emit, BroadcastToFile, LiveTraffic
@@ -15,6 +15,14 @@ logger = logging.getLogger("mkService")
 
 
 def main():
+
+    logger.debug("loading airport..")
+    Airport.loadAll()
+    logger.debug("..done")
+
+    logger.debug("loading airlines..")
+    Airline.loadAll()
+    logger.debug("..done")
 
     logger.debug("loading aircrafts..")
     AircraftType.loadAll()
@@ -48,6 +56,7 @@ def main():
     logger.debug("loading aircraft..")
     actype = AircraftPerformance.find("A321")
     actype.load()
+    logger.debug(f"..done {actype.available}")
 
     ramp = managed.selectRamp(None)
 
@@ -80,6 +89,11 @@ def main():
     logger.debug(".. scheduling broadcast ..")
 
     print(se.getMarkList())
+
+    service_duration = fuel_service.serviceDuration()
+    se.pause(SERVICE_PHASE.SERVICE_START.value, service_duration)
+    logger.debug(f".. service duration {service_duration} ..")
+
     se.schedule(SERVICE_PHASE.SERVICE_START.value, datetime.now() + timedelta(minutes=5))
 
     logger.debug(".. broadcasting position ..")

@@ -64,6 +64,8 @@ class XPAirspace(Airspace):
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
         self.simairspacetype = "X-Plane"
+        self.airports_icao = {}
+        self.airports_iata = {}
 
 
     def loadAirports(self):
@@ -84,7 +86,10 @@ class XPAirspace(Airspace):
                 lon = float(args[15])
                 alt = int(args[13])
                 if lat != 0.0 or lon != 0.0:
-                    self.add_vertex(Apt(args[0], lat, lon, alt, args[1], args[2], args[3], args[4]))
+                    apt = Apt(args[0], lat, lon, alt, args[1], args[2], args[3], args[4])
+                    self.airports_iata[args[1]] = apt
+                    self.airports_icao[args[0]] = apt
+                    self.add_vertex(apt)
             else:
                 logger.warning(":loadAirports: invalid airport data %s.", line)
             line = file.readline()
@@ -95,6 +100,12 @@ class XPAirspace(Airspace):
 
         logger.debug(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPXPAirspace::Airport loaded"]
+
+    def getAirportIATA(self, iata):
+        return self.airports_iata[iata] if iata in self.airports_iata.keys() else None
+
+    def getAirportICAO(self, icao):
+        return self.airports_icao[icao] if icao in self.airports_icao.keys() else None
 
 
     def loadFixes(self):

@@ -28,9 +28,6 @@ class ServiceVehicle(Identity):
         self.operator = operator
         self.model = model
 
-        self.max_capacity = 30
-        self.current_load = 0
-
         self.position = None
 
         self.speed = {
@@ -39,9 +36,11 @@ class ServiceVehicle(Identity):
             "fast": 50/3.6,
         }
 
+        self.max_capacity = 1
+        self.current_load = 0
+
         self.setup_time = 0
-        self.quantity_time = 0
-        self.flow = 1
+        self.flow = 1  # quantity per minutes
 
     def getId(self):
         return self.name  # registration
@@ -65,17 +64,31 @@ class ServiceVehicle(Identity):
         return self.position
 
     def refill(self, quantity: float=None):
-        if quantity is None or self.current_load + quantity > self.max_capacity:
-            self.current_load = self.max_capacity
-        else:
-            self.current_load = self.current_load + quantity
+        """
+        Refills truck of at most quantity and returns refill time.
 
-    def service_time(self, quantity: float):
+        :param      quantity:  The quantity
+        :type       quantity:  float
+        """
+        if quantity is None:
+            refill_quantity = self.max_capacity -  self.current_load
+        else:
+            refill_quantity = quantity
+
+        if self.current_load + refill_quantity > self.max_capacity:
+            self.current_load = self.max_capacity
+            # warning exceeds
+        else:
+            self.current_load = self.current_load + refill_quantity
+
+        refill_time = self.setup_time + refill_quantity * self.quantity_time  # assumes service and refill at same speed
+        return refill_time
+
+    def service_duration(self, quantity: float):
         """
         Time in seconds to perform a service operation provided the supplied quantity.
         """
-        service_time = self.setup_time + quantity * self.quantity_time
-        return service_time
+        return self.setup_time + quantity / self.flow
 
     def service(self, quantity: float=None):
         """
@@ -95,35 +108,6 @@ class ServiceVehicle(Identity):
             self.current_load = 0
 
         return served
-
-
-class CleaningVehicle(ServiceVehicle):
-
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
-
-
-class SewageVehicle(ServiceVehicle):
-
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
-
-
-class CateringVehicle(ServiceVehicle):
-
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
-        self.setup_time = 8
-        self.service_time = 10
-
-    def service_time(self, quantity: float):
-        return self.setup_time + self.service_time  # minutes
-
-
-class WaterVehicle(ServiceVehicle):
-
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
 
 
 class FuelVehicle(ServiceVehicle):
@@ -164,13 +148,39 @@ class FuelVehicle(ServiceVehicle):
             self.flow = 0.7
         self.setup_time = 8
 
-    def service_time(self, quantity: float):
+    def service_duration(self, quantity: float):
         return self.setup_time + quantity / self.flow  # minutes
 
 
     def refill(self):
         if self.max_capacity != inf:   # untested what happens if one refills infinity
             super().refill()
+
+
+class CateringVehicle(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company, model: str = None):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
+        self.setup_time = 8
+        self.flow = 1/20
+
+
+class CleaningVehicle(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company, model: str = None):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
+
+
+class SewageVehicle(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company, model: str = None):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
+
+
+class WaterVehicle(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company, model: str = None):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
 
 
 class ULDVehicle(ServiceVehicle):
