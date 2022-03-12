@@ -45,6 +45,7 @@ class Emit:
         self._emit = []  # [ EmitPoint ]
         self.broadcast = []  # [ EmitPoint ]
         self.props = {}  # general purpose properties added to each emit point
+        self.version = 0
 
         if move is not None:
             self.moves = self.move.getMoves()
@@ -152,9 +153,37 @@ class Emit:
                 #logger.debug(":broadcast: %s (%d, %f (%s))" % (reason, idx, time, timedelta(seconds=time)))
             self._emit.append(e)
 
+        def pauseAtVertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason, waypt=False):
+            if pause < self.frequency:  # may be emit before reaching next vertex:
+                if pause > time_to_next_emit:  # neet to emit before we reach next vertex
+                    emit_time = curr_time + time_to_next_emit
+                    broadcast(idx, pos, time, reason, waypt)
+                    end_time = curr_time + pause
+                    time_left = self.frequency - pause - time_to_next_emit
+                    logger.debug(f":pauseAtVertex: pause before next emit: emit at vertex{pause}")
+                    return (end_time, time_left)
+                else:  # pause but carry on later
+                    end_time = curr_time + pause
+                    time_left = time_to_next_emit - pause
+                    logger.debug(f":pauseAtVertex: pause but do not emit: no emission {pause}")
+                    return (end_time, time_left)
+            else:
+                emit_time = curr_time + time_to_next_emit
+                broadcast(idx, pos, time, reason, waypt)
+                pause_remaining = pause - time_to_next_emit
+                logger.debug(f":pauseAtVertex: pause at time remaining: {pause_remaining}")
+                while pause_remaining > 0:
+                    emit_time = emit_time + self.frequency
+                    broadcast(idx, pos, time, reason, waypt)
+                    logger.debug(f":pauseAtVertex: more pause: {pause_remaining}")
+                    pause_remaining = pause_remaining - self.frequency
+                time_left = pause_remaining + self.frequency
+                return (emit_time, time_left)
+        #
+        #
+        # build emission points
         self.frequency = frequency
 
-        # build emission points
         total_dist = 0   # sum of distances between emissions
         total_dist_vtx = 0  # sum of distances between vertices
         total_time = 0   # sum of times between emissions
@@ -201,6 +230,9 @@ class Emit:
                 broadcast(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }", True)  # ONLY IF BROADCAST AT VERTEX
                 currpos = next_vtx
                 time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
+                pause = currpos.getProp(FEATPROP.PAUSE.value)
+                if pause is not None and pause > 0:
+                    total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
                 # logger.debug("..done moving to next vertex with time remaining before next emit. %f sec left before next emit, moving to next vertex" % (time_to_next_emit))
 
             else:
@@ -231,6 +263,9 @@ class Emit:
                     broadcast(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }", True)  # ONLY IF BROADCAST AT VERTEX
                     currpos = next_vtx
                     time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
+                    pause = currpos.getProp(FEATPROP.PAUSE.value)
+                    if pause is not None and pause > 0:
+                        total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
                     # logger.debug(".. done jumping to next vertex. %f sec left before next emit" % (time_to_next_emit))
 
             controld = distance(self.moves[curridx], next_vtx) * 1000  # km
@@ -254,8 +289,8 @@ class Emit:
         # logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
         # logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
         logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=self.moves[-1].time()), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
-
         printFeatures(self._emit, "broadcast")
+        self.version = self.version + 1
         return (True, "Emit::emit completed")
 
 
@@ -265,6 +300,25 @@ class Emit:
         if None in l:
             l.remove(None)
         return l
+
+
+    def pause(self, sync, duration: float):
+        f = findFeatures(self.moves, {FEATPROP.MARK.value: sync})
+        if f is not None and len(f) > 0:
+            r = f[0]
+            s = r.speed()
+            if s is not None and s > 0:
+                logger.warning(f":pause/serviceTime: speed {s}m/sec at vertex is not 0")
+            offset = r.setProp(FEATPROP.PAUSE.value, duration)
+            logger.debug(f":pause/serviceTime: found {sync} mark, added {duration} sec. pause")
+        # should recompute emit
+        if self._emit is not None:  # already computed before...
+           self.emit()
+
+
+    def serviceTime(self, sync, duration: float):
+        self.pause(sync=sync, duration=pause)
+
 
     def schedule(self, sync, moment: datetime):
         """
@@ -280,7 +334,7 @@ class Emit:
             self.broadcast = []
             r = f[0]
             logger.debug(f":get: found {sync} mark at {moment}")
-            offset = r.getProp("broadcast_relative_time")
+            offset = r.getProp(FEATPROP.BROADCAST_REL_TIME.value)
             if offset is not None:
                 logger.debug(f":get: {sync} offset {offset} sec")
                 when = moment + timedelta(seconds=(- offset))

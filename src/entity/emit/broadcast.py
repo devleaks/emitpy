@@ -23,6 +23,7 @@ class Broadcast:
         self.emit = emit
         self.starttime = starttime
         self.broadcast = []
+        self.version = 0
 
 
     def run(self):
@@ -49,3 +50,4 @@ class Broadcast:
                 sent = sent + 1
 
         logger.debug(f':run: bradcasted {sent} / {len(bq)}')
+        self.version = self.version + 1

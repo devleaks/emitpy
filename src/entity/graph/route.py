@@ -38,7 +38,7 @@ class Route:
             # logger.debug(":find:heuristic: %s->%s=%f" % (i0, i1, d))
             return d
 
-        logger.debug(":find: trying networkx..")
+        logger.debug(":find: trying networkx shortest_path..")
         try:
             self.route = shortest_path(self.graph.nx, source=self.src, target=self.dst, weight="weight")
             logger.debug(":find: .. found %s", self.route)

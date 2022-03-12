@@ -15,6 +15,7 @@ from geojson import Feature, LineString, Point, FeatureCollection
 
 from ..utils import FT
 from ..private import FLIGHT_PLAN_DATABASE_APIKEY
+from ..parameters import DEVELOPMENT, PRODUCTION
 
 import logging
 
@@ -51,13 +52,13 @@ class FlightPlanBase:
         # creates file caches
         self.flightplan_cache = os.path.join("..", "data", "managedairport", managedAirport, "flightplans")
         if not os.path.exists(self.flightplan_cache):
-            logger.warn("no file plan cache directory")
+            logger.warning("no file plan cache directory")
             #print("create new fpdb file cache")
             #os.mkdir(self.flightplan_cache)
 
         self.airports_cache = os.path.join("..", "data", "airports", "fpdb")
         if not os.path.exists(self.airports_cache):
-            logger.warn("no airport cache directory")
+            logger.warning("no airport cache directory")
             #print("create new fpdb file cache")
             #os.mkdir(self.flightplan_cache)
 
@@ -65,7 +66,8 @@ class FlightPlanBase:
         self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
 
         # For development
-        requests_cache.install_cache()
+        if DEVELOPMENT or not PRODUCTION:
+            requests_cache.install_cache()
 
 
     def nodes(self):

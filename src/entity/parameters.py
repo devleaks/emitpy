@@ -4,6 +4,9 @@ Used for file location, connection details, etc.
 """
 import os
 
+DEVELOPMENT = True  # produces additional debug
+PRODUCTION = False  # removed caches and short circuits
+
 HOME_DIR = "."
 
 # DATA is a database of static data, definitions, etc.
@@ -29,4 +32,4 @@ MANAGED_AIRPORT = {
     "lon": 51.6077
 }
 
-LOAD_AIRWAYS=False  # to speedup developments
+LOAD_AIRWAYS=True  # to speedup developments

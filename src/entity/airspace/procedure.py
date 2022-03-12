@@ -282,6 +282,7 @@ class CIFP:
 
     def __init__(self, icao: str):
         self.icao = icao
+        self.available = False
         self.SIDS = {}
         self.STARS = {}
         self.APPCHS = {}
@@ -298,9 +299,10 @@ class CIFP:
         """
         cipf_filename = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data", "CIFP", self.icao + ".dat")
         if not os.path.exists(cipf_filename):
-            logger.warn(f"no procedure file for {self.icao}")
+            logger.warning(f"no procedure file for {self.icao}")
             return
 
+        self.available = True
         cifp_fp = open(cipf_filename, "r")
         line = cifp_fp.readline()
         prevline = None

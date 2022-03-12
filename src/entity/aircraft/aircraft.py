@@ -99,6 +99,7 @@ class AircraftPerformance(AircraftType):
         self.tarraw = None
 
         self.perfdata = None  # computed
+        self.available = False
 
 
     @staticmethod
@@ -118,12 +119,15 @@ class AircraftPerformance(AircraftType):
             if actype is not None:
                 acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name)
                 acperf.perfraw = jsondata[ac]
-                acperf.toSI()
+                acperf.setAvailability()
+                if acperf.available:
+                    acperf.toSI()
                 AircraftPerformance._DB_PERF[ac] = acperf
             else:
                 logger.warning(f":loadAll: AircraftType {ac} not found")
         file.close()
-        logger.debug(f":loadAll: loaded {len(AircraftPerformance._DB_PERF)} aircraft types with their performances")
+        cnt = len(list(filter(lambda a: a.available, AircraftPerformance._DB_PERF.values())))
+        logger.debug(f":loadAll: loaded {len(AircraftPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
 
 
     @staticmethod
@@ -137,7 +141,7 @@ class AircraftPerformance(AircraftType):
         rdiff = inf
         best = None
         for ac in AircraftPerformance._DB_PERF.keys():
-            if "cruise_range" in AircraftPerformance._DB_PERF[ac].perfraw:
+            if AircraftPerformance._DB_PERF[ac].available  and ("cruise_range" in AircraftPerformance._DB_PERF[ac].perfraw):
                 r = int(AircraftPerformance._DB_PERF[ac].perfraw["cruise_range"]) * NAUTICAL_MILE  # km
                 if r > reqrange:
                     rd = r - reqrange
@@ -238,7 +242,9 @@ class AircraftPerformance(AircraftType):
             data = self.loadFromFile(".json")
             if data is not None:
                 self.perfraw = data
-                self.toSI()
+                self.setAvailability()
+                if self.available:
+                    self.toSI()
             else:
                 logger.warning(f":loadPerformance: no performance data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadPerformance: loaded"]
@@ -261,6 +267,32 @@ class AircraftPerformance(AircraftType):
         else:
             logger.warning(f":loadGSEProfile: no GSE profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadGSEProfile: not implemented"]
+
+
+    def setAvailability(self):
+        max_ceiling = self.get("max_ceiling")  # this is a FL
+        if max_ceiling is None:
+            logger.warning(f":setAvailability: no max ceiling for: {self.typeId}")
+            return False
+
+        param_list = ["takeoff_distance", "takeoff_speed", "initial_climb_speed", "initial_climb_vspeed"]
+        param_list = param_list + ["cruise_speed", "cruise_range", "approach_speed", "approach_vspeed", "landing_speed", "landing_distance"]
+
+        param_list = param_list + ["climbFL150_speed", "climbFL150_vspeed"]
+        if max_ceiling > 150:
+            param_list = param_list + ["climbFL240_speed", "climbFL240_vspeed"]
+            param_list = param_list + ["descentFL100_speed", "descentFL100_vspeed"]
+        if max_ceiling > 240:
+            param_list = param_list + ["climbmach_mach", "climbmach_vspeed"]
+            param_list = param_list + ["descentFL240_mach", "descentFL240_vspeed"]
+
+        for name in param_list:
+            if name not in self.perfraw or self.perfraw[name] == "no data":
+                logger.warning(f":setAvailability: no {name} for: {self.typeId}, rejecting")
+                return False
+        self.available = True
+        # logger.warning(f":setAvailability: {self.typeId} is ok")
+        return True
 
 
     def toSI(self):
@@ -326,7 +358,7 @@ class AircraftPerformance(AircraftType):
     def FLFor(self, reqrange: int):
         max_ceiling = self.get("max_ceiling")
         if max_ceiling is None:
-            logger.warning(f":FLFor: no max ceiling for: {self.typeId}")
+            logger.warning(f":FLFor: no max ceiling for: {self.typeId}, assuming max ceiling is FL300")
             max_ceiling = 300
         # Set Flight Level for given flight range in km.
         if reqrange < 300:
