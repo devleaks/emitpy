@@ -6,6 +6,7 @@ import csv
 import json
 import yaml
 import logging
+import operator
 from math import inf
 
 from ..business import Identity, Company
@@ -97,6 +98,7 @@ class AircraftPerformance(AircraftType):
         self.perfraw = None
         self.gseraw = None
         self.tarraw = None
+        self.display_name = None
 
         self.perfdata = None  # computed
         self.available = False
@@ -118,6 +120,7 @@ class AircraftPerformance(AircraftType):
             actype = AircraftType.find(ac)
             if actype is not None:
                 acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name)
+                acperf.display_name = acperf.orgId + " " + acperf.name
                 acperf.perfraw = jsondata[ac]
                 acperf.setAvailability()
                 if acperf.available:
@@ -151,6 +154,12 @@ class AircraftPerformance(AircraftType):
                         best = ac
                         # logger.debug(":findAircraft: best %f" % rdiff)
         return AircraftPerformance._DB_PERF[best]
+
+
+    @staticmethod
+    def getCombo():
+        a = [(a.typeId, a.display_name) for a in sorted(AircraftPerformance._DB_PERF.values(), key=operator.attrgetter('display_name'))]
+        return a
 
 
     def load(self):
