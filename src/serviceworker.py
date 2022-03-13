@@ -1,7 +1,7 @@
-import logging
 from rq import Connection, Worker
+from serviceexec import DoService
 
-from service import do_service
+DoService.init()
 
 with Connection():
     w = Worker(['default'])
