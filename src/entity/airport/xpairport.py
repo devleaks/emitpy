@@ -461,7 +461,7 @@ class XPAirport(AirportBase):
     """
     In Service POI Feature<Point>, property "service" is a list of | separated services, and "poi" is {depot|rest}.
     """
-    def getServicePOI(self, service_name: str):
+    def getServicePOIs(self, service_name: str):
         sl = []
         for f in self.service_pois.values():
             s = f.getProp(FEATPROP.SERVICE.value)
@@ -473,11 +473,14 @@ class XPAirport(AirportBase):
                         sl.append(f)
         return sl
 
+    def getServicePOI(self, name: str):
+        return self.service_pois[name] if name in self.service_pois.keys() else None
+
     def getDepots(self, service_name: str):
-        return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOI(service_name)))
+        return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOIs(service_name)))
 
     def getRestAreas(self, service_name: str):
-        return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOI(service_name)))
+        return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOIs(service_name)))
 
     def selectRandomServiceDepot(self, service: str):
         l = self.getDepots(service)
@@ -494,7 +497,7 @@ class XPAirport(AirportBase):
         return random.choice(l)
 
     def getServiceDepot(self, name: str, service_name: str=None):
-        dl = self.service_pois if service_name is None else self.getServicePOI(service_name)
+        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name)
         dn = list(filter(lambda f: f.getProp("name") == name, dl))
         if len(dn) == 0:
             logger.warning(f":getServiceDepot: { name } not found")
@@ -502,12 +505,11 @@ class XPAirport(AirportBase):
         return dn[0]  # name may not be unique
 
     def getServiceRestArea(self, name: str, service_name: str=None):
-        dl = self.service_pois if service_name is None else self.getServicePOI(service_name)
+        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name)
         dn = list(filter(lambda f: f.getProp("name") == name, dl))
         if len(dn) == 0:
             logger.warning(f":getServiceRestArea: { name } not found")
             return None
-
         return dn[0]
 
 

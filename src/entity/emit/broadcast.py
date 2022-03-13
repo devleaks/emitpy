@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime
 
+from ..geo import printFeatures
 from ..constants import FEATPROP
 
 logger = logging.getLogger("Formatter")
@@ -52,3 +53,6 @@ class Broadcast:
 
         logger.debug(f':run: broadcasted {sent} / {len(bq)}')
         self.version = self.version + 1
+
+    def get(self):
+        return printFeatures(self.broadcast, "broadcast", True)
