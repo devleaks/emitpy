@@ -101,6 +101,7 @@ class FlightMovement(Movement):
             return status
         # printFeatures(self.taxipos, "after taxi")
 
+        logger.debug(f":move: generated {len(self.moves)} points, {len(self.moves_st)} with standard turns")
         return (True, "Movement::make completed")
 
 

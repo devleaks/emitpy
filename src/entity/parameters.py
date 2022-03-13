@@ -32,4 +32,4 @@ MANAGED_AIRPORT = {
     "lon": 51.6077
 }
 
-LOAD_AIRWAYS=True  # to speedup developments
+LOAD_AIRWAYS=False  # to speedup developments

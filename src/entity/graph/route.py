@@ -41,7 +41,8 @@ class Route:
         logger.debug(":find: trying networkx shortest_path..")
         try:
             self.route = shortest_path(self.graph.nx, source=self.src, target=self.dst, weight="weight")
-            logger.debug(":find: .. found %s", self.route)
+            logger.debug(":find: .. found")
+            # logger.debug(":find: .. found %s", self.route)
             return self.route
         except (exception.NetworkXNoPath):
                 logger.debug(":find: .. not found")

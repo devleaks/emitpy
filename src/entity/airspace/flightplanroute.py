@@ -38,11 +38,11 @@ class FlightPlanRoute:
         self.airspace = None
 
         # creates file caches
-        self.flightplan_cache = os.path.join("..", "data", "managedairport", managedAirport, "flightroutes")
-        if not os.path.exists(self.flightplan_cache):
-            logger.warning("no file plan cache directory")
-            #print("create new fpdb file cache")
-            #os.mkdir(self.flightplan_cache)
+        # self.flightplan_cache = os.path.join("..", "data", "managedairport", managedAirport, "flightroutes")
+        # if not os.path.exists(self.flightplan_cache):
+        #     logger.warning("no file plan cache directory")
+        #     #print("create new fpdb file cache")
+        #     #os.mkdir(self.flightplan_cache)
 
         self.filename = f"{fromICAO.lower()}-{toICAO.lower()}"
 
@@ -66,10 +66,9 @@ class FlightPlanRoute:
         a = self.airspace
         origin = a.getAirportICAO(self.fromICAO)
         destination = a.getAirportICAO(self.toICAO)
-        print(origin, destination)
         s = a.nearest_vertex(point=origin, with_connection=True)
         e = a.nearest_vertex(point=destination, with_connection=True)
-        print(s[0].id, e[0].id)
+        logger.debug(f":getFlightPlan: from {s[0].id} to {e[0].id}")
         if s[0] is not None and e[0] is not None:
             self.flight_plan = Route(self.airspace, s[0].id, e[0].id)
             # self.flight_plan.find()  # auto route

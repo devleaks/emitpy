@@ -17,8 +17,8 @@ def main():
 
     fpb = FlightPlanRoute(
         managedAirport=MANAGED_AIRPORT["ICAO"],
-        fromICAO="OTHH",
-        toICAO="EBBR")
+        fromICAO="EBBR",
+        toICAO="KLAX")
 
     fpb.setAirspace(a)
 
