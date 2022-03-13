@@ -54,5 +54,10 @@ class Broadcast:
         logger.debug(f':run: broadcasted {sent} / {len(bq)}')
         self.version = self.version + 1
 
+
+    def saveDB(self):
+        logger.debug(f':run: saveDB saved')
+        pass
+
     def get(self):
         return printFeatures(self.broadcast, "broadcast", True)

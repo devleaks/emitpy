@@ -6,6 +6,7 @@ import yaml
 import random
 import logging
 import csv
+import operator
 
 from turfpy import measurement
 
@@ -41,6 +42,7 @@ class Airline(Company):
         file = open(filename, "r")
         csvdata = csv.DictReader(file)
         for row in csvdata:
+            # ICAO,IATA,Airline,Callsign,Country
             a = Airline(name=row["Airline"], icao=row["ICAO"], iata=row["IATA"])
             Airline._DB[row["ICAO"]] = a
             Airline._DB_IATA[row["IATA"]] = a
@@ -63,6 +65,10 @@ class Airline(Company):
     def findIATA(iata: str):
         return Airline._DB_IATA[iata] if iata in Airline._DB_IATA else None
 
+    @staticmethod
+    def getCombo():
+        a = [(a.iata, a.orgId) for a in sorted(Airline._DB_IATA.values(), key=operator.attrgetter('orgId'))]
+        return a
 
     def loadFromFile(self):
         filename = os.path.join(DATA_DIR, AIRLINE_DATABASE, self.icao + ".yaml")

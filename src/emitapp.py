@@ -11,7 +11,7 @@ from entity.airport import Airport, AirportBase, XPAirport
 from entity.service import FuelService, ServiceMove
 from entity.emit import Emit, BroadcastToFile, ADSB, LiveTraffic
 from entity.business import AirportManager
-from entity.parameters import MANAGED_AIRPORT
+from entity.parameters import MANAGED_AIRPORT as AIRPORT_DEFINITION
 from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE
 from entity.utils import NAUTICAL_MILE
 
@@ -19,10 +19,9 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("serviceexec")
 
 
-class DoService:
+class EmitApp:
 
-    MANAGED = None
-    AIRPORTMANAGER = None
+    AIRPORT = None
 
     def init():
         airspace = XPAirspace()
@@ -46,30 +45,32 @@ class DoService:
         logger.debug("loading managed airport..")
 
         logger.debug("..loading airport manager..")
-        DoService.AIRPORTMANAGER = AirportManager(icao=MANAGED_AIRPORT["ICAO"])
-        DoService.AIRPORTMANAGER.load()
+        manager = AirportManager(icao=AIRPORT_DEFINITION["ICAO"])
+        manager.load()
 
         logger.debug("..loading managed airport..")
-        DoService.MANAGED = XPAirport(
-            icao=MANAGED_AIRPORT["ICAO"],
-            iata=MANAGED_AIRPORT["IATA"],
-            name=MANAGED_AIRPORT["name"],
-            city=MANAGED_AIRPORT["city"],
-            country=MANAGED_AIRPORT["country"],
-            region=MANAGED_AIRPORT["regionName"],
-            lat=MANAGED_AIRPORT["lat"],
-            lon=MANAGED_AIRPORT["lon"],
-            alt=MANAGED_AIRPORT["elevation"])
-        ret = DoService.MANAGED.load()
+        EmitApp.AIRPORT = XPAirport(
+            icao=AIRPORT_DEFINITION["ICAO"],
+            iata=AIRPORT_DEFINITION["IATA"],
+            name=AIRPORT_DEFINITION["name"],
+            city=AIRPORT_DEFINITION["city"],
+            country=AIRPORT_DEFINITION["country"],
+            region=AIRPORT_DEFINITION["regionName"],
+            lat=AIRPORT_DEFINITION["lat"],
+            lon=AIRPORT_DEFINITION["lon"],
+            alt=AIRPORT_DEFINITION["elevation"])
+        ret = EmitApp.AIRPORT.load()
         if not ret[0]:
             print("Managed airport not loaded")
-        DoService.MANAGED.setAirspace(airspace)
+
+        EmitApp.AIRPORT.setAirspace(airspace)
+        EmitApp.AIRPORT.setManager(manager)
         logger.debug("..done")
 
         logger.debug("..collecting METAR..")
         # Prepare airport for each movement
-        metar = Metar(icao=MANAGED_AIRPORT["ICAO"])
-        DoService.MANAGED.setMETAR(metar=metar)  # calls prepareRunways()
+        metar = Metar(icao=AIRPORT_DEFINITION["ICAO"])
+        EmitApp.AIRPORT.setMETAR(metar=metar)  # calls prepareRunways()
 
         logger.debug("..done")
 
@@ -85,18 +86,18 @@ class DoService:
 
         logger.debug("creating single service..")
         fuel_service = FuelService(operator=operator, quantity=quantity)
-        rp = DoService.MANAGED.getRamp(ramp)
+        rp = EmitApp.AIRPORT.getRamp(ramp)
         fuel_service.setRamp(rp)
         fuel_service.setAircraftType(actype)
-        fuel_vehicle = DoService.AIRPORTMANAGER.selectServiceVehicle(operator=operator, service=fuel_service, model=vehicle_model)
+        fuel_vehicle = EmitApp.AIRPORT.manager.selectServiceVehicle(operator=operator, service=fuel_service, model=vehicle_model)
         fuel_vehicle.setICAO24(vehicle_icao24)
-        sp = DoService.MANAGED.selectRandomServiceDepot("fuel")
+        sp = EmitApp.AIRPORT.selectRandomServiceDepot("fuel")
         fuel_vehicle.setPosition(sp)
-        np = DoService.MANAGED.selectRandomServiceDepot("fuel")
+        np = EmitApp.AIRPORT.selectRandomServiceDepot("fuel")
         fuel_service.setNextPosition(np)
 
         logger.debug(".. moving ..")
-        fsm = ServiceMove(fuel_service, DoService.MANAGED)
+        fsm = ServiceMove(fuel_service, EmitApp.AIRPORT)
         fsm.move()
         fsm.save()
         logger.debug(".. emission positions ..")
@@ -121,7 +122,7 @@ class DoService:
         # Add pure commercial stuff
         airline = Airline.find(airline)
         remote_apt = Airport.find(apt)
-        aptrange = DoService.MANAGED.miles(remote_apt)
+        aptrange = EmitApp.AIRPORT.miles(remote_apt)
 
         logger.debug("loading other airport..")
         remote_apt = AirportBase(icao=remote_apt.icao,
@@ -150,24 +151,24 @@ class DoService:
 
         logger.debug("*" * 90)
         logger.info("*** (%s, %dnm) %s-%s AC %s at FL%d" % (
-                    remote_apt["properties"]["city"], aptrange/NAUTICAL_MILE, remote_apt.iata, MANAGED_AIRPORT["IATA"],
+                    remote_apt["properties"]["city"], aptrange/NAUTICAL_MILE, remote_apt.iata, AIRPORT_DEFINITION["IATA"],
                     acperf.typeId, reqfl))
         logger.debug("*" * 90)
 
         logger.debug("creating flight..")
         flight = None
         if move == "arrival":
-            flight = Arrival(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=DoService.MANAGED, origin=remote_apt, aircraft=aircraft)
+            flight = Arrival(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=EmitApp.AIRPORT, origin=remote_apt, aircraft=aircraft)
         else:
-            flight = Departure(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=DoService.MANAGED, destination=destination_apt, aircraft=aircraft)
+            flight = Departure(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=EmitApp.AIRPORT, destination=destination_apt, aircraft=aircraft)
         flight.setFL(reqfl)
-        ramp = DoService.MANAGED.selectRamp(flight)  # Aircraft won't get towed
+        ramp = EmitApp.AIRPORT.selectRamp(flight)  # Aircraft won't get towed
         flight.setRamp(ramp)
-        gate = "C99"
-        ramp_name = ramp.getProp("name")
-        if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
-            gate = ramp_name
-        flight.setGate(gate)
+        # gate = "C99"
+        # ramp_name = ramp.getProp("name")
+        # if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
+        #     gate = ramp_name
+        # flight.setGate(gate)
 
         logger.debug("..planning..")
         flight.plan()
@@ -175,16 +176,16 @@ class DoService:
         logger.debug("..flying..")
         move = None
         if move == "arrival":
-            move = ArrivalMove(flight, DoService.MANAGED)
+            move = ArrivalMove(flight, EmitApp.AIRPORT)
         else:
-            move = DepartureMove(flight, DoService.MANAGED)
+            move = DepartureMove(flight, EmitApp.AIRPORT)
         move.move()
-        move.save()
+        # move.save()
 
         logger.debug("..emission positions..")
         emit = Emit(move)
         emit.emit(30)
-        emit.save()
+        # emit.save()
         logger.debug("..pausing/delay test..")
         logger.debug(emit.getMarkList())
         emit.schedule(FLIGHT_PHASE.TOUCH_DOWN.value, datetime.fromisoformat(scheduled))
@@ -193,6 +194,7 @@ class DoService:
         logger.debug("..broadcasting positions..")
         broadcast = BroadcastToFile(emit, datetime.fromisoformat(scheduled), ADSB)
         broadcast.run()
+        broadcast.saveDB()
         logger.debug("..done.")
 
         return len(broadcast.broadcast)

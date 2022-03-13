@@ -1,7 +1,7 @@
 from rq import Connection, Worker
-from serviceexec import DoService
+from emitapp import EmitApp
 
-DoService.init()
+EmitApp.init()
 
 with Connection():
     w = Worker(['default'])
