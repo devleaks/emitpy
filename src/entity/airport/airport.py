@@ -67,7 +67,15 @@ class Airport(Location):
 
 
     @staticmethod
-    def find(icao: str):
+    def find(code: str):
+        # Usually, ICAO codes are 5 letters "EBBR", IATA codes are 3 letter "BRU"
+        if len(code) == 4:
+            return Airport._DB[code] if code in Airport._DB else None
+        return Airport._DB_IATA[code] if code in Airport._DB_IATA else None
+
+
+    @staticmethod
+    def findICAO(icao: str):
         return Airport._DB[icao] if icao in Airport._DB else None
 
 

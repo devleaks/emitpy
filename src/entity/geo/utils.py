@@ -133,10 +133,14 @@ def cleanFeatures(fa):
     return c
 
 
-def printFeatures(features, info):
+def printFeatures(features, info, addline: bool = False):
     dashlen = 50
     print(f">>> {info} " + ("-" * dashlen))
-    print(FeatureCollection(features=cleanFeatures(features)))
+    if addline:
+        ls = Feature(geometry=asLineString(features))
+        print(FeatureCollection(features=cleanFeatures(features) + [ls]))
+    else:
+        print(FeatureCollection(features=cleanFeatures(features)))
     print("-" * (dashlen + 5 + len(info)))
 
 

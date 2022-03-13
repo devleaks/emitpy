@@ -188,6 +188,7 @@ class ServiceMove(Movement):
         # printFeatures(self.moves, "route")
         printFeatures([Feature(geometry=asLineString(self.moves))], "route")
 
+        logger.debug(f":move: generated {len(self.moves)} points")
         return (False, "Service::make not implemented")
 
 

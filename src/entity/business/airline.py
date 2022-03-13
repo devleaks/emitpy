@@ -49,7 +49,14 @@ class Airline(Company):
 
 
     @staticmethod
-    def find(icao: str):
+    def find(code: str):
+        # Usually, ICAO codes are 3 letters "QTR", IATA codes are 2 letter "QR"
+        if len(code) == 3:
+            return Airline._DB[code] if code in Airline._DB else None
+        return Airline._DB_IATA[code] if code in Airline._DB_IATA else None
+
+    @staticmethod
+    def findICAO(icao: str):
         return Airline._DB[icao] if icao in Airline._DB else None
 
     @staticmethod

@@ -301,6 +301,7 @@ class Flight:
 
         self.flightplan_cp = planpts
         # printFeatures(self.flightplan_cp, "plan")
+        logger.debug(f":plan: generated {len(self.flightplan_cp)} points")
         return (True, "Flight::plan: planned")
 
     @staticmethod

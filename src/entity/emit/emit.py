@@ -183,7 +183,7 @@ class Emit:
         #
         # build emission points
         self.frequency = frequency
-
+        self._emit = []  # reset if called more than once
         total_dist = 0   # sum of distances between emissions
         total_dist_vtx = 0  # sum of distances between vertices
         total_time = 0   # sum of times between emissions
@@ -289,7 +289,8 @@ class Emit:
         # logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
         # logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
         logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=self.moves[-1].time()), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
-        printFeatures(self._emit, "broadcast")
+        logger.debug(f":emit: generated {len(self._emit)} points")
+        printFeatures(self._emit, "broadcast", True)
         self.version = self.version + 1
         return (True, "Emit::emit completed")
 
@@ -311,6 +312,21 @@ class Emit:
                 logger.warning(f":pause/serviceTime: speed {s}m/sec at vertex is not 0")
             offset = r.setProp(FEATPROP.PAUSE.value, duration)
             logger.debug(f":pause/serviceTime: found {sync} mark, added {duration} sec. pause")
+        # should recompute emit
+        if self._emit is not None:  # already computed before...
+           self.emit()
+
+
+    def addToPause(self, sync, duration: float):
+        f = findFeatures(self.moves, {FEATPROP.MARK.value: sync})
+        if f is not None and len(f) > 0:
+            r = f[0]
+            s = r.speed()
+            if s is not None and s > 0:
+                logger.warning(f":pause/serviceTime: speed {s}m/sec at vertex is not 0")
+            before = r.getProp(FEATPROP.PAUSE.value) if r.getProp(FEATPROP.PAUSE.value) is not None else 0
+            offset = r.setProp(FEATPROP.PAUSE.value, before + duration)
+            logger.debug(f":pause/serviceTime: found {sync} mark, added {duration} sec. pause for a total of {r.getProp(FEATPROP.PAUSE.value)}")
         # should recompute emit
         if self._emit is not None:  # already computed before...
            self.emit()

@@ -27,6 +27,7 @@ class Broadcast:
 
 
     def run(self):
+        self.broadcast = []  # reset if called more than once
         bq = sorted(self.emit.broadcast, key=lambda f: f.getBroadcastTime())
         startts = self.starttime.timestamp()
         logger.debug(f':run: start time {self.starttime} ({startts})')
@@ -49,5 +50,5 @@ class Broadcast:
                 logger.debug(f':run: broadcasting at {e.getProp(FEATPROP.BROADCAST_ABS_TIME.value)}')
                 sent = sent + 1
 
-        logger.debug(f':run: bradcasted {sent} / {len(bq)}')
+        logger.debug(f':run: broadcasted {sent} / {len(bq)}')
         self.version = self.version + 1

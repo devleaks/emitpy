@@ -10,6 +10,7 @@ import requests_cache
 
 import flightplandb as fpdb
 from flightplandb.datatypes import GenerateQuery
+from flightplandb.exceptions import BaseErrorHandler
 
 from geojson import Feature, LineString, Point, FeatureCollection
 
@@ -114,21 +115,28 @@ class FlightPlanBase:
 
     def fetchFlightPlan(self):
         fpid = None
-        plans = self.api.user.plans(username="devleaks", limit=1000)
-        # @todo should check for error status...
+        plans = None
 
-        for plan in plans:
-            if fpid is None:
-                if plan.fromICAO == self.fromICAO and plan.toICAO == self.toICAO:
-                    fpid = plan.id
+        try:
+            plans = self.api.user.plans(username="devleaks", limit=1000)
+        except BaseErrorHandler:
+            logger.warning("fetchFlightPlan: error from server fetching plans")
 
-        if fpid is not None:  # cache it
-            fp = self.api.plan.fetch(id_=fpid, return_format="json")
-            # @todo should check for error status...
-            self.flight_plan = json.loads(fp)
-            logger.debug("fetchFlightPlan: %d from FPDB" % (self.flight_plan["id"]))
-            self.cacheFlightPlan()
-            return self.flight_plan
+        if plans is not None:
+            for plan in plans:
+                if fpid is None:
+                    if plan.fromICAO == self.fromICAO and plan.toICAO == self.toICAO:
+                        fpid = plan.id
+            if fpid is not None:  # cache it
+                try:
+                    fp = self.api.plan.fetch(id_=fpid, return_format="json")
+                    # @todo should check for error status...
+                    self.flight_plan = json.loads(fp)
+                    logger.debug("fetchFlightPlan: %d from FPDB" % (self.flight_plan["id"]))
+                    self.cacheFlightPlan()
+                    return self.flight_plan
+                except BaseErrorHandler:
+                    logger.warning("fetchFlightPlan: error from server fetching plan")
 
         return self.createFPDBFlightPlan()
 
@@ -163,14 +171,16 @@ class FlightPlanBase:
             #descentSpeed=self.descentSpeed
             )
         plan = self.api.plan.generate(plan_data)
-        # @todo should check for error status... (or try/catch)
         if plan:
-            fp = self.api.plan.fetch(id_=plan.id, return_format="json")
-            # @todo should check for error status...
-            self.flight_plan = json.loads(fp)
-            logger.debug("createFPDBFlightPlan: new plan %d" % (self.flight_plan["id"]))
-            self.cacheFlightPlan(geojson=True)
-            return self.flight_plan
+            try:
+                fp = self.api.plan.fetch(id_=plan.id, return_format="json")
+                # @todo should check for error status...
+                self.flight_plan = json.loads(fp)
+                logger.debug("createFPDBFlightPlan: new plan %d" % (self.flight_plan["id"]))
+                self.cacheFlightPlan(geojson=True)
+                return self.flight_plan
+            except BaseErrorHandler:
+                logger.warning("createFPDBFlightPlan: error from server")
 
         return None
 
@@ -182,11 +192,14 @@ class FlightPlanBase:
         for f in [self.fromICAO, self.toICAO]:
             fn = os.path.join(self.airports_cache, f + ".json")
             if not os.path.exists(fn) or os.stat(fn).st_size == 0 or self.force:
-                aptresp = self.api.nav.airport(icao=f)
-                apt = aptresp._to_api_dict()
-                with open(fn, "w") as outfile:
-                    json.dump(apt, outfile)
-                    logger.debug(f"cacheAirports: new airport {f}")
+                try:
+                    aptresp = self.api.nav.airport(icao=f)
+                    apt = aptresp._to_api_dict()
+                    with open(fn, "w") as outfile:
+                        json.dump(apt, outfile)
+                        logger.debug(f"cacheAirports: new airport {f}")
+                except BaseErrorHandler:
+                    logger.warning(f"cacheAirports: error from server for airport {f}")
 
 
     def getFPDBAirport(self, icao: str):
