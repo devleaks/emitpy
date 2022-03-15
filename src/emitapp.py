@@ -194,17 +194,17 @@ class EmitApp:
         emit = Emit(move)
         emit.emit(30)
         emit.save()
-        # emit.saveDB()
-        # logger.debug("..synchronizing..")
-        # logger.debug(emit.getMarkList())
-        # emit.schedule(sync, datetime.fromisoformat(scheduled))
+        emit.saveDB()
+        logger.debug("..synchronizing..")
+        logger.debug(emit.getMarkList())
+        emit.schedule(sync, datetime.fromisoformat(scheduled))
 
-        # logger.debug("..broadcasting positions..")
-        # start = datetime.fromisoformat(scheduled) - timedelta(seconds=emit.offset)
-        # broadcast = BroadcastToFile(emit, start, ADSB)
-        # broadcast.run()
-        # broadcast.saveDB()
-        # logger.debug("..done.")
+        logger.debug("..broadcasting positions..")
+        start = datetime.fromisoformat(scheduled) - timedelta(seconds=emit.offset)
+        broadcast = BroadcastToFile(emit, start, ADSB)
+        broadcast.run()
+        broadcast.saveDB()
+        logger.debug("..done.")
 
         return {
             "errno": 0,
