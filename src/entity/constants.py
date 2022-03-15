@@ -133,8 +133,8 @@ class FLIGHT_PHASE(Enum):
     OFFBLOCK = "OFFBLOCK"
     PUSHBACK = "PUSHBACK"
     TAXI = "TAXI"
-    TAXIHOLD = "TAXIHOLD"
-    TAKEOFF_HOLD = "TAXIHOLD"
+    TAXIHOLD = "TAXIHOLD"  # just before entering the runway
+    TAKEOFF_HOLD = "TAKEOFF_HOLD"  # on the runways
     TAKE_OFF = "TAKE_OFF"
     TAKEOFF_ROLL = "TAKEOFF_ROLL"
     ROTATE = "ROTATE"
@@ -295,6 +295,22 @@ class FEATPROP(Enum):
     BROADCAST_INDEX = "broadcast_index"
     BROADCAST_REL_TIME = "broadcast_relative_time"
     BROADCAST_ABS_TIME = "broadcast_absolute_time"
+
+
+class FILE_EXT(Enum):
+    FLIGHT_PLAN = "1-plan"
+    FLIGHT = "2-flight"
+    SERVICE = "3-service"
+    MOVE = "3-move"
+    EMIT = "4-emit"
+    BROADCAST = "5-broadcast"
+
+
+class DATABASE(Enum):
+    FLIGHTS = "flights"
+    SERVICES = "services"
+    BROADCASTERS = "broadcasters"
+
 
 class POI_TYPE(Enum):
     # Feature property names

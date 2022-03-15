@@ -4,7 +4,7 @@ from datetime import timedelta
 from turfpy.measurement import distance, bearing
 from ..constants import FEATPROP
 
-logger = logging.getLogger("interpolate")
+logger = logging.getLogger("utils")
 
 
 def interpolate_value(arr, value, istart, iend):
@@ -88,23 +88,23 @@ def compute_headings(wpts):
     return (True, ":heading: computed")
 
 
-def compute_time(wpts):
+def compute_time(wpts, start: float=0):
     """
     Time 0 is start of array.
     """
-    elapsed = 0
+    elapsed = start
     currpos = wpts[0]
     currpos.setTime(elapsed)
 
     for idx in range(1, len(wpts)):
         nextpos = wpts[idx]
         d = distance(currpos, nextpos) * 1000 # km
-        # logger.debug(":time: %s %s" % (nextpos.speed(), currpos.speed()))
         # if nextpos.speed() is None or nextpos.speed() is None:
         #     logger.debug(":time: positions: %d %s %s" % (idx, nextpos, currpos))
         s = (nextpos.speed() + currpos.speed()) / 2
         t = d / s  if s != 0 else 0 # km
         elapsed = elapsed + t
+        # logger.debug(f":compute_time: {idx} {d} {t} {elapsed} (s0={nextpos.speed()} s1={currpos.speed()})")
         nextpos.setTime(elapsed)
         currpos = nextpos
 

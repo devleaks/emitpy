@@ -34,6 +34,8 @@ def main():
     logger.debug("..loading airport manager..")
     airportManager = AirportManager(icao=MANAGED_AIRPORT["ICAO"])
     airportManager.load()
+    # print(airportManager.getAirlineCombo())
+    # print(airportManager.getAirrouteCombo("PC"))
 
     logger.debug("..loading managed airport..")
     managed = XPAirport(

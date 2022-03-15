@@ -21,20 +21,22 @@ class App:
     """
     def __init__(self, airport):
         self.airport = airport
+        self.managedAirport = None
+        self.airspace = None
 
 
     def init(self):
         logger.debug("..loading managed airport..")
         self.managedAirport = XPAirport(
-            icao=airport["ICAO"],
-            iata=airport["IATA"],
-            name=airport["name"],
-            city=airport["city"],
-            country=airport["country"],
-            region=airport["regionName"],
-            lat=airport["lat"],
-            lon=airport["lon"],
-            alt=airport["elevation"])
+            icao=self.airport["ICAO"],
+            iata=self.airport["IATA"],
+            name=self.airport["name"],
+            city=self.airport["city"],
+            country=self.airport["country"],
+            region=self.airport["regionName"],
+            lat=self.airport["lat"],
+            lon=self.airport["lon"],
+            alt=self.airport["elevation"])
         ret = self.managedAirport.load()
         if not ret[0]:
             print(f":App: managed airport not loaded: {ret}")

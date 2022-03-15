@@ -7,6 +7,7 @@ import csv
 import logging
 import random
 import importlib
+import operator
 
 from .airline import Airline
 from ..airport import Airport
@@ -102,6 +103,23 @@ class AirportManager:
 
         logger.debug(":loadAirRoutes: loaded")
         return [True, "AirportManager::loadAirRoutes: loaded"]
+
+
+    def getAirlineCombo(self):
+        return [(a.iata, a.orgId) for a in sorted(self.airlines.values(), key=operator.attrgetter('orgId'))]
+
+
+    def getAirrouteCombo(self, airline = None):
+        routes = set()
+        if airline is None:
+            for al in self.airline_route_frequencies.values():
+                routes = routes.union(al.keys())
+        else:
+
+            routes = set(self.airline_route_frequencies[airline].keys())
+        # return routes
+        apts = list(filter(lambda a: a.iata in routes, Airport._DB_IATA.values()))
+        return [(a.iata, a.display_name) for a in sorted(apts, key=operator.attrgetter('display_name'))]
 
 
     def selectRandomAirline(self):
