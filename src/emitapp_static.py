@@ -11,6 +11,7 @@ from entity.airport import Airport, AirportBase, XPAirport
 from entity.service import FuelService, ServiceMove
 from entity.emit import Emit, BroadcastToFile, ADSB, LiveTraffic
 from entity.business import AirportManager
+from entity.parameters import MANAGED_AIRPORT as AIRPORT_DEFINITION
 from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE
 from entity.utils import NAUTICAL_MILE
 
@@ -20,11 +21,9 @@ logger = logging.getLogger("EmitApp")
 
 class EmitApp:
 
+    AIRPORT = None
 
-    def __init__(self, airport):
-        self._this_airport = airport
-        self.airport = None
-
+    def init():
         airspace = XPAirspace()
         logger.debug("loading airspace..")
         airspace.load()
@@ -46,40 +45,38 @@ class EmitApp:
         logger.debug("loading managed airport..")
 
         logger.debug("..loading airport manager..")
-        manager = AirportManager(icao=self._this_airport["ICAO"])
+        manager = AirportManager(icao=AIRPORT_DEFINITION["ICAO"])
         manager.load()
 
         logger.debug("..loading managed airport..")
-        self.airport = XPAirport(
-            icao=airport["ICAO"],
-            iata=airport["IATA"],
-            name=airport["name"],
-            city=airport["city"],
-            country=airport["country"],
-            region=airport["regionName"],
-            lat=airport["lat"],
-            lon=airport["lon"],
-            alt=airport["elevation"])
-        ret = self.airport.load()
+        EmitApp.AIRPORT = XPAirport(
+            icao=AIRPORT_DEFINITION["ICAO"],
+            iata=AIRPORT_DEFINITION["IATA"],
+            name=AIRPORT_DEFINITION["name"],
+            city=AIRPORT_DEFINITION["city"],
+            country=AIRPORT_DEFINITION["country"],
+            region=AIRPORT_DEFINITION["regionName"],
+            lat=AIRPORT_DEFINITION["lat"],
+            lon=AIRPORT_DEFINITION["lon"],
+            alt=AIRPORT_DEFINITION["elevation"])
+        ret = EmitApp.AIRPORT.load()
         if not ret[0]:
             print("Managed airport not loaded")
 
-        self.airport.setAirspace(airspace)
-        self.airport.setManager(manager)
+        EmitApp.AIRPORT.setAirspace(airspace)
+        EmitApp.AIRPORT.setManager(manager)
         logger.debug("..done")
 
-        self.update_metar()
-
-
-    def update_metar(self):
-        logger.debug("collecting METAR..")
+        logger.debug("..collecting METAR..")
         # Prepare airport for each movement
-        metar = Metar(icao=self._this_airport["ICAO"])
-        self.airport.setMETAR(metar=metar)  # calls prepareRunways()
+        metar = Metar(icao=AIRPORT_DEFINITION["ICAO"])
+        EmitApp.AIRPORT.setMETAR(metar=metar)  # calls prepareRunways()
+
         logger.debug("..done")
 
 
-    def do_service(self, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
+    @staticmethod
+    def do_service(operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         logger.debug("loading aircraft..")
         actype = AircraftPerformance.find(aircraft)
         actype.load()
@@ -89,18 +86,18 @@ class EmitApp:
 
         logger.debug("creating single service..")
         fuel_service = FuelService(operator=operator, quantity=quantity)
-        rp = self.airport.getRamp(ramp)
+        rp = EmitApp.AIRPORT.getRamp(ramp)
         fuel_service.setRamp(rp)
         fuel_service.setAircraftType(actype)
-        fuel_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=fuel_service, model=vehicle_model)
+        fuel_vehicle = EmitApp.AIRPORT.manager.selectServiceVehicle(operator=operator, service=fuel_service, model=vehicle_model)
         fuel_vehicle.setICAO24(vehicle_icao24)
-        sp = self.airport.selectRandomServiceDepot("fuel")
+        sp = EmitApp.AIRPORT.selectRandomServiceDepot("fuel")
         fuel_vehicle.setPosition(sp)
-        np = self.airport.selectRandomServiceDepot("fuel")
+        np = EmitApp.AIRPORT.selectRandomServiceDepot("fuel")
         fuel_service.setNextPosition(np)
 
         logger.debug(".. moving ..")
-        fsm = ServiceMove(fuel_service, self.airport)
+        fsm = ServiceMove(fuel_service, EmitApp.AIRPORT)
         fsm.move()
         fsm.save()
         logger.debug(".. emission positions ..")
@@ -117,18 +114,15 @@ class EmitApp:
         broadcast = BroadcastToFile(se, datetime.fromisoformat(scheduled), LiveTraffic)
         broadcast.run()
         logger.debug("..done")
-        return {
-            "errno": 0,
-            "errmsg": "completed successfully",
-            "data": len(broadcast.broadcast)
-        }
+        return len(broadcast.broadcast)
 
 
-    def do_flight(self, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway):
+    @staticmethod
+    def do_flight(airline, flightnumber, scheduled, apt, move, actype, ramp, icao24, acreg, runway):
         # Add pure commercial stuff
         airline = Airline.find(airline)
         remote_apt = Airport.find(apt)
-        aptrange = self.airport.miles(remote_apt)
+        aptrange = EmitApp.AIRPORT.miles(remote_apt)
 
         logger.debug("loading other airport..")
         remote_apt = AirportBase(icao=remote_apt.icao,
@@ -157,18 +151,18 @@ class EmitApp:
 
         logger.debug("*" * 90)
         logger.info("*** (%s, %dnm) %s-%s AC %s at FL%d" % (
-                    remote_apt.getProp("city"), aptrange/NAUTICAL_MILE, remote_apt.iata, self._this_airport["IATA"],
+                    remote_aptgetProp("city"), aptrange/NAUTICAL_MILE, remote_apt.iata, AIRPORT_DEFINITION["IATA"],
                     acperf.typeId, reqfl))
         logger.debug("*" * 90)
 
         logger.debug("creating flight..")
         flight = None
-        if movetype == "arrival":
-            flight = Arrival(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=self.airport, origin=remote_apt, aircraft=aircraft)
+        if move == "arrival":
+            flight = Arrival(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=EmitApp.AIRPORT, origin=remote_apt, aircraft=aircraft)
         else:
-            flight = Departure(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=self.airport, destination=destination_apt, aircraft=aircraft)
+            flight = Departure(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=EmitApp.AIRPORT, destination=destination_apt, aircraft=aircraft)
         flight.setFL(reqfl)
-        ramp = self.airport.selectRamp(flight)  # Aircraft won't get towed
+        ramp = EmitApp.AIRPORT.selectRamp(flight)  # Aircraft won't get towed
         flight.setRamp(ramp)
         # gate = "C99"
         # ramp_name = ramp.getProp("name")
@@ -181,33 +175,27 @@ class EmitApp:
 
         logger.debug("..flying..")
         move = None
-        if movetype == "arrival":
-            move = ArrivalMove(flight, self.airport)
+        if move == "arrival":
+            move = ArrivalMove(flight, EmitApp.AIRPORT)
             sync = FLIGHT_PHASE.TOUCH_DOWN.value
         else:
-            move = DepartureMove(flight, self.airport)
+            move = DepartureMove(flight, EmitApp.AIRPORT)
             sync = FLIGHT_PHASE.TAKE_OFF.value
         move.move()
-        move.save()
+        # move.save()
 
         logger.debug("..emission positions..")
         emit = Emit(move)
         emit.emit(30)
-        emit.save()
-        # emit.saveDB()
-        # logger.debug("..synchronizing..")
-        # logger.debug(emit.getMarkList())
-        # emit.schedule(sync, datetime.fromisoformat(scheduled))
+        # emit.save()
+        logger.debug("..synchronizing..")
+        logger.debug(emit.getMarkList())
+        emit.schedule(sync, datetime.fromisoformat(scheduled))
 
-        # logger.debug("..broadcasting positions..")
-        # start = datetime.fromisoformat(scheduled) - timedelta(seconds=emit.offset)
-        # broadcast = BroadcastToFile(emit, start, ADSB)
-        # broadcast.run()
-        # broadcast.saveDB()
-        # logger.debug("..done.")
+        logger.debug("..broadcasting positions..")
+        broadcast = BroadcastToFile(emit, datetime.fromisoformat(scheduled), ADSB)
+        broadcast.run()
+        broadcast.saveDB()
+        logger.debug("..done.")
 
-        return {
-            "errno": 0,
-            "errmsg": "completed successfully",
-            "data": len(emit._emit)
-        }
+        return len(broadcast.broadcast)

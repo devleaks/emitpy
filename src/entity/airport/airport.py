@@ -89,8 +89,7 @@ class Airport(Location):
 
     @staticmethod
     def getCombo():
-        a = [(a.iata, a.display_name) for a in sorted(Airport._DB_IATA.values(), key=operator.attrgetter('display_name'))]
-        return a
+        return [(a.iata, a.display_name) for a in sorted(Airport._DB_IATA.values(), key=operator.attrgetter('display_name'))]
 
 
     def loadFromFile(self):

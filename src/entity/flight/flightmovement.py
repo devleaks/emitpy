@@ -101,7 +101,7 @@ class FlightMovement(Movement):
             return status
         # printFeatures(self.taxipos, "after taxi")
 
-        logger.debug(f":move: generated {len(self.moves)} points, {len(self.moves_st)} with standard turns")
+        logger.debug(f":move: flight {len(self.moves_st)} points, taxi {len(self.taxipos)} points")
         return (True, "Movement::make completed")
 
 
@@ -209,7 +209,7 @@ class FlightMovement(Movement):
             # move on dist (meters) on linestring from currpos (which is between fcidx and fcidx+1)
             # returns position after dist and new index, new position p is between newidx and newidx+1
             p, newidx = moveOn(fc, fcidx, currpos, dist)
-            logger.debug(":moveOnLS:%s from %d to %d (%s)" % (("(rev)" if reverse else ""), fcidx, newidx, mark))
+            # logger.debug(f":moveOnLS:{'(rev)' if reverse else ''} from {fcidx} to {newidx} ({mark}), s={speed}")
             # from currpos after dist we will be at newpos
             newpos = MovePoint(geometry=p["geometry"], properties=p["properties"])
             newpos.setAltitude(alt)
@@ -221,7 +221,7 @@ class FlightMovement(Movement):
 
         def addMovepoint(arr, src, alt, speed, vspeed, color, mark, ix):
             # create a copy of src, add properties on copy, and add copy to arr.
-            logger.debug(":addMovepoint: %s %d" % (mark, ix))
+            # logger.debug(f":addMovepoint: {mark} {ix}, s={speed}")
             mvpt = MovePoint(geometry=src["geometry"], properties={})
             mvpt.setAltitude(alt)
             mvpt.setSpeed(speed)
@@ -284,7 +284,7 @@ class FlightMovement(Movement):
                              src=takeoff,
                              alt=alt,
                              speed=actype.getSI(ACPERF.takeoff_speed),
-                             vspeed=actype.getSI(ACPERF.initial_climb_speed),
+                             vspeed=actype.getSI(ACPERF.initial_climb_vspeed),
                              color=POSITION_COLOR.TAKE_OFF.value,
                              mark=FLIGHT_PHASE.TAKE_OFF.value,
                              ix=0)
@@ -897,7 +897,7 @@ class FlightMovement(Movement):
 
         # Add last point too
         self.moves_st.append(self.moves[-1])
-        logger.debug(f":standard_turns: completed {len(self.moves)}, {len(self.moves_st)}")
+        logger.debug(f":standard_turns: completed {len(self.moves)}, {len(self.moves_st)} with standard turns")
         return (True, "Movement::standard_turns added")
 
 
@@ -909,11 +909,12 @@ class FlightMovement(Movement):
         """
         to_interp = self.moves_st
         # before = []
-
+        check = "vspeed"
         logger.debug(":interpolate: interpolating ..")
         for name in ["speed", "vspeed", "altitude"]:
             logger.debug(f":interpolate: .. {name} ..")
-            # before = list(map(lambda x: x.getProp(name), to_interp))
+            if name == check:
+                before = list(map(lambda x: x.getProp(name), to_interp))
             status = doInterpolation(to_interp, name)
             if not status[0]:
                 logger.warning(status[1])
@@ -928,8 +929,10 @@ class FlightMovement(Movement):
                 else:
                     logger.warning(f":interpolate: not altitude?{f['geometry']['name'] if name in f['geometry'] else '?'}")
         logger.debug(":interpolate: .. done.")
+
+        # name = check
         # for i in range(len(to_interp)):
-        #     v = to_interp[i].getProp(name) if to_interp[i].getProp(name) is not None and to_interp[i].getProp(name) != "None" else -1
+        #     v = to_interp[i].getProp(name) if to_interp[i].getProp(name) is not None and to_interp[i].getProp(name) != "None" else "none"
         #     logger.debug(":interpolate: %d: %s -> %s." % (i, before[i] if before[i] is not None else -1, v))
 
 
@@ -957,6 +960,9 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
+        for f in self.moves_st:
+            f.setProp("saved-time", f.time())
+
         return (True, "Movement::time computed")
 
 
@@ -983,6 +989,9 @@ class FlightMovement(Movement):
         if not status[0]:
             logger.warning(status[1])
             return status
+
+        for f in self.taxipos:
+            f.setProp("saved-time", f.time())
 
         logger.debug(":taxiInterpolateAndTime: .. done.")
 
@@ -1037,7 +1046,11 @@ class ArrivalMove(FlightMovement):
 
 
     def getMoves(self):
-        return super().getMoves() + self.taxipos
+        prev = super().getMoves()
+        start = prev[-1].time()
+        for f in self.taxipos:
+            f.setTime(start + f.getProp("saved-time"))
+        return prev + self.taxipos
 
 
     def taxi(self):
@@ -1145,7 +1158,12 @@ class DepartureMove(FlightMovement):
 
 
     def getMoves(self):
-        return self.taxipos + super().getMoves()
+        prev = self.taxipos
+        start = prev[-1].time()
+        nextmv = super().getMoves()
+        for f in nextmv:
+            f.setTime(start + f.getProp("saved-time"))
+        return self.taxipos + nextmv
 
 
     def taxi(self):
