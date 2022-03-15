@@ -32,7 +32,7 @@ class EmitPoint(FeatureWithProps):
         FeatureWithProps.__init__(self, geometry=geometry, properties=properties)
 
     def getBroadcastTime(self):
-        t = self.getProp(FEATPROP.BROADCAST_ABS_TIME.value)
+        t = self.getProp(FEATPROP.EMIT_ABS_TIME.value)
         return t if t is not None else 0
 
 
@@ -70,7 +70,7 @@ class Emit:
         # with open(filename, "w") as fp:
         #     json.dump(self._emit, fp, indent=4)
         ls = Feature(geometry=asLineString(self._emit))
-        filename = os.path.join(basename + "-5-emit.geojson")
+        filename = os.path.join(basename + "-5-emit_ls.geojson")
         with open(filename, "w") as fp:
             json.dump(FeatureCollection(features=cleanFeatures(self._emit)+ [ls]), fp, indent=4)
 
@@ -88,7 +88,7 @@ class Emit:
 
         emit = {}
         for f in self._emit:
-            emit[json.dumps(f)] = f.getProp(FEATPROP.BROADCAST_REL_TIME.value)
+            emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
         self.redis.delete(ident)
         self.redis.zadd(ident, emit)
         self.redis.sadd(DATABASE.FLIGHTS.value, ident)
@@ -135,6 +135,8 @@ class Emit:
             v = v0 + portion * (v1 - v0)
             v = max(v, SLOW_SPEED)
 
+            # logger.debug(f":time_distance_to_next_vtx: {round(leftd, 3)}, verif={round(distance(c0, self.moves[idx+1])*1000, 3)}")
+
             t = 0
             if (v + v1) != 0:
                 t = 2 * leftd / (v + v1)
@@ -142,6 +144,7 @@ class Emit:
                 logger.warning(":emit:time_distance_to_next_vtx: v + v1 = 0?")
 
             # logger.debug(f":time_distance_to_next_vtx: {idx}, tot={totald}, done={partiald}, v={v}, v0={v0}, v1={v1}, t={t})")
+            # logger.debug(f":time_distance_to_next_vtx: {idx}, tot={totald}, left={leftd}, t={t})")
             return t
 
         def destinationOnTrack(c0, duration, idx):  # from c0, moves duration seconds on edges at speed specified at vertices
@@ -162,14 +165,14 @@ class Emit:
 
             # nextpos = point_on_line(currpos, self.moves[idx+1], dist)
             # controld = distance(currpos, nextpos) * 1000  # km
-            # logger.debug(":destinationOnTrack: (%d, v=%f, dur=%f, dist=%f, seglen=%f)" % (idx, v, duration, controld, totald))
+            #logger.debug(":destinationOnTrack: (%d, v=%f, dur=%f, dist=%f, seglen=%f)" % (idx, v, duration, controld, totald))
             # return nextpos
             return point_on_line(currpos, self.moves[idx+1], dist)
 
         def emit_point(idx, pos, time, reason, waypt=False):
             e = EmitPoint(geometry=pos["geometry"], properties=pos["properties"])
-            e.setProp(FEATPROP.BROADCAST_REL_TIME.value, time)
-            e.setProp(FEATPROP.BROADCAST_INDEX.value, len(self._emit))
+            e.setProp(FEATPROP.EMIT_REL_TIME.value, time)
+            e.setProp(FEATPROP.EMIT_INDEX.value, len(self._emit))
             e.setProp(FEATPROP.BROADCAST.value, not waypt)
             if waypt:
                 e.setColor("#eeeeee")
@@ -178,6 +181,7 @@ class Emit:
                 e.setColor("#ccccff")
                 # logger.debug(f":emit:emit_point: {reason} i={idx} t={time} ({timedelta(seconds=time)}) s={e.speed()}")
             self._emit.append(e)
+            # logger.debug(f":emit:emit_point: dist2nvtx={round(distance(e, self.moves[idx+1])*1000,1)} i={idx} e={len(self._emit)}")
 
         def pauseAtVertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason, waypt=False):
             if pause < self.frequency:  # may be emit before reaching next vertex:
@@ -186,12 +190,12 @@ class Emit:
                     emit_point(idx, pos, time, reason, waypt)
                     end_time = curr_time + pause
                     time_left = self.frequency - pause - time_to_next_emit
-                    logger.debug(f":pauseAtVertex: pause before next emit: emit at vertex{pause}")
+                    logger.debug(f":pauseAtVertex: pause before next emit: emit at vertex i={idx} p={pause}, e={len(self._emit)}")
                     return (end_time, time_left)
                 else:  # pause but carry on later
                     end_time = curr_time + pause
                     time_left = time_to_next_emit - pause
-                    logger.debug(f":pauseAtVertex: pause but do not emit: no emission {pause}")
+                    logger.debug(f":pauseAtVertex: pause but do not emit: no emission i={idx} p={pause}, e={len(self._emit)}")
                     return (end_time, time_left)
             else:
                 emit_time = curr_time + time_to_next_emit
@@ -227,40 +231,40 @@ class Emit:
 
         while curridx < (len(self.moves) - 1):
             # We progress one leg at a time, leg is from idx -> idx+1.
-            # logger.debug(f":emit: {curridx}, s={self.moves[curridx].speed()}")
+            # logger.debug(f":emit: new vertex: {curridx}, e={len(self._emit)} s={self.moves[curridx].speed()}")
             next_vtx = self.moves[curridx + 1]
             time_to_next_vtx = time_distance_to_next_vtx(currpos, curridx)
-            # logger.debug(":emit: >>>> %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
+            # logger.debug(f":emit: >>>> {curridx}: {time_to_next_emit} sec to next emit, {time_to_next_vtx} sec to next vertex")
             ## logger.debug(":emit: START: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
 
             if (time_to_next_emit > 0) and (time_to_next_emit < future_emit) and (time_to_next_emit < time_to_next_vtx):
                 # We need to emit before next vertex
-                # logger.debug("moving on edge with time remaining to next emit.. (%d, %f, %f)" % (curridx, time_to_next_emit, time_to_next_vtx))  # if we are here, we know we will not reach the next vertex
+                # logger.debug(f"moving on edge with time remaining to next emit.. ({curridx}, {time_to_next_emit}, {time_to_next_vtx})")  # if we are here, we know we will not reach the next vertex
                 ## logger.debug(":emit: EBEFV: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
                 newpos = destinationOnTrack(currpos, time_to_next_emit, curridx)
                 total_time = total_time + time_to_next_emit
                 controld = distance(currpos, newpos) * 1000  # km
                 total_dist = total_dist + controld
-                emit_point(curridx, newpos, total_time, "moving on edge with time remaining to next emit")
+                emit_point(curridx, newpos, total_time, f"moving on edge {curridx} with time remaining to next emit e={len(self._emit)}")
                 currpos = newpos
                 time_to_next_emit = future_emit
                 time_to_next_vtx = time_distance_to_next_vtx(currpos, curridx)
-                # logger.debug("..done moving on edge with time remaining to next emit. %f sec left before next emit, %f to next vertex" % (time_to_next_emit, time_to_next_vtx))
+                # logger.debug(f"..done moving on edge with time remaining to next emit. {time_to_next_emit} sec left before next emit, {time_to_next_vtx} to next vertex")
 
             if (time_to_next_emit > 0) and (time_to_next_emit < future_emit) and (time_to_next_vtx < time_to_next_emit):
                 ##logger.debug(":emit: RVBFE: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
                 # We will reach next vertex before we need to emit
-                # logger.debug("moving from to vertex with time remaining before next emit.. (%d, %f, %f)" % (curridx, time_to_next_emit, time_to_next_vtx))  # if we are here, we know we will not reach the next vertex
+                # logger.debug(f"moving from to vertex with time remaining before next emit.. ({curridx}, {time_to_next_emit}, {time_to_next_vtx})")  # if we are here, we know we will not reach the next vertex
                 total_time = total_time + time_to_next_vtx
                 controld = distance(currpos, next_vtx) * 1000  # km
                 total_dist = total_dist + controld
-                emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }", True)  # ONLY IF BROADCAST AT VERTEX
+                emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self._emit)}", True)  # ONLY IF BROADCAST AT VERTEX
                 currpos = next_vtx
                 time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
-                pause = currpos.getProp(FEATPROP.PAUSE.value)
-                if pause is not None and pause > 0:
-                    total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
-                # logger.debug("..done moving to next vertex with time remaining before next emit. %f sec left before next emit, moving to next vertex" % (time_to_next_emit))
+                # pause = currpos.getProp(FEATPROP.PAUSE.value)
+                # if pause is not None and pause > 0:
+                #     total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
+                # logger.debug(f"..done moving to next vertex with time remaining before next emit. {time_to_next_emit} sec left before next emit, moving to next vertex")
 
             else:
                 # We will emit before we reach next vertex
@@ -272,32 +276,32 @@ class Emit:
                     nextpos = destinationOnTrack(currpos, future_emit, curridx)
                     controld = distance(currpos, nextpos) * 1000  # km
                     total_dist = total_dist + controld
-                    emit_point(curridx, currpos, total_time, f"en route after vertex {curridx}")
+                    emit_point(curridx, nextpos, total_time, f"en route after vertex {curridx}, e={len(self._emit)}")
                     currpos = nextpos
                     time_to_next_vtx = time_distance_to_next_vtx(currpos, curridx)
                     time_to_next_emit = future_emit
-
-                #logger.debug(".. done moving on edge by %f sec. %f remaining to next vertex" % (time_to_next_emit, time_to_next_vtx))
+                    # logger.debug(f"2vtx={time_to_next_vtx}, 2emt={time_to_next_emit}")
+                    # logger.debug(f".. done moving on edge by {time_to_next_emit} sec. {time_to_next_vtx} remaining to next vertex")
 
                 if time_to_next_vtx > 0:
                     # jump to next vertex because time_to_next_vtx <= future_emit
                     ## logger.debug(":emit: TONXV: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
                     controld = distance(currpos, next_vtx) * 1000  # km
-                    # logger.debug("jumping to next vertex.. (%f m, %f sec)" % (controld, time_to_next_vtx))
+                    # logger.debug(f"jumping to next vertex.. ({controld} m, {time_to_next_vtx} sec)")
                     total_time = total_time + time_to_next_vtx
                     controld = distance(currpos, next_vtx) * 1000  # km
                     total_dist = total_dist + controld
-                    emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }", True)  # ONLY IF BROADCAST AT VERTEX
+                    emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self._emit)}", True)  # ONLY IF BROADCAST AT VERTEX
                     currpos = next_vtx
                     time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
-                    pause = currpos.getProp(FEATPROP.PAUSE.value)
-                    if pause is not None and pause > 0:
-                        total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
-                    # logger.debug(".. done jumping to next vertex. %f sec left before next emit" % (time_to_next_emit))
+                    # pause = currpos.getProp(FEATPROP.PAUSE.value)
+                    # if pause is not None and pause > 0:
+                    #     total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self._emit)}", True)
+                    # logger.debug(f".. done jumping to next vertex. {time_to_next_emit} sec left before next emit")
 
             controld = distance(self.moves[curridx], next_vtx) * 1000  # km
             total_dist_vtx = total_dist_vtx + controld  # sum of distances between vertices
-            #logger.debug(":emit: END> %d: %f sec , %f m / %f m" % (curridx, round(total_time, 2), round(total_dist/1000,3), round(total_dist_vtx/1000, 3)))
+            # logger.debug(f":emit: <<< {curridx}: {round(total_time, 2)} sec , {round(total_dist/1000,3)} m / {round(total_dist_vtx/1000, 3)} m")
             curridx = curridx + 1
 
         # transfert common data to each emit point for emission
@@ -377,7 +381,7 @@ class Emit:
             self.broadcast = []
             r = f[0]
             logger.debug(f":schedule: found {sync} mark at {moment}")
-            offset = r.getProp(FEATPROP.BROADCAST_REL_TIME.value)
+            offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
             if offset is not None:
                 self.offset_name = sync
                 self.offset = offset
@@ -386,10 +390,10 @@ class Emit:
                 logger.debug(f":schedule: emit_point starts at {when}")
                 for e in self._emit:
                     p = EmitPoint(geometry=e["geometry"], properties=e["properties"])
-                    t = e.getProp(FEATPROP.BROADCAST_REL_TIME.value)
+                    t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
                     if t is not None:
                         when = moment + timedelta(seconds=(t - offset))
-                        p.setProp(FEATPROP.BROADCAST_ABS_TIME.value, when.timestamp())
+                        p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
                         # logger.debug(f":get: done at {when.timestamp()}")
                     self.broadcast.append(p)
                 logger.debug(f":schedule: emit_point finishes at {when} ({len(self.broadcast)} positions)")
