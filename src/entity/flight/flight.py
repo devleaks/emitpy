@@ -5,7 +5,7 @@ from ..airspace import FlightPlan
 from ..airport import Airport
 from ..business import Airline
 from ..aircraft import Aircraft
-from ..constants import PAYLOAD, FLIGHT_PHASE
+from ..constants import PAYLOAD, FLIGHT_PHASE, FEATPROP
 from ..utils import FT
 
 logger = logging.getLogger("Flight")
@@ -176,6 +176,10 @@ class Flight:
         fpcp = self.flightplan.toAirspace(self.managedAirport.airspace)
         if fpcp[1] > 0:
             logger.warning(":toAirspace: unidentified %d waypoints" % fpcp[1])
+        idx = 0
+        for f in fpcp[0]:
+            f.setProp(FEATPROP.FLIGHT_PLANDB_INDEX.value, idx)
+            idx = idx + 1
         logger.debug(f":toAirspace: identified {len(fpcp[0])} waypoints")
         return fpcp[0]
 
@@ -298,6 +302,12 @@ class Flight:
                 logger.warning(f":plan: arrival airport {arrapt.icao} has no APPCH for {rwyarr.name} ")
         else:
             logger.warning(f":plan: arrival airport {arrapt.icao} has no APPCH")
+
+
+        idx = 0
+        for f in planpts:
+            f.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, idx)
+            idx = idx + 1
 
         self.flightplan_cp = planpts
         # printFeatures(self.flightplan_cp, "plan")

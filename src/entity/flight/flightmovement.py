@@ -479,7 +479,7 @@ class FlightMovement(Movement):
         #
         #
         logger.debug(":vnav: arrival " + "=" * 30)
-        FINAL_ALT = 3000*FT     # Altitude ABG at which we start final
+        FINAL_ALT = 1000*FT     # Altitude ABG at which we start final
         APPROACH_ALT = 3000*FT  # Altitude ABG at which we perform approach path before final
         STAR_ALT = 6000*FT      # Altitude ABG at which we perform STAR path before approach
         LAND_TOUCH_DOWN = 0.4   # km, distance of touch down from the runway threshold (given in CIFP)
@@ -549,7 +549,7 @@ class FlightMovement(Movement):
 
             currpos = addMovepoint(arr=revmoves,
                                    src=final_fix,
-                                   alt=alt,
+                                   alt=alt+FINAL_ALT,
                                    speed=actype.getSI(ACPERF.landing_speed),
                                    vspeed=actype.getSI(ACPERF.approach_vspeed),
                                    color=POSITION_COLOR.FINAL.value,
@@ -851,6 +851,12 @@ class FlightMovement(Movement):
         #
         revmoves.reverse()
         self.moves = self.moves + revmoves
+
+        idx = 0
+        for f in self.moves:
+            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
+            idx = idx + 1
+
         logger.debug(f":vnav: descent added (+{len(revmoves)} {len(self.moves)})")
         # printFeatures(self.moves, "holding")
         return (True, "Movement::vnav completed without restriction")
@@ -897,6 +903,12 @@ class FlightMovement(Movement):
 
         # Add last point too
         self.moves_st.append(self.moves[-1])
+
+        idx = 0
+        for f in self.moves_st:
+            f.setProp(FEATPROP.MOVEST_INDEX.value, idx)
+            idx = idx + 1
+
         logger.debug(f":standard_turns: completed {len(self.moves)}, {len(self.moves_st)} with standard turns")
         return (True, "Movement::standard_turns added")
 

@@ -52,7 +52,7 @@ class LiveTraffic(Formatter):
         tailnumber = f.getProp("acreg")
         aptfrom = f.getProp("origin")     # IATA
         aptto = f.getProp("destination")  # IATA
-        ts = f.getProp(FEATPROP.BROADCAST_ABS_TIME.value)
+        ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
 
         #        AITFC ,hexid   ,lat        ,lon        ,alt  ,vs      ,airborne              ,hdg               ,spd ### ,cs,type,tail,from,to,timestamp
         part1 = f"AITFC,{icao24},{coords[1]},{coords[0]},{alt},{vspeed},{1 if airborne else 0},{round(heading,0)},{speed}"

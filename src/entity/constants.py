@@ -285,16 +285,18 @@ class FEATPROP(Enum):
     TIME = "time"
     PAUSE = "pause"
     DELAY = "delay"  # was pause in emitjs
-    FLIGHT_PLAN_INDEX = "fpidx"
-    MOVE_INDEX = "mvidx"
+    FLIGHT_PLANDB_INDEX = "fpdb-index"
+    FLIGHT_PLAN_INDEX = "plan-index"
+    MOVE_INDEX = "move-index"
+    MOVEST_INDEX = "move-st-index"
     POI_TYPE = "poi-type"
     RUNWAY = "runway"
     SERVICE = "service"
     STOP_TIME = "stop-time"
     BROADCAST = "broadcast"
-    BROADCAST_INDEX = "broadcast_index"
-    BROADCAST_REL_TIME = "broadcast_relative_time"
-    BROADCAST_ABS_TIME = "broadcast_absolute_time"
+    EMIT_INDEX = "emit-index"
+    EMIT_REL_TIME = "emit_relative_time"
+    EMIT_ABS_TIME = "emit_absolute_time"
 
 
 class FILE_EXT(Enum):
