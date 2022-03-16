@@ -308,10 +308,16 @@ class FILE_EXT(Enum):
     BROADCAST = "5-broadcast"
 
 
-class DATABASE(Enum):
+class REDIS_DATABASE(Enum):
     FLIGHTS = "flights"
+    MOVEMENTS = "movements"
     SERVICES = "services"
     BROADCASTERS = "broadcasters"
+
+
+class REDIS_QUEUE(Enum):
+    ADSB = "adsb"
+    LIVETRAFFIC = "livet"
 
 
 class POI_TYPE(Enum):

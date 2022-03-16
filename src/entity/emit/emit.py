@@ -17,7 +17,7 @@ from turfpy.measurement import distance, bearing, destination
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
 from ..utils import compute_headings
 
-from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, DATABASE
+from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE
 from ..parameters import AODB_DIR
 
 logger = logging.getLogger("Emit")
@@ -31,7 +31,11 @@ class EmitPoint(FeatureWithProps):
     def __init__(self, geometry: Geometry, properties: dict):
         FeatureWithProps.__init__(self, geometry=geometry, properties=properties)
 
-    def getBroadcastTime(self):
+    def getRelativeEmissionTime(self):
+        t = self.getProp(FEATPROP.EMIT_REL_TIME.value)
+        return t if t is not None else 0
+
+    def getAbsoluteEmissionTime(self):
         t = self.getProp(FEATPROP.EMIT_ABS_TIME.value)
         return t if t is not None else 0
 
@@ -44,8 +48,8 @@ class Emit:
         self.move = move
         self.moves = None
         self.frequency = 30  # seconds
-        self._emit = []  # [ EmitPoint ]
-        self.broadcast = []  # [ EmitPoint ]
+        self._emit = []  # [ EmitPoint ], time-relative emission of messages
+        self.scheduled_emit = []  # [ EmitPoint ], a copy of self._emit but with actual emission time (absolute time)
         self.props = {}  # general purpose properties added to each emit point
         self.version = 0
         self.redis = None
@@ -75,6 +79,7 @@ class Emit:
             json.dump(FeatureCollection(features=cleanFeatures(self._emit)+ [ls]), fp, indent=4)
 
         logger.debug(f":save: saved {ident}")
+        return (True, "Movement::save saved")
 
 
     def saveDB(self):
@@ -91,9 +96,10 @@ class Emit:
             emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
         self.redis.delete(ident)
         self.redis.zadd(ident, emit)
-        self.redis.sadd(DATABASE.FLIGHTS.value, ident)
+        self.redis.sadd(REDIS_DATABASE.MOVEMENTS.value, ident)
 
         logger.debug(f":saveDB: saved {ident}")
+        return (True, "Movement::saveDB saved")
 
 
     def load(self, flight_id):
@@ -261,9 +267,9 @@ class Emit:
                 emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self._emit)}", True)  # ONLY IF BROADCAST AT VERTEX
                 currpos = next_vtx
                 time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
-                # pause = currpos.getProp(FEATPROP.PAUSE.value)
-                # if pause is not None and pause > 0:
-                #     total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
+                pause = currpos.getProp(FEATPROP.PAUSE.value)
+                if pause is not None and pause > 0:
+                    total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
                 # logger.debug(f"..done moving to next vertex with time remaining before next emit. {time_to_next_emit} sec left before next emit, moving to next vertex")
 
             else:
@@ -294,9 +300,9 @@ class Emit:
                     emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self._emit)}", True)  # ONLY IF BROADCAST AT VERTEX
                     currpos = next_vtx
                     time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
-                    # pause = currpos.getProp(FEATPROP.PAUSE.value)
-                    # if pause is not None and pause > 0:
-                    #     total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self._emit)}", True)
+                    pause = currpos.getProp(FEATPROP.PAUSE.value)
+                    if pause is not None and pause > 0:
+                        total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self._emit)}", True)
                     # logger.debug(f".. done jumping to next vertex. {time_to_next_emit} sec left before next emit")
 
             controld = distance(self.moves[curridx], next_vtx) * 1000  # km
@@ -378,16 +384,16 @@ class Emit:
         """
         f = findFeatures(self._emit, {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
-            self.broadcast = []
+            self.scheduled_emit = []
             r = f[0]
-            logger.debug(f":schedule: found {sync} mark at {moment}")
+            logger.debug(f":schedule: found {sync} mark at {moment} ({moment.timestamp()})")
             offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
             if offset is not None:
                 self.offset_name = sync
                 self.offset = offset
                 logger.debug(f":schedule: {self.offset_name} offset {self.offset} sec")
                 when = moment + timedelta(seconds=(- offset))
-                logger.debug(f":schedule: emit_point starts at {when}")
+                logger.debug(f":schedule: emit_point starts at {when} ({when.timestamp()})")
                 for e in self._emit:
                     p = EmitPoint(geometry=e["geometry"], properties=e["properties"])
                     t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
@@ -395,8 +401,8 @@ class Emit:
                         when = moment + timedelta(seconds=(t - offset))
                         p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
                         # logger.debug(f":get: done at {when.timestamp()}")
-                    self.broadcast.append(p)
-                logger.debug(f":schedule: emit_point finishes at {when} ({len(self.broadcast)} positions)")
+                    self.scheduled_emit.append(p)
+                logger.debug(f":schedule: emit_point finishes at {when} ({when.timestamp()}) ({len(self.scheduled_emit)} positions)")
             else:
                 logger.warning(f":schedule: {FEATPROP.MARK.value} {sync} has no time offset")
         else:
