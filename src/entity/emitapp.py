@@ -9,9 +9,9 @@ from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from entity.airport import Airport, AirportBase, XPAirport
 from entity.service import FuelService, ServiceMove
-from entity.emit import Emit, BroadcastToFile, ADSB, LiveTraffic
+from entity.emit import Emit, ADSB, LiveTraffic, Format, FormatToRedis
 from entity.business import AirportManager
-from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE
+from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE
 from entity.utils import NAUTICAL_MILE
 
 logging.basicConfig(level=logging.DEBUG)
@@ -89,38 +89,42 @@ class EmitApp:
 
         logger.debug("creating single service..")
         fuel_service = FuelService(operator=operator, quantity=quantity)
-        rp = self.airport.getRamp(ramp)
-        fuel_service.setRamp(rp)
+        rampval = self.airport.getRamp(ramp)
+        fuel_service.setRamp(rampval)
         fuel_service.setAircraftType(actype)
         fuel_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=fuel_service, model=vehicle_model)
         fuel_vehicle.setICAO24(vehicle_icao24)
-        sp = self.airport.selectRandomServiceDepot("fuel")
-        fuel_vehicle.setPosition(sp)
-        np = self.airport.selectRandomServiceDepot("fuel")
-        fuel_service.setNextPosition(np)
+        startpos = self.airport.selectRandomServiceDepot("fuel")
+        fuel_vehicle.setPosition(startpos)
+        nextpos = self.airport.selectRandomServiceDepot("fuel")
+        fuel_service.setNextPosition(nextpos)
 
         logger.debug(".. moving ..")
-        fsm = ServiceMove(fuel_service, self.airport)
-        fsm.move()
-        fsm.save()
+        move = ServiceMove(fuel_service, self.airport)
+        move.move()
+        move.save()
         logger.debug(".. emission positions ..")
-        se = Emit(fsm)
-        se.emit()
-        se.save()
+        emit = Emit(move)
+        emit.emit()
+        emit.save()
+        emit.saveDB()
         logger.debug(".. scheduling broadcast ..")
-        logger.debug(se.getMarkList())
+        logger.debug(emit.getMarkList())
         service_duration = fuel_service.serviceDuration()
-        se.pause(SERVICE_PHASE.SERVICE_START.value, service_duration)
+        emit.pause(SERVICE_PHASE.SERVICE_START.value, service_duration)
         logger.debug(f".. service duration {service_duration} ..")
-        se.schedule(SERVICE_PHASE.SERVICE_START.value, datetime.fromisoformat(scheduled))
+        # default is to serve at scheduled time
+        emit.schedule(SERVICE_PHASE.SERVICE_START.value, datetime.fromisoformat(scheduled))
         logger.debug(".. broadcasting position ..")
-        broadcast = BroadcastToFile(se, datetime.fromisoformat(scheduled), LiveTraffic)
-        broadcast.run()
+        formatted = FormatToRedis(emit, LiveTraffic)
+        formatted.run()
+        formatted.save()
+        formatted.enqueue(REDIS_QUEUE.ADSB.value)
         logger.debug("..done")
         return {
             "errno": 0,
             "errmsg": "completed successfully",
-            "data": len(broadcast.broadcast)
+            "data": len(emit._emit)
         }
 
 
@@ -200,10 +204,10 @@ class EmitApp:
         emit.schedule(sync, datetime.fromisoformat(scheduled))
 
         logger.debug("..broadcasting positions..")
-        start = datetime.fromisoformat(scheduled) - timedelta(seconds=emit.offset)
-        broadcast = BroadcastToFile(emit, start, ADSB)
-        broadcast.run()
-        broadcast.saveDB()
+        formatted = FormatToRedis(emit, LiveTraffic)
+        formatted.run()
+        formatted.save()
+        formatted.enqueue(REDIS_QUEUE.ADSB.value)
         logger.debug("..done.")
 
         return {

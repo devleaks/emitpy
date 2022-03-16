@@ -1,4 +1,4 @@
-from emitapp import EmitApp
+from entity.emitapp import EmitApp
 
 from entity.parameters import MANAGED_AIRPORT
 

@@ -7,7 +7,7 @@ import json
 from ..constants import FEATPROP
 from ..airport import Airport
 
-from .broadcast import Formatter
+from .format import Formatter
 
 logger = logging.getLogger("LiveTraffic")
 
