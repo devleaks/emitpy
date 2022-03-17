@@ -80,50 +80,50 @@ class Broadcaster:
             else:
                 logger.debug(f":trim: ignoring '{msg}'")
 
-    def run(self):
-        # "Sender"
-        logger.debug(f":run: pre-start trimming..")
-        self._do_trim()
-        logger.debug(f":run: ..done")
-        logger.debug(f":run: starting trimming thread..")
-        self.rdv = threading.Event()
-        self.trim = threading.Thread(target=self.trim)
-        self.trim.start()
-        logger.debug(f":run: ..done")
+    # def run(self):
+    #     # "Sender"
+    #     logger.debug(f":run: pre-start trimming..")
+    #     self._do_trim()
+    #     logger.debug(f":run: ..done")
+    #     logger.debug(f":run: starting trimming thread..")
+    #     self.rdv = threading.Event()
+    #     self.trim = threading.Thread(target=self.trim)
+    #     self.trim.start()
+    #     logger.debug(f":run: ..done")
 
-        while True:
-            nextval = self.redis.zpopmin(self.name)
-            numval = self.redis.zcard(self.name)
-            logger.debug(f":run: read {len(nextval)} items, {numval} items left in {self.name} queue")
-            # logger.debug(f":run: read {nextval}")
-            now = self.now()
-            logger.debug(f":run: it is now {df(now)}")
-            if len(nextval) > 0:
-                for nv in nextval:
-                    wt = (nv[1] - now) / self.speed
-                    if wt > 0:
-                        logger.debug(f":run: need to send at {df(nv[1])}, waiting {td(wt)}")
-                        if not self.rdv.wait(timeout=wt):  # we timed out
-                            logger.debug(f":run: sending..")
-                            logger.debug(nv[0].decode('UTF-8'))
-                            logger.debug(f":run: ..done")
-                        else:  # we were instructed to not send
-                            # put item back in queue
-                            logger.debug(f":run: need trimming, push back on queue..")
-                            self.redis.zadd(self.name, nextval)
-                            # this is not 100% correct: Some event of nextval array may have already be sent
-                            # done. ok to trim
-                            logger.debug(f":run: ok to trim..")
-                            self.oktotrim.set()
-                            # wait trimming completed
-                            self.trimmingcompleted = threading.Event()
-                            logger.debug(f":run: waiting trim completes..")
-                            self.trimmingcompleted.wait()
-                            logger.debug(f":run: done")
-                    else:
-                        logger.debug(f":run: should have sent at {df(nv[1])} ({td(wt)})")
-                        logger.debug(f":run: did not send {nv[0].decode('UTF-8')}")
-        self.trim.join()
+    #     while True:
+    #         nextval = self.redis.zpopmin(self.name)
+    #         numval = self.redis.zcard(self.name)
+    #         logger.debug(f":run: read {len(nextval)} items, {numval} items left in {self.name} queue")
+    #         # logger.debug(f":run: read {nextval}")
+    #         now = self.now()
+    #         logger.debug(f":run: it is now {df(now)}")
+    #         if len(nextval) > 0:
+    #             for nv in nextval:
+    #                 wt = (nv[1] - now) / self.speed
+    #                 if wt > 0:
+    #                     logger.debug(f":run: need to send at {df(nv[1])}, waiting {td(wt)}")
+    #                     if not self.rdv.wait(timeout=wt):  # we timed out
+    #                         logger.debug(f":run: sending..")
+    #                         self.redis.publish(self.name, nv[0].decode('UTF-8'))
+    #                         logger.debug(f":run: ..done")
+    #                     else:  # we were instructed to not send
+    #                         # put item back in queue
+    #                         logger.debug(f":run: need trimming, push back on queue..")
+    #                         self.redis.zadd(self.name, nextval)
+    #                         # this is not 100% correct: Some event of nextval array may have already be sent
+    #                         # done. ok to trim
+    #                         logger.debug(f":run: ok to trim..")
+    #                         self.oktotrim.set()
+    #                         # wait trimming completed
+    #                         self.trimmingcompleted = threading.Event()
+    #                         logger.debug(f":run: waiting trim completes..")
+    #                         self.trimmingcompleted.wait()
+    #                         logger.debug(f":run: done")
+    #                 else:
+    #                     logger.debug(f":run: should have sent at {df(nv[1])} ({td(wt)})")
+    #                     logger.debug(f":run: did not send {nv[0].decode('UTF-8')}")
+    #     self.trim.join()
 
 
     def brun(self):
@@ -150,7 +150,7 @@ class Broadcaster:
                     logger.debug(f":run: need to send at {df(nv[2])}, waiting {td(wt)}")
                     if not self.rdv.wait(timeout=wt):  # we timed out
                         logger.debug(f":run: sending..")
-                        logger.debug(nv[1].decode('UTF-8'))
+                        self.redis.publish(self.name, nv[1].decode('UTF-8'))
                         logger.debug(f":run: ..done")
                     else:  # we were instructed to not send
                         # put item back in queue

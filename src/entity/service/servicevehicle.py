@@ -146,10 +146,11 @@ class FuelVehicle(ServiceVehicle):
         if model == "tanker-medium":
             self.max_capacity = 15
             self.flow = 0.7
-        self.setup_time = 8
+        self.flow = self.flow / 60  # in seconds
+        self.setup_time = 5 * 60    # in seconds
 
     def service_duration(self, quantity: float):
-        return self.setup_time + quantity / self.flow  # minutes
+        return (2 * self.setup_time )+ quantity / self.flow  # minutes
 
 
     def refill(self):
