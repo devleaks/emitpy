@@ -16,7 +16,7 @@ class FormatToRedis(Format):
     def __init__(self, emit: "Emit", formatter: Formatter):
         Format.__init__(self, emit=emit, formatter=formatter)
         self.redis = redis.Redis()
-        # self.pubsub = self.redis.pubsub()
+
 
     def save(self, overwrite: bool = False):
         """
@@ -36,8 +36,9 @@ class FormatToRedis(Format):
         for f in self.output:
             tosave.append(str(f))
         self.redis.sadd(ident, *tosave)
-        logger.debug(f":save: key {ident} saved {len(tosave)}")
+        logger.debug(f":save: key {ident} saved {len(tosave)} entries")
         return (True, "FormatToRedis::save completed")
+
 
     def enqueue(self, name: str):
         """
@@ -50,17 +51,14 @@ class FormatToRedis(Format):
         if oldvalues and len(oldvalues) > 0:
             self.redis.zrem(name, *oldvalues)
             self.redis.delete(ident)
-            logger.debug(f":enqueue: removed {len(oldvalues)} old values")
+            logger.debug(f":enqueue: removed {len(oldvalues)} old entries")
 
         emit = {}
         for f in self.output:
-            # k = str(f)
-            # if k in emit:
-            #     print(">>> already in ", len(emit), k)
             emit[str(f)] = f.ts
         self.redis.zadd(name, emit)
         self.redis.sadd(ident, *list(emit.keys()))
-        logger.debug(f":enqueue: added {len(emit)} new values")
+        logger.debug(f":enqueue: added {len(emit)} new entries")
         self.redis.publish("Q"+name, "new-data")
 
         return (True, "FormatToRedis::enqueue completed")

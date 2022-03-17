@@ -476,6 +476,19 @@ class XPAirport(AirportBase):
     def getServicePOI(self, name: str):
         return self.service_pois[name] if name in self.service_pois.keys() else None
 
+    # @todo: Add a "closest POI" version for each of those, given the current position, of course:
+    def selectServicePOI(self, name: str, service: str):
+        ret = self.service_pois[name] if name in self.service_pois.keys() else None
+        if ret is not None:
+            logger.debug(f":selectServicePOI: found {name}")
+            return ret
+        if name == POI_TYPE.DEPOT.value:  # keyword for any depot for service
+            logger.debug(f":selectServicePOI: trying generic depot")
+            return self.selectRandomServiceDepot(service)
+        if name in [POI_TYPE.REST_AREA.value, "rest", "parking"]:  # keyword for any rest area/parking for service
+            logger.debug(f":selectServicePOI: trying generic rest area")
+            return self.selectRandomServiceRestArea(service)
+
     def getDepots(self, service_name: str):
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOIs(service_name)))
 

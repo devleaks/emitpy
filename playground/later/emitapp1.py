@@ -3,10 +3,11 @@ import json
 
 from datetime import datetime, timedelta
 
-from entity.managedairport import ManagedAirport
+from entity.airspace import XPAirspace, Metar
 from entity.business import Airline, Company
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
+from entity.airport import Airport, AirportBase, XPAirport
 from entity.service import FuelService, ServiceMove
 from entity.emit import Emit, ReEmit,ADSB, LiveTraffic, Format, FormatToRedis
 from entity.business import AirportManager
@@ -17,24 +18,65 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("EmitApp")
 
 
-class ErrorInfo:
+class EmitApp:
 
-    def __init__(self, errno: int, errmsg: str, data):
-        self.ei = {
-            "errno": errno,
-            "errmsg": errmsg,
-            "data": data
-        }
-
-    def __str__(self):
-        return json.dumps(self.ei)
-
-
-class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
-        ManagedAirport.__init__(self, airport)
-        self.init()
+        self._this_airport = airport
+        self.airport = None
+
+        airspace = XPAirspace()
+        logger.debug("loading airspace..")
+        airspace.load()
+        logger.debug("..done")
+
+        logger.debug("loading airport..")
+        Airport.loadAll()
+        logger.debug("..done")
+
+        logger.debug("loading airlines..")
+        Airline.loadAll()
+        logger.debug("..done")
+
+        logger.debug("loading aircrafts..")
+        AircraftType.loadAll()
+        AircraftPerformance.loadAll()
+        logger.debug("..done")
+
+        logger.debug("loading managed airport..")
+
+        logger.debug("..loading airport manager..")
+        manager = AirportManager(icao=self._this_airport["ICAO"])
+        manager.load()
+
+        logger.debug("..loading managed airport..")
+        self.airport = XPAirport(
+            icao=airport["ICAO"],
+            iata=airport["IATA"],
+            name=airport["name"],
+            city=airport["city"],
+            country=airport["country"],
+            region=airport["regionName"],
+            lat=airport["lat"],
+            lon=airport["lon"],
+            alt=airport["elevation"])
+        ret = self.airport.load()
+        if not ret[0]:
+            print("Managed airport not loaded")
+
+        self.airport.setAirspace(airspace)
+        self.airport.setManager(manager)
+        logger.debug("..done")
+
+        self.update_metar()
+
+
+    def update_metar(self):
+        logger.debug("collecting METAR..")
+        # Prepare airport for each movement
+        metar = Metar(icao=self._this_airport["ICAO"])
+        self.airport.setMETAR(metar=metar)  # calls prepareRunways()
+        logger.debug("..done")
 
 
     def do_service(self, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
@@ -52,9 +94,9 @@ class EmitApp(ManagedAirport):
         fuel_service.setAircraftType(actype)
         fuel_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=fuel_service, model=vehicle_model)
         fuel_vehicle.setICAO24(vehicle_icao24)
-        startpos = self.airport.selectServicePOI(vehicle_startpos, "fuel")
+        startpos = self.airport.selectRandomServiceDepot("fuel")
         fuel_vehicle.setPosition(startpos)
-        nextpos = self.airport.selectServicePOI(vehicle_endpos, "fuel")
+        nextpos = self.airport.selectRandomServiceDepot("fuel")
         fuel_service.setNextPosition(nextpos)
 
         logger.debug(".. moving ..")
@@ -187,7 +229,7 @@ class EmitApp(ManagedAirport):
         logger.debug("..broadcasting positions..")
         formatted = FormatToRedis(emit, LiveTraffic)
         formatted.run()
-        formatted.save(overwrite=True)
+        formatted.save()
         formatted.enqueue(REDIS_QUEUE.ADSB.value)
         logger.debug("..done.")
 
