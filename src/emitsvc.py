@@ -1,9 +1,9 @@
 from entity.emitapp import EmitApp
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from entity.parameters import MANAGED_AIRPORT
 
 e = EmitApp(MANAGED_AIRPORT)
 
-ret = e.do_service("MATAR", "Fuel", 24, "510", "A321", "FUE51", "aabbcc", "pump", "depot", "depot", datetime.now().isoformat(timespec="seconds"))
+ret = e.do_service("MATAR", "Fuel", 24, "A7", "A321", "FUE51", "aabbcc", "pump", "depot", "depot", (datetime.now() + timedelta(seconds=10)).isoformat(timespec="seconds"))
 print(ret)

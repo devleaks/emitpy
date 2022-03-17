@@ -180,6 +180,7 @@ class Emit:
             e.setProp(FEATPROP.EMIT_REL_TIME.value, time)
             e.setProp(FEATPROP.EMIT_INDEX.value, len(self._emit))
             e.setProp(FEATPROP.BROADCAST.value, not waypt)
+            e.setProp(FEATPROP.EMIT_REASON.value, reason)
             if waypt:
                 e.setColor("#eeeeee")
                 # logger.debug(f":emit:emit_point:waypoint: {reason} i={idx} t={time} ({timedelta(seconds=time)}) s={e.speed()}")
@@ -189,29 +190,30 @@ class Emit:
             self._emit.append(e)
             # logger.debug(f":emit:emit_point: dist2nvtx={round(distance(e, self.moves[idx+1])*1000,1)} i={idx} e={len(self._emit)}")
 
-        def pauseAtVertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason, waypt=False):
+        def pause_at_vertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason, waypt=False):
+            logger.debug(f":pause_at_vertex: pause  i={idx} p={pause}, e={len(self._emit)}")
             if pause < self.frequency:  # may be emit before reaching next vertex:
                 if pause > time_to_next_emit:  # neet to emit before we reach next vertex
                     emit_time = curr_time + time_to_next_emit
-                    emit_point(idx, pos, time, reason, waypt)
+                    emit_point(idx, pos, emit_time, reason, False)
                     end_time = curr_time + pause
                     time_left = self.frequency - pause - time_to_next_emit
-                    logger.debug(f":pauseAtVertex: pause before next emit: emit at vertex i={idx} p={pause}, e={len(self._emit)}")
+                    # logger.debug(f":pause_at_vertex: pause before next emit: emit at vertex i={idx} p={pause}, e={len(self._emit)}")
                     return (end_time, time_left)
                 else:  # pause but carry on later
                     end_time = curr_time + pause
                     time_left = time_to_next_emit - pause
-                    logger.debug(f":pauseAtVertex: pause but do not emit: no emission i={idx} p={pause}, e={len(self._emit)}")
+                    # logger.debug(f":pause_at_vertex: pause but do not emit: no emission i={idx} p={pause}, e={len(self._emit)}")
                     return (end_time, time_left)
             else:
                 emit_time = curr_time + time_to_next_emit
-                emit_point(idx, pos, time, reason, waypt)
+                emit_point(idx, pos, emit_time, reason, False)
                 pause_remaining = pause - time_to_next_emit
-                logger.debug(f":pauseAtVertex: pause at time remaining: {pause_remaining}")
+                # logger.debug(f":pause_at_vertex: pause at time remaining: {pause_remaining}")
                 while pause_remaining > 0:
                     emit_time = emit_time + self.frequency
-                    emit_point(idx, pos, time, reason, waypt)
-                    logger.debug(f":pauseAtVertex: more pause: {pause_remaining}")
+                    emit_point(idx, pos, emit_time, reason, False)
+                    # logger.debug(f":pause_at_vertex: more pause: {pause_remaining}")
                     pause_remaining = pause_remaining - self.frequency
                 time_left = pause_remaining + self.frequency
                 return (emit_time, time_left)
@@ -269,7 +271,8 @@ class Emit:
                 time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
                 pause = currpos.getProp(FEATPROP.PAUSE.value)
                 if pause is not None and pause > 0:
-                    total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
+                    total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
+                    logger.debug(f":emit: .. done pausing at vertex. {time_to_next_emit} sec left before next emit")
                 # logger.debug(f"..done moving to next vertex with time remaining before next emit. {time_to_next_emit} sec left before next emit, moving to next vertex")
 
             else:
@@ -302,7 +305,8 @@ class Emit:
                     time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
                     pause = currpos.getProp(FEATPROP.PAUSE.value)
                     if pause is not None and pause > 0:
-                        total_time, time_to_next_emit = pauseAtVertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self._emit)}", True)
+                        total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self._emit)}", True)
+                        logger.debug(f":emit: .. done pausing at vertex. {time_to_next_emit} sec left before next emit")
                     # logger.debug(f".. done jumping to next vertex. {time_to_next_emit} sec left before next emit")
 
             controld = distance(self.moves[curridx], next_vtx) * 1000  # km

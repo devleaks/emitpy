@@ -9,7 +9,7 @@ from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from entity.airport import Airport, AirportBase, XPAirport
 from entity.service import FuelService, ServiceMove
-from entity.emit import Emit, ADSB, LiveTraffic, Format, FormatToRedis
+from entity.emit import Emit, ReEmit,ADSB, LiveTraffic, Format, FormatToRedis
 from entity.business import AirportManager
 from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE
 from entity.utils import NAUTICAL_MILE
@@ -106,19 +106,24 @@ class EmitApp:
         logger.debug(".. emission positions ..")
         emit = Emit(move)
         emit.emit()
-        emit.save()
-        emit.saveDB()
-        logger.debug(".. scheduling broadcast ..")
+
         logger.debug(emit.getMarkList())
         service_duration = fuel_service.serviceDuration()
-        emit.pause(SERVICE_PHASE.SERVICE_START.value, service_duration)
         logger.debug(f".. service duration {service_duration} ..")
+        emit.addToPause(SERVICE_PHASE.SERVICE_START.value, service_duration)
+        # will trigger new call to emit.emit() to adjust
+
+        logger.debug(".. scheduling broadcast ..")
         # default is to serve at scheduled time
+        logger.debug(f".. {SERVICE_PHASE.SERVICE_START.value} at {scheduled} ..")
         emit.schedule(SERVICE_PHASE.SERVICE_START.value, datetime.fromisoformat(scheduled))
+        emit.save()
+        emit.saveDB()
+
         logger.debug(".. broadcasting position ..")
         formatted = FormatToRedis(emit, LiveTraffic)
         formatted.run()
-        formatted.save()
+        formatted.save(overwrite=True)
         formatted.enqueue(REDIS_QUEUE.ADSB.value)
         logger.debug("..done")
         return {
@@ -215,3 +220,23 @@ class EmitApp:
             "errmsg": "completed successfully",
             "data": len(emit._emit)
         }
+
+
+    def do_schedule(self, ident, sync, scheduled):
+        emit = ReEmit(ident)
+        emit.schedule(sync, datetime.fromisoformat(scheduled))
+
+        logger.debug("..broadcasting positions..")
+        formatted = FormatToRedis(emit, LiveTraffic)
+        formatted.run()
+        formatted.save()
+        formatted.enqueue(REDIS_QUEUE.ADSB.value)
+        logger.debug("..done.")
+
+        return {
+            "errno": 0,
+            "errmsg": "completed successfully",
+            "data": len(emit._emit)
+        }
+
+

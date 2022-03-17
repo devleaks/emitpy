@@ -295,6 +295,7 @@ class FEATPROP(Enum):
     STOP_TIME = "stop-time"
     BROADCAST = "broadcast"
     EMIT_INDEX = "emit-index"
+    EMIT_REASON = "emit-reason"
     EMIT_REL_TIME = "emit_relative_time"
     EMIT_ABS_TIME = "emit_absolute_time"
 
