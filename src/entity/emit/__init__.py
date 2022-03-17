@@ -1,5 +1,5 @@
-from .emit import Emit
 from .reemit import ReEmit
+from .emit import Emit
 from .format import Formatter, Format
 from .formattoredis import FormatToRedis
 # Formatters
