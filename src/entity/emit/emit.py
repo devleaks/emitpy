@@ -195,7 +195,7 @@ class Emit:
             if pause < self.frequency:  # may be emit before reaching next vertex:
                 if pause > time_to_next_emit:  # neet to emit before we reach next vertex
                     emit_time = curr_time + time_to_next_emit
-                    emit_point(idx, pos, emit_time, reason, False)
+                    emit_point(idx, pos, emit_time, reason, False) # to emit
                     end_time = curr_time + pause
                     time_left = self.frequency - pause - time_to_next_emit
                     # logger.debug(f":pause_at_vertex: pause before next emit: emit at vertex i={idx} p={pause}, e={len(self._emit)}")
