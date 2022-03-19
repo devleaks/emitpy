@@ -1,6 +1,6 @@
-"""
+""
 
-"""
+""
 import os
 import csv
 import json
@@ -49,8 +49,8 @@ class ACPERF:
 
 
 class AircraftType(Identity):
-    """
-    """
+    ""
+    ""
 
     _DB = {}
 
@@ -59,13 +59,13 @@ class AircraftType(Identity):
 
     @staticmethod
     def loadAll():
-        """
+        ""
         "Date Completed","Manufacturer","Model","Physical Class (Engine)","# Engines","AAC","ADG","TDG",
         "Approach Speed (Vref)","Wingtip Configuration","Wingspan- ft","Length- ft","Tail Height- ft(@ OEW)",
         "Wheelbase- ft","Cockpit to Main Gear (CMG)","MGW (Outer to Outer)","MTOW","Max Ramp Max Taxi",
         "Main Gear Config","ICAO Code","Wake Category","ATCT Weight Class","Years Manufactured",
         "Note","Parking Area (WS x Length)- sf"
-        """
+        ""
         filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "aircraft-types.csv")
         file = open(filename, "r")
         csvdata = csv.DictReader(file)
@@ -89,8 +89,8 @@ class AircraftType(Identity):
         }
 
 class AircraftPerformance(AircraftType):
-    """
-    """
+    ""
+    ""
     _DB_PERF = {}
 
     def __init__(self, orgId: str, classId: str, typeId: str, name: str):
@@ -106,13 +106,6 @@ class AircraftPerformance(AircraftType):
 
     @staticmethod
     def loadAll():
-        """
-        "Date Completed","Manufacturer","Model","Physical Class (Engine)","# Engines","AAC","ADG","TDG",
-        "Approach Speed (Vref)","Wingtip Configuration","Wingspan- ft","Length- ft","Tail Height- ft(@ OEW)",
-        "Wheelbase- ft","Cockpit to Main Gear (CMG)","MGW (Outer to Outer)","MTOW","Max Ramp Max Taxi",
-        "Main Gear Config","ICAO Code","Wake Category","ATCT Weight Class","Years Manufactured",
-        "Note","Parking Area (WS x Length)- sf"
-        """
         filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "aircraft-performances.json")
         file = open(filename, "r")
         jsondata = json.load(file)
@@ -131,6 +124,7 @@ class AircraftPerformance(AircraftType):
         file.close()
         cnt = len(list(filter(lambda a: a.available, AircraftPerformance._DB_PERF.values())))
         logger.debug(f":loadAll: loaded {len(AircraftPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
+        logger.debug(f":loadAll: {list(map(lambda f: (f.typeId, f.getIata()), AircraftPerformance._DB_PERF.values()))}")
 
 
     @staticmethod
@@ -160,6 +154,32 @@ class AircraftPerformance(AircraftType):
     def getCombo():
         a = [(a.typeId, a.display_name) for a in sorted(AircraftPerformance._DB_PERF.values(), key=operator.attrgetter('display_name'))]
         return a
+
+    @staticmethod
+    def getEquivalence(ac):
+        ac_equiv = {
+            "351": "A359",
+            "B777": "B777",
+            "A320": "A320",
+            "B777": "B77L",
+            "A350": "A359",
+            "A330": "A332",
+            "B787": "B788",
+            "A320": "A320",
+            "A380": "A388",
+            "A340": "A340",
+            "A330": "A333",
+            "A320": "A321",
+            "A320": "A319",
+            "B737": "B737",
+            "32N": "32N"
+        }
+        return ac_equiv[ac] if ac in ac_equiv.keys() else ac
+
+
+    def getIata(self):
+        iata = self.perfraw["iata"] if "iata" in self.perfraw and self.perfraw["iata"] is not None else None
+        return str(iata).split("/") if iata else []
 
 
     def load(self):
