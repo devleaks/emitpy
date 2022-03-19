@@ -2,6 +2,7 @@
 A Service  is a maintenance operation performed on an aircraft during a turn-around.
 
 """
+import sys
 import logging
 import random
 from datetime import datetime
@@ -28,6 +29,17 @@ class Service:
         self.starttime = None
         self.next_position = None
         self.route = []
+
+    @staticmethod
+    def getService(service: str):
+        mod = sys.modules[__name__]
+        cn = service[0].upper() + service[1:].lower() + "Service"  # @todo: Hum.
+        if hasattr(mod, cn):
+            svc = getattr(sys.modules[__name__], cn)  # same module...
+            logger.debug(f":getService: returning {cn}")
+            return svc
+        logger.warning(f":getService: service {cn} not found")
+        return None
 
     def getId(self):
         r = self.ramp.getProp("name") if self.ramp is not None else "noramp"

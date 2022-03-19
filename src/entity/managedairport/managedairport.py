@@ -98,6 +98,10 @@ class ManagedAirport:
         keyname = self._this_airport["ICAO"]+"-airport"
         logger.debug(f":cacheToRedis: {keyname}..")
         _redis.set(keyname, pickle.dumps(self.airport))
+        _redis.set(keyname+"-airport-icao", pickle.dumps(Airport._DB))
+        _redis.set(keyname+"-airport-iata", pickle.dumps(Airport._DB_IATA))
+        _redis.set(keyname+"-actype-iata", pickle.dumps(AircraftType._DB))
+        _redis.set(keyname+"-actype-perf", pickle.dumps(AircraftPerformance._DB_PERF))
         logger.debug(":cacheToRedis: ..done")
         return (True, "ManagedAirport::cacheToRedis saved")
 

@@ -496,6 +496,7 @@ class XPAirport(AirportBase):
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOIs(service_name)))
 
     def selectRandomServiceDepot(self, service: str):
+        service = service.lower()
         l = self.getDepots(service)
         if len(l) == 0:
             logger.warning(f":selectRandomServiceDepot: no depot for { service }")
@@ -503,6 +504,7 @@ class XPAirport(AirportBase):
         return random.choice(l)
 
     def selectRandomServiceRestArea(self, service: str):
+        service = service.lower()
         l = self.getRestAreas(service)
         if len(l) == 0:
             logger.warning(f":selectRandomServiceRestArea: no rest area for { service }")

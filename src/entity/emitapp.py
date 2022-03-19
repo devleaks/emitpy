@@ -7,10 +7,12 @@ from entity.managedairport import ManagedAirport
 from entity.business import Airline, Company
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
-from entity.service import FuelService, ServiceMove
+from entity.service import Service, ServiceMove
 from entity.emit import Emit, ReEmit,ADSB, LiveTraffic, Format, FormatToRedis
 from entity.business import AirportManager
 from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE
+from entity.airport import Airport, AirportBase
+from entity.airspace import Metar
 from entity.utils import NAUTICAL_MILE
 
 logging.basicConfig(level=logging.DEBUG)
@@ -40,33 +42,65 @@ class EmitApp(ManagedAirport):
     def do_service(self, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         logger.debug("loading aircraft..")
         actype = AircraftPerformance.find(aircraft)
+        if actype is None:
+            return {
+                "errno": 510,
+                "errmsg": f"EmitApp:do_service: aircraft performance {aircraft} not found",
+                "data": None
+            }
         actype.load()
         logger.debug(f"..done {actype.available}")
 
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
 
         logger.debug("creating single service..")
-        fuel_service = FuelService(operator=operator, quantity=quantity)
+        this_service = Service.getService(service)(operator=operator, quantity=quantity)
         rampval = self.airport.getRamp(ramp)
-        fuel_service.setRamp(rampval)
-        fuel_service.setAircraftType(actype)
-        fuel_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=fuel_service, model=vehicle_model)
-        fuel_vehicle.setICAO24(vehicle_icao24)
-        startpos = self.airport.selectServicePOI(vehicle_startpos, "fuel")
-        fuel_vehicle.setPosition(startpos)
-        nextpos = self.airport.selectServicePOI(vehicle_endpos, "fuel")
-        fuel_service.setNextPosition(nextpos)
+        if rampval is None:
+            return {
+                "errno": 511,
+                "errmsg": f"EmitApp:do_service: ramp {ramp} not found",
+                "data": None
+            }
+        this_service.setRamp(rampval)
+        this_service.setAircraftType(actype)
+        this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, model=vehicle_model)
+        if this_vehicle is None:
+            return {
+                "errno": 512,
+                "errmsg": f"EmitApp:do_service: vehicle not found",
+                "data": None
+            }
+        this_vehicle.setICAO24(vehicle_icao24)
+        startpos = self.airport.selectServicePOI(vehicle_startpos, service)
+        if startpos is None:
+            return {
+                "errno": 513,
+                "errmsg": f"EmitApp:do_service: start position {vehicle_startpos} for {service} not found",
+                "data": None
+            }
+        this_vehicle.setPosition(startpos)
+        nextpos = self.airport.selectServicePOI(vehicle_endpos, service)
+        if nextpos is None:
+            return {
+                "errno": 513,
+                "errmsg": f"EmitApp:do_service: start position {vehicle_endpos} for {service} not found",
+                "data": None
+            }
+        this_service.setNextPosition(nextpos)
 
         logger.debug(".. moving ..")
-        move = ServiceMove(fuel_service, self.airport)
+        move = ServiceMove(this_service, self.airport)
         move.move()
         move.save()
+
         logger.debug(".. emission positions ..")
         emit = Emit(move)
         emit.emit()
 
         logger.debug(emit.getMarkList())
-        service_duration = fuel_service.serviceDuration()
+        service_duration = this_service.serviceDuration()
+
         logger.debug(f".. service duration {service_duration} ..")
         emit.addToPause(SERVICE_PHASE.SERVICE_START.value, service_duration)
         # will trigger new call to emit.emit() to adjust
@@ -83,7 +117,9 @@ class EmitApp(ManagedAirport):
         formatted.run()
         formatted.save(overwrite=True)
         formatted.enqueue(REDIS_QUEUE.ADSB.value)
+
         logger.debug("..done")
+
         return {
             "errno": 0,
             "errmsg": "completed successfully",
