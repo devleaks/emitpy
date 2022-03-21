@@ -223,7 +223,7 @@ class Fix(ControlledPoint):
 #
 class Apt(ControlledPoint):
     """
-    This airport is a ControlledPoint airport.
+    This airport is a ControlledPoint airport. Should may be renamed Terminal?
     """
     def __init__(self, name: str, lat: float, lon: float, alt: int, iata: str, longname: str, country: str, city: str):
         ControlledPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)

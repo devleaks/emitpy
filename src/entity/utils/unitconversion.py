@@ -191,3 +191,7 @@ def machToKmh(mach: float, altitude: int = 30000):
     c = convertMach(mach, altitude)
     return c[0]
 
+# name = 'CamelCaseName'
+# name = re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
+# print(name)  # camel_case_name
+

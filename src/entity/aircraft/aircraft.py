@@ -53,9 +53,11 @@ class AircraftType(Identity):
     ""
 
     _DB = {}
+    _DB_EQUIVALENCE = {}
 
-    def __init__(self, orgId: str, classId: str, typeId: str, name: str):
+    def __init__(self, orgId: str, classId: str, typeId: str, name: str, data = None):
         Identity.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name)
+        self.rawdata = data
 
     @staticmethod
     def loadAll():
@@ -71,9 +73,18 @@ class AircraftType(Identity):
         csvdata = csv.DictReader(file)
         for row in csvdata:
             if row["ICAO Code"] != "tbd":
-                AircraftType._DB[row["ICAO Code"]] = AircraftType(orgId=row["Manufacturer"], classId=row["Wake Category"], typeId=row["ICAO Code"], name=row["Model"])
+                if row["ICAO Code"] == 'A321':
+                    print(">>>", row)
+                AircraftType._DB[row["ICAO Code"]] = AircraftType(orgId=row["Manufacturer"], classId=row["Wake Category"], typeId=row["ICAO Code"], name=row["Model"], data=row)
         file.close()
         logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft types")
+
+        # Aircraft equivalence patch(!)
+        filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "aircraft-equivalence.yaml")
+        with open(filename, "r") as file:
+            data = yaml.safe_load(file)
+        AircraftType._DB_EQUIVALENCE = data
+        logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft equivalences")
 
 
     @staticmethod
@@ -88,16 +99,26 @@ class AircraftType(Identity):
             "acmodel": self.name
         }
 
+    def getProp(self, name):
+        if self.rawdata:
+            if name == "wingspan" and "Wingspan- ft" in self.rawdata:
+                return float(self.rawdata["Wingspan- ft"]) / FT
+            if name == "length" and "Length- ft" in self.rawdata:
+                return float(self.rawdata["Length- ft"]) / FT
+            return self.rawdata[name] if name in self.rawdata else None
+        logger.warning(f":getProp: AircraftType {self.typeId} no raw data")
+        return None
+
 class AircraftPerformance(AircraftType):
     ""
     ""
     _DB_PERF = {}
 
-    def __init__(self, orgId: str, classId: str, typeId: str, name: str):
-        AircraftType.__init__(self, orgId, classId, typeId, name)
+    def __init__(self, orgId: str, classId: str, typeId: str, name: str, data = None):
+        AircraftType.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name, data=data)
         self.perfraw = None
-        self.gseraw = None
-        self.tarraw = None
+        self.gseprofile = None  # relative position of ground vehicle around the aircraft
+        self.tarprofile = None  # relative scheduled time of services
         self.display_name = None
 
         self.perfdata = None  # computed
@@ -112,7 +133,7 @@ class AircraftPerformance(AircraftType):
         for ac in jsondata.keys():
             actype = AircraftType.find(ac)
             if actype is not None:
-                acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name)
+                acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name, actype.rawdata)
                 acperf.display_name = acperf.orgId + " " + acperf.name
                 acperf.perfraw = jsondata[ac]
                 acperf.setAvailability()
@@ -157,24 +178,11 @@ class AircraftPerformance(AircraftType):
 
     @staticmethod
     def getEquivalence(ac):
-        ac_equiv = {
-            "351": "A359",
-            "B777": "B777",
-            "A320": "A320",
-            "B777": "B77L",
-            "A350": "A359",
-            "A330": "A332",
-            "B787": "B788",
-            "A320": "A320",
-            "A380": "A388",
-            "A340": "A340",
-            "A330": "A333",
-            "A320": "A321",
-            "A320": "A319",
-            "B737": "B737",
-            "32N": "32N"
-        }
-        return ac_equiv[ac] if ac in ac_equiv.keys() else ac
+        # B777 ~ ["777", "B77L", "77L"...]
+        for k, v in AircraftType._DB_EQUIVALENCE.items():
+            if ac in v:
+                return k
+        return ac
 
 
     def getIata(self):
@@ -280,10 +288,10 @@ class AircraftPerformance(AircraftType):
 
 
     def loadTurnaroundProfile(self):
-        if self.tarraw is None:
+        if self.tarprofile is None:
             data = self.loadFromFile("-tarpro.yaml")
             if data is not None:
-                self.tarraw = data
+                self.tarprofile = data
             else:
                 logger.warning(f":loadTurnaroundProfile: no turnaround profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadTurnaroundProfile: not implemented"]
@@ -292,7 +300,7 @@ class AircraftPerformance(AircraftType):
     def loadGSEProfile(self):
         data = self.loadFromFile("-gsepro.yaml")
         if data is not None:
-            self.gseraw = data
+            self.gseprofile = data
         else:
             logger.warning(f":loadGSEProfile: no GSE profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadGSEProfile: not implemented"]

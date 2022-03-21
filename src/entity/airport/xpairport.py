@@ -476,7 +476,6 @@ class XPAirport(AirportBase):
     def getServicePOI(self, name: str):
         return self.service_pois[name] if name in self.service_pois.keys() else None
 
-    # @todo: Add a "closest POI" version for each of those, given the current position, of course:
     def selectServicePOI(self, name: str, service: str):
         ret = self.service_pois[name] if name in self.service_pois.keys() else None
         if ret is not None:
@@ -489,11 +488,35 @@ class XPAirport(AirportBase):
             logger.debug(f":selectServicePOI: trying generic rest area")
             return self.selectRandomServiceRestArea(service)
 
+    def getClosestPOI(self, poi_list, position: Feature):
+        if len(poi_list) == 0:
+            logger.warning(f":getClosestPOI: no POI list for { service }")
+            return None
+        if len(poi_list) == 1:
+            logger.debug(f":getClosestPOI: {poi_list[0].getProp('name')} for { service }")
+            return poi_list[0]
+
+        closest = None
+        dist = inf
+        for p in poi_list:
+            d = distance(position, p)
+            if d < dist:
+                dist = d
+                closest = p
+        logger.debug(f":getClosestPOI: {closest.getProp('name')} for { service }")
+        return closest
+
     def getDepots(self, service_name: str):
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOIs(service_name)))
 
+    def getClosestDepot(self, service_name: str, position: Feature):
+        return self.getClosestPOI(self.getDepots(service_name), position)
+
     def getRestAreas(self, service_name: str):
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOIs(service_name)))
+
+    def getClosestRestArea(self, service_name: str, position: Feature):
+        return self.getClosestPOI(self.getRestAreas(service_name), position)
 
     def selectRandomServiceDepot(self, service: str):
         service = service.lower()

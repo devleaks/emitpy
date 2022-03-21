@@ -8,7 +8,7 @@ from entity.business import Airline, Company
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from entity.service import Service, ServiceMove
-from entity.emit import Emit, ReEmit,ADSB, LiveTraffic, Format, FormatToRedis
+from entity.emit import Emit, ReEmit, FormatToRedis, LiveTraffic, ADSB
 from entity.business import AirportManager
 from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE
 from entity.airport import Airport, AirportBase
@@ -234,3 +234,10 @@ class EmitApp(ManagedAirport):
         }
 
 
+    def do_delete(self, ident):
+        ret = FormatToRedis.delete(ident)
+        return {
+            "errno": 0 if ret[0] else 100,
+            "errmsg": "completed successfully" if ret[0] else "error (see data)",
+            "data": ret
+        }

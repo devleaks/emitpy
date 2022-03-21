@@ -62,6 +62,22 @@ class SERVICE(Enum):
     PUSHBACK = "pushback"
     WATER = "water"
     APU = "apu"
+    SEWAGE = "sewage"
+    STANDBY = "standby"
+
+class SERVICE_COLOR(Enum):
+    CLEANING = "#eeeeee"
+    CATERING = "#ffff66"
+    FUEL = "#FF66DD"
+    CARGO = "#330099"
+    ULD = "#9933FF"
+    BAGGAGE = "#009999"
+    MARSHALL = "#FFFF00"
+    PUSHBACK = "#FF3333"
+    WATER = "#0066FF"
+    APU = "#FFCC00"
+    SEWAGE = "#333300"
+    STANDBY = "#AAAAAA"
 
 
 ########################################
@@ -109,6 +125,7 @@ AIRCRAFT_TYPES = {  # Half width of taxiway in meters
     'F': 15     # 30m
 }
 
+AICRAFT_DEFAULT = "AIRBUS"  # alt: "BOEING"
 
 # X-Plane APT files keywords and constants
 #

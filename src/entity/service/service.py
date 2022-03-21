@@ -41,10 +41,12 @@ class Service:
         logger.warning(f":getService: service {cn} not found")
         return None
 
+
     def getId(self):
         r = self.ramp.getProp("name") if self.ramp is not None else "noramp"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
         return type(self).__name__ + "-" + v + "-" + r
+
 
     def getInfo(self):
         return {
@@ -54,6 +56,7 @@ class Service:
             "icao24": self.vehicle.icao24,
             "ident": self.vehicle.registration
         }
+
 
     def setTurnaround(self, turnaround: "Turnaround"):
         self.turnaround = turnaround

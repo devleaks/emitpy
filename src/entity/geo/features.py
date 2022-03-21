@@ -6,7 +6,7 @@ from geojson import Polygon, Point, Feature
 from geojson.geometry import Geometry
 from turfpy.measurement import bearing, destination
 from .utils import printFeatures
-from ..constants import FEATPROP, POI_TYPE, TAG_SEP
+from ..constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
 
 # from ..business.identity import Identity
 
@@ -254,33 +254,42 @@ class Ramp(FeatureWithProps):
     def getServicePOI(self, service):
         return self.service_pois[service] if service in self.service_pois else None
 
-    def makeServicePOIs(self, data):
+    def makeServicePOIs(self, aircraft):
         def sign(x):
             return -1 if x < 0 else (0 if x == 0 else 1)
 
-        OFFSET = 30
+        # Parking position (center) is about aircraft nose tip position.
+        self.setColor("#dddd00")
         heading = self.getProp("orientation")
-        # compute offset, origin is aircraft nose tip
-        origin = destination(self, OFFSET / 1000, heading, {"units": "km"})
-        forig = FeatureWithProps(geometry=origin["geometry"], properties=origin["properties"])
-        forig.setColor("#dd0000")
-        self.setColor("#00dd00")
+        antiheading = heading - 180
+        if antiheading < 0:
+            antiheading = antiheading + 360
+
+        aircraft_length = aircraft.get("length")
+        if aircraft_length is None:
+            aircraft_length = 50  # m
+
+        # compute parking end
+        parking_end = destination(self, aircraft_length / 1000, antiheading, {"units": "km"})
+        parking_end = FeatureWithProps(geometry=parking_end["geometry"], properties=parking_end["properties"])
+        parking_end.setColor("#dd0000")
         self.service_pois["center"] = self
-        self.service_pois["origin"] = forig
+        self.service_pois["end"] = parking_end
 
         # for each service
-        positions = data["services"]
+        # 1=dist along axis, 2=dist away from axis, left or right, 3=heading of vehicle
+        positions = aircraft.gseprofile["services"]
         for svc in positions:
-            poiax = destination(origin, positions[svc][0]/1000, heading - 180, {"units": "km"})
-            poilat = destination(poiax, positions[svc][1]/1000, heading + sign(positions[svc][1]) * 90, {"units": "km"})
+            poiaxe = destination(self,   positions[svc][0]/1000, antiheading, {"units": "km"})
+            poilat = destination(poiaxe, positions[svc][1]/1000, antiheading + 90, {"units": "km"})
             pos = FeatureWithProps(geometry=poilat["geometry"], properties=poilat["properties"])
             pos.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.RAMP_SERVICE_POINT.value)
             pos.setProp(FEATPROP.SERVICE.value, svc)
-            pos.setProp("heading", positions[svc][2])
+            pos.setColor(SERVICE_COLOR[svc.upper()].value)
+            pos.setProp("vehicle-heading", positions[svc][2])
             self.service_pois[svc] = pos
 
-        # printFeatures(list(self.service_pois.values()), "ramp position")
-
+        printFeatures(list(self.service_pois.values()), "ramp position")
         return (True, "Ramp::makeServicePOIs: created")
 
 
