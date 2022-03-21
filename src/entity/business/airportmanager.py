@@ -167,10 +167,14 @@ class AirportManager:
         vname = sty + ("%03d" % self.vehicle_number)
         if vname not in self.service_vehicles.keys():
             vcl = type(service).__name__.replace("Service", "Vehicle")
+            if model is not None:
+                model = model.replace("-", "_")  # now model is snake_case
+                mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
+                vcl = vcl + mdl
             logger.debug(f":selectServiceVehicle: creating {vcl} {vname}")
             servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="entity")
             if hasattr(servicevehicleclasses, vcl):
-                vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator, model=model)  ## getattr(sys.modules[__name__], str) if same module...
+                vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
             self.service_vehicles[vname] = vehicle
             if use:
                 logger.debug(f":selectServiceVehicle: using {vname}")

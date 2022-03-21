@@ -12,7 +12,7 @@ logger = logging.getLogger("ServiceVehicle")
 
 
 #####################################
-# SERVICE VEHICLET TYPES
+# SERVICE VEHICLE TYPES AND MODELS
 #
 #
 class ServiceVehicle(Identity):
@@ -20,14 +20,13 @@ class ServiceVehicle(Identity):
     A Service Vehicle Type is a type of vehicle used to perform a service or maintenance operation.
 
     """
-    def __init__(self, registration: str, operator: Company, model: str = None):
+    def __init__(self, registration: str, operator: Company):
         Identity.__init__(self, operator, "GSE", type(self).__name__, registration)
 
         self.registration = registration
         self.icao24 = None
         self.operator = operator
-        self.model = model
-
+        self.model = None
         self.position = None
 
         self.speed = {
@@ -110,44 +109,24 @@ class ServiceVehicle(Identity):
         return served
 
 
+# ########################
+# FUEL
+#
 class FuelVehicle(ServiceVehicle):
 
-    MODELS = ["pump", "tanker-large", "tanker-medium"]
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
 
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
-
-        self.flow = 1
-        SPEEDS = {
-            "pump": {
-                "slow": 5,
-                "normal": 30,
-                "fast": 50
-            },
-            "tanker-large": {
-                "slow": 3,
-                "normal": 25,
-                "fast": 40
-            },
-            "tanker-medium": {
-                "slow": 5,
-                "normal": 30,
-                "fast": 50
-            }
+        self.model = "ZZFA"
+        self.max_capacity = 30
+        self.flow = 1.0 / 60
+        self.speeds = {
+            "slow": 5,
+            "normal": 25,
+            "fast": 40
         }
-        if model in FuelVehicle.MODELS:
-            self.speeds = SPEEDS[model]
-        if model == "pump":
-            self.max_capacity = inf
-            self.flow = 0.9
-        if model == "tanker-large":
-            self.max_capacity = 30
-            self.flow = 0.8
-        if model == "tanker-medium":
-            self.max_capacity = 15
-            self.flow = 0.7
-        self.flow = self.flow / 60  # in seconds
         self.setup_time = 5 * 60    # in seconds
+
 
     def service_duration(self, quantity: float):
         return (2 * self.setup_time )+ quantity / self.flow  # minutes
@@ -157,41 +136,256 @@ class FuelVehicle(ServiceVehicle):
         if self.max_capacity != inf:   # untested what happens if one refills infinity
             super().refill()
 
+class FuelVehiclePump(FuelVehicle):
 
+    def __init__(self, registration: str, operator: Company):
+        FuelVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZFA"
+        self.max_capacity = inf
+        self.flow = 2.0 / 60
+        self.speeds = {
+            "slow": 5,
+            "normal": 30,
+            "fast": 60
+        }
+        self.setup_time = 5 * 60    # in seconds
+
+
+class FuelVehicleTankerLarge(FuelVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        FuelVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZFB"
+        self.max_capacity = 40
+        self.flow = 1.5 / 60
+        self.speeds = {
+            "slow": 5,
+            "normal": 20,
+            "fast": 40
+        }
+        self.setup_time = 5 * 60    # in seconds
+
+
+class FuelVehicleTankerMedium(FuelVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        FuelVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZFC"
+        self.max_capacity = 20
+        self.flow = 0.9 / 60
+        self.speeds = {
+            "slow": 5,
+            "normal": 20,
+            "fast": 50
+        }
+        self.setup_time = 4 * 60    # in seconds
+
+
+# ########################
+# CATERING
+#
 class CateringVehicle(ServiceVehicle):
 
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
-        self.setup_time = 8
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZCA"
+        self.setup_time = 4
         self.flow = 1/20
 
 
+# ########################
+# CLEANING
+#
 class CleaningVehicle(ServiceVehicle):
 
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZKA"
+        self.setup_time = 4
+        self.flow = 1/20
 
 
+# ########################
+# SEWAGE
+#
 class SewageVehicle(ServiceVehicle):
 
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZSA"
+        self.setup_time = 4
+        self.flow = 1/20
 
 
+# ########################
+# WATER
+#
 class WaterVehicle(ServiceVehicle):
 
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZWA"
+        self.setup_time = 4
+        self.flow = 1/20
 
 
+# ########################
+# CARGO
+#
 class ULDVehicle(ServiceVehicle):
 
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZUA"
+        self.setup_time = 4
+        self.flow = 1
 
 
+# ########################
+# BAGGAGE
+#
 class BaggageVehicle(ServiceVehicle):
 
-    def __init__(self, registration: str, operator: Company, model: str = None):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator,  model=model)
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZBA"
+        self.setup_time = 1
+        self.flow = 10
+
+class BaggageVehicleLoader(BaggageVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        FuelVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZBL"
+        self.max_capacity = inf
+        self.flow = 1
+        self.speeds = {
+            "slow": 5,
+            "normal": 30,
+            "fast": 50
+        }
+        self.setup_time = 2 * 60    # in seconds
+
+
+class BaggageVehicleTrain(BaggageVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        FuelVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZBT"
+        self.max_capacity = 50
+        self.flow = 10 / 60
+        self.speeds = {
+            "slow": 3,
+            "normal": 10,
+            "fast": 20
+        }
+        self.setup_time = 0    # in seconds
+
+
+class BaggageVehicleTrain2(BaggageVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        FuelVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZBU"
+        self.max_capacity = 100
+        self.flow = 10 / 60
+        self.speeds = {
+            "slow": 3,
+            "normal": 10,
+            "fast": 20
+        }
+        self.setup_time = 0    # in seconds
+
+
+# ########################
+# CREW (Cabin & Flight)
+#
+class CrewBus(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAK"
+        self.setup_time = 4
+        self.flow = 1
+
+
+class CrewLimousine(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAJ"
+        self.setup_time = 4
+        self.flow = 1
+
+
+# ########################
+# PASSENGERS (VIP to Economy)
+#
+class PassengerBus(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAB"
+        self.setup_time = 4
+        self.flow = 1
+
+
+class PassengerLimousine(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAL"
+        self.setup_time = 4
+        self.flow = 1
+
+
+# ########################
+# AIRCRAFT SUPPORT
+#
+class AircraftAPU(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAA"
+        self.setup_time = 4
+        self.flow = 1
+
+class AircraftACU(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAC"
+        self.setup_time = 4
+        self.flow = 1
+
+
+# ########################
+# AIPORT SUPPORT
+#
+class AirportSecurity(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAS"
+        self.setup_time = 4
+        self.flow = 1
+
+
+class AirportEmergency(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAE"
+        self.setup_time = 4
+        self.flow = 1
+
+
+class AirportFire(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAF"
+        self.setup_time = 4
+        self.flow = 1
+        # May create a few subtypes later...
 
