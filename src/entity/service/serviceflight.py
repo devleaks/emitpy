@@ -75,7 +75,6 @@ class ServiceFlight:
             })
             logger.debug(".. done")
 
-
         return (True, "Turnaround::run: completed")
 
 
@@ -98,3 +97,13 @@ class ServiceFlight:
             logger.debug(f"..done")
 
 
+    def schedule(self, scheduled: datetime):
+        # The scheduled date time recevied should be
+        # ONBLOCK time for arrival
+        # OFFBLOCK time for departure
+        for service in self.services:
+            logger.debug(f"scheduling {service['type']}..")
+            stime = scheduled + timedelta(minutes=service["scheduled"])  # nb: service["scheduled"] can be negative
+            service["emit"].serviceTime(SERVICE_PHASE.SERVICE_START.value, service["duration"] * 60)  # seconds
+            service["emit"].schedule(SERVICE_PHASE.SERVICE_START.value, stime)
+            logger.debug(f"..done")
