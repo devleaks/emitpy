@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Emitpy ADSB</h1>
+<ul>
+    <li><a href="{{ url_for('create_flight_form') }}">Create flight</a></li>
+    <li><a href="{{ url_for('create_service_form') }}">Create service</a></li>
+    <li><a href="{{ url_for('create_schedule_form') }}">Schedule movement</a></li>
+    <li><a href="{{ url_for('create_remove_form') }}">Remove movement</a></li>
+</ul>
+{% endblock %}
