@@ -1147,7 +1147,7 @@ class ArrivalMove(FlightMovement):
         parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
         parkingpos.setSpeed(0)
         parkingpos.setColor("#880088")  # parking
-        parkingpos.setProp(FEATPROP.MARK.value, "parking")
+        parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.ONBLOCK.value)
         fc.append(parkingpos)
 
         if show_pos:
@@ -1193,7 +1193,7 @@ class DepartureMove(FlightMovement):
         parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
         parkingpos.setSpeed(0)
         parkingpos.setColor("#880088")  # parking
-        parkingpos.setProp(FEATPROP.MARK.value, "parking")
+        parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.OFFBLOCK.value)
         fc.append(parkingpos)
         if show_pos:
             logger.debug(f":taxi:out: taxi start: {parkingpos}")

@@ -1,55 +1,100 @@
 """
-A Turnaround is a collection of Services to be performed on an aircraft during a turn-around.
+Creates all services required for a flight, depends on ramp and actype.
 
 """
 import logging
 from datetime import datetime
 
 from .service import Service
+from .servicemovement import ServiceMove
 
 from .. import service
 
 from ..flight import Flight
+from ..emit import Emit
 
 logger = logging.getLogger("Turnaround")
 
 
 class ServiceFlight:
 
-    def __init__(self, flight: Flight):
+    def __init__(self, flight: Flight, operator: "Company"):
         self.flight = flight
+        self.operator = operator
         self.ramp = flight.ramp  # should check that aircraft was not towed to another ramp for departure.
-        self.aircraft = flight.aircraft
         self.actype = flight.aircraft.actype
-        self.managedAirport = None
         self.services = []
-
+        self.airport = None
 
     def setManagedAirport(self, airport):
-        self.managedAirport = airport
+        self.airport = airport
 
-
-    def addService(self, service: "Service"):
-        self.services.append(service)
-
-
-    def run(self):
+    def service(self):
         # From dict, make append appropriate service to list
         if self.actype.tarprofile is None:
             logger.warning(":run: no turnaround profile")
             return (False, "Turnaround::run: no turnaround profile")
 
         move = "arrival" if self.flight.is_arrival() else "departure"
-        svcs = self.actype.tarprofile[move]
-        for s in svcs:
-            # https://stackoverflow.com/questions/3061/calling-a-function-of-a-module-by-using-its-name-a-string
-            for st in s:
-                cn = st + "Service"
-                if hasattr(service, cn):
-                    svc = getattr(service, cn)(s[st][0], s[st][1])  ## getattr(sys.modules[__name__], str) if same module...
-                    self.services.append(svc)
-                    logger.debug(":run: added %s(schedule=%d, duration=%d)" % (type(svc).__name__, svc.schedule, svc.duration))
-                else:
-                    logger.warning(f":run: service {cn} not found")
+        svcs = self.flight.aircraft.actype.tarprofile[move]
 
-        return (True, "Turnaround::run: planned")
+        for svc in svcs:
+            sname, sched = list(svc.items())[0]
+
+            logger.debug(f"creating service {sname}..")
+            this_service = Service.getService(sname)(operator=self.operator, quantity=0)
+
+            this_service.setRamp(self.flight.ramp)
+            this_service.setAircraftType(self.flight.aircraft.actype)
+            this_vehicle = self.airport.manager.selectServiceVehicle(operator=self.operator, service=this_service)
+            if this_vehicle is None:
+                return {
+                    "errno": 512,
+                    "errmsg": f"service: vehicle not found",
+                    "data": None
+                }
+
+            vehicle_startpos = self.airport.selectRandomServiceDepot(sname)
+            this_vehicle.setPosition(vehicle_startpos)
+
+            vehicle_endpos = self.airport.selectRandomServiceRestArea(sname)
+            this_service.setNextPosition(vehicle_endpos)
+
+            # logger.debug(".. moving ..")
+            # move = ServiceMove(this_service, self.airport)
+            # move.move()
+            # move.save()
+
+            logger.debug(f".. adding ..")
+            self.services.append({
+                "type": sname,
+                "service": this_service,
+            #     "move": move,
+                "scheduled": sched[0],
+                "duration": sched[1]
+            })
+            logger.debug(".. done")
+
+
+        return (True, "Turnaround::run: completed")
+
+
+    def move(self):
+        for service in self.services:
+            logger.debug(f"moving {service['type']}..")
+            move = ServiceMove(service["service"], self.airport)
+            move.move()
+            service["move"] = move
+            logger.debug(f"..done")
+
+
+    def emit(self):
+        for service in self.services:
+            logger.debug(f"emitting {service['type']}..")
+            emit = Emit(service["move"])
+            emit.emit()
+            emit.saveDB()
+            service["emit"] = emit
+            logger.debug(f"..done")
+
+

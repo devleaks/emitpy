@@ -123,6 +123,8 @@ class Flight:
 
     def setLinkedFlight(self, linked_flight: 'Flight') -> None:
         self.linked_flight = linked_flight
+        if linked_flight.linked_flight is None:
+            linked_flight.linked_flight = self
         logger.debug(f":setLinkedFlight: {self.getId()} linked to {linked_flight.getId()}")
 
 

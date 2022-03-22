@@ -22,7 +22,6 @@ class Service:
         self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
         self.duration = None      # scheduled duration in minutes, will be different from actual duration
         self.ramp = None
-        self.flight = None
         self.actype = None
         self.turnaround = None
         self.vehicle = None
