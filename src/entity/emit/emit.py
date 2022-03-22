@@ -377,6 +377,22 @@ class Emit:
         self.pause(sync=sync, duration=pause)
 
 
+    def getRelativeEmissionTime(self, sync: str):
+        f = findFeatures(self._emit, {FEATPROP.MARK.value: sync})
+        if f is not None and len(f) > 0:
+            self.scheduled_emit = []
+            r = f[0]
+            logger.debug(f":getRelativeEmissionTime: found {sync}")
+            offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
+            if offset is not None:
+                return offset
+            else:
+                logger.warning(f":schedule: {FEATPROP.MARK.value} {sync} has no time offset, using 0")
+                return 0
+        logger.warning(f":getRelativeEmissionTime: {sync} not found in emission")
+        return None
+
+
     def schedule(self, sync, moment: datetime):
         """
         Adjust a emission track to synchronize moment at position mkar synch.
@@ -386,30 +402,21 @@ class Emit:
         :param      moment:  The moment
         :type       moment:  datetime
         """
-        f = findFeatures(self._emit, {FEATPROP.MARK.value: sync})
-        if f is not None and len(f) > 0:
-            self.scheduled_emit = []
-            r = f[0]
-            logger.debug(f":schedule: found {sync} mark at {moment} ({moment.timestamp()})")
-            offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
-            if offset is not None:
-                self.offset_name = sync
-                self.offset = offset
-                logger.debug(f":schedule: {self.offset_name} offset {self.offset} sec")
-                when = moment + timedelta(seconds=(- offset))
-                logger.debug(f":schedule: emit_point starts at {when} ({when.timestamp()})")
-                for e in self._emit:
-                    p = EmitPoint(geometry=e["geometry"], properties=e["properties"])
-                    t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
-                    if t is not None:
-                        when = moment + timedelta(seconds=(t - offset))
-                        p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
-                        # logger.debug(f":get: done at {when.timestamp()}")
-                    self.scheduled_emit.append(p)
-                logger.debug(f":schedule: emit_point finishes at {when} ({when.timestamp()}) ({len(self.scheduled_emit)} positions)")
-            else:
-                logger.warning(f":schedule: {FEATPROP.MARK.value} {sync} has no time offset")
-        else:
-            logger.warning(f":schedule: {FEATPROP.MARK.value} {sync} not found")
+        offset = self.getRelativeEmissionTime(sync)
+        if offset is not None:
+            self.offset_name = sync
+            self.offset = offset
+            logger.debug(f":schedule: {self.offset_name} offset {self.offset} sec")
+            when = moment + timedelta(seconds=(- offset))
+            logger.debug(f":schedule: emit_point starts at {when} ({when.timestamp()})")
+            for e in self._emit:
+                p = EmitPoint(geometry=e["geometry"], properties=e["properties"])
+                t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
+                if t is not None:
+                    when = moment + timedelta(seconds=(t - offset))
+                    p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
+                    # logger.debug(f":get: done at {when.timestamp()}")
+                self.scheduled_emit.append(p)
+            logger.debug(f":schedule: emit_point finishes at {when} ({when.timestamp()}) ({len(self.scheduled_emit)} positions)")
 
         return None

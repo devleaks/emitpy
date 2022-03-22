@@ -175,15 +175,19 @@ class AirportManager:
             servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="entity")
             if hasattr(servicevehicleclasses, vcl):
                 vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
-            self.service_vehicles[vname] = vehicle
-            if use:
-                logger.debug(f":selectServiceVehicle: using {vname}")
-                service.setVehicle(vehicle)
+                vehicle.setICAO24(f"{random.getrandbits(24):x}")
+                self.service_vehicles[vname] = vehicle
+                logger.debug(f":selectServiceVehicle: added {vname}")
+                if use:
+                    logger.debug(f":selectServiceVehicle: using {vname}")
+                    service.setVehicle(vehicle)
+                    logger.debug(f":selectServiceVehicle: returning {vname} {self.service_vehicles[vname]}")
+                    return self.service_vehicles[vname]
+            else:
+                logger.warning(f":selectServiceVehicle: no class {vcl}")
 
-        logger.debug(f":selectServiceVehicle: returning {vname} {self.service_vehicles[vname]}")
-        return self.service_vehicles[vname]
-
-
+        logger.debug(f":selectServiceVehicle: returning no vehicle?")
+        return None
 
 
 

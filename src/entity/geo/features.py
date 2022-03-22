@@ -289,7 +289,7 @@ class Ramp(FeatureWithProps):
             pos.setProp("vehicle-heading", positions[svc][2])
             self.service_pois[svc] = pos
 
-        printFeatures(list(self.service_pois.values()), "ramp position")
+        # printFeatures(list(self.service_pois.values()), "ramp position")
         return (True, "Ramp::makeServicePOIs: created")
 
 

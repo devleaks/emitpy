@@ -232,7 +232,16 @@ class WaterVehicle(ServiceVehicle):
 # ########################
 # CARGO
 #
-class ULDVehicle(ServiceVehicle):
+class UldVehicle(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZUA"
+        self.setup_time = 4
+        self.flow = 1
+
+
+class CargoVehicle(ServiceVehicle):
 
     def __init__(self, registration: str, operator: Company):
         ServiceVehicle.__init__(self, registration=registration,  operator=operator)
