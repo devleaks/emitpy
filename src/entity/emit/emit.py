@@ -374,7 +374,7 @@ class Emit:
 
 
     def serviceTime(self, sync, duration: float):
-        self.pause(sync=sync, duration=pause)
+        self.pause(sync=sync, duration=duration)
 
 
     def getRelativeEmissionTime(self, sync: str):

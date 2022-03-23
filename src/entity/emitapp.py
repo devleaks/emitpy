@@ -7,7 +7,7 @@ from entity.managedairport import ManagedAirport
 from entity.business import Airline, Company
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
-from entity.service import Service, ServiceMove
+from entity.service import Service, ServiceMove, ServiceFlight
 from entity.emit import Emit, ReEmit, FormatToRedis, LiveTraffic, ADSB
 from entity.business import AirportManager
 from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE
@@ -127,7 +127,7 @@ class EmitApp(ManagedAirport):
         }
 
 
-    def do_flight(self, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway):
+    def do_flight(self, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway, do_services: bool = False):
         # Add pure commercial stuff
         airline = Airline.find(airline)
         remote_apt = Airport.find(apt)
@@ -154,6 +154,16 @@ class EmitApp(ManagedAirport):
 
         logger.debug("loading aircraft..")
         acperf = AircraftPerformance.find(icao=actype)
+        if acperf is None:
+            acalt = AircraftPerformance.getEquivalence(actype)
+            acperf = AircraftPerformance.find(icao=acalt)
+            if acperf is None:
+                return {
+                    "errno": 100,
+                    "errmsg": f"aircraft performance not found for {actype} or {acalt}",
+                    "data": None
+                }
+        acperf.load()
         reqfl = acperf.FLFor(aptrange)
         aircraft = Aircraft(registration=acreg, icao24= icao24, actype=acperf, operator=airline)
         logger.debug("..done")
@@ -169,15 +179,15 @@ class EmitApp(ManagedAirport):
         if movetype == "arrival":
             flight = Arrival(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=self.airport, origin=remote_apt, aircraft=aircraft)
         else:
-            flight = Departure(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=self.airport, destination=destination_apt, aircraft=aircraft)
+            flight = Departure(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=self.airport, destination=remote_apt, aircraft=aircraft)
         flight.setFL(reqfl)
-        ramp = self.airport.selectRamp(flight)  # Aircraft won't get towed
-        flight.setRamp(ramp)
-        # gate = "C99"
-        # ramp_name = ramp.getProp("name")
-        # if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
-        #     gate = ramp_name
-        # flight.setGate(gate)
+        rampval = self.airport.getRamp(ramp)  # Aircraft won't get towed
+        flight.setRamp(rampval)
+        gate = "C99"
+        ramp_name = rampval.getProp("name")
+        if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
+            gate = ramp_name
+        flight.setGate(gate)
 
         logger.debug("..planning..")
         flight.plan()
@@ -187,9 +197,11 @@ class EmitApp(ManagedAirport):
         if movetype == "arrival":
             move = ArrivalMove(flight, self.airport)
             sync = FLIGHT_PHASE.TOUCH_DOWN.value
+            svc_sync = FLIGHT_PHASE.ONBLOCK.value
         else:
             move = DepartureMove(flight, self.airport)
             sync = FLIGHT_PHASE.TAKE_OFF.value
+            svc_sync = FLIGHT_PHASE.OFFBLOCK.value
         move.move()
         move.save()
 
@@ -200,15 +212,39 @@ class EmitApp(ManagedAirport):
         emit.saveDB()
         logger.debug("..synchronizing..")
         logger.debug(emit.getMarkList())
-        emit.schedule(sync, datetime.fromisoformat(scheduled))
+        schedtime = datetime.fromisoformat(scheduled)
+        emit.schedule(sync, schedtime)
 
         logger.debug("..broadcasting positions..")
         formatted = FormatToRedis(emit, LiveTraffic)
         formatted.run()
         formatted.save()
         formatted.enqueue(REDIS_QUEUE.ADSB.value)
-        logger.debug("..done.")
 
+        if not do_services:
+            logger.debug("..done.")
+            return {
+                "errno": 0,
+                "errmsg": "completed successfully",
+                "data": len(emit._emit)
+            }
+
+        logger.debug("..servicing..")
+        st = emit.getRelativeEmissionTime(sync)
+        bt = emit.getRelativeEmissionTime(svc_sync)  # 0 for departure...
+        td = bt - st
+        blocktime = schedtime + timedelta(seconds=td)
+
+        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
+
+        flight_service = ServiceFlight(flight, operator)
+        flight_service.setManagedAirport(self.airport)
+        flight_service.service()
+        flight_service.move()
+        flight_service.emit()
+        flight_service.schedule(blocktime)
+
+        logger.debug("..done.")
         return {
             "errno": 0,
             "errmsg": "completed successfully",
