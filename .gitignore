@@ -120,3 +120,4 @@ data/
 src/entity/private.py
 *.sqlite
 *.rdb
+src/http_cache.sqlite

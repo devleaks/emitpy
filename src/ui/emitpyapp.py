@@ -29,6 +29,7 @@ class CreateFlightForm(FlaskForm):
     call_sign = StringField(description="Aircraft call sign in operation, usually the flight number")
     icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form")
     runway = SelectField(choices=[('RW16L', '16 L'), ('RW16R', '16 R'), ('RW34L', '34 L'), ('RW34R', '34 R')])
+    # DANGEROUS
     create_services = BooleanField("Create flight services", description="(Note: Depends on airline, aircraft type, ramp.)")
     submit = SubmitField("Create flight")
 
@@ -105,6 +106,25 @@ def create_remove_form():
     return render_template(
         'create.html',
         title="Remove movement",
+        create_form=form
+    )
+
+
+class SimulationForm(FlaskForm):
+    simulation_date = DateField()
+    simulation_time = TimeField()
+    speed = DecimalRangeField()
+    submit = SubmitField("New time")
+
+@app.route('/clock', methods=['GET', 'POST'])
+def create_simulation_form():
+    form = SimulationForm()
+    if form.validate_on_submit():
+        flash('New time set')
+        return redirect(url_for('index'))
+    return render_template(
+        'create.html',
+        title="Change simulation time and speed",
         create_form=form
     )
 
