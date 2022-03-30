@@ -54,6 +54,10 @@ class FormatToRedis(Format):
         """
         Save flight paths to file for emitted positions.
         """
+        if self.output is None or len(self.output) == 0:
+            logger.warning(":save: no emission point")
+            return (False, "FormatToRedis::save: no emission point")
+
         ident = self.emit.getId()
         ident = ident + "-out"
 
@@ -76,6 +80,10 @@ class FormatToRedis(Format):
         """
         Stores Sorted Set members in new variable so that we can remove them on update
         """
+        if self.output is None or len(self.output) == 0:
+            logger.warning(":enqueue: no emission point")
+            return (False, "FormatToRedis::enqueue: no emission point")
+
         ident = self.emit.getId()
         ident = ident + "-enqueued"
 

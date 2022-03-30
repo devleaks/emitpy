@@ -1,12 +1,13 @@
 import logging
 from datetime import datetime, timezone
 
-from ..airspace import FlightPlan
+from ..airspace import FlightPlan, FlightPlanRoute
 from ..airport import Airport
 from ..business import Airline
 from ..aircraft import Aircraft
 from ..constants import PAYLOAD, FLIGHT_PHASE, FEATPROP
 from ..utils import FT
+from ..parameters import LOAD_AIRWAYS
 
 logger = logging.getLogger("Flight")
 
@@ -167,6 +168,19 @@ class Flight:
     def loadFlightPlan(self):
         self.flightplan = FlightPlan(managedAirport=self.managedAirport.icao, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
 
+        if not self.flightplan.has_plan():
+            logger.warning(":loadFlightPlan: no flight plan in database")
+             # return
+
+        if LOAD_AIRWAYS:
+            logger.debug(":loadFlightPlan: trying to build own route..")
+            self.flightplan = FlightPlanRoute(managedAirport=self.managedAirport.icao, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
+            logger.debug(":loadFlightPlan: ..done")
+
+        if not self.flightplan.has_plan():
+            logger.warning(":loadFlightPlan: no route for flight, no plan")
+            return
+
         fplen = len(self.flightplan.nodes())
         logger.debug(":loadFlightPlan: loaded %d waypoints" % fplen)
 
@@ -197,8 +211,13 @@ class Flight:
 
 
     def plan(self):
-        if self.flightplan is None:
+        if self.flightplan is None:  # not loaded, trying to load
             self.loadFlightPlan()
+
+        if not self.flightplan.has_plan():  # not found... stops
+            logger.warning(":plan: no flight plan")
+            return (False, "Flight::plan: no flight plan")
+
         normplan = self.toAirspace()
         planpts = []
 

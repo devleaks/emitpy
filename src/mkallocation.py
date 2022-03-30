@@ -40,7 +40,7 @@ TOTAL PAX COUNT_y,
 TURN AROUND STATUS_y
 """
 
-filename = os.path.join("..", "..", "data", "managedairport", "OTHH", "flights", "2019_W15_ROTATION_RAW.csv")
+filename = os.path.join("..", "data", "managedairport", "OTHH", "flights", "2019_W15_ROTATION_RAW.csv")
 file = open(filename, "r")
 csvdata = csv.DictReader(file)
 
@@ -61,14 +61,14 @@ for r in csvdata:
         icao[r['REGISTRATION NO_x']] = f"{random.getrandbits(24):x}"
 
     dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
-    print(f"e.do_flight('{r['AIRLINE CODE_x']}', '{r['FLIGHT NO_x']}',"
+    print(f"print(e.do_flight('{r['AIRLINE CODE_x']}', '{r['FLIGHT NO_x']}',"
         + f" '{dt.isoformat()}', '{r['AIRPORT_x']}',"
         + f" 'arrival', ('{r['AC TYPE_x']}', '{r['AC SUB TYPE_x']}'), '{r['BAY_x']}',"
-        + f" '{icao[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L')")
+        + f" '{icao[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L'))")
 
     dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
-    print(f"e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
+    print(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
         + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
         + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
-        + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L')")
+        + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
 

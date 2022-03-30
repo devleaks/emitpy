@@ -116,8 +116,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-data/
 src/entity/private.py
+
+data/
+db/
+
+src/http_cache.sqlite
 *.sqlite
 *.rdb
-src/http_cache.sqlite

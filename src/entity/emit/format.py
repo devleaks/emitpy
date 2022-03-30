@@ -28,7 +28,11 @@ class Format:
         self.version = 0
 
 
-    def run(self):
+    def format(self):
+        if self.emit.scheduled_emit is None or len(self.emit.scheduled_emit) == 0:
+            logger.warning("Format::run: no emission point")
+            return (False, "Format::run no emission point")
+
         self.output = []  # reset if called more than once
         br = filter(lambda f: f.getProp(FEATPROP.BROADCAST.value), self.emit.scheduled_emit)
         bq = sorted(br, key=lambda f: f.getRelativeEmissionTime())

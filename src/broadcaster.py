@@ -126,7 +126,7 @@ class Broadcaster:
     #     self.trim.join()
 
 
-    def brun(self):
+    def broadcast(self):
         # Blocking version of "Sender"
         logger.debug(f":run: pre-start trimming..")
         self._do_trim()
@@ -180,6 +180,6 @@ class Broadcaster:
 
 
 b = Broadcaster("adsb")
-b.brun()
+b.broadcast()
 
 

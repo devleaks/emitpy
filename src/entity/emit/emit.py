@@ -86,6 +86,10 @@ class Emit:
         """
         Save flight paths to file for emitted positions.
         """
+        if self._emit is None or len(self._emit) == 0:
+            logger.warning(":saveDB: no emission point")
+            return (False, "Movement::saveDB: no emission point")
+
         if self.redis is None:
             self.redis = redis.Redis()
 
@@ -131,7 +135,7 @@ class Emit:
         def time_distance_to_next_vtx(c0, idx):  # time it takes to go from c0 to vtx[idx+1]
             totald = distance(self.moves[idx], self.moves[idx+1])  * 1000  # km
             if totald == 0:  # same point...
-                logger.warning(f":emit:time_distance_to_next_vtx: same point i={idx}?")
+                # logger.warning(f":emit:time_distance_to_next_vtx: same point i={idx}?")
                 return 0
             partiald = distance(self.moves[idx], c0) * 1000  # km
             portion = partiald / totald
@@ -217,6 +221,12 @@ class Emit:
                     pause_remaining = pause_remaining - self.frequency
                 time_left = pause_remaining + self.frequency
                 return (emit_time, time_left)
+        #
+        #
+        #
+        if self.moves is None or len(self.moves) == 0:
+            logger.warning(":emit: no move")
+            return (False, "Emit::emit: no moves")
         #
         #
         # build emission points
@@ -418,5 +428,6 @@ class Emit:
                     # logger.debug(f":get: done at {when.timestamp()}")
                 self.scheduled_emit.append(p)
             logger.debug(f":schedule: emit_point finishes at {when} ({when.timestamp()}) ({len(self.scheduled_emit)} positions)")
+            return (True, "Emit::schedule completed")
 
-        return None
+        return (False, f"Emit::schedule sync {sync} not found")

@@ -8,7 +8,7 @@ from ..aircraft import AircraftType, AircraftPerformance, Aircraft
 from ..airport import Airport, AirportBase, XPAirport
 from ..business import AirportManager
 
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger("ManagedAirport")
 
 

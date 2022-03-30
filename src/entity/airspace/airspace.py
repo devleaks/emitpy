@@ -225,16 +225,25 @@ class Apt(ControlledPoint):
     """
     This airport is a ControlledPoint airport. Should may be renamed Terminal?
     """
+    AS_WAYPOINTS = {}
+
     def __init__(self, name: str, lat: float, lon: float, alt: int, iata: str, longname: str, country: str, city: str):
         ControlledPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)
         self.iata = iata
         self.country = country
         self.city = city
+        # logger.debug(f"Apt:__init__: name: {self.id} / {name[0:2]}:{iata} / {longname}")
         self.name = longname
+        Apt.AS_WAYPOINTS[f"{name[0:2]}:{iata}"] = self  # keep region:iata name for reference in lnav
+
         if len(self["geometry"]["coordinates"]) > 2:
             self["geometry"]["coordinates"][2] = alt
         else:
             self["geometry"]["coordinates"].append(alt)
+
+    @staticmethod
+    def as_waypoint(name):
+        return Apt.AS_WAYPOINTS[name] if name in Apt.AS_WAYPOINTS.keys() else None
 
 
 ################################

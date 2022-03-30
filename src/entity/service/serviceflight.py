@@ -30,6 +30,23 @@ class ServiceFlight:
     def setManagedAirport(self, airport):
         self.airport = airport
 
+
+    def save(self):
+        for svc in self.services:
+            ret = svc["emit"].save()
+            if not ret[0]:
+                return ret
+        return (True, "ServiceFlight::save saved")
+
+
+    def saveDB(self):
+        for svc in self.services:
+            ret = svc["emit"].saveDB()
+            if not ret[0]:
+                return ret
+        return (True, "ServiceFlight::saveDB saved")
+
+
     def service(self):
         # From dict, make append appropriate service to list
         if self.actype.tarprofile is None:
@@ -76,26 +93,34 @@ class ServiceFlight:
             })
             logger.debug(".. done")
 
-        return (True, "Turnaround::run: completed")
+        return (True, "ServiceFlight::service: completed")
 
 
     def move(self):
         for service in self.services:
             logger.debug(f"moving {service['type']}..")
             move = ServiceMove(service["service"], self.airport)
-            move.move()
+            ret = move.move()
+            if not ret[0]:
+                return ret
             service["move"] = move
             logger.debug(f"..done")
+        return (True, "ServiceFlight::move: completed")
 
 
     def emit(self):
         for service in self.services:
             logger.debug(f"emitting {service['type']}..")
             emit = Emit(service["move"])
-            emit.emit()
-            emit.saveDB()
+            ret = emit.emit()
+            if not ret[0]:
+                return ret
+            ret = emit.saveDB()
+            if not ret[0]:
+                return ret
             service["emit"] = emit
             logger.debug(f"..done")
+        return (True, "ServiceFlight::emit: completed")
 
 
     def schedule(self, scheduled: datetime):
@@ -108,3 +133,4 @@ class ServiceFlight:
             service["emit"].serviceTime(SERVICE_PHASE.SERVICE_START.value, service["duration"] * 60)  # seconds
             service["emit"].schedule(SERVICE_PHASE.SERVICE_START.value, stime)
             logger.debug(f"..done")
+        return (True, "ServiceFlight::schedule: completed")

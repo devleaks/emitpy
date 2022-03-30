@@ -242,15 +242,22 @@ class RWY(Procedure):
             return
 
         self.route[0] = line
-        self.point = RestrictedControlledPoint(
-            ident=line.params[0],
-            region=self.airport[0:2],
-            airport=self.airport,
-            pointtype="RWY",
-            lat=self.getLatitude(),
-            lon=self.getLongitude()
-        )
-        self.setAltitude(float(self.route[0].params[3]) * FT)
+        if self.has_latlon():
+            self.point = RestrictedControlledPoint(
+                ident=line.params[0],
+                region=self.airport[0:2],
+                airport=self.airport,
+                pointtype="RWY",
+                lat=self.getLatitude(),
+                lon=self.getLongitude()
+            )
+            self.setAltitude(float(self.route[0].params[3]) * FT)
+        else:
+            logger.warning(f":add: Runway {self.runway} has no threshold")
+
+
+    def has_latlon(self):
+        return (self.route[0].params[7].split(";")[1] != '') and (self.route[0].params[8] != '')
 
     def getLatitude(self):
         latstr = self.route[0].params[7].split(";")[1]
@@ -396,13 +403,29 @@ class CIFP:
                     #     rw = rw
                     # else:
                     #     rw = rw
-                    r.end = self.RWYS[rw]
-                    self.RWYS[rw].end = r
-                    logger.debug(f":pairRunways: {self.icao}: {r.name} and {rw} paired")
+                    if rw in self.RWYS.keys():
+                        r.end = self.RWYS[rw]
+                        self.RWYS[rw].end = r
+                        logger.debug(f":pairRunways: {self.icao}: {r.name} and {rw} paired")
+                    else:
+                        logger.warning(f":pairRunways: {self.icao}: {rw} ont found to pair {r.name}")
         # bearing and length
         for k, r in self.RWYS.items():
-            r.bearing = bearing(r.getPoint(), r.end.getPoint())
-            r.length = distance(r.getPoint(), r.end.getPoint(), "m")
+            if r.end is not None:
+                r.bearing = bearing(r.getPoint(), r.end.getPoint())
+                r.length = distance(r.getPoint(), r.end.getPoint(), "m")
+            # else:
+            #     apt = Airport.findICAO(self.icao)
+            #     if apt is not None:
+            #         r.point = RestrictedControlledPoint(
+            #             ident=line.params[0],
+            #             region=self.icao[0:2],
+            #             airport=self.icao,
+            #             pointtype="RWY",
+            #             lat=apt["geometry"]["coordinates"][1],
+            #             lon=apt["geometry"]["coordinates"][0]
+            #         )
+            #         logger.warning(f":pairRunways: runway {k} for {self.icao} has no threshold, replaced by airport coordinates.")
 
 
     def getRoute(self, procedure: Procedure, airspace: Airspace):
@@ -416,12 +439,16 @@ class CIFP:
 
 
     def getRunways(self):
-        return self.RWYS
+        ret = {}
+        for k, v in self.RWYS.items():
+            if v.has_latlon():
+                ret[k] = v
+        return ret
 
 
     def getOperationalRunways(self, wind_dir: float):
         if wind_dir is None:
-            logger.debug(":getOperationalRunways: no wind direction, using all runways")
+            logger.warning(f":getOperationalRunways: {self.icao} no wind direction, using all runways")
             return self.getRunways()
 
         max1 = wind_dir - 90
@@ -453,8 +480,8 @@ class CIFP:
                     rops[rwy] = self.RWYS[rwy]
 
         if len(rops.keys()) == 0:
-            logger.debug(":getOperationalRunways: could not find runway for operations")
+            logger.warning(f":getOperationalRunways: {self.icao} could not find runway for operations")
 
-        logger.info(f":getOperationalRunways: wind direction is {wind_dir:f}, runway in use: {rops.keys()}")
+        logger.info(f":getOperationalRunways: {self.icao} wind direction is {wind_dir:f}, runway in use: {rops.keys()}")
         return rops
 

@@ -73,8 +73,6 @@ class AircraftType(Identity):
         csvdata = csv.DictReader(file)
         for row in csvdata:
             if row["ICAO Code"] != "tbd":
-                if row["ICAO Code"] == 'A321':
-                    print(">>>", row)
                 AircraftType._DB[row["ICAO Code"]] = AircraftType(orgId=row["Manufacturer"], classId=row["Wake Category"], typeId=row["ICAO Code"], name=row["Model"], data=row)
         file.close()
         logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft types")
@@ -136,8 +134,7 @@ class AircraftPerformance(AircraftType):
                 acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name, actype.rawdata)
                 acperf.display_name = acperf.orgId + " " + acperf.name
                 acperf.perfraw = jsondata[ac]
-                acperf.setAvailability()
-                if acperf.available:
+                if acperf.check_availability():  # sets but also returns availability
                     acperf.toSI()
                 AircraftPerformance._DB_PERF[ac] = acperf
             else:
@@ -154,7 +151,7 @@ class AircraftPerformance(AircraftType):
 
 
     @staticmethod
-    def findAircraft(reqrange: int, pax: int = 0, load: int = 0):
+    def findAircraftForRange(reqrange: int, pax: int = 0, load: int = 0):
         # reqrange in km
         rdiff = inf
         best = None
@@ -172,21 +169,47 @@ class AircraftPerformance(AircraftType):
 
 
     @staticmethod
-    def getCombo():
-        a = [(a.typeId, a.display_name) for a in sorted(AircraftPerformance._DB_PERF.values(), key=operator.attrgetter('display_name'))]
-        return a
-
-    @staticmethod
     def getEquivalence(ac):
         # B777 ~ ["777", "B77L", "77L"...]
         for k, v in AircraftType._DB_EQUIVALENCE.items():
             if ac in v:
                 return k
-        return ac
+        logger.warning(f":getEquivalence: no equivalence for {ac}")
+        return None
+
+
+    @staticmethod
+    def findAircraftByType(actype: str, acsubtype: str):
+        """
+        Returns existing AircraftPerformance aircraft or None
+        if aircraft cannot be found.
+        """
+        if actype in AircraftPerformance._DB_PERF.keys():
+            logger.debug(f":findAircraftByType: found type {actype}")
+            return actype
+        if acsubtype in AircraftPerformance._DB_PERF.keys():
+            logger.debug(f":findAircraftByType: found sub type {acsubtype}")
+            return acsubtype
+        eq = AircraftPerformance.getEquivalence(actype)
+        if eq is not None:
+            logger.debug(f":findAircraftByType: found equivalence {eq} for type {actype}")
+            return eq
+        eq = AircraftPerformance.getEquivalence(acsubtype)
+        if eq is not None:
+            logger.debug(f":findAircraftByType: found equivalence {eq} for subtype {acsubtype}")
+            return eq
+        logger.warning(f":findAircraftByType: no aircraft for {actype}, {acsubtype}")
+        return None
+
+
+    @staticmethod
+    def getCombo():
+        a = [(a.typeId, a.display_name) for a in sorted(AircraftPerformance._DB_PERF.values(), key=operator.attrgetter('display_name'))]
+        return a
 
 
     def getIata(self):
-        iata = self.perfraw["iata"] if "iata" in self.perfraw and self.perfraw["iata"] is not None else None
+        iata = self.perfraw["iata"] if ("iata" in self.perfraw and self.perfraw["iata"] is not None and self.perfraw["iata"] != "nodata") else None
         return str(iata).split("/") if iata else []
 
 
@@ -279,8 +302,7 @@ class AircraftPerformance(AircraftType):
             data = self.loadFromFile(".json")
             if data is not None:
                 self.perfraw = data
-                self.setAvailability()
-                if self.available:
+                if self.check_availability():
                     self.toSI()
             else:
                 logger.warning(f":loadPerformance: no performance data file for {self.typeId.upper()}")
@@ -306,10 +328,10 @@ class AircraftPerformance(AircraftType):
         return [True, "AircraftPerformance::loadGSEProfile: not implemented"]
 
 
-    def setAvailability(self):
+    def check_availability(self):
         max_ceiling = self.get("max_ceiling")  # this is a FL
         if max_ceiling is None:
-            logger.warning(f":setAvailability: no max ceiling for: {self.typeId}")
+            logger.warning(f":check_availability: no max ceiling for: {self.typeId}")
             return False
 
         param_list = ["takeoff_distance", "takeoff_speed", "initial_climb_speed", "initial_climb_vspeed"]
@@ -325,10 +347,10 @@ class AircraftPerformance(AircraftType):
 
         for name in param_list:
             if name not in self.perfraw or self.perfraw[name] == "no data":
-                logger.warning(f":setAvailability: no {name} for: {self.typeId}, rejecting")
+                logger.warning(f":check_availability: no {name} for: {self.typeId}, rejecting")
                 return False
         self.available = True
-        # logger.warning(f":setAvailability: {self.typeId} is ok")
+        # logger.warning(f":check_availability: {self.typeId} is ok")
         return True
 
 

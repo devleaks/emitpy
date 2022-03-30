@@ -9,7 +9,7 @@ from ..airspace import Airspace, FlightPlanBase
 from ..aircraft import AircraftPerformance
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger("FlightPlan")
 
 
@@ -66,26 +66,25 @@ class FlightPlan(FlightPlanBase):
                         else:
                             logger.debug(f":toAirspace: {last} same as previous")
                         # logger.debug(":toAirspace: added %s %s as %s" % (fty, fid, v.id))
-                    else:
-                        if len(wid) == 0:
-                            errs = errs + 1
-                            logger.warning(f":toAirspace: ident {fid} not found")
-                        else:
-                            logger.warning(f":toAirspace: ambiguous ident {fid} has {len(wid)} entries")
-                            # @todo use proximity to previous point, choose closest. Use navaid rather than fix.
-                            if len(wpts) > 0:
-                                logger.warning(f":toAirspace: will search for closest to previous {wpts[-1].id}")
-                                wid2 = airspace.findClosestControlledPoint(reference=wpts[-1].id, vertlist=wid)  # returns (wpt, dist)
-                                if wid2[0] != last:
-                                    v = airspace.vert_dict[wid2[0]]
-                                    wpts.append(v)
-                                    last = wid2[0]
-                                else:
-                                    logger.debug(f":toAirspace: {last} same as previous")
-                                logger.debug(f":toAirspace: added {fty} {fid} as {v.id} (closest waypoint at {wid2[1]:f})")
+                    elif len(wid) == 0:
+                        errs = errs + 1
+                        logger.warning(f":toAirspace: ident {fid} not found")
+                    else:  # len(wid) > 1
+                        logger.debug(f":toAirspace: ambiguous ident {fid} has {len(wid)} entries")
+                        # @todo use proximity to previous point, choose closest. Use navaid rather than fix.
+                        if len(wpts) > 0:
+                            logger.debug(f":toAirspace: will search for closest to previous {wpts[-1].id}")
+                            wid2 = airspace.findClosestControlledPoint(reference=wpts[-1].id, vertlist=wid)  # returns (wpt, dist)
+                            if wid2[0] != last:
+                                v = airspace.vert_dict[wid2[0]]
+                                wpts.append(v)
+                                last = wid2[0]
                             else:
-                                errs = errs + 1
-                                logger.warning(f":toAirspace: cannot eliminate ambiguous ident {fid} has {len(wid)} entries")
+                                logger.debug(f":toAirspace: {last} same as previous")
+                            logger.debug(f":toAirspace: added {fty} {fid} as {v.id} (closest waypoint at {wid2[1]:f})")
+                        else:
+                            errs = errs + 1
+                            logger.debug(f":toAirspace: cannot determine ambiguous ident {fid} has {len(wid)} entries")
                 else:
                     errs = errs + 1
                     logger.warning(f":toAirspace: no ident for feature {fid}")

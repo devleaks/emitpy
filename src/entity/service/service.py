@@ -57,6 +57,12 @@ class Service:
         }
 
 
+    def __str__(self):
+        s = type(self).__name__
+        s = s + " at ramp " + self.ramp.getProp("name")
+        s = s + " by vehicle " + self.vehicle.getProp("name")  # model, icao24
+
+
     def setTurnaround(self, turnaround: "Turnaround"):
         self.turnaround = turnaround
 

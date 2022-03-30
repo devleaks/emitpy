@@ -13,7 +13,7 @@ HOME_DIR = "."
 DATA_DIR = os.path.join(HOME_DIR, "..", "data")
 
 # AODB is a database of working data
-AODB_DIR = os.path.join(HOME_DIR, "..", "data", "_db")
+AODB_DIR = os.path.join(HOME_DIR, "..", "db")
 
 
 AIRCRAFT_TYPE_DATABASE = "aircraft"
@@ -29,7 +29,9 @@ MANAGED_AIRPORT = {
     "regionName": "Qatar",
     "elevation": 13.000000019760002,
     "lat": 25.2745,
-    "lon": 51.6077
+    "lon": 51.6077,
+    "tzoffset": 3,
+    "tzname": "Doha"
 }
 
 LOAD_AIRWAYS=False  # to speedup developments
