@@ -20,7 +20,7 @@ from ..parameters import DEVELOPMENT, PRODUCTION
 
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger("FlightPlanBase")
 
 
@@ -69,6 +69,16 @@ class FlightPlanBase:
         # For development
         if DEVELOPMENT or not PRODUCTION:
             requests_cache.install_cache()
+
+        self.getFlightPlan()
+
+
+    def has_plan(self):
+        # if (self.flight_plan is not None) and ('route' in self.flight_plan) and ('nodes' in self.flight_plan['route']):
+        #     logger.debug(f"has plan: {len(self.flight_plan['route']['nodes'])} nodes")
+        # else
+        #     logger.debug(f"has no plan")
+        return self.flight_plan is not None and len(self.flight_plan["route"]["nodes"]) > 0
 
 
     def nodes(self):
@@ -170,17 +180,21 @@ class FlightPlanBase:
             #descentRate=self.descentRate,
             #descentSpeed=self.descentSpeed
             )
-        plan = self.api.plan.generate(plan_data)
-        if plan:
-            try:
-                fp = self.api.plan.fetch(id_=plan.id, return_format="json")
-                # @todo should check for error status...
-                self.flight_plan = json.loads(fp)
-                logger.debug("createFPDBFlightPlan: new plan %d" % (self.flight_plan["id"]))
-                self.cacheFlightPlan(geojson=True)
-                return self.flight_plan
-            except BaseErrorHandler:
-                logger.warning("createFPDBFlightPlan: error from server")
+        try:
+            plan = self.api.plan.generate(plan_data)
+            if plan:
+                try:
+                    fp = self.api.plan.fetch(id_=plan.id, return_format="json")
+                    # @todo should check for error status...
+                    self.flight_plan = json.loads(fp)
+                    logger.debug("createFPDBFlightPlan: new plan %d" % (self.flight_plan["id"]))
+                    self.cacheFlightPlan(geojson=True)
+                    return self.flight_plan
+                except BaseErrorHandler:
+                    logger.warning("createFPDBFlightPlan: error from server when trying to fetch plan")
+
+        except BaseErrorHandler:
+            logger.warning("createFPDBFlightPlan: error from server when trying to generate")
 
         return None
 

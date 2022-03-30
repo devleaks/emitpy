@@ -15,7 +15,7 @@ from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger("AirportManager")
 
 
@@ -175,7 +175,7 @@ class AirportManager:
             servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="entity")
             if hasattr(servicevehicleclasses, vcl):
                 vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
-                vehicle.setICAO24(f"{random.getrandbits(24):x}")
+                vehicle.setICAO24(AirportManager.randomICAO24(15))  # starts with F
                 self.service_vehicles[vname] = vehicle
                 logger.debug(f":selectServiceVehicle: added {vname}")
                 if use:
@@ -189,6 +189,17 @@ class AirportManager:
         logger.debug(f":selectServiceVehicle: returning no vehicle?")
         return None
 
+    @staticmethod
+    def randomICAO24(root: int = None):
+        # can set the first number form 1 to F
+        if root is not None:
+            if root < 1:
+                root = 1
+            if root > 15:
+                root = 15
+            return f"{root:x}{random.getrandbits(20):x}"
+
+        return f"{random.getrandbits(24):x}"
 
 
 

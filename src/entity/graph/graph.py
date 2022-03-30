@@ -13,7 +13,7 @@ from turfpy.measurement import distance, destination, bearing, boolean_point_in_
 
 from ..geo import FeatureWithProps, line_intersect, printFeatures
 
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger("Graph")
 
 USAGE_TAG = "usage"

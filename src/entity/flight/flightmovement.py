@@ -232,6 +232,10 @@ class FlightMovement(Movement):
             arr.append(mvpt)
             return mvpt
 
+        if self.flight.flightplan_cp is None or len(self.flight.flightplan_cp) == 0:
+            logger.warning(":vnav: no flight plan")
+            return (False, "Movement::vnav no flight plan, cannot move")
+
         fc = self.flight.flightplan_cp
         ac = self.flight.aircraft
         actype = ac.actype
@@ -1059,6 +1063,8 @@ class ArrivalMove(FlightMovement):
 
     def getMoves(self):
         prev = super().getMoves()
+        if len(prev) == 0:
+            return prev   # len(prev) == 0
         start = prev[-1].time()
         for f in self.taxipos:
             f.setTime(start + f.getProp("saved-time"))
@@ -1171,6 +1177,8 @@ class DepartureMove(FlightMovement):
 
     def getMoves(self):
         prev = self.taxipos
+        if len(prev) == 0:
+            return prev   # len(prev) == 0
         start = prev[-1].time()
         nextmv = super().getMoves()
         for f in nextmv:

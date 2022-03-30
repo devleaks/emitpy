@@ -12,7 +12,7 @@ from entity.service import FuelService, ServiceMove
 
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger("App")
 
 

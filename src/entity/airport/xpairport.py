@@ -61,6 +61,7 @@ class XPAirport(AirportBase):
         self.procedures = None
         self.aeroway_pois = None
         self.service_pois = None
+        self.check_pois = {}
         self.simairporttype = "X-Plane"
         self.airport_base = os.path.join(DATA_DIR, "managedairport", icao)
         self.runway_exits = {}
@@ -277,6 +278,9 @@ class XPAirport(AirportBase):
         status = self.loadServicePOIS()
         if not status[0]:
             return status
+        status = self.loadCheckpointPOIS()
+        if not status[0]:
+            return status
         logger.debug(":loadPOIS: loaded")
         return [True, "GeoJSONAirport::loadPOIS loaded"]
 
@@ -331,7 +335,7 @@ class XPAirport(AirportBase):
                         f.setProp(FEATPROP.NAME.value, n)
                         self.aeroway_pois[n] = f
 
-            logger.info(":loadAerowaysPOIS: loaded %d features.", len(self.data["features"]))
+            logger.info(":loadAerowaysPOIS: loaded %d features.", len(self.aeroway_pois))
             self.data = None
 
         logger.debug(f":loadAerowaysPOIS: added {len(self.aeroway_pois)} points of interest: {self.aeroway_pois.keys()}")
@@ -360,11 +364,32 @@ class XPAirport(AirportBase):
                             p.setProp(FEATPROP.NAME.value, n)
                             self.service_pois[n] = p
 
-            logger.info(":loadServicePOIS: loaded %d features.", len(self.data["features"]))
+            logger.info(":loadServicePOIS: loaded %d features.", len(self.service_pois))
             self.data = None
 
         logger.debug(f":loadServicePOIS: added {len(self.service_pois)} points of interest: {self.service_pois.keys()}")
         return [True, "XPAirport::loadServicePOIS loaded"]
+
+    def loadCheckpointPOIS(self):
+        self.loadGeometries("check-pois.geojson")
+        if self.data is not None and self.data["features"] is not None:
+            self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
+
+        self.check_pois = {}
+        if self.data is not None:
+            for f in self.data["features"]:
+                poi_type = f.getProp(FEATPROP.POI_TYPE.value)
+                if poi_type is not None and poi_type == "checkpoint":
+                        poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.check_pois))
+                        n = poi_type + ":" + poi_name
+                        p = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                        p.setProp(FEATPROP.NAME.value, n)
+                        self.check_pois[n] = p
+            logger.info(":loadCheckpointPOIS: loaded %d features.", len(self.check_pois))
+            self.data = None
+
+        logger.debug(f":loadCheckpointPOIS: added {len(self.check_pois)} points of control: {self.check_pois.keys()}")
+        return [True, "XPAirport::loadCheckpointPOIS loaded"]
 
     def getAerowayPOI(self, name):
         res = list(filter(lambda f: f.name == name, self.aeroway_pois))

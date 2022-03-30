@@ -62,7 +62,7 @@ def main():
     ramp = managed.getRamp(None)
 
     logger.debug("loading aircraft..")
-    acperf = AircraftPerformance.findAircraft(reqrange=reqrange)
+    acperf = AircraftPerformance.findAircraftForRange(reqrange=reqrange)
     acperf.load()
     reqfl = acperf.FLFor(reqrange)
 

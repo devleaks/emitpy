@@ -14,7 +14,7 @@ from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger("XPAirspace")
 
 AIRWAYS = {

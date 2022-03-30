@@ -7,7 +7,7 @@ import logging
 
 from ..graph import Route
 
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger("FlightPlanRoute")
 
 
@@ -37,14 +37,9 @@ class FlightPlanRoute:
         self.routeLS = None
         self.airspace = None
 
-        # creates file caches
-        # self.flightplan_cache = os.path.join("..", "data", "managedairport", managedAirport, "flightroutes")
-        # if not os.path.exists(self.flightplan_cache):
-        #     logger.warning("no file plan cache directory")
-        #     #print("create new fpdb file cache")
-        #     #os.mkdir(self.flightplan_cache)
-
         self.filename = f"{fromICAO.lower()}-{toICAO.lower()}"
+
+        self.getFlightPlan()
 
 
     def setAirspace(self, airspace):
@@ -58,18 +53,41 @@ class FlightPlanRoute:
         return self.flight_plan["route"] if self.flight_plan is not None else None
 
 
+    def has_plan(self):
+        return self.flight_plan is not None
+
+
     def getFlightPlan(self):
         if self.airspace is None:  # force fetch from flightplandb
             logger.warning(":getFlightPlan: no airspace")
             return None
 
         a = self.airspace
+
+        # Resolving airports
         origin = a.getAirportICAO(self.fromICAO)
+        if origin in None:
+            logger.warning(f":getFlightPlan: cannot get airport {self.fromICAO}")
+            return None
         destination = a.getAirportICAO(self.toICAO)
+        if destination in None:
+            logger.warning(f":getFlightPlan: cannot get airport {self.toICAO}")
+            return None
+
+        # Resolving network
         s = a.nearest_vertex(point=origin, with_connection=True)
+        if s in None or s[0] is None:
+            logger.warning(f":getFlightPlan: cannot get nearest point to {self.fromICAO}")
+            return None
         e = a.nearest_vertex(point=destination, with_connection=True)
-        logger.debug(f":getFlightPlan: from {s[0].id} to {e[0].id}")
+        if e in None or e[0] is None:
+            logger.warning(f":getFlightPlan: cannot get nearest point to {self.toICAO}")
+            return None
+
+        # Routing
+        logger.debug(f":getFlightPlan: from {s[0].id} to {e[0].id}..")
         if s[0] is not None and e[0] is not None:
             self.flight_plan = Route(self.airspace, s[0].id, e[0].id)
             # self.flight_plan.find()  # auto route
+        logger.debug(f":getFlightPlan: ..done")
         return self.flight_plan

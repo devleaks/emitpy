@@ -7,7 +7,7 @@ from math import inf
 
 from ..business import Identity, Company
 
-logging.basicConfig(level=logging.DEBUG)
+
 logger = logging.getLogger("ServiceVehicle")
 
 

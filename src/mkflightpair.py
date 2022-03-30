@@ -120,7 +120,7 @@ def main():
     logger.debug("..done")
 
     logger.debug("loading aircraft..")
-    acperf = AircraftPerformance.findAircraft(reqrange=arrrange)
+    acperf = AircraftPerformance.findAircraftForRange(reqrange=arrrange)
     reqfl = acperf.FLFor(max(arrrange, deprange))
     aircraft = Aircraft(registration="A7-PMA", icao24= "a2ec4f", actype=acperf, operator=airline)
     logger.debug("..done")

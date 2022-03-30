@@ -105,12 +105,12 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
 
     # Eliminate almost straight turns
     if abs(turnAngle) < 10:
-        logger.warning(f"standard_turn: small turn, skipping (turn={turnAngle:f}°)")
+        logger.debug(f"standard_turn: small turn, skipping (turn={turnAngle:f}°)")
         return None
 
     # Eliminate half turns and almost half turns
     if abs(turnAngle) > 150:
-        logger.warning(f"standard_turn: turn too large, skipping (turn={turnAngle:f}°)")
+        logger.debug(f"standard_turn: turn too large, skipping (turn={turnAngle:f}°)")
         return None
 
     if abs(turnAngle) > 120:
@@ -122,7 +122,7 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
 
     r = 1.5 * radius / 1000  # km
     if d_in < r or d_out < r:
-        logger.warning(f"standard_turn: segment too small, skipping in={d_in:f} out={d_out:f} (r={r:f}, turn={turnAngle:f}°)")
+        logger.debug(f"standard_turn: segment too small, skipping in={d_in:f} out={d_out:f} (r={r:f}, turn={turnAngle:f}°)")
         return None
 
     # Here we go
