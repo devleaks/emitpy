@@ -122,6 +122,27 @@ def asLineString(features):
     return LineString(coords)
 
 
+def ls_length(ls):
+    dist = 0
+    last = None
+    for coord in ls["geometry"]["coordinates"]:
+        if last is not None:
+            dist = dist + distance(Feature(Point(last)), Feature(Point(coord)))
+        last = coord
+    return dist
+
+
+def shortest_ls(lss):
+    shortest = None
+    dist = inf
+    for ls in lss:
+        d = lsLength(ls)
+        if d < dist:
+            shortest = ls
+            dist = d
+    return (shortest, dist)
+
+
 def cleanFeature(f):
     return Feature(geometry=f["geometry"], properties=f["properties"])
 

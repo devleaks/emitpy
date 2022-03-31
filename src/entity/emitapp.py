@@ -36,6 +36,7 @@ class ErrorInfo:
 
 SAVE_TO_FILE = False
 
+
 class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
@@ -224,7 +225,7 @@ class EmitApp(ManagedAirport):
             return ErrorInfo(511, f"EmitApp:do_service: ramp {ramp} not found", None)
         this_service.setRamp(rampval)
         this_service.setAircraftType(actype)
-        this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, model=vehicle_model)
+        this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, model=vehicle_model, registration=vehicle_ident, use=True)
         if this_vehicle is None:
             return ErrorInfo(512, f"EmitApp:do_service: vehicle not found", None)
         this_vehicle.setICAO24(vehicle_icao24)
@@ -290,8 +291,13 @@ class EmitApp(ManagedAirport):
         return ErrorInfo(0, "completed successfully", len(emit._emit))
 
 
+    def do_mission(self, operator, checkpoints, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
+        return ErrorInfo(1, "unimplemented", None)
+
+
     def do_schedule(self, ident, sync, scheduled):
-        emit = ReEmit(ident)
+        ident2 = ident.replace("-enqueued", "")
+        emit = ReEmit(ident2)
         ret = emit.schedule(sync, datetime.fromisoformat(scheduled))
         if not ret[0]:
             return ErrorInfo(160, f"problem during rescheduling", ret[1])
@@ -315,6 +321,6 @@ class EmitApp(ManagedAirport):
     def do_delete(self, ident):
         ret = FormatToRedis.delete(ident)
         if not ret[0]:
-            return ErrorInfo(190, f"problem during deltion of {ident} ", ret)
+            return ErrorInfo(190, f"problem during deletion of {ident} ", ret)
         return ErrorInfo(0, "deleted successfully", None)
 

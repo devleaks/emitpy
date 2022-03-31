@@ -204,7 +204,8 @@ class AircraftPerformance(AircraftType):
 
     @staticmethod
     def getCombo():
-        a = [(a.typeId, a.display_name) for a in sorted(AircraftPerformance._DB_PERF.values(), key=operator.attrgetter('display_name'))]
+        l = filter(lambda a: a.available, AircraftPerformance._DB_PERF.values())
+        a = [(a.typeId, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
         return a
 
 

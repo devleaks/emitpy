@@ -160,11 +160,12 @@ class AirportManager:
         airline.addHub(airport)
 
 
-    def selectServiceVehicle(self, operator: "Company", service: "Service", model: str=None, use: bool=True):
-        # We currently only instanciate new vehicle, starting from a Depot
-        sty = type(service).__name__[0:3].upper()
-        self.vehicle_number = self.vehicle_number + 1
-        vname = sty + ("%03d" % self.vehicle_number)
+    def selectServiceVehicle(self, operator: "Company", service: "Service", model: str=None, registration: str = None, use: bool=True):
+        vname = registration
+        if vname is None:
+            sty = type(service).__name__[0:3].upper()
+            self.vehicle_number = self.vehicle_number + 1
+            vname = sty + ("%03d" % self.vehicle_number)
         if vname not in self.service_vehicles.keys():
             vcl = type(service).__name__.replace("Service", "Vehicle")
             if model is not None:
@@ -181,10 +182,15 @@ class AirportManager:
                 if use:
                     logger.debug(f":selectServiceVehicle: using {vname}")
                     service.setVehicle(vehicle)
-                    logger.debug(f":selectServiceVehicle: returning {vname} {self.service_vehicles[vname]}")
-                    return self.service_vehicles[vname]
+                return vehicle
             else:
                 logger.warning(f":selectServiceVehicle: no class {vcl}")
+        else:
+            vehicle = self.service_vehicles[vname]
+            if use:
+                logger.debug(f":selectServiceVehicle: reusing {vname}")
+                service.setVehicle(vehicle)
+            return vehicle
 
         logger.debug(f":selectServiceVehicle: returning no vehicle?")
         return None

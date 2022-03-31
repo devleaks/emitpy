@@ -370,6 +370,11 @@ class XPAirport(AirportBase):
         logger.debug(f":loadServicePOIS: added {len(self.service_pois)} points of interest: {self.service_pois.keys()}")
         return [True, "XPAirport::loadServicePOIS loaded"]
 
+    def getServicePoisCombo(self):
+        l = sorted(self.service_pois.values(),key=lambda x: x.getProp("name"))
+        a = [(a.getProp("name"), a.getProp("name")) for a in l]
+        return a
+
     def loadCheckpointPOIS(self):
         self.loadGeometries("check-pois.geojson")
         if self.data is not None and self.data["features"] is not None:
@@ -390,6 +395,11 @@ class XPAirport(AirportBase):
 
         logger.debug(f":loadCheckpointPOIS: added {len(self.check_pois)} points of control: {self.check_pois.keys()}")
         return [True, "XPAirport::loadCheckpointPOIS loaded"]
+
+    def getCheckpointCombo(self):
+        l = sorted(self.check_pois.values(),key=lambda x: x.getProp("name"))
+        a = [(a.getProp("name"), a.getProp("name")) for a in l]
+        return a
 
     def getAerowayPOI(self, name):
         res = list(filter(lambda f: f.name == name, self.aeroway_pois))
@@ -503,6 +513,9 @@ class XPAirport(AirportBase):
 
     def selectServicePOI(self, name: str, service: str):
         ret = self.service_pois[name] if name in self.service_pois.keys() else None
+        if ret is None:
+            logger.debug(f":selectServicePOI: {name} is not a service poi, may be a ramp?")
+            ret = self.ramps[name] if name in self.ramps.keys() else None
         if ret is not None:
             logger.debug(f":selectServicePOI: found {name}")
             return ret
@@ -574,5 +587,3 @@ class XPAirport(AirportBase):
             logger.warning(f":getServiceRestArea: { name } not found")
             return None
         return dn[0]
-
-

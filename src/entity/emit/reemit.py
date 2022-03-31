@@ -29,17 +29,15 @@ class ReEmit(Emit):
 
 
     def loadDB(self):
-
         def toEmitPoint(s: str):
             f = json.loads(s.decode('UTF-8'))
             return EmitPoint(geometry=f["geometry"], properties=f["properties"])
 
         logger.debug(f":loadDB: trying to read {self.ident}..")
         ret = self.redis.zrange(self.ident, 0, -1)
-        logger.debug(f":loadDB: like {ret[0]}")
         logger.debug(f":loadDB: ..got {len(ret)} members")
         self._emit = [toEmitPoint(f) for f in ret]
-        logger.debug(f":loadDB: like {self._emit[0]}")
+        logger.debug(f":loadDB: collected {len(self._emit)} points")
 
 
     def loadMove(self):

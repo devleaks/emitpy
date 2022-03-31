@@ -10,6 +10,7 @@ from datetime import datetime
 from .servicevehicle import ServiceVehicle
 from ..geo import FeatureWithProps, printFeatures, asLineString
 from ..graph import Route
+from ..constants import SERVICE
 
 logger = logging.getLogger("Service")
 
@@ -39,6 +40,14 @@ class Service:
             return svc
         logger.warning(f":getService: service {cn} not found")
         return None
+
+
+    @staticmethod
+    def getCombo():
+        a = []
+        for s in SERVICE:
+            a.append((s.value, s.value[0].upper()+s.value[1:]))
+        return a
 
 
     def getId(self):

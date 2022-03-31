@@ -7,11 +7,13 @@ import logging
 
 from entity.emitapp import EmitApp
 from entity.parameters import MANAGED_AIRPORT
+from entity.service import Service
 from entity.utils import Timezone
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("testemit")
 
+print(Service.getCombo())
 
 e = EmitApp(MANAGED_AIRPORT)
 
