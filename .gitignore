@@ -124,3 +124,4 @@ db/
 src/http_cache.sqlite
 *.sqlite
 *.rdb
+data/aircraft-types/aircraft-types.csv
