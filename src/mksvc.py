@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from entity.business import AirportManager, Company, Airline
 from entity.airport import Airport, XPAirport
 from entity.aircraft import AircraftType, AircraftPerformance
-from entity.service import FuelService, ServiceMove
-from entity.emit import Emit, BroadcastToFile, LiveTraffic
+from entity.service import Service, ServiceMove
+from entity.emit import Emit, Format, LiveTraffic
 
 from entity.parameters import MANAGED_AIRPORT
 from entity.constants import SERVICE, SERVICE_PHASE
@@ -66,7 +66,8 @@ def main():
     operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
 
     logger.debug("creating single service..")
-    fuel_service = FuelService(operator=operator, quantity=24)
+    fs = Service.getService("fuel")
+    fuel_service = fs(operator=operator, quantity=24)
     fuel_service.setRamp(ramp)
     fuel_service.setAircraftType(actype)
     fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="pump")
@@ -100,8 +101,9 @@ def main():
 
     logger.debug(".. broadcasting position ..")
 
-    b = BroadcastToFile(se, datetime.now(), LiveTraffic)
-    b.run()
+    b = Format(se, LiveTraffic)
+    b.format()
+    b.save()
 
     logger.debug("..done")
 

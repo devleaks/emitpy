@@ -106,6 +106,7 @@ def main():
     turnaround.service()
     turnaround.move()
     turnaround.emit()
+    turnaround.saveDB()
 
     logger.debug("..done")
 

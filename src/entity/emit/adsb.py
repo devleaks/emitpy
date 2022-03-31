@@ -14,7 +14,7 @@ logger = logging.getLogger("ADS-B")
 
 class ADSB(Formatter):
 
-    FILE_FORMAT = "csv"
+    FILE_EXTENTION = "csv"
 
     def __init__(self, feature: "FeatureWithProps"):
         Formatter.__init__(self, feature=feature)

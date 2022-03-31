@@ -161,10 +161,10 @@ def create_schedule_form():
     )
 
 
+# Helper for cascaded combo
 @app.route('/emitsyncs/<emitid>')
 def emitsyncs(emitid):
-    l = r.getSyncsForEmit(emit_id=emitid)
-    return jsonify(syncs=l)
+    return jsonify(syncs=r.getSyncsForEmit(emit_id=emitid))
 
 
 class RemoveForm(FlaskForm):

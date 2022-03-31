@@ -6,7 +6,7 @@ from entity.business import Airline
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from entity.airport import Airport, AirportBase, XPAirport
-from entity.emit import Emit, BroadcastToFile, ADSB
+from entity.emit import Emit, Format, ADSB
 from entity.business import AirportManager
 from entity.parameters import MANAGED_AIRPORT
 from entity.constants import FLIGHT_PHASE
@@ -136,8 +136,9 @@ def main():
 
     logger.debug("..broadcasting positions..")
 
-    b = BroadcastToFile(ae, datetime.now(), ADSB)
-    b.run()
+    b = Format(ae, ADSB)
+    b.format()
+    b.save()
 
     logger.debug("..done.")
 

@@ -39,7 +39,8 @@ class FlightPlanRoute:
 
         self.filename = f"{fromICAO.lower()}-{toICAO.lower()}"
 
-        self.getFlightPlan()
+        if self.airspace is not None:
+            self.getFlightPlan()
 
 
     def setAirspace(self, airspace):
@@ -66,21 +67,21 @@ class FlightPlanRoute:
 
         # Resolving airports
         origin = a.getAirportICAO(self.fromICAO)
-        if origin in None:
+        if origin is None:
             logger.warning(f":getFlightPlan: cannot get airport {self.fromICAO}")
             return None
         destination = a.getAirportICAO(self.toICAO)
-        if destination in None:
+        if destination is None:
             logger.warning(f":getFlightPlan: cannot get airport {self.toICAO}")
             return None
 
         # Resolving network
         s = a.nearest_vertex(point=origin, with_connection=True)
-        if s in None or s[0] is None:
+        if s is None or s[0] is None:
             logger.warning(f":getFlightPlan: cannot get nearest point to {self.fromICAO}")
             return None
         e = a.nearest_vertex(point=destination, with_connection=True)
-        if e in None or e[0] is None:
+        if e is None or e[0] is None:
             logger.warning(f":getFlightPlan: cannot get nearest point to {self.toICAO}")
             return None
 

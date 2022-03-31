@@ -102,6 +102,7 @@ class ServiceFlight:
             move = ServiceMove(service["service"], self.airport)
             ret = move.move()
             if not ret[0]:
+                logger.warning(f"moving {service['type']} returns {ret}")
                 return ret
             service["move"] = move
             logger.debug(f"..done")
@@ -115,12 +116,20 @@ class ServiceFlight:
             ret = emit.emit()
             if not ret[0]:
                 return ret
-            ret = emit.saveDB()
-            if not ret[0]:
-                return ret
             service["emit"] = emit
             logger.debug(f"..done")
         return (True, "ServiceFlight::emit: completed")
+
+
+    def saveDB(self):
+        for service in self.services:
+            logger.debug(f"saving {service['type']}..")
+            emit = service["emit"]
+            ret = emit.saveDB()
+            if not ret[0]:
+                return ret
+            logger.debug(f"..done")
+        return (True, "ServiceFlight::saveDB: completed")
 
 
     def schedule(self, scheduled: datetime):

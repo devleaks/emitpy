@@ -1,15 +1,20 @@
 #  Python classes to format features for output to different channel requirements
 #
+import os
 import logging
 from datetime import datetime
 
 from ..geo import printFeatures
-from ..constants import FEATPROP
+from ..constants import FEATPROP, FLIGHT_DATABASE
+from ..parameters import AODB_DIR
+
 
 logger = logging.getLogger("Formatter")
 
 
 class Formatter:
+
+    FILE_EXTENTION = "json"
 
     def __init__(self, feature: "Feature"):
         self.feature = feature
@@ -18,10 +23,6 @@ class Formatter:
 
     def __str__(self):
         return json.dumps(self.feature)
-
-    def getFileExtenstion(self):
-        # extension for a collection (array) of formatted objects
-        return self.fileformat
 
 
 class Format:
@@ -52,8 +53,8 @@ class Format:
 
     def format(self):
         if self.emit.scheduled_emit is None or len(self.emit.scheduled_emit) == 0:
-            logger.warning("Format::run: no emission point")
-            return (False, "Format::run no emission point")
+            logger.warning("Format::format: no emission point")
+            return (False, "Format::format no emission point")
 
         self.output = []  # reset if called more than once
         br = filter(lambda f: f.getProp(FEATPROP.BROADCAST.value), self.emit.scheduled_emit)
@@ -61,12 +62,12 @@ class Format:
         self.output = list(map(self.formatter, bq))
         logger.debug(f':run: formatted {len(self.output)} / {len(self.emit.scheduled_emit)}, version {self.version}')
         self.version = self.version + 1
-        return (True, "Format::run completed")
+        return (True, "Format::format completed")
 
 
     def save(self, overwrite: bool = False):
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE)
-        fileformat = self.formatter.getFileExtenstion()
+        fileformat = self.formatter.FILE_EXTENTION
         ident = self.emit.getId()
         fn = f"{ident}-6-broadcast.{fileformat}"
         filename = os.path.join(basename, fn)
