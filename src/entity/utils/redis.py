@@ -1,6 +1,10 @@
 import redis
+import json
+import logging
 
-from ..constants import REDIS_DATABASE, REDIS_QUEUE
+logger = logging.getLogger("Utils/Redis")
+
+from ..constants import REDIS_DATABASE, REDIS_QUEUE, REDIS_TYPE
 
 class RedisUtils:
 
@@ -8,21 +12,38 @@ class RedisUtils:
         self.redis = redis.Redis()
 
     def list_emits(self):
-        suffix = "-enqueued"
-        keys = self.redis.keys("*"+suffix)
-        return [(k.decode("utf-8"), k.decode("utf-8").replace(suffix, "")) for k in sorted(keys)]
+        return self.getKeys(REDIS_TYPE.QUEUE.value)
 
     def list_queues(self):
         return ("none", "none")
-
-    def create_queue(self, name:str , fmt: str, start: str, speed: float):
-        pass
-
-    def delete_queue(self, name:str):
-        pass
 
     def dashboard(self):
         pass
 
     def inc(self, name:str, val: int = 1):
         pass
+
+    def getKeys(self, suffix):
+        keys = self.redis.keys("*"+suffix)
+        return [(k.decode("utf-8").replace(suffix, ""), k.decode("utf-8").replace(suffix, "")) for k in sorted(keys)]
+
+
+    def getMovementCombo(self):
+        ret = self.redis.smembers(REDIS_DATABASE.MOVEMENTS.value)
+        return [(f.decode("UTF-8"),f.decode("UTF-8")) for f in ret]
+
+    def getSyncsForEmit(self, emit_id: str):
+        def toEmitPoint(s: str):
+            f = json.loads(s.decode('UTF-8'))
+            return f  # EmitPoint(geometry=f["geometry"], properties=f["properties"])
+
+        logger.debug(f":loadDB: trying to read {emit_id}..")
+        ret = self.redis.zrange(emit_id, 0, -1)
+        logger.debug(f":loadDB: ..got {len(ret)} members")
+        emit = [toEmitPoint(f) for f in ret]
+        logger.debug(f":loadDB: collected {len(emit)} points")
+        s = {}
+        for e in emit:
+            if "properties" in e and "_mark" in e["properties"]:
+                s[e["properties"]["_mark"]] = True
+        return [(m, m) for m in s.keys()]

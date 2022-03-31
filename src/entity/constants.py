@@ -332,7 +332,14 @@ class REDIS_DATABASE(Enum):
     QUEUES = "queues"
 
 
+class REDIS_TYPE(Enum):
+    EMIT = "-e"
+    FORMAT = "-f"
+    QUEUE = "-q"
+
+
 class REDIS_QUEUE(Enum):
+    ADMIN_QUEUE_PREFIX = "adm"
     ADSB = "adsb"
     LIVETRAFFIC = "lt"
 

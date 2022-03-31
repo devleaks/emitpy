@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template, request, flash, Markup, redirect, url_for
+from flask import Flask, render_template, request, flash, Markup, redirect, url_for, jsonify
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms.fields import *
 from flask_bootstrap import Bootstrap5, SwitchField
 from datetime import datetime, timedelta
 
+import json
 import logging
 
 from entity.emitapp import EmitApp
@@ -126,8 +127,8 @@ def create_service_form():
 
 
 class RescheduleForm(FlaskForm):
-    movement = SelectField(choices=r.list_emits())
-    syncname = SelectField(choices=Emit.getCombo())
+    movement = SelectField(choices=r.list_emits(), id="movement_id")
+    syncname = SelectField(choices=[], id="syncname_id", validate_choice=False)  # Emit.getCombo()
     new_date = DateField()
     new_time = TimeField()
     submit = SubmitField("New ETA")
@@ -154,10 +155,16 @@ def create_schedule_form():
             flash(ret.errmsg, 'error')
         return redirect(url_for('index'))
     return render_template(
-        'create.html',
+        'create-alt.html',
         title="Reschedule movement",
         create_form=form
     )
+
+
+@app.route('/emitsyncs/<emitid>')
+def emitsyncs(emitid):
+    l = r.getSyncsForEmit(emit_id=emitid)
+    return jsonify(syncs=l)
 
 
 class RemoveForm(FlaskForm):
@@ -203,7 +210,16 @@ class QueueForm(FlaskForm):
 def create_queue_form():
     form = QueueForm()
     if form.validate_on_submit():
-        flash('Queue created')
+        dt = form.simulation_date.data + timedelta(hours=form.simulation_time.data.hour, minutes=form.simulation_time.data.minute)
+        ret = e.do_queue(name=form.queue_name.data,
+                         formatting=form.formatting.data,
+                         starttime=dt.isoformat(),
+                         speed=float(form.speed.data)
+        )
+        if ret.errno == 0:
+            flash(f'Queue {form.queue_name.data} created', 'success')
+        else:
+            flash(ret.errmsg, 'error')
         return redirect(url_for('index'))
     return render_template(
         'create.html',

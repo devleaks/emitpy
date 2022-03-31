@@ -6,14 +6,12 @@ import datetime
 import redis
 
 from .format import Format, Formatter
-from ..constants import REDIS_QUEUE, REDIS_DATABASE
+from ..constants import REDIS_QUEUE, REDIS_DATABASE, REDIS_TYPE
 
 logger = logging.getLogger("FormatToRedis")
 
 
 class FormatToRedis(Format):
-
-    SUFFIX = "-enqueue"
 
 
     def __init__(self, emit: "Emit", formatter: Formatter):
@@ -23,7 +21,7 @@ class FormatToRedis(Format):
 
     @staticmethod
     def list():
-        keys = self.redis.keys("*"+FormatToRedis.SUFFIX)
+        keys = self.redis.keys("*"+REDIS_TYPE.QUEUE.value)
         return [(k, k) for k in sorted(keys)]
 
 
@@ -31,7 +29,7 @@ class FormatToRedis(Format):
     def dequeue(ident: str, queue: str):
         r = redis.Redis()
         # Remove ident entries from sending queue.
-        enqueued = ident + "-enqueued"
+        enqueued = ident + REDIS_TYPE.QUEUE.value
         # 1. Remove queued elements
         oldvalues = r.smembers(enqueued)
         if oldvalues and len(oldvalues) > 0:
@@ -49,12 +47,12 @@ class FormatToRedis(Format):
         # Remove ident entries from sending queue if queue is provided.
         # Remove ident from list of emits (normally, this is done with expiration date).
         r = redis.Redis()
-        enqueued = ident + FormatToRedis.SUFFIX
+        enqueued = ident + REDIS_TYPE.QUEUE.value
         # 1. Dequeue
         if queue is not None:
             FormatToRedis.dequeue(ident, queue)
         # 2. Remove emit
-        r.delete(ident)
+        r.delete(enqueued)
         # 3. Remove from list of available emissions
         r.srem(REDIS_DATABASE.MOVEMENTS.value, ident)
         logger.debug(f":enqueue: deleted {ident} emits")
@@ -70,7 +68,7 @@ class FormatToRedis(Format):
             return (False, "FormatToRedis::save: no emission point")
 
         ident = self.emit.getId()
-        ident = ident + "-out"
+        ident = ident + REDIS_TYPE.FORMAT.value
 
         n = self.redis.scard(ident)
         if n > 0 and not overwrite:
@@ -96,7 +94,7 @@ class FormatToRedis(Format):
             return (False, "FormatToRedis::enqueue: no emission point")
 
         ident = self.emit.getId()
-        ident = ident + FormatToRedis.SUFFIX
+        ident = ident + REDIS_TYPE.QUEUE.value
 
         oldvalues = self.redis.smembers(ident)
         if oldvalues and len(oldvalues) > 0:

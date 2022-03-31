@@ -14,9 +14,14 @@ class Formatter:
     def __init__(self, feature: "Feature"):
         self.feature = feature
         self.ts = feature.getAbsoluteEmissionTime()
+        self.fileformat = "json"
 
     def __str__(self):
         return json.dumps(self.feature)
+
+    def getFileExtenstion(self):
+        # extension for a collection (array) of formatted objects
+        return self.fileformat
 
 
 class Format:
@@ -30,11 +35,20 @@ class Format:
     @staticmethod
     def getCombo():
         return [
-            ("raw", "Raw"),
             ("adsb", "ADS-B"),
             ("view", "Viewer"),
-            ("lt", "X-Plane LiveTraffic")
+            ("lt", "X-Plane LiveTraffic"),
+            ("raw", "Raw")
         ]
+
+    @staticmethod
+    def getFormatter(name):
+        if name == "adsb":
+            return ADSB
+        elif name == "lt":
+            return LiveTraffic
+        # default is raw
+        return Formatter
 
     def format(self):
         if self.emit.scheduled_emit is None or len(self.emit.scheduled_emit) == 0:
@@ -52,7 +66,7 @@ class Format:
 
     def save(self, overwrite: bool = False):
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE)
-        fileformat = self.formatter.FILE_FORMAT
+        fileformat = self.formatter.getFileExtenstion()
         ident = self.emit.getId()
         fn = f"{ident}-6-broadcast.{fileformat}"
         filename = os.path.join(basename, fn)
