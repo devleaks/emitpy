@@ -67,7 +67,8 @@ class Airline(Company):
 
     @staticmethod
     def getCombo():
-        a = [(a.iata, a.orgId) for a in sorted(Airline._DB_IATA.values(), key=operator.attrgetter('orgId'))]
+        l = filter(lambda a: len(a.routes) > 0, Airline._DB_IATA.values())
+        a = [(a.iata, a.orgId) for a in sorted(l, key=operator.attrgetter('orgId'))]
         return a
 
     def loadFromFile(self):

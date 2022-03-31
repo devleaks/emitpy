@@ -27,6 +27,14 @@ class Format:
         self.output = []
         self.version = 0
 
+    @staticmethod
+    def getCombo():
+        return [
+            ("raw", "Raw"),
+            ("adsb", "ADS-B"),
+            ("view", "Viewer"),
+            ("lt", "X-Plane LiveTraffic")
+        ]
 
     def format(self):
         if self.emit.scheduled_emit is None or len(self.emit.scheduled_emit) == 0:
@@ -42,15 +50,19 @@ class Format:
         return (True, "Format::run completed")
 
 
-    def save(self):
+    def save(self, overwrite: bool = False):
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE)
         fileformat = self.formatter.FILE_FORMAT
         ident = self.emit.getId()
         fn = f"{ident}-6-broadcast.{fileformat}"
         filename = os.path.join(basename, fn)
+        if os.path.exists(filename) and not overwrite:
+            logger.warning(f":save: file {filename} already exist, not saved")
+            return (False, "Format::save file already exist")
+
         with open(filename, "w") as fp:
             for l in self.output:
                 fp.write(str(l)+"\n")
 
-        logger.debug(f":run: saved {fn}")
+        logger.debug(f":save: saved {fn}")
         return (False, "Format::save saved")

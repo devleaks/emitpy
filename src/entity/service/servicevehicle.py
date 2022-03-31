@@ -6,7 +6,7 @@ import logging
 from math import inf
 
 from ..business import Identity, Company
-
+from ..constants import SERVICE
 
 logger = logging.getLogger("ServiceVehicle")
 
@@ -40,6 +40,19 @@ class ServiceVehicle(Identity):
 
         self.setup_time = 0
         self.flow = 1  # quantity per minutes
+
+    @staticmethod
+    def getCombo():
+        # No meta code introspection! vehicle types (and models) are manually hardcoded.
+        a = []
+        for s in SERVICE:
+            if s.value == "fuel":
+                a.append(("pump", "Fuel Jet Pump"))
+                a.append(("tanker_large", "Large Fuel Tanker"))
+                a.append(("tanker_medium", "Medium Fuel Tanker"))
+            else:
+                a.append((s.value+":default", s.value[0].upper()+s.value[1:]+" Vehicle"))
+        return a
 
     def getId(self):
         return self.name  # registration

@@ -17,7 +17,7 @@ from turfpy.measurement import distance, bearing, destination
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
 from ..utils import compute_headings
 
-from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE
+from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE
 from ..parameters import AODB_DIR
 
 logger = logging.getLogger("Emit")
@@ -61,6 +61,18 @@ class Emit:
             # collect common props from movement
             self.props = self.move.getInfo()
             logger.debug(f":__init__: {len(self.moves)} points to emit with props {self.props}")
+
+
+    @staticmethod
+    def getCombo():
+        a = []
+        for f in FLIGHT_PHASE:
+            n = f.value[0].upper() + f.value[1:] + " (flight)"
+            a.append((f.value, n))
+        for f in SERVICE_PHASE:
+            n = f.value[0].upper() + f.value[1:] + " (service)"
+            a.append((f.value, n))
+        return a
 
 
     def save(self):

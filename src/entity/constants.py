@@ -329,13 +329,12 @@ class FILE_EXT(Enum):
 class REDIS_DATABASE(Enum):
     FLIGHTS = "flights"
     MOVEMENTS = "movements"
-    SERVICES = "services"
-    BROADCASTERS = "broadcasters"
+    QUEUES = "queues"
 
 
 class REDIS_QUEUE(Enum):
     ADSB = "adsb"
-    LIVETRAFFIC = "livet"
+    LIVETRAFFIC = "lt"
 
 
 class POI_TYPE(Enum):
