@@ -17,7 +17,7 @@ from turfpy.measurement import distance, bearing, destination
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
 from ..utils import compute_headings
 
-from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE
+from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE, REDIS_TYPE
 from ..parameters import AODB_DIR
 
 logger = logging.getLogger("Emit")
@@ -106,12 +106,13 @@ class Emit:
             self.redis = redis.Redis()
 
         ident = self.move.getId()
+        emit_id = ident + REDIS_TYPE.EMIT.value
 
         emit = {}
         for f in self._emit:
             emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
-        self.redis.delete(ident)
-        self.redis.zadd(ident, emit)
+        self.redis.delete(emit_id)
+        self.redis.zadd(emit_id, emit)
         self.redis.sadd(REDIS_DATABASE.MOVEMENTS.value, ident)
 
         logger.debug(f":saveDB: saved {ident}")

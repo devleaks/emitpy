@@ -2,7 +2,7 @@ import redis
 import json
 
 from .emit import EmitPoint, Emit
-from ..constants import FEATPROP, REDIS_DATABASE
+from ..constants import FEATPROP, REDIS_DATABASE, REDIS_TYPE
 
 import logging
 
@@ -42,11 +42,3 @@ class ReEmit(Emit):
 
     def loadMove(self):
         self.moves = list(filter(lambda f: not f.getProp(FEATPROP.BROADCAST.value), self._emit))
-
-
-    @staticmethod
-    def getMovementCombo():
-        # helper function for UI
-        _redis = redis.Redis()
-        ret = _redis.smembers(REDIS_DATABASE.MOVEMENTS.value)
-        return [(f.decode("UTF-8"),f.decode("UTF-8")) for f in ret]
