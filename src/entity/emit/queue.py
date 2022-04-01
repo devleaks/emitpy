@@ -22,10 +22,22 @@ class Queue:
         Instantiate Queue from characteristics saved in Redis
         """
         r = Redis()
-        ident = Queue.getAdminQueue()
+        ident = Queue.getAdminQueue(name)
         qstr = r.get(ident)
         q = json.loads(qstr.decode("UTF-8"))
-        return Queue(name=name, formatter_name=q.formatter_name, starttime=q.starttime, speed=q.speed)
+        logger.debug(f":create: created {name}")
+        return Queue(name=name, formatter_name=q["formatter_name"], starttime=q["starttime"], speed=q["speed"])
+
+
+    @staticmethod
+    def delete(name):
+        r = Redis()
+        ident = Queue.getAdminQueue(name)
+        r.srem(REDIS_DATABASE.QUEUES.value, ident)
+        r.delete(ident)
+        r.publish(REDIS_DATABASE.QUEUES.value, "del-queue:"+name)
+        logger.debug(f":delete: deleted {name}")
+        return (True, "Queue::delete: deleted")
 
 
     @staticmethod
@@ -39,6 +51,10 @@ class Queue:
     @staticmethod
     def getAdminQueue(name):
         return REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + "-" + name
+
+    @staticmethod
+    def getQueueName(admin_queue_name):
+        return admin_queue_name.replace(REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + "-", "")
 
 
     def save(self):
@@ -56,4 +72,8 @@ class Queue:
             }))
         r.sadd(REDIS_DATABASE.QUEUES.value, ident)
         logger.debug(f"Queue {ident} saved")
+
+        r.publish(REDIS_DATABASE.QUEUES.value, "new-queue:"+self.name)
+        logger.debug(f"Hypercaster notified for {ident}")
+
         return (True, "Queue::save: saved")
