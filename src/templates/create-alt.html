@@ -10,13 +10,10 @@
     <script>
         let move_select = document.getElementById("movement_id")
         let sync_select = document.getElementById("syncname_id")
-
         move_select.onchange = function() {
             move_id = move_select.value;
-            console.log("move:"+move_id)
             fetch('/emitsyncs/'+move_id).then(function(response){
                 response.json().then(function(data) {
-                    console.log("data:"+data)
                     let optionHTML = '';
                     for(let sn of data.syncs) {
                         optionHTML += '<option value="'+sn[0]+'">'+sn[1]+'</option>'
@@ -24,6 +21,12 @@
                     sync_select.innerHTML = optionHTML
                 })
             })
+        }
+        if(document.createEvent) { // provoke event for first init
+            let event = document.createEvent("HTMLEvents");
+            event.initEvent("change", true, true);
+            event.eventName = "change";
+            move_select.dispatchEvent(event);
         }
     </script>
 

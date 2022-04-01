@@ -18,6 +18,7 @@ class ADSB(Formatter):
 
     def __init__(self, feature: "FeatureWithProps"):
         Formatter.__init__(self, feature=feature)
+        self.name = "adsb"
 
     def __str__(self):
         return json.dumps(self.feature)

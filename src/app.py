@@ -15,7 +15,7 @@ from entity.aircraft import AircraftPerformance as Aircraft
 from entity.airport import Airport
 from entity.business import Airline
 from entity.service import Service, ServiceVehicle
-from entity.emit import Emit, Format
+from entity.emit import Emit, Format, Queue
 from entity.utils import RedisUtils
 
 logging.basicConfig(level=logging.DEBUG)
@@ -50,15 +50,31 @@ class CreateFlightForm(FlaskForm):
     call_sign = StringField(description="Aircraft call sign in operation, usually the flight number")
     icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form")
     runway = SelectField(choices=e.airport.getRunwayCombo())
+    queue = SelectField(choices=Queue.getCombo())
     # DANGEROUS
     create_services = BooleanField("Create flight services", description="Note: Services created depends on airline, aircraft type, ramp.")
     submit = SubmitField("Create flight")
 
+    @classmethod
+    # https://stackoverflow.com/questions/12170995/flask-and-wtforms-how-to-get-wtforms-to-refresh-select-data
+    def new(cls):
+        # Instantiate the form
+        form = cls()
+
+        # Update the choices for the agency field
+        form.airline.data = "QR"
+        form.queue.choices = Queue.getCombo()
+        return form
+
 @app.route('/create_flight', methods=['GET', 'POST'])
 def create_flight_form():
-    form = CreateFlightForm()
+    form = CreateFlightForm.new()
     if form.validate_on_submit():
-        dt = form.flight_date.data + timedelta(hours=form.flight_time.data.hour, minutes=form.flight_time.data.minute)
+        dt = datetime(year=form.flight_date.data.year,
+                      month=form.flight_date.data.month,
+                      day=form.flight_date.data.day,
+                      hour=form.flight_time.data.hour,
+                      minute=form.flight_time.data.minute)
         ret = e.do_flight(airline=form.airline.data,
                     flightnumber=form.flight_number.data,
                     scheduled=dt.isoformat(),
@@ -102,7 +118,11 @@ class CreateServiceForm(FlaskForm):
 def create_service_form():
     form = CreateServiceForm()
     if form.validate_on_submit():
-        dt = form.service_date.data + timedelta(hours=form.service_time.data.hour, minutes=form.service_time.data.minute)
+        dt = datetime(year=form.service_date.data.year,
+                      month=form.service_date.data.month,
+                      day=form.service_date.data.day,
+                      hour=form.service_time.data.hour,
+                      minute=form.service_time.data.minute)
         ret = e.do_service(operator=form.handler.data,
                      service=form.service.data,
                      quantity=form.quantity.data,
@@ -147,7 +167,12 @@ class RescheduleForm(FlaskForm):
 def create_schedule_form():
     form = RescheduleForm.new()
     if form.validate_on_submit():
-        dt = form.new_date.data + timedelta(hours=form.new_time.data.hour, minutes=form.new_time.data.minute)
+        dt = datetime(year=form.new_date.data.year,
+                      month=form.new_date.data.month,
+                      day=form.new_date.data.day,
+                      hour=form.new_time.data.hour,
+                      minute=form.new_time.data.minute)
+        print(">>>", form.new_date.data, form.new_time.data, dt)
         ret = e.do_schedule(ident=form.movement.data, sync=form.syncname.data, scheduled=dt.isoformat())
         if ret.errno == 0:
             flash(f'Re-scheduled {form.movement.data}', 'success')
@@ -164,7 +189,8 @@ def create_schedule_form():
 # Helper for cascaded combo
 @app.route('/emitsyncs/<emitid>')
 def emitsyncs(emitid):
-    return jsonify(syncs=r.getSyncsForEmit(emit_id=emitid))
+    l = r.getSyncsForEmit(emit_id=emitid)
+    return jsonify(syncs=l)
 
 
 class RemoveForm(FlaskForm):
@@ -210,7 +236,11 @@ class QueueForm(FlaskForm):
 def create_queue_form():
     form = QueueForm()
     if form.validate_on_submit():
-        dt = form.simulation_date.data + timedelta(hours=form.simulation_time.data.hour, minutes=form.simulation_time.data.minute)
+        dt = datetime(year=form.simulation_date.data.year,
+                      month=form.simulation_date.data.month,
+                      day=form.simulation_date.data.day,
+                      hour=form.simulation_time.data.hour,
+                      minute=form.simulation_time.data.minute)
         ret = e.do_queue(name=form.queue_name.data,
                          formatting=form.formatting.data,
                          starttime=dt.isoformat(),

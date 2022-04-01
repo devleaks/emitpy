@@ -8,21 +8,12 @@ from ..geo import printFeatures
 from ..constants import FEATPROP, FLIGHT_DATABASE
 from ..parameters import AODB_DIR
 
+# Formatter for constructor
+from .formatter import Formatter
+from .livetraffic import LiveTraffic
+from .adsb import ADSB
 
 logger = logging.getLogger("Formatter")
-
-
-class Formatter:
-
-    FILE_EXTENTION = "json"
-
-    def __init__(self, feature: "Feature"):
-        self.feature = feature
-        self.ts = feature.getAbsoluteEmissionTime()
-        self.fileformat = "json"
-
-    def __str__(self):
-        return json.dumps(self.feature)
 
 
 class Format:

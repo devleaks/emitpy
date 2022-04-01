@@ -2,6 +2,7 @@ import redis
 import logging
 
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Reader")
 
 
@@ -14,7 +15,7 @@ class Reader:
         self.pubsub.subscribe(self.name)
 
     def run(self):
-        logger.debug(":run: listening..")
+        logger.debug(f":run: listening on {self.name}..")
         for message in self.pubsub.listen():
             # logger.debug(f":run: received {message}")
             msg = message["data"]
@@ -26,5 +27,5 @@ class Reader:
         # shoud do some check to not forward redis internal messages
         logger.debug(f":forward: {msg}")
 
-r = Reader("adsb")
+r = Reader("lt")
 r.run()

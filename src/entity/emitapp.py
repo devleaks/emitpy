@@ -8,7 +8,7 @@ from entity.business import Airline, Company
 from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
 from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from entity.service import Service, ServiceMove, ServiceFlight
-from entity.emit import Emit, ReEmit, FormatToRedis, Queue
+from entity.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from entity.business import AirportManager
 from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE
 from entity.airport import Airport, AirportBase
@@ -35,12 +35,15 @@ class ErrorInfo:
 
 
 SAVE_TO_FILE = False
-FORMATTER = "lt"  # temporary global
+
 
 class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
         ManagedAirport.__init__(self, airport)
+        # Default queue
+        self.queue = Queue(name="lt", formatter_name="lt", starttime=datetime.now().isoformat())
+        self.queue.save()
         self.init()
 
 
@@ -151,14 +154,14 @@ class EmitApp(ManagedAirport):
             return ErrorInfo(110, f"problem during schedule", ret[1])
         logger.info("SAVED " + ("*" * 84))
         logger.debug("..broadcasting positions..")
-        formatted = FormatToRedis(emit, Format.getFormatter(FORMATTER))
+        formatted = EnqueueToRedis(emit, self.queue)
         ret = formatted.format()
         if not ret[0]:
             return ErrorInfo(107, f"problem during formatting", ret[1])
         ret = formatted.save()
-        if not ret[0] and ret[1] != "FormatToRedis::save key already exist":
+        if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
             return ErrorInfo(108, f"problem during formatted output save", ret[1])
-        ret = formatted.enqueue(REDIS_QUEUE.ADSB.value)
+        ret = formatted.enqueue()
         if not ret[0]:
             return ErrorInfo(109, f"problem during enqueue", ret[1])
 
@@ -275,14 +278,14 @@ class EmitApp(ManagedAirport):
             return ErrorInfo(514, f"problem during service emission save to Redis", ret[1])
 
         logger.debug(".. broadcasting position ..")
-        formatted = FormatToRedis(emit, Format.getFormatter(FORMATTER))
+        formatted = EnqueueToRedis(emit, self.queue)
         ret = formatted.format()
         if not ret[0]:
             return ErrorInfo(514, f"problem during service formatting", ret[1])
         ret = formatted.save(overwrite=True)
-        if not ret[0] and ret[1] != "FormatToRedis::save key already exist":
+        if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
             return ErrorInfo(514, f"problem during service save", ret[1])
-        ret = formatted.enqueue(REDIS_QUEUE.ADSB.value)
+        ret = formatted.enqueue()
         if not ret[0]:
             return ErrorInfo(514, f"problem during service save to Redis", ret[1])
 
@@ -303,14 +306,14 @@ class EmitApp(ManagedAirport):
             return ErrorInfo(160, f"problem during rescheduling", ret[1])
 
         logger.debug("..broadcasting positions..")
-        formatted = FormatToRedis(emit, LiveTraffic)
+        formatted = EnqueueToRedis(emit, self.queue)
         ret = formatted.format()
         if not ret[0]:
             return ErrorInfo(160, f"problem during rescheduled formatting", ret[1])
         ret = formatted.save(overwrite=True)
         if not ret[0]:
             return ErrorInfo(160, f"problem during rescheduled save", ret[1])
-        ret = formatted.enqueue(REDIS_QUEUE.ADSB.value)
+        ret = formatted.enqueue()
         if not ret[0]:
             return ErrorInfo(160, f"problem during rescheduled enqueing", ret[1])
         logger.debug("..done.")
@@ -319,13 +322,16 @@ class EmitApp(ManagedAirport):
 
 
     def do_delete(self, ident):
-        ret = FormatToRedis.delete(ident)
+        ret = EnqueueToRedis.delete(ident, queue=self.queue.name)
         if not ret[0]:
             return ErrorInfo(190, f"problem during deletion of {ident} ", ret)
         return ErrorInfo(0, "deleted successfully", None)
 
 
     def do_queue(self, name, formatting, starttime, speed):
+        """
+        Creates of "register" a Queue for (direct) use
+        """
         q = Queue(name, formatting, starttime, speed)
         ret = q.save()
         if not ret[0]:

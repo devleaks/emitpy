@@ -182,5 +182,11 @@ class Broadcaster:
             self.trim.join()
             logger.debug(f":run: ..bye")
 
-b = Broadcaster("lt")
-b.broadcast()
+
+class HyperCaster:
+    """
+    Starts a Broadcaster for each queue
+    """
+    def __init__(self):
+        pass
+
