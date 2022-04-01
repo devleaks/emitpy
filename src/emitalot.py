@@ -13,8 +13,6 @@ from entity.utils import Timezone
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("testemit")
 
-print(Service.getCombo())
-
 e = EmitApp(MANAGED_AIRPORT)
 
 dohatime = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
@@ -26,7 +24,7 @@ csvdata = csv.DictReader(file)
 icao = {}
 cnt = 0
 cnt_begin = 0
-cnt_end = cnt_begin + 4
+cnt_end = cnt_begin + 0
 
 for r in csvdata:
 
@@ -80,5 +78,5 @@ for r in csvdata:
 
     cnt = cnt + 1
 
-    if cnt == cnt_end:
+    if cnt > cnt_end:
         break

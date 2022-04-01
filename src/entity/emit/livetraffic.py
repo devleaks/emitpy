@@ -18,6 +18,7 @@ class LiveTraffic(Formatter):
 
     def __init__(self, feature: "FeatureWithProps"):
         Formatter.__init__(self, feature=feature)
+        self.name = "lt"
 
     def __str__(self):
         # Sample SendTraffic.py file:

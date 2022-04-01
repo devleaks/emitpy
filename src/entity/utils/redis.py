@@ -37,8 +37,9 @@ class RedisUtils:
             f = json.loads(s.decode('UTF-8'))
             return f  # EmitPoint(geometry=f["geometry"], properties=f["properties"])
 
-        logger.debug(f":loadDB: trying to read {emit_id}..")
-        ret = self.redis.zrange(emit_id, 0, -1)
+        ident = emit_id + REDIS_TYPE.EMIT.value
+        logger.debug(f":loadDB: trying to read {ident}..")
+        ret = self.redis.zrange(ident, 0, -1)
         logger.debug(f":loadDB: ..got {len(ret)} members")
         emit = [toEmitPoint(f) for f in ret]
         logger.debug(f":loadDB: collected {len(emit)} points")
@@ -46,4 +47,4 @@ class RedisUtils:
         for e in emit:
             if "properties" in e and "_mark" in e["properties"]:
                 s[e["properties"]["_mark"]] = True
-        return [(m, m) for m in s.keys()]
+        return [(m, m.upper()) for m in s.keys()]

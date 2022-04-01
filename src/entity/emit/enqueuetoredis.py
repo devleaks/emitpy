@@ -5,24 +5,21 @@ import logging
 import datetime
 import redis
 
-from .format import Format, Formatter
+from .format import Format
+from .formattoredis import FormatToRedis
+from .queue import Queue
 from ..constants import REDIS_QUEUE, REDIS_DATABASE, REDIS_TYPE
 
-logger = logging.getLogger("FormatToRedis")
+logger = logging.getLogger("EnqueueToRedis")
 
 
-class FormatToRedis(Format):
+class EnqueueToRedis(FormatToRedis):  # could/should inherit from Format
 
 
-    def __init__(self, emit: "Emit", formatter: Formatter):
-        Format.__init__(self, emit=emit, formatter=formatter)
-        self.redis = redis.Redis()
-
-
-    @staticmethod
-    def list():
-        keys = self.redis.keys("*"+REDIS_TYPE.QUEUE.value)
-        return [(k, k) for k in sorted(keys)]
+    def __init__(self, emit: "Emit", queue: Queue):
+        formatter = Format.getFormatter(queue.formatter_name)
+        FormatToRedis.__init__(self, emit, formatter)
+        self.queue = queue
 
 
     @staticmethod
@@ -59,56 +56,30 @@ class FormatToRedis(Format):
         return (True, f"Format::delete deleted {ident}")
 
 
-    def save(self, overwrite: bool = False):
-        """
-        Save flight paths to file for emitted positions.
-        """
-        if self.output is None or len(self.output) == 0:
-            logger.warning(":save: no emission point")
-            return (False, "FormatToRedis::save: no emission point")
-
-        ident = self.emit.getId()
-        ident = ident + REDIS_TYPE.FORMAT.value
-
-        n = self.redis.scard(ident)
-        if n > 0 and not overwrite:
-            logger.warning(f":save: key {ident} already exist, not saved")
-            return (False, "FormatToRedis::save key already exist")
-
-        if n > 0:
-            self.redis.delete(ident)
-        tosave = []
-        for f in self.output:
-            tosave.append(str(f))
-        self.redis.sadd(ident, *tosave)
-        logger.debug(f":save: key {ident} saved {len(tosave)} entries")
-        return (True, "FormatToRedis::save completed")
-
-
-    def enqueue(self, queue: str):
+    def enqueue(self):
         """
         Stores Sorted Set members in new variable so that we can remove them on update
         """
         if self.output is None or len(self.output) == 0:
             logger.warning(":enqueue: no emission point")
-            return (False, "FormatToRedis::enqueue: no emission point")
+            return (False, "Enqueue::enqueue: no emission point")
 
         ident = self.emit.getId()
         ident = ident + REDIS_TYPE.QUEUE.value
 
         oldvalues = self.redis.smembers(ident)
         if oldvalues and len(oldvalues) > 0:
-            self.redis.zrem(queue, *oldvalues)
+            self.redis.zrem(self.queue.name, *oldvalues)
             self.redis.delete(ident)
             logger.debug(f":enqueue: removed {len(oldvalues)} old entries")
 
         emit = {}
         for f in self.output:
             emit[str(f)] = f.ts
-        self.redis.zadd(queue, emit)
+        self.redis.zadd(self.queue.name, emit)
         self.redis.sadd(ident, *list(emit.keys()))
         logger.debug(f":enqueue: added {len(emit)} new entries")
-        self.redis.publish("Q"+queue, "new-data")
+        self.redis.publish("Q"+self.queue.name, "new-data")
 
-        return (True, "FormatToRedis::enqueue completed")
+        return (True, "EnqueueToRedis::enqueue completed")
 
