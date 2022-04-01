@@ -19,17 +19,17 @@ from entity.utils import NAUTICAL_MILE
 logger = logging.getLogger("EmitApp")
 
 
-class ErrorInfo:
+class StatusInfo:
 
-    def __init__(self, errno: int, errmsg: str, data):
-        self.errno = errno
-        self.errmsg = errmsg
+    def __init__(self, status: int, message: str, data):
+        self.status = status
+        self.message = message
         self.data = data
 
     def __str__(self):
         return json.dumps({
-            "errno": self.errno,
-            "errmsg": self.errmsg,
+            "status": self.status,
+            "message": self.message,
             "data": self.data
         })
 
@@ -79,10 +79,10 @@ class EmitApp(ManagedAirport):
         actype, acsubtype = acarr
         ac = AircraftPerformance.findAircraftByType(actype, acsubtype)
         if ac is None:
-            return ErrorInfo(100, f"aircraft performance not found for {actype} or {acsubtype}", None)
+            return StatusInfo(100, f"aircraft performance not found for {actype} or {acsubtype}", None)
         acperf = AircraftPerformance.find(icao=ac)
         if acperf is None:
-            return ErrorInfo(101, f"aircraft performance not found for {ac}", None)
+            return StatusInfo(101, f"aircraft performance not found for {ac}", None)
         acperf.load()
         reqfl = acperf.FLFor(aptrange)
         aircraft = Aircraft(registration=acreg, icao24= icao24, actype=acperf, operator=airline)
@@ -104,7 +104,7 @@ class EmitApp(ManagedAirport):
         rampval = self.airport.getRamp(ramp)  # Aircraft won't get towed
         if rampval is None:
             logger.warning(f"ramp {ramp} not found, quitting")
-            return ErrorInfo(102, f"ramp {ramp} not found", None)
+            return StatusInfo(102, f"ramp {ramp} not found", None)
 
         flight.setRamp(rampval)
         gate = "C99"
@@ -128,46 +128,46 @@ class EmitApp(ManagedAirport):
             svc_sync = FLIGHT_PHASE.OFFBLOCK.value
         ret = move.move()
         if not ret[0]:
-            return ErrorInfo(103, f"problem during move", ret[1])
+            return StatusInfo(103, f"problem during move", ret[1])
         # move.save()
 
         logger.debug("..emission positions..")
         emit = Emit(move)
         ret = emit.emit(30)
         if not ret[0]:
-            return ErrorInfo(104, f"problem during emit", ret[1])
+            return StatusInfo(104, f"problem during emit", ret[1])
 
         logger.debug("..scheduling..")
         logger.debug(emit.getMarkList())
         schedtime = datetime.fromisoformat(scheduled)
         ret = emit.schedule(sync, schedtime)
         if not ret[0]:
-            return ErrorInfo(105, f"problem during schedule", ret[1])
+            return StatusInfo(105, f"problem during schedule", ret[1])
 
         logger.debug("..saving..")
         if SAVE_TO_FILE:
             ret = emit.save()
             if not ret[0]:
-                return ErrorInfo(105, f"problem during schedule", ret[1])
+                return StatusInfo(105, f"problem during schedule", ret[1])
         ret = emit.saveDB()
         if not ret[0]:
-            return ErrorInfo(110, f"problem during schedule", ret[1])
+            return StatusInfo(110, f"problem during schedule", ret[1])
         logger.info("SAVED " + ("*" * 84))
         logger.debug("..broadcasting positions..")
         formatted = EnqueueToRedis(emit, self.queue)
         ret = formatted.format()
         if not ret[0]:
-            return ErrorInfo(107, f"problem during formatting", ret[1])
+            return StatusInfo(107, f"problem during formatting", ret[1])
         ret = formatted.save()
         if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
-            return ErrorInfo(108, f"problem during formatted output save", ret[1])
+            return StatusInfo(108, f"problem during formatted output save", ret[1])
         ret = formatted.enqueue()
         if not ret[0]:
-            return ErrorInfo(109, f"problem during enqueue", ret[1])
+            return StatusInfo(109, f"problem during enqueue", ret[1])
 
         if not do_services:
             logger.debug("..done.")
-            return ErrorInfo(0, "completed successfully", None)
+            return StatusInfo(0, "completed successfully", None)
 
         logger.debug("..servicing..")
         st = emit.getRelativeEmissionTime(sync)
@@ -181,41 +181,41 @@ class EmitApp(ManagedAirport):
         flight_service.setManagedAirport(self.airport)
         ret = flight_service.service()
         if not ret[0]:
-            return ErrorInfo(150, f"problem during flight service", ret[1])
+            return StatusInfo(150, f"problem during flight service", ret[1])
 
         logger.debug("..moving service vehicle..")
         ret = flight_service.move()
         if not ret[0]:
-            return ErrorInfo(151, f"problem during flight service movement creation", ret[1])
+            return StatusInfo(151, f"problem during flight service movement creation", ret[1])
 
         logger.debug("..emission positions service vehicle..")
         ret = flight_service.emit()
         if not ret[0]:
-            return ErrorInfo(152, f"problem during flight service emission", ret[1])
+            return StatusInfo(152, f"problem during flight service emission", ret[1])
 
         logger.debug("..scheduling service vehicle..")
         ret = flight_service.schedule(blocktime)
         if not ret[0]:
-            return ErrorInfo(153, f"problem during flight service scheduling", ret[1])
+            return StatusInfo(153, f"problem during flight service scheduling", ret[1])
 
         logger.debug("..saving service vehicle..")
         if SAVE_TO_FILE:
             ret = flight_service.save()
             if not ret[0]:
-                return ErrorInfo(154, f"problem during flight service scheduling", ret[1])
+                return StatusInfo(154, f"problem during flight service scheduling", ret[1])
         ret = flight_service.saveDB()
         if not ret[0]:
-            return ErrorInfo(155, f"problem during flight service save in Redis", ret[1])
+            return StatusInfo(155, f"problem during flight service save in Redis", ret[1])
 
         logger.debug("..done, service included.")
-        return ErrorInfo(0, "completed successfully", None)
+        return StatusInfo(0, "completed successfully", None)
 
 
     def do_service(self, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         logger.debug("loading aircraft..")
         actype = AircraftPerformance.find(aircraft)
         if actype is None:
-            return ErrorInfo(510, f"EmitApp:do_service: aircraft performance {aircraft} not found", None)
+            return StatusInfo(510, f"EmitApp:do_service: aircraft performance {aircraft} not found", None)
         actype.load()
         logger.debug(f"..done {actype.available}")
 
@@ -225,36 +225,36 @@ class EmitApp(ManagedAirport):
         this_service = Service.getService(service)(operator=operator, quantity=quantity)
         rampval = self.airport.getRamp(ramp)
         if rampval is None:
-            return ErrorInfo(511, f"EmitApp:do_service: ramp {ramp} not found", None)
+            return StatusInfo(511, f"EmitApp:do_service: ramp {ramp} not found", None)
         this_service.setRamp(rampval)
         this_service.setAircraftType(actype)
         this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, model=vehicle_model, registration=vehicle_ident, use=True)
         if this_vehicle is None:
-            return ErrorInfo(512, f"EmitApp:do_service: vehicle not found", None)
+            return StatusInfo(512, f"EmitApp:do_service: vehicle not found", None)
         this_vehicle.setICAO24(vehicle_icao24)
         startpos = self.airport.selectServicePOI(vehicle_startpos, service)
         if startpos is None:
-            return ErrorInfo(513, f"EmitApp:do_service: start position {vehicle_startpos} for {service} not found", None)
+            return StatusInfo(513, f"EmitApp:do_service: start position {vehicle_startpos} for {service} not found", None)
         this_vehicle.setPosition(startpos)
         nextpos = self.airport.selectServicePOI(vehicle_endpos, service)
         if nextpos is None:
-            return ErrorInfo(513, f"EmitApp:do_service: start position {vehicle_endpos} for {service} not found", None)
+            return StatusInfo(513, f"EmitApp:do_service: start position {vehicle_endpos} for {service} not found", None)
         this_service.setNextPosition(nextpos)
 
         logger.debug(".. moving ..")
         move = ServiceMove(this_service, self.airport)
         ret = move.move()
         if not ret[0]:
-            return ErrorInfo(514, f"problem during service move", ret[1])
+            return StatusInfo(514, f"problem during service move", ret[1])
         if SAVE_TO_FILE:
             ret = move.save()
             if not ret[0]:
-                return ErrorInfo(514, f"problem during service move save", ret[1])
+                return StatusInfo(514, f"problem during service move save", ret[1])
         logger.debug(".. emission positions ..")
         emit = Emit(move)
         ret = emit.emit()
         if not ret[0]:
-            return ErrorInfo(514, f"problem during service emission", ret[1])
+            return StatusInfo(514, f"problem during service emission", ret[1])
 
         logger.debug(emit.getMarkList())
         service_duration = this_service.serviceDuration()
@@ -268,34 +268,34 @@ class EmitApp(ManagedAirport):
         logger.debug(f".. {SERVICE_PHASE.SERVICE_START.value} at {scheduled} ..")
         ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, datetime.fromisoformat(scheduled))
         if not ret[0]:
-            return ErrorInfo(514, f"problem during service scheduling", ret[1])
+            return StatusInfo(514, f"problem during service scheduling", ret[1])
         if SAVE_TO_FILE:
             ret = emit.save()
             if not ret[0]:
-                return ErrorInfo(514, f"problem during service emission save", ret[1])
+                return StatusInfo(514, f"problem during service emission save", ret[1])
         ret = emit.saveDB()
         if not ret[0]:
-            return ErrorInfo(514, f"problem during service emission save to Redis", ret[1])
+            return StatusInfo(514, f"problem during service emission save to Redis", ret[1])
 
         logger.debug(".. broadcasting position ..")
         formatted = EnqueueToRedis(emit, self.queue)
         ret = formatted.format()
         if not ret[0]:
-            return ErrorInfo(514, f"problem during service formatting", ret[1])
+            return StatusInfo(514, f"problem during service formatting", ret[1])
         ret = formatted.save(overwrite=True)
         if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
-            return ErrorInfo(514, f"problem during service save", ret[1])
+            return StatusInfo(514, f"problem during service save", ret[1])
         ret = formatted.enqueue()
         if not ret[0]:
-            return ErrorInfo(514, f"problem during service save to Redis", ret[1])
+            return StatusInfo(514, f"problem during service save to Redis", ret[1])
 
         logger.debug("..done")
 
-        return ErrorInfo(0, "completed successfully", len(emit._emit))
+        return StatusInfo(0, "completed successfully", len(emit._emit))
 
 
     def do_mission(self, operator, checkpoints, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
-        return ErrorInfo(1, "unimplemented", None)
+        return StatusInfo(1, "unimplemented", None)
 
 
     def do_schedule(self, ident, sync, scheduled):
@@ -303,40 +303,49 @@ class EmitApp(ManagedAirport):
         emit = ReEmit(ident2)
         ret = emit.schedule(sync, datetime.fromisoformat(scheduled))
         if not ret[0]:
-            return ErrorInfo(160, f"problem during rescheduling", ret[1])
+            return StatusInfo(160, f"problem during rescheduling", ret[1])
 
         logger.debug("..broadcasting positions..")
         formatted = EnqueueToRedis(emit, self.queue)
         ret = formatted.format()
         if not ret[0]:
-            return ErrorInfo(160, f"problem during rescheduled formatting", ret[1])
+            return StatusInfo(160, f"problem during rescheduled formatting", ret[1])
         ret = formatted.save(overwrite=True)
         if not ret[0]:
-            return ErrorInfo(160, f"problem during rescheduled save", ret[1])
+            return StatusInfo(160, f"problem during rescheduled save", ret[1])
         ret = formatted.enqueue()
         if not ret[0]:
-            return ErrorInfo(160, f"problem during rescheduled enqueing", ret[1])
+            return StatusInfo(160, f"problem during rescheduled enqueing", ret[1])
         logger.debug("..done.")
 
-        return ErrorInfo(0, "rescheduled successfully", None)
+        return StatusInfo(0, "rescheduled successfully", None)
 
 
     def do_delete(self, ident):
         ret = EnqueueToRedis.delete(ident, queue=self.queue.name)
         if not ret[0]:
-            return ErrorInfo(190, f"problem during deletion of {ident} ", ret)
-        return ErrorInfo(0, "deleted successfully", None)
+            return StatusInfo(190, f"problem during deletion of {ident} ", ret)
+        return StatusInfo(0, "deleted successfully", None)
 
 
-    def do_queue(self, name, formatting, starttime, speed):
+    def do_create_queue(self, name, formatting, starttime, speed):
         """
         Creates of "register" a Queue for (direct) use
         """
         q = Queue(name, formatting, starttime, speed)
         ret = q.save()
         if not ret[0]:
-            return ErrorInfo(1, f"problem during creation of queue {name} ", ret)
+            return StatusInfo(1, f"problem during creation of queue {name} ", ret)
 
-        return ErrorInfo(0, "queue created successfully", None)
+        return StatusInfo(0, "queue created successfully", None)
 
+    def do_delete_queue(self, name):
+        """
+        Dlete a Queue
+        """
+        ret = Queue.delete(name)
+        if not ret[0]:
+            return StatusInfo(1, f"problem during deletion of queue {name} ", ret)
+
+        return StatusInfo(0, "queue delete successfully", None)
 

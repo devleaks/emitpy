@@ -86,10 +86,10 @@ def create_flight_form():
                     acreg=form.aircraft_reg.data,
                     runway=form.runway.data,
                     do_services=form.create_services.data)
-        if ret.errno == 0:
+        if ret.status == 0:
             flash('Flight created', 'success')
         else:
-            flash(ret.errmsg, 'error')
+            flash(ret.message, 'error')
         return redirect(url_for('index'))
     return render_template(
         'create.html',
@@ -134,10 +134,10 @@ def create_service_form():
                      vehicle_startpos=form.previous_position.data,
                      vehicle_endpos=form.next_position.data,
                      scheduled=dt.isoformat())
-        if ret.errno == 0:
+        if ret.status == 0:
             flash('Service created', 'success')
         else:
-            flash(ret.errmsg, 'error')
+            flash(ret.message, 'error')
         return redirect(url_for('index'))
     return render_template(
         'create.html',
@@ -156,10 +156,7 @@ class RescheduleForm(FlaskForm):
     @classmethod
     # https://stackoverflow.com/questions/12170995/flask-and-wtforms-how-to-get-wtforms-to-refresh-select-data
     def new(cls):
-        # Instantiate the form
         form = cls()
-
-        # Update the choices for the agency field
         form.movement.choices = r.list_emits()
         return form
 
@@ -172,19 +169,17 @@ def create_schedule_form():
                       day=form.new_date.data.day,
                       hour=form.new_time.data.hour,
                       minute=form.new_time.data.minute)
-        print(">>>", form.new_date.data, form.new_time.data, dt)
         ret = e.do_schedule(ident=form.movement.data, sync=form.syncname.data, scheduled=dt.isoformat())
-        if ret.errno == 0:
+        if ret.status == 0:
             flash(f'Re-scheduled {form.movement.data}', 'success')
         else:
-            flash(ret.errmsg, 'error')
+            flash(ret.message, 'error')
         return redirect(url_for('index'))
     return render_template(
-        'create-alt.html',
+        'create-syncs.html',
         title="Reschedule movement",
         create_form=form
     )
-
 
 # Helper for cascaded combo
 @app.route('/emitsyncs/<emitid>')
@@ -198,12 +193,8 @@ class RemoveForm(FlaskForm):
     submit = SubmitField("Remove movement from queue")
 
     @classmethod
-    # https://stackoverflow.com/questions/12170995/flask-and-wtforms-how-to-get-wtforms-to-refresh-select-data
     def new(cls):
-        # Instantiate the form
         form = cls()
-
-        # Update the choices for the agency field
         form.movement.choices = r.list_emits()
         return form
 
@@ -212,10 +203,10 @@ def create_remove_form():
     form = RemoveForm.new()
     if form.validate_on_submit():
         ret = e.do_delete(ident=form.movement.data)
-        if ret.errno == 0:
+        if ret.status == 0:
             flash(f'Removed {form.movement.data}', 'success')
         else:
-            flash(ret.errmsg, 'error')
+            flash(ret.message, 'error')
         return redirect(url_for('index'))
     return render_template(
         'create.html',
@@ -224,7 +215,7 @@ def create_remove_form():
     )
 
 
-class QueueForm(FlaskForm):
+class CreateQueueForm(FlaskForm):
     queue_name = StringField("Queue name")
     formatting = SelectField(choices=Format.getCombo())
     simulation_date = DateField()
@@ -232,24 +223,50 @@ class QueueForm(FlaskForm):
     speed = DecimalRangeField()
     submit = SubmitField("Create queue")
 
-@app.route('/queue', methods=['GET', 'POST'])
+@app.route('/create_queue', methods=['GET', 'POST'])
 def create_queue_form():
-    form = QueueForm()
+    form = CreateQueueForm()
     if form.validate_on_submit():
         dt = datetime(year=form.simulation_date.data.year,
                       month=form.simulation_date.data.month,
                       day=form.simulation_date.data.day,
                       hour=form.simulation_time.data.hour,
                       minute=form.simulation_time.data.minute)
-        ret = e.do_queue(name=form.queue_name.data,
-                         formatting=form.formatting.data,
-                         starttime=dt.isoformat(),
-                         speed=float(form.speed.data)
+        ret = e.do_create_queue(name=form.queue_name.data,
+                                formatting=form.formatting.data,
+                                starttime=dt.isoformat(),
+                                speed=float(form.speed.data)
         )
-        if ret.errno == 0:
+        if ret.status == 0:
             flash(f'Queue {form.queue_name.data} created', 'success')
         else:
-            flash(ret.errmsg, 'error')
+            flash(ret.message, 'error')
+        return redirect(url_for('index'))
+    return render_template(
+        'create.html',
+        title="Manage output queues",
+        create_form=form
+    )
+
+
+class DeleteQueueForm(FlaskForm):
+    queue_name = SelectField(choices=Queue.getCombo())
+    submit = SubmitField("Delete queue")
+    @classmethod
+    def new(cls):
+        form = cls()
+        form.queue_name.choices = Queue.getCombo()
+        return form
+
+@app.route('/delete_queue', methods=['GET', 'POST'])
+def delete_queue_form():
+    form = DeleteQueueForm.new()
+    if form.validate_on_submit():
+        ret = e.do_delete_queue(name=form.queue_name.data)
+        if ret.status == 0:
+            flash(f'Queue {form.queue_name.data} deleted', 'success')
+        else:
+            flash(ret.message, 'error')
         return redirect(url_for('index'))
     return render_template(
         'create.html',

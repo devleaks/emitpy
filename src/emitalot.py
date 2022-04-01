@@ -40,15 +40,15 @@ for r in csvdata:
         ret = e.do_flight(r['AIRLINE CODE_x'], r['FLIGHT NO_x'], dt.isoformat(), r['AIRPORT_x'],'arrival', (r['AC TYPE_x'], r['AC SUB TYPE_x']),
                           r['BAY_x'], icao[r['REGISTRATION NO_x']], r['REGISTRATION NO_x'], 'RW16L')
 
-        if ret.errno != 0:
-            logger.warning(f"ERROR around line {cnt}: {ret.errno}" + ">=" * 30)
+        if ret.status != 0:
+            logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
             logger.warning(ret)
             logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_x']}', '{r['FLIGHT NO_x']}',"
                 + f" '{dt.isoformat()}', '{r['AIRPORT_x']}',"
                 + f" 'arrival', ('{r['AC TYPE_x']}', '{r['AC SUB TYPE_x']}'), '{r['BAY_x']}',"
                 + f" '{icao[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L'))")
     except:
-        logger.error(f"EXCEPTION around line {cnt}: {ret.errno}" + ">=" * 30)
+        logger.error(f"EXCEPTION around line {cnt}: {ret.status}" + ">=" * 30)
         logger.error(ret)
         logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_x']}', '{r['FLIGHT NO_x']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT_x']}',"
@@ -61,15 +61,15 @@ for r in csvdata:
         ret = e.do_flight(r['AIRLINE CODE_y'], r['FLIGHT NO_y'], dt.isoformat(), r['AIRPORT_y'],'arrival', (r['AC TYPE_y'], r['AC SUB TYPE_y']),
                           r['BAY_y'], icao[r['REGISTRATION NO_y']], r['REGISTRATION NO_y'], 'RW16L')
 
-        if ret.errno != 0:
-            logger.warning(f"ERROR around line {cnt}: {ret.errno}" + ">=" * 30)
+        if ret.status != 0:
+            logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
             logger.warning(ret)
             logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
                 + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
                 + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
                 + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
     except:
-        logger.error(f"EXCEPTION around line around line {cnt}: {ret.errno}" + ">=" * 30)
+        logger.error(f"EXCEPTION around line around line {cnt}: {ret.status}" + ">=" * 30)
         logger.error(ret)
         logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
