@@ -172,6 +172,8 @@ class XPAirport(AirportBase):
                 ramp = None
 
         self.ramps = ramps
+        # for k,r in ramps.items():
+        #     print(f"{k},{r['geometry']['coordinates'][1]},{r['geometry']['coordinates'][0]},{r.getProp('orientation')},{r.getProp('sub-type')},{r.getProp('use')},{r.getProp('icao-width')},{r.getProp('operation-type')},{r.getProp('airline')}")
         logger.debug(f":loadRamps: added {len(ramps.keys())} ramps: {ramps.keys()}")
         return [True, "XPAirport::loadRamps loaded"]
 

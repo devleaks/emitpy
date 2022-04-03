@@ -36,7 +36,6 @@ csrf = CSRFProtect(app)
 e = EmitApp(MANAGED_AIRPORT)
 r = RedisUtils()
 
-
 class CreateFlightForm(FlaskForm):
     airline = SelectField(choices=Airline.getCombo())
     flight_number = StringField()

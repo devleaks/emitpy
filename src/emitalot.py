@@ -10,7 +10,7 @@ from entity.parameters import MANAGED_AIRPORT
 from entity.service import Service
 from entity.utils import Timezone
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("testemit")
 
 e = EmitApp(MANAGED_AIRPORT)
@@ -24,7 +24,7 @@ csvdata = csv.DictReader(file)
 icao = {}
 cnt = 0
 cnt_begin = 0
-cnt_end = cnt_begin + 0
+cnt_end = cnt_begin + 2000
 
 for r in csvdata:
 
