@@ -1,5 +1,5 @@
-from entity.business import Airline
-from entity.emit import Broadcaster, HyperCaster
+from emitpy.business import Airline
+from emitpy.emit import Broadcaster, HyperCaster
 
 # One queue only
 QUEUE_NAME="lt"

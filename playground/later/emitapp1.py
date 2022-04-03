@@ -3,16 +3,16 @@ import json
 
 from datetime import datetime, timedelta
 
-from entity.airspace import XPAirspace, Metar
-from entity.business import Airline, Company
-from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
-from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
-from entity.airport import Airport, AirportBase, XPAirport
-from entity.service import FuelService, ServiceMove
-from entity.emit import Emit, ReEmit,ADSB, LiveTraffic, Format, FormatToRedis
-from entity.business import AirportManager
-from entity.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE
-from entity.utils import NAUTICAL_MILE
+from emitpy.airspace import XPAirspace, Metar
+from emitpy.business import Airline, Company
+from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
+from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
+from emitpy.airport import Airport, AirportBase, XPAirport
+from emitpy.service import FuelService, ServiceMove
+from emitpy.emit import Emit, ReEmit,ADSB, LiveTraffic, Format, FormatToRedis
+from emitpy.business import AirportManager
+from emitpy.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE
+from emitpy.utils import NAUTICAL_MILE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("EmitApp")

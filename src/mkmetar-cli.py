@@ -6,7 +6,7 @@ import os
 import json
 import argparse
 import flightplandb as fpdb
-from entity.private import FLIGHT_PLAN_DATABASE_APIKEY
+from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 
 # import requests_cache
 

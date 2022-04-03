@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG)  # filename=('mkfb.log')
 logger = logging.getLogger("mkfb")
 
 from entity import Flightboard
-from entity.airport import ManagedAirport
+from emitpy.airport import ManagedAirport
 from entity import Constant
 
 

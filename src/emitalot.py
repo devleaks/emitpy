@@ -5,10 +5,10 @@ import random
 from datetime import datetime, tzinfo, timedelta
 import logging
 
-from entity.emitapp import EmitApp
-from entity.parameters import MANAGED_AIRPORT
-from entity.service import Service
-from entity.utils import Timezone
+from emitpy.emitapp import EmitApp
+from emitpy.parameters import MANAGED_AIRPORT
+from emitpy.service import Service
+from emitpy.utils import Timezone
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("testemit")

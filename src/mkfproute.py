@@ -1,8 +1,8 @@
 import logging
 from geojson import Feature, Point
 
-from entity.airspace import XPAirspace, FlightPlanRoute
-from entity.parameters import MANAGED_AIRPORT
+from emitpy.airspace import XPAirspace, FlightPlanRoute
+from emitpy.parameters import MANAGED_AIRPORT
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Airspace")

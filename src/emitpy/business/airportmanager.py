@@ -173,7 +173,7 @@ class AirportManager:
                 mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
                 vcl = vcl + mdl
             logger.debug(f":selectServiceVehicle: creating {vcl} {vname}")
-            servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="entity")
+            servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
             if hasattr(servicevehicleclasses, vcl):
                 vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
                 vehicle.setICAO24(AirportManager.randomICAO24(15))  # starts with F

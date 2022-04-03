@@ -1,7 +1,7 @@
-from entity.emitapp import EmitApp
+from emitpy.emitapp import EmitApp
 from datetime import datetime, timedelta
 
-from entity.parameters import MANAGED_AIRPORT
+from emitpy.parameters import MANAGED_AIRPORT
 
 e = EmitApp(MANAGED_AIRPORT)
 
