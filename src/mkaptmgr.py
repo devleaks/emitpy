@@ -1,11 +1,11 @@
 import logging
-from entity.business import AirportManager, Airline
-from entity.airport import Airport
+from emitpy.business import AirportManager, Airline
+from emitpy.airport import Airport
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("mkAirportManager")
 
-from entity.parameters import MANAGED_AIRPORT
+from emitpy.parameters import MANAGED_AIRPORT
 
 def main():
 

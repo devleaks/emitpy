@@ -1,14 +1,14 @@
 import logging
 from datetime import datetime, timedelta
 
-from entity.business import AirportManager, Company, Airline
-from entity.airport import Airport, XPAirport
-from entity.aircraft import AircraftType, AircraftPerformance
-from entity.service import Service, ServiceMove
-from entity.emit import Emit, Format, LiveTraffic
+from emitpy.business import AirportManager, Company, Airline
+from emitpy.airport import Airport, XPAirport
+from emitpy.aircraft import AircraftType, AircraftPerformance
+from emitpy.service import Service, ServiceMove
+from emitpy.emit import Emit, Format, LiveTraffic
 
-from entity.parameters import MANAGED_AIRPORT
-from entity.constants import SERVICE, SERVICE_PHASE
+from emitpy.parameters import MANAGED_AIRPORT
+from emitpy.constants import SERVICE, SERVICE_PHASE
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("mkService")

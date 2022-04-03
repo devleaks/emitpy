@@ -2,7 +2,7 @@
 Test API for flightplandatabase with request caching.
 
 """
-from entity.airspace.metar import Metar
+from emitpy.airspace.metar import Metar
 
 
 def main():

@@ -1,4 +1,4 @@
-from ..src.entity.task import Project, Task, RelatedTask
+from ..src.emitpy.task import Project, Task, RelatedTask
 
 
 

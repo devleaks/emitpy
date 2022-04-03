@@ -8,15 +8,15 @@ from datetime import datetime, timedelta
 import json
 import logging
 
-from entity.emitapp import EmitApp
-from entity.parameters import MANAGED_AIRPORT
-from entity.utils import Timezone
-from entity.aircraft import AircraftPerformance as Aircraft
-from entity.airport import Airport
-from entity.business import Airline
-from entity.service import Service, ServiceVehicle
-from entity.emit import Emit, Format, Queue
-from entity.utils import RedisUtils
+from emitpy.emitapp import EmitApp
+from emitpy.parameters import MANAGED_AIRPORT
+from emitpy.utils import Timezone
+from emitpy.aircraft import AircraftPerformance as Aircraft
+from emitpy.airport import Airport
+from emitpy.business import Airline
+from emitpy.service import Service, ServiceVehicle
+from emitpy.emit import Emit, Format, Queue
+from emitpy.utils import RedisUtils
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("app")

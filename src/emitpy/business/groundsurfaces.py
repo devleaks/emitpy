@@ -10,7 +10,7 @@ from ..constants import PAX, CARGO
 
 class Terminal(Identity):
     """
-    A Terminal is a container entity.
+    A Terminal is a container emitpy.
 
     """
     def __init__(self, orgId: str, classId: str, typeId: str, name: str):

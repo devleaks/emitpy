@@ -1,14 +1,14 @@
 """
 Application container
 """
-from entity.airspace import XPAirspace, Metar
-from entity.business import Airline
-from entity.aircraft import AircraftType, AircraftPerformance, Aircraft
-from entity.flight import Arrival, Departure, ArrivalMove, DepartureMove
-from entity.airport import Airport, AirportBase, XPAirport
-from entity.emit import Emit, BroadcastToFile, ADSB
-from entity.business import AirportManager
-from entity.service import FuelService, ServiceMove
+from emitpy.airspace import XPAirspace, Metar
+from emitpy.business import Airline
+from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
+from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
+from emitpy.airport import Airport, AirportBase, XPAirport
+from emitpy.emit import Emit, BroadcastToFile, ADSB
+from emitpy.business import AirportManager
+from emitpy.service import FuelService, ServiceMove
 
 
 import logging

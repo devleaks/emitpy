@@ -3,8 +3,8 @@ Test API for flightplandatabase with request caching.
 
 """
 import argparse
-from entity.parameters import MANAGED_AIRPORT
-from entity.airspace import FlightPlanBase
+from emitpy.parameters import MANAGED_AIRPORT
+from emitpy.airspace import FlightPlanBase
 
 
 def main():
