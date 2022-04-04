@@ -9,10 +9,10 @@ from ..airport import Airport
 
 from .format import Formatter
 
-logger = logging.getLogger("LiveTraffic")
+logger = logging.getLogger("LiveTrafficFormatter")
 
 
-class LiveTraffic(Formatter):
+class LiveTrafficFormatter(Formatter):
 
     FILE_FORMAT = "csv"
 

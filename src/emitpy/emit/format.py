@@ -10,8 +10,9 @@ from ..parameters import AODB_DIR
 
 # Formatter for constructor
 from .formatter import Formatter
-from .livetraffic import LiveTraffic
-from .adsb import ADSB
+from .livetrafficformatter import LiveTrafficFormatter
+from .adsbformatter import ADSBFormatter
+from .viewerformatter import ViewerFormatter
 
 logger = logging.getLogger("Formatter")
 
@@ -36,9 +37,11 @@ class Format:
     @staticmethod
     def getFormatter(name):
         if name == "adsb":
-            return ADSB
+            return ADSBFormatter
         elif name == "lt":
-            return LiveTraffic
+            return LiveTrafficFormatter
+        elif name == "viewapp":
+            return ViewerFormatter
         # default is raw
         return Formatter
 

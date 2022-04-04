@@ -1,0 +1,72 @@
+[
+{
+    "source": "GIPSIM",
+    "topic": "aodb/moveinfo",
+    "type": "flightboard",
+    "timestamp": "2022-04-04T09:51:00.000+02:00",
+    "payload":
+    {
+        "info": "scheduled",
+        "move": "departure",
+        "flight": "XM0631",
+        "operator": "XM0",
+        "airport": "CMN",
+        "date": "2022-04-04",
+        "time": "15:51",
+        "parking": "G2R",
+        "timestamp": "2022-04-04T09:51:00.000+02:00"
+    }
+},
+{
+    "source": "GIPSIM",
+    "topic": "gps/aircrafts",
+    "type": "map",
+    "timestamp": "2022-04-04T12:27:33.047+02:00",
+    "payload":
+    {
+        "source": "GIPSIM",
+        "type": "Feature",
+        "properties":
+        {
+            "name": "051210",
+            "typeId": "AIRCRAFT",
+            "classId": "aircrafts",
+            "orgId": "QR",
+            "heading": 338.4,
+            "speed": 280.59,
+            "group_name": "AIRCRAFTS",
+            "status": "ACTIVE",
+            "_timestamp_emission": "2022-04-04T12:27:33.047+02:00",
+            "_style": [],
+            "altitude": "42.24474666593332",
+            "payload":
+            {
+                "emit": true,
+                "marker-color": "#ff2600",
+                "marker-size": "medium",
+                "marker-symbol": "",
+                "nojitter": [51.708418822241256, 25.069189243485194, 42.24474666593332],
+                "elapsed": 840.0000000000005,
+                "vertex": 50,
+                "sequence": 30,
+                "category": "e",
+                "speed": 280.592002964627,
+                "bearing": 338.4,
+                "note": "en route",
+                "device": "051210",
+                "adsb": "051210",
+                "model": "B744",
+                "registration": "N-228",
+                "movement": "QR0118",
+                "handler": "nohandler",
+                "operator": "QR",
+                "alt": 42.24474666593332
+            }
+        },
+        "geometry":
+        {
+            "type": "Point",
+            "coordinates": []
+        }
+    }
+}]
