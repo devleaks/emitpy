@@ -9,16 +9,13 @@ from ..airport import Airport
 
 from .format import Formatter
 
-logger = logging.getLogger("ADS-B")
+logger = logging.getLogger("ADSBFormatter")
 
 
-class ADSB(Formatter):
+class ADSBFormatter(Formatter):
 
     FILE_EXTENTION = "csv"
 
     def __init__(self, feature: "FeatureWithProps"):
         Formatter.__init__(self, feature=feature)
         self.name = "adsb"
-
-    def __str__(self):
-        return json.dumps(self.feature)

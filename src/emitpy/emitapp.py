@@ -42,7 +42,7 @@ class EmitApp(ManagedAirport):
     def __init__(self, airport):
         ManagedAirport.__init__(self, airport)
         # Default queue
-        self.queue = Queue(name="lt", formatter_name="lt", starttime=datetime.now().isoformat())
+        self.queue = Queue(name="viewapp", formatter_name="viewapp", starttime=datetime.now().isoformat())
         self.queue.save()
         self.init()
 
