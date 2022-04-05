@@ -115,6 +115,11 @@ class Emit:
         self.redis.zadd(emit_id, emit)
         self.redis.sadd(REDIS_DATABASE.MOVEMENTS.value, ident)
 
+        if self.props is not None and len(self.props) > 0:
+            ident = self.move.getId()
+            emit_id = ident + REDIS_TYPE.EMIT_META.value
+            self.redis.set(emit_id, json.dumps(self.props))
+
         logger.debug(f":saveDB: saved {ident}")
         return (True, "Movement::saveDB saved")
 

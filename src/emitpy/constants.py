@@ -334,6 +334,7 @@ class REDIS_DATABASE(Enum):
 
 class REDIS_TYPE(Enum):
     EMIT = "-e"
+    EMIT_META = "-em"
     FORMAT = "-f"
     QUEUE = "-q"
 

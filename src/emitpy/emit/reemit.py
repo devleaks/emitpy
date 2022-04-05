@@ -41,5 +41,12 @@ class ReEmit(Emit):
         logger.debug(f":loadDB: collected {len(self._emit)} points")
 
 
+        if self.redis.exists(emit_id):
+            emit_id = self.ident + REDIS_TYPE.EMIT_META.value
+            self.props = json.loads(self.redis.get(emit_id))
+            logger.debug(f":loadDB: ..got {len(self.props)} props")
+
+
+
     def loadMove(self):
         self.moves = list(filter(lambda f: not f.getProp(FEATPROP.BROADCAST.value), self._emit))
