@@ -109,7 +109,7 @@ class Broadcaster:
                 logger.debug(f":run: {self.name}: listening..")
                 nv = self.redis.bzpopmin(self.name, timeout=ZPOPMIN_TIMEOUT)
                 if nv is None:
-                    logger.debug(f":run: {self.name}: bzpopmin timed out..")
+                    # logger.debug(f":run: {self.name}: bzpopmin timed out..")
                     continue
                 numval = self.redis.zcard(self.name)
                 logger.debug(f":run: {self.name}: {numval} items left in queue")

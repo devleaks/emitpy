@@ -8,7 +8,8 @@ from simple_websocket_server import WebSocketServer, WebSocket
 
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("WSForwarder")
+logger = logging.getLogger("Reader")
+
 
 WSS_HOST = "localhost"
 WSS_PORT = 8051
@@ -22,27 +23,22 @@ class WSHandler(WebSocket):
     keep track of connected client in CLIENTS class attribute.
     """
     CLIENTS = []
-    NOTIFY  = False
-    WIRE    = True
 
     def handle(self):
         pass
 
     def connected(self):
         logger.debug(f":connected: {self.address} connected")
-        if WSHandler.NOTIFY:
-            for client in WSHandler.CLIENTS:
-                client.send_message(self.address[0] + u' - connected')
+        for client in WSHandler.CLIENTS:
+            client.send_message(self.address[0] + u' - connected')
         WSHandler.CLIENTS.append(self)
-        if WSHandler.WIRE:
-            self.send_message(u"" + self.status_message("connected"))
+        self.send_message(u"" +  self.status_message("connected"))
 
     def handle_close(self):
-        WSHandler.CLIENTS.remove(self)
-        logger.debug(f":handle_close: {self.address} closed")
-        if WSHandler.NOTIFY:
-            for client in WSHandler.CLIENTS:
-                client.send_message(self.address[0] + u' - disconnected')
+        clients.remove(self)
+        logger.debug(f":connected: {self.address} closed")
+        for client in WSHandler.CLIENTS:
+            client.send_message(self.address[0] + u' - disconnected')
 
     def status_message(self, msg):
         return json.dumps({
@@ -54,14 +50,13 @@ class WSHandler(WebSocket):
                 "source": "emitpy",
                 "type": "news",
                 "subject": "Websocket connection",
-                "body": msg,
+                "body": "hello",
                 "created_at": datetime.now().isoformat(),
                 "priority": 3,
                 "icon": "la-info",
                 "icon-color": "info"
             }
         })
-
 
 class WSForwarder:
 
@@ -77,30 +72,28 @@ class WSForwarder:
             self.thread.start()
 
     def run(self):
-        logger.debug(f":run: listening for websockets..")
         self._wsserver.serve_forever()
-        logger.debug(f":run: done listening for websockets")
 
     def _forward(self, name):
         self.pubsub.subscribe(name)
-        logger.debug(f":_forward: {name}: listening..")
+        logger.debug(f":run: {name}: listening..")
         for message in self.pubsub.listen():
             # logger.debug(f":run: received {message}")
             msg = message["data"]
             if type(msg) == bytes:
                 msg = msg.decode("UTF-8")
-                logger.debug(f":_forward: {name}: got {msg}")
+                logger.debug(f":run: {name}: got {msg}")
                 if msg == QUIT_MSG:
-                    logger.warning(f":_forward: {name}: quitting..")
+                    logger.warning(f":run: {name}: quitting..")
                     self.pubsub.unsubscribe(name)
-                    logger.debug(f":_forward: {name}: ..done")
+                    logger.debug(f":run: {name}: ..done")
                     return
                 # logger.debug(f":forward: {msg} ..")
                 for client in WSHandler.CLIENTS:
                     # logger.debug(f":forward: forwarding to {client.address[0]} ..")
                     client.send_message(msg)
             else:
-                logger.debug(f":_forward: got non bytes message {msg}")
+                logger.debug(f":forward: got non bytes message {msg}")
 
     def terminate_all(self):
         self._wsserver.close()
@@ -111,7 +104,7 @@ class WSForwarder:
 
 
 try:
-    r = WSForwarder(["viewapp"])
+    r = WSForwarder(["viewapp", "lt"])
     logger.debug(f"WSForwarder: inited, starting..")
     r.run()
 except KeyboardInterrupt:

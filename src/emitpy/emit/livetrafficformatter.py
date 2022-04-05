@@ -48,9 +48,9 @@ class LiveTrafficFormatter(Formatter):
         airborne = ((vspeed != 0) and (speed > 20))  # @todo
         heading = f.getProp("heading")
 
-        actype = f.getProp("actype")  # ICAO
-        callsign = f.getProp("ident")
-        tailnumber = f.getProp("acreg")
+        actype = f.getProp("aircraft:actype:actype")  # ICAO
+        callsign = f.getProp("flightnumber").replace(" ","")
+        tailnumber = f.getProp("aircraft:acreg")
         aptfrom = f.getProp("origin")     # IATA
         aptto = f.getProp("destination")  # IATA
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
