@@ -15,7 +15,7 @@ from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
 
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
-from ..utils import compute_headings
+from ..utils import interpolate as doInterpolation, compute_headings
 
 from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE, REDIS_TYPE
 from ..parameters import AODB_DIR
@@ -355,6 +355,11 @@ class Emit:
             logger.warning(":emit: problem computing headings")
             return res
 
+        res = self.interpolate()
+        if not res[0]:
+            logger.warning(":emit: problem interpolating")
+            return res
+
         # logger.debug(":emit: summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
         # logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
         logger.debug(":emit: summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=self.moves[-1].time()), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
@@ -362,6 +367,60 @@ class Emit:
         # printFeatures(self._emit, "emit_point", True)
         self.version = self.version + 1
         return (True, "Emit::emit completed")
+
+
+    def interpolate(self):
+        """
+        Compute interpolated values for altitude and speed based on distance.
+        This is a simple linear interpolation based on distance between points.
+        Runs for flight portion of flight.
+        """
+        to_interp = self._emit
+        # before = []
+        check = "vspeed"
+        logger.debug(":interpolate: interpolating ..")
+        for name in ["speed", "vspeed", "altitude"]:
+            logger.debug(f":interpolate: .. {name} ..")
+            if name == check:
+                before = list(map(lambda x: x.getProp(name), to_interp))
+            status = doInterpolation(to_interp, name)
+            if not status[0]:
+                logger.warning(status[1])
+        logger.debug(":interpolate: .. done.")
+
+        logger.debug(":interpolate: checking and transposing altitudes to geojson coordinates..")
+        for f in to_interp:
+            if len(f["geometry"]["coordinates"]) == 2:
+                a = f.altitude()
+                if a is not None:
+                    f["geometry"]["coordinates"].append(float(a))
+                else:
+                    logger.warning(f":interpolate: not altitude?{f['geometry']['name'] if name in f['geometry'] else '?'}")
+        logger.debug(":interpolate: .. done.")
+
+        logger.debug(":interpolate: computing headings..")
+        res = compute_headings(self._emit)
+        if not res[0]:
+            logger.warning(":emit: problem computing headings")
+            return res
+        logger.debug(":interpolate: .. done.")
+
+
+        # name = check
+        # for i in range(len(to_interp)):
+        #     v = to_interp[i].getProp(name) if to_interp[i].getProp(name) is not None and to_interp[i].getProp(name) != "None" else "none"
+        #     logger.debug(":interpolate: %d: %s -> %s." % (i, before[i] if before[i] is not None else -1, v))
+
+
+        # logger.debug(":interpolate: last point %d: %f, %f" % (len(self.moves_st), self.moves_st[-1].speed(), self.moves_st[-1].altitude()))
+        # i = 0
+        # for f in self.moves:
+        #     s = f.speed()
+        #     a = f.altitude()
+        #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
+        #     i = i + 1
+
+        return (True, "Movement::interpolated speed and altitude")
 
 
     def getMarkList(self):
@@ -424,6 +483,7 @@ class Emit:
     def schedule(self, sync, moment: datetime):
         """
         Adjust a emission track to synchronize moment at position mkar synch.
+        This should only change the EMIT_ABS_TIME property.
 
         :param      sync:   The synchronize
         :type       sync:   { string }

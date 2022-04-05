@@ -6,6 +6,7 @@ import json
 
 from ..constants import FEATPROP
 from ..airport import Airport
+from ..utils import FT, NAUTICAL_MILE
 
 from .format import Formatter
 
@@ -41,22 +42,25 @@ class LiveTrafficFormatter(Formatter):
         icao24 = int(icao24x, 16)
 
         coords = f.coords()
-        alt = f.altitude(0)
 
-        vspeed = f.vspeed(0)
-        speed = f.speed(0)
-        airborne = ((vspeed != 0) and (speed > 20))  # @todo
+        alt = f.altitude(0) * FT  # m -> ft
+
+        vspeed = f.vspeed(0) * FT * 60  # m/s -> ft/min
+        speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
+        airborne = (alt > 0 and speed > 20)
+
         heading = f.getProp("heading")
 
         actype = f.getProp("aircraft:actype:actype")  # ICAO
         callsign = f.getProp("flightnumber").replace(" ","")
         tailnumber = f.getProp("aircraft:acreg")
-        aptfrom = f.getProp("origin")     # IATA
-        aptto = f.getProp("destination")  # IATA
+        aptfrom = f.getProp("departure:icao")     # IATA
+        aptto = f.getProp("arrival:icao")  # IATA
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
-
-        #        AITFC ,hexid   ,lat        ,lon        ,alt  ,vs      ,airborne              ,hdg               ,spd ### ,cs,type,tail,from,to,timestamp
+        #         0    ,1       ,2          ,3          ,4    ,5       ,6                     ,7                 ,8
+        #         AITFC,hexid   ,lat        ,lon        ,alt  ,vs      ,airborne              ,hdg               ,spd ### ,cs,type,tail,from,to,timestamp
         part1 = f"AITFC,{icao24},{coords[1]},{coords[0]},{alt},{vspeed},{1 if airborne else 0},{round(heading,0)},{speed}"
+        #         ,9         ,10      ,11          ,12       ,13     ,14
         #      ###,cs        ,type    ,tail        ,from     ,to     ,timestamp
         part2 = f",{callsign},{actype},{tailnumber},{aptfrom},{aptto},{round(ts, 3)}"
 

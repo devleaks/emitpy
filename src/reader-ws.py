@@ -7,7 +7,7 @@ from datetime import datetime
 from simple_websocket_server import WebSocketServer, WebSocket
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("WSForwarder")
 
 WSS_HOST = "localhost"
@@ -77,13 +77,13 @@ class WSForwarder:
             self.thread.start()
 
     def run(self):
-        logger.debug(f":run: listening for websockets..")
+        logger.info(f":run: listening for websockets..")
         self._wsserver.serve_forever()
         logger.debug(f":run: done listening for websockets")
 
     def _forward(self, name):
         self.pubsub.subscribe(name)
-        logger.debug(f":_forward: {name}: listening..")
+        logger.info(f":_forward: {name}: listening..")
         for message in self.pubsub.listen():
             # logger.debug(f":run: received {message}")
             msg = message["data"]
@@ -91,7 +91,7 @@ class WSForwarder:
                 msg = msg.decode("UTF-8")
                 logger.debug(f":_forward: {name}: got {msg}")
                 if msg == QUIT_MSG:
-                    logger.warning(f":_forward: {name}: quitting..")
+                    logger.info(f":_forward: {name}: quitting..")
                     self.pubsub.unsubscribe(name)
                     logger.debug(f":_forward: {name}: ..done")
                     return
@@ -104,9 +104,9 @@ class WSForwarder:
 
     def terminate_all(self):
         self._wsserver.close()
-        logger.debug(f":terminate_all: web server terminated")
+        logger.info(f":terminate_all: web server terminated")
         for queue in self.queue_names:
-            logger.debug(f":terminate_all: notifying {queue}")
+            logger.info(f":terminate_all: notifying {queue}")
             self.redis.publish(queue, QUIT_MSG)
 
 

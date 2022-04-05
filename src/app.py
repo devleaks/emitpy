@@ -215,11 +215,12 @@ def create_remove_form():
 
 
 class CreateQueueForm(FlaskForm):
-    queue_name = StringField("Queue name")
-    formatting = SelectField(choices=Format.getCombo())
-    simulation_date = DateField()
-    simulation_time = TimeField()
-    speed = DecimalRangeField()
+    queue_name = StringField("Queue name", description="Name of queue")
+    formatting = SelectField(choices=Format.getCombo(), description="Data formatter for the GeoJSON Feature<Point>")
+    simulation_date = DateField(description="Start date of queue")
+    simulation_time = TimeField(description="Start time of queue")
+#    speed = DecimalRangeField()
+    speed = FloatField(description="1 = real time speed, smaller than 1 slows down, larger than 1 speeds up. Ex: speed=60 one minute last one second.")
     submit = SubmitField("Create queue")
 
 @app.route('/create_queue', methods=['GET', 'POST'])
