@@ -12,7 +12,7 @@ class RedisUtils:
         self.redis = redis.Redis()
 
     def list_emits(self):
-        return self.getKeys(REDIS_TYPE.QUEUE.value)
+        return self.getKeys(REDIS_TYPE.EMIT.value)
 
     def list_queues(self):
         return ("none", "none")
