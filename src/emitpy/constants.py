@@ -355,6 +355,12 @@ class POI_TYPE(Enum):
     QUEUE_POSITION = "toq-pos"
 
 
+class RAMP_TYPE(Enum):
+    GATE = "gate"
+    TIE_DOWN = "tie-down"
+    HANGAR = "hangar"
+
+
 class ARRIVAL_DELAY(IntEnum):
     # Feature property names
     HOLDING = 0

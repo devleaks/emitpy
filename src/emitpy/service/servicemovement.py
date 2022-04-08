@@ -4,7 +4,7 @@ Build movement of a service vehicle
 import os
 import json
 import logging
-from math import pi
+from math import pi, inf
 import copy
 
 from geojson import Point, LineString, FeatureCollection, Feature
@@ -84,20 +84,20 @@ class ServiceMove(Movement):
         # logger.debug(":move: ramp %s" % (ramp_stop))
 
         # find closest point on network to ramp
-        rampnp = self.airport.service_roads.nearest_point_on_edge(ramp_stop)
-        if rampnp[0] is None:
+        ramp_npe = self.airport.service_roads.nearest_point_on_edge(ramp_stop)
+        if ramp_npe[0] is None:
             logger.warning(":move: no nearest_point_on_edge for ramp_stop")
-        rampnv = self.airport.service_roads.nearest_vertex(ramp_stop)
-        if rampnv[0] is None:
+        ramp_nv = self.airport.service_roads.nearest_vertex(ramp_stop)
+        if ramp_nv[0] is None:
             logger.warning(":move: no nearest_vertex for ramp_stop")
 
-        # logger.debug(":move: ramp vertex %s" % (rampnv[0]))
+        # logger.debug(":move: ramp vertex %s" % (ramp_nv[0]))
 
         # route from start to ramp
-        logger.debug(f":move: route from start {startnv[0].id} to ramp {rampnv[0].id} (vertices)")
-        rt1 = Route(self.airport.service_roads, startnv[0].id, rampnv[0].id)
+        logger.debug(f":move: route from start {startnv[0].id} to ramp {ramp_nv[0].id} (vertices)")
+        rt1 = Route(self.airport.service_roads, startnv[0].id, ramp_nv[0].id)
         # rt1.find()  # auto route
-        # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, rampnv[0].id)
+        # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, ramp_nv[0].id)
 
         if rt1.found():
             for vtx in rt1.get_vertices():
@@ -107,12 +107,12 @@ class ServiceMove(Movement):
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
         else:
-            logger.debug(f":move: no route from start {startnv[0].id} to ramp {rampnv[0].id}")
+            logger.debug(f":move: no route from start {startnv[0].id} to ramp {ramp_nv[0].id}")
 
-        if rampnp[0] is not None:
-            rampnp[0].setSpeed(speeds["slow"])
-            rampnp[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
-            self.moves.append(rampnp[0])
+        if ramp_npe[0] is not None:
+            ramp_npe[0].setSpeed(speeds["slow"])
+            ramp_npe[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
+            self.moves.append(ramp_npe[0])
 
         ramp_stop.setSpeed(0)
         ramp_stop.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
@@ -126,7 +126,7 @@ class ServiceMove(Movement):
         #
         # find end position if none is given
 
-        finalpos = self.service.next_position
+        finalpos = self.service.vehicle.next_position
         if finalpos is None:
             finalpos = self.airport.selectRandomServiceRestArea(service_type)
             # logger.debug(f":move: end position { finalpos }")
@@ -151,14 +151,14 @@ class ServiceMove(Movement):
         self.moves.append(svc_end)
 
         # route ramp to end position
-        if rampnp[0] is not None:
-            ramp_leave = rampnp[0].copy()
+        if ramp_npe[0] is not None:
+            ramp_leave = ramp_npe[0].copy()
             ramp_leave.setSpeed(speeds["slow"])
             ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
             self.moves.append(ramp_leave)
 
-        logger.debug(f":move: route from {rampnv[0].id} to {endnv[0].id}")
-        r2 = Route(self.airport.service_roads, rampnv[0].id, endnv[0].id)
+        logger.debug(f":move: route from {ramp_nv[0].id} to {endnv[0].id}")
+        r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)
         if r2.found():
             for vtx in r2.get_vertices():
                 pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
@@ -166,7 +166,7 @@ class ServiceMove(Movement):
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
         else:
-            logger.debug(f":move: no route from ramp {rampnv[0].id} to end {endnv[0].id}")
+            logger.debug(f":move: no route from ramp {ramp_nv[0].id} to end {endnv[0].id}")
 
         if endnp is not None:
             endnp[0].setSpeed(speeds["slow"])
@@ -191,7 +191,9 @@ class ServiceMove(Movement):
         return (True, "Service::move completed")
 
 
-    def serviceLoop(self):
+    def move_loop(self):
+        # BEGINNING OF LOOP, go to ramp
+        #
         speeds = self.service.vehicle.speed
 
         startpos = self.service.vehicle.getPosition()
@@ -219,7 +221,7 @@ class ServiceMove(Movement):
         # find ramp position, use ramp center if none is given
         gseprofile = self.service.actype.gseprofile
         if gseprofile is not None:
-            status = self.service.ramp.makeServicePOIs(gseprofile)
+            status = self.service.ramp.makeServicePOIs(self.service.actype)
             if not status[0]:
                 logger.warning(f":move:create ramp service points failed {gseprofile}")
             else:
@@ -238,20 +240,20 @@ class ServiceMove(Movement):
         # logger.debug(":move: ramp %s" % (ramp_stop))
 
         # find closest point on network to ramp
-        rampnp = self.airport.service_roads.nearest_point_on_edge(ramp_stop)
-        if rampnp[0] is None:
+        ramp_npe = self.airport.service_roads.nearest_point_on_edge(ramp_stop)
+        if ramp_npe[0] is None:
             logger.warning(":move: no nearest_point_on_edge for ramp_stop")
-        rampnv = self.airport.service_roads.nearest_vertex(ramp_stop)
-        if rampnv[0] is None:
+        ramp_nv = self.airport.service_roads.nearest_vertex(ramp_stop)
+        if ramp_nv[0] is None:
             logger.warning(":move: no nearest_vertex for ramp_stop")
 
-        # logger.debug(":move: ramp vertex %s" % (rampnv[0]))
+        # logger.debug(":move: ramp vertex %s" % (ramp_nv[0]))
 
         # route from start to ramp
-        logger.debug(f":move: route from start {startnv[0].id} to ramp {rampnv[0].id} (vertices)")
-        rt1 = Route(self.airport.service_roads, startnv[0].id, rampnv[0].id)
+        logger.debug(f":move: route from start {startnv[0].id} to ramp {ramp_nv[0].id} (vertices)")
+        rt1 = Route(self.airport.service_roads, startnv[0].id, ramp_nv[0].id)
         # rt1.find()  # auto route
-        # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, rampnv[0].id)
+        # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, ramp_nv[0].id)
 
         if rt1.found():
             for vtx in rt1.get_vertices():
@@ -261,12 +263,12 @@ class ServiceMove(Movement):
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
         else:
-            logger.debug(f":move: no route from start {startnv[0].id} to ramp {rampnv[0].id}")
+            logger.debug(f":move: no route from start {startnv[0].id} to ramp {ramp_nv[0].id}")
 
-        if rampnp[0] is not None:
-            rampnp[0].setSpeed(speeds["slow"])
-            rampnp[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
-            self.moves.append(rampnp[0])
+        if ramp_npe[0] is not None:
+            ramp_npe[0].setSpeed(speeds["slow"])
+            ramp_npe[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
+            self.moves.append(ramp_npe[0])
 
         ramp_stop.setSpeed(0)
         ramp_stop.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
@@ -278,9 +280,123 @@ class ServiceMove(Movement):
         # before service, may first go to ramp rest area.
         # after service, may first go to ramp rest area before leaving ramp.
         #
-        # find end position if none is given
+        # LOOP, go to next position
+        looping = True
+        if looping:
+            # Prepare nearest depot
+            nearest_depot = self.airport.getNearestServiceDepot(service_type, ramp_stop)
+            nd_npe = self.airport.service_roads.nearest_point_on_edge(nearest_depot)
+            if nd_npe[0] is None:
+                    logger.warning(":move: no nearest_point_on_edge for nearest_depot")
+            nd_nv = self.airport.service_roads.nearest_vertex(nearest_depot)
+            if nd_nv[0] is None:
+                logger.warning(":move: no nearest_vertex for nearest_depot")
+            # route ramp -> nearest depot
+            logger.debug(f":move: route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id} (vertices)")
+            go_unload = Route(self.airport.service_roads, ramp_nv[0].id, nd_nv[0].id)
+            if not go_unload.found():
+                logger.warning(":move: no route from ramp to nearest depot")
+            go_load = Route(self.airport.service_roads, nd_nv[0].id, ramp_nv[0].id)
+            if not go_load.found():
+                logger.warning(":move: no route from nearest depot to ramp")
+            logger.debug(":move: ready to loop")
+            vehicle = self.service.vehicle
+            service = self.service
+            logger.debug(f":move: vehicle capacity {vehicle.max_capacity}, current load {vehicle.current_load}")
+            vehicle_capacity = vehicle.max_capacity - vehicle.current_load  # may not be empty when it arrives
+            while self.service.quantity > 0:
+                #
+                # Fill vehicle, decrease service quantity
+                if vehicle.max_capacity == inf:  # infinite capacity; served in one trip
+                    vehicle.current_load = service.quantity
+                    svc_duration = vehicle.service_duration(service.quantity)
+                    service.quantity = 0
+                elif service.quantity < vehicle_capacity:  # one last trip
+                    vehicle.current_load = vehicle.current_load + service.quantity
+                    svc_duration = vehicle.service_duration(service.quantity)
+                    logger.debug(f":move: loaded {service.quantity}, 0 remaining")
+                    service.quantity = 0
+                else:
+                    logger.debug(f":move: loaded {vehicle_capacity}, {service.quantity - vehicle_capacity} remaining")
+                    vehicle.current_load = vehicle.max_capacity
+                    svc_duration = vehicle.service_duration(vehicle.max_capacity)
+                    service.quantity = service.quantity - vehicle_capacity
 
-        finalpos = self.service.next_position
+                logger.debug(f":move: loaded {vehicle_capacity}, {service.quantity - vehicle_capacity} remaining, load duration={svc_duration}")
+                ramp_stop.pause(svc_duration)
+
+                # go to nearest depot
+                # ramp->network edge
+                pos = FeatureWithProps(geometry=ramp_npe[0]["geometry"], properties=ramp_npe[0]["properties"])
+                pos.setSpeed(speeds["slow"])
+                self.moves.append(pos)
+                # network edge->network vertex
+                pos = FeatureWithProps(geometry=nd_nv[0]["geometry"], properties=nd_nv[0]["properties"])
+                pos.setProp("_serviceroad", nd_nv[0].id)
+                pos.setSpeed(speeds["slow"])
+                self.moves.append(pos)
+                # network vertex->network vertex
+                if go_unload.found():
+                    for vtx in go_unload.get_vertices():
+                        # vtx = self.airport.service_roads.get_vertex(vid)
+                        pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                        pos.setProp("_serviceroad", vtx.id)
+                        pos.setSpeed(speeds["normal"])
+                        self.moves.append(pos)
+                else:
+                    logger.debug(f":move: no route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id}")
+                # network vertex->network edge (close to depot)
+                pos = FeatureWithProps(geometry=nd_npe[0]["geometry"], properties=nd_npe[0]["properties"])
+                pos.setSpeed(speeds["slow"])
+                self.moves.append(pos)
+                # network edge-> depot
+                pos = FeatureWithProps(geometry=nearest_depot["geometry"], properties=nearest_depot["properties"])
+                pos.setSpeed(speeds["slow"])
+                self.moves.append(pos)
+
+                #
+                # Empty vehicle
+                vehicle.setPosition(pos)
+                svc_duration = vehicle.service_duration(vehicle.current_load)
+                logger.debug(f":move: unloaded {vehicle.current_load}, {service.quantity} remaining, unload duration={svc_duration}")
+                pos.pause(svc_duration)
+
+                vehicle.current_load = 0
+                vehicle_capacity = vehicle.max_capacity
+
+                # go back to ramp
+                # depot ->network edge (close to depot)
+                pos = FeatureWithProps(geometry=nd_npe[0]["geometry"], properties=nd_npe[0]["properties"])
+                pos.setSpeed(speeds["slow"])
+                self.moves.append(pos)
+                # network edge->network vertex (close to depot)
+                pos = FeatureWithProps(geometry=nd_nv[0]["geometry"], properties=nd_nv[0]["properties"])
+                pos.setSpeed(speeds["slow"])
+                self.moves.append(pos)
+                # network vertex->network vertex
+                if go_load.found():
+                    for vtx in go_load.get_vertices():
+                        # vtx = self.airport.service_roads.get_vertex(vid)
+                        pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                        pos.setProp("_serviceroad", vtx.id)
+                        pos.setSpeed(speeds["normal"])
+                        self.moves.append(pos)
+                else:
+                    logger.debug(f":move: no route from nearest depot {nd_nv[0].id} to ramp {ramp_nv[0].id}")
+                # ramp->network edge
+                pos = FeatureWithProps(geometry=ramp_npe[0]["geometry"], properties=ramp_npe[0]["properties"])
+                pos.setSpeed(speeds["slow"])
+                self.moves.append(pos)
+                # network edge->ramp
+                pos = FeatureWithProps(geometry=ramp_stop["geometry"], properties=ramp_stop["properties"])
+                pos.setSpeed(speeds["slow"])
+                self.moves.append(pos)
+
+
+        # END OF LOOP, go to next position
+        #
+        # find end position if none is given
+        finalpos = self.service.vehicle.next_position
         if finalpos is None:
             finalpos = self.airport.selectRandomServiceRestArea(service_type)
             # logger.debug(f":move: end position { finalpos }")
@@ -305,14 +421,14 @@ class ServiceMove(Movement):
         self.moves.append(svc_end)
 
         # route ramp to end position
-        if rampnp[0] is not None:
-            ramp_leave = rampnp[0].copy()
+        if ramp_npe[0] is not None:
+            ramp_leave = ramp_npe[0].copy()
             ramp_leave.setSpeed(speeds["slow"])
             ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
             self.moves.append(ramp_leave)
 
-        logger.debug(f":move: route from {rampnv[0].id} to {endnv[0].id}")
-        r2 = Route(self.airport.service_roads, rampnv[0].id, endnv[0].id)
+        logger.debug(f":move: route from {ramp_nv[0].id} to {endnv[0].id}")
+        r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)
         if r2.found():
             for vtx in r2.get_vertices():
                 pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
@@ -320,7 +436,7 @@ class ServiceMove(Movement):
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
         else:
-            logger.debug(f":move: no route from ramp {rampnv[0].id} to end {endnv[0].id}")
+            logger.debug(f":move: no route from ramp {ramp_nv[0].id} to end {endnv[0].id}")
 
         if endnp is not None:
             endnp[0].setSpeed(speeds["slow"])

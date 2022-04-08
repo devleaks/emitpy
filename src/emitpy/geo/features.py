@@ -33,7 +33,10 @@ class FeatureWithProps(Feature):
     A FeatureWithProps is a GeoJSON Feature<Point> with facilities to set a few standard
     properties like altitude, speed, vertical speed and properties.
     It can also set colors for geojson.io map display.
-    Altitude is stored in third geometry coordinates array value.
+    Altitude is stored in third geometry coordinates array value:
+
+    An OPTIONAL third-position element SHALL be the height in meters above or below the WGS 84 reference ellipsoid.
+    (https://datatracker.ietf.org/doc/rfc7946/?include_text=1)
     """
     def __init__(self, id=None, geometry=None, properties=None, **extra):
     # before: def __init__(self, geometry: Geometry, properties: dict):
@@ -143,6 +146,7 @@ class FeatureWithProps(Feature):
 
     def altitude(self, default=None):
         # Altitude can be stored at two places
+        # Assumes Feature is <Point>
         if len(self["geometry"]["coordinates"]) > 2:
             return self["geometry"]["coordinates"][2]
         alt = self["properties"][FEATPROP.ALTITUDE.value] if FEATPROP.ALTITUDE.value in self["properties"] else None

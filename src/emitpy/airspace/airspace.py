@@ -1,4 +1,7 @@
 # Airspace Utility Classes
+# With the exception of the restriction-related classes, all utility classes are GeoJSON features.
+# The Airspace class is a network of air routes. It is an abstract class for building application-usable airspaces
+# used for aircraft movements.
 #
 import logging
 import math
@@ -20,10 +23,14 @@ class CPIDENT(Enum):
     IDENT = "ident"
     POINTTYPE = "pointtype"
 
-
+################################
+#
+# RESTRICTIONS
+#
+#
 class Restriction:
     """
-    A Restriction is an altitude and/or speed restriction.
+    A Restriction is an altitude and/or speed restriction for a section of an airspace.
     If a altitude restriction is set, an aircraft must fly above alt_min and/or below alt_max.
     If a speed restriction is set, the aircraft must fly fater than speed_min and/or slower than speed_max.
     If there is no restriction, use None for restriction.
@@ -82,6 +89,17 @@ class Restriction:
 
     def hasSpeedRestriction(self):
         return self.speedmin is not None or self.speedmax is not None
+
+
+class RestrictedAirspace(FeatureWithProps):
+    """
+    This class describes a restricted airspace.
+    @todo: we'll deal with the airspace restricted volumes later.
+    @see: Little Navmap for "inspiration".
+    """
+    def __init__(self, name, region, restriction):
+        default_polygon = [ [0,0], [0,1], [1, 1], [0, 0] ]
+        FeatureWithProps.__init__(self, geometry=Polygon(default_polygon), properties={})
 
 
 ################################
@@ -365,14 +383,25 @@ class AirwaySegment(Edge):
         self.fl_ceil = fl_ceil
 
 
-class AirwayRoute:
+class AirwayRoute(FeatureWithProps):
     """
     An AirwayRroute is a named array of AirwaySegments.
     """
     def __init__(self, name: str, route: [AirwaySegment]):
         self.name = name
         self.route = route
-
+        arr = []
+        var = ""
+        for s in self.route:
+            if first is None:
+                first = s
+                arr.append(s.start)
+            arr.append(s.end)
+            via = via + "," + s.names.join("-")
+        FeatureWithProps.__init__(self, geometry=LineString(arr), properties={
+            "name": name,
+            "via": via
+        })
 
 ##########################
 #

@@ -395,7 +395,7 @@ class Emit:
                 if a is not None:
                     f["geometry"]["coordinates"].append(float(a))
                 else:
-                    logger.warning(f":interpolate: not altitude?{f['geometry']['name'] if name in f['geometry'] else '?'}")
+                    logger.warning(f":interpolate: no altitude? {f['properties']['emit-index']}. Grounded?")
         logger.debug(":interpolate: .. done.")
 
         logger.debug(":interpolate: computing headings..")
