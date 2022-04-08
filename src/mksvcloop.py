@@ -66,11 +66,11 @@ def main():
     operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
 
     logger.debug("creating single service..")
-    fs = Service.getService("fuel")
-    fuel_service = fs(operator=operator, quantity=24)
+    fs = Service.getService("baggage")
+    fuel_service = fs(operator=operator, quantity=125)
     fuel_service.setRamp(ramp)
     fuel_service.setAircraftType(actype)
-    fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="pump")
+    fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="train")
     fuel_vehicle.setICAO24("abcdef")
     fuel_depot = managed.selectRandomServiceDepot(SERVICE.FUEL.value)
     fuel_vehicle.setPosition(fuel_depot)
@@ -80,7 +80,7 @@ def main():
     logger.debug(".. moving ..")
 
     fsm = ServiceMove(fuel_service, managed)
-    fsm.move()
+    fsm.move_loop()
     fsm.save()
 
     logger.debug(".. emission positions ..")

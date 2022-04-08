@@ -1,5 +1,5 @@
 """
-Deals with METAR data in simulation.
+A METAR is a weather situation at a named location, usually an airport.
 """
 import os
 import json

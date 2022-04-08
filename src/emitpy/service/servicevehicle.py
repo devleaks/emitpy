@@ -23,11 +23,15 @@ class ServiceVehicle(Identity):
     def __init__(self, registration: str, operator: Company):
         Identity.__init__(self, operator, "GSE", type(self).__name__, registration)
 
-        self.registration = registration
-        self.icao24 = None
         self.operator = operator
+        self.registration = registration
+        self.icao = None  # "ICAO" model name, should be ZZZC for all ground vehicle, but we use ZZZA->ZZZZ
+        self.icao24 = None
+        self.callsign = None
         self.model = None
+        self.model_name = "Service vehicle"
         self.position = None
+        self.next_position = None
 
         self.speed = {
             "slow": 5/3.6,       # km/h to m/s
@@ -60,6 +64,7 @@ class ServiceVehicle(Identity):
     def getInfo(self):
         return {
             "registration": self.registration,
+            "callsign": self.registration,
             "icao24": self.icao24,
             "operator": self.operator.getInfo(),
             "service": type(self).__name__.replace("Vehicle", "").lower(),  # a try...
@@ -71,6 +76,10 @@ class ServiceVehicle(Identity):
 
     def setPosition(self, position):
         self.position = position
+
+    def setNextPosition(self, position):
+        self.next_position = position
+
 
     def getPosition(self):
         return self.position
@@ -93,8 +102,26 @@ class ServiceVehicle(Identity):
         else:
             self.current_load = self.current_load + refill_quantity
 
-        refill_time = self.setup_time + refill_quantity * self.quantity_time  # assumes service and refill at same speed
-        return refill_time
+        return self.service_duration(refill_quantity)
+
+    def empty(self, quantity: float=None):
+        """
+        Empties a truck of its load and returns empting/unloading time.
+
+        :param      quantity:  The quantity
+        :type       quantity:  float
+        """
+        if quantity is None:
+            empty_quantity = self.current_load
+        else:
+            empty_quantity = quantity
+
+        if self.current_load < empty_quantity:
+            self.current_load = 0
+        else:
+            self.current_load = self.current_load - empty_quantity
+
+        return self.service_duration(empty_quantity)
 
     def service_duration(self, quantity: float):
         """
@@ -130,7 +157,8 @@ class FuelVehicle(ServiceVehicle):
     def __init__(self, registration: str, operator: Company):
         ServiceVehicle.__init__(self, registration=registration,  operator=operator)
 
-        self.model = "ZZFA"
+        self.icao = "ZZZF"
+        self.model_name = "Generic fuel vehicle (medium size tanker)"
         self.max_capacity = 30
         self.flow = 1.0 / 60
         self.speeds = {
@@ -153,7 +181,8 @@ class FuelVehiclePump(FuelVehicle):
 
     def __init__(self, registration: str, operator: Company):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
-        self.model = "ZZFA"
+        self.model = "ZZZE"
+        self.model_name = "Fuel hydrant vehicle"
         self.max_capacity = inf
         self.flow = 2.0 / 60
         self.speeds = {
@@ -168,7 +197,8 @@ class FuelVehicleTankerLarge(FuelVehicle):
 
     def __init__(self, registration: str, operator: Company):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
-        self.model = "ZZFB"
+        self.model = "ZZZG"
+        self.model_name = "Fuel tanker large"
         self.max_capacity = 40
         self.flow = 1.5 / 60
         self.speeds = {
@@ -183,9 +213,26 @@ class FuelVehicleTankerMedium(FuelVehicle):
 
     def __init__(self, registration: str, operator: Company):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
-        self.model = "ZZFC"
+        self.model = "ZZZF"
+        self.model_name = "Fuel tanker medium"
         self.max_capacity = 20
         self.flow = 0.9 / 60
+        self.speeds = {
+            "slow": 5,
+            "normal": 20,
+            "fast": 50
+        }
+        self.setup_time = 4 * 60    # in seconds
+
+
+class FuelVehicleTankerMedium(FuelVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        FuelVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZZD"
+        self.model_name = "Fuel tanker avgas"
+        self.max_capacity = 15
+        self.flow = 0.5 / 60
         self.speeds = {
             "slow": 5,
             "normal": 20,

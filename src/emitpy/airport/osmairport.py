@@ -1,5 +1,6 @@
-# Airport as defined in X-Plane
-#
+"""
+ManagedAirport loaded from OpenStreetMap files
+"""
 import os.path
 import json
 import yaml

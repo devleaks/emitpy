@@ -59,8 +59,9 @@ class LiveTrafficForwarder:
         # fields[14] = compWaitTS(fields[14])
         datagram = ','.join(fields)
         self.sock.sendto(datagram.encode('ascii'), (WSS_HOST, WSS_PORT))
-        logger.debug(f":send_traffic_data: ac:{int(fields[1]):x}: {datagram}")
-        logger.debug(f":send_traffic_data: ac:{int(fields[1]):x}: alt={fields[4]} ft, hdg={fields[7]}, speed={fields[8]} kn, vspeed={fields[5]} ft/min")
+        fields[1] = f"{int(fields[1]):x}"
+        logger.debug(f"{datagram}")
+        logger.debug(f":send_traffic_data: ac:{fields[1]}: alt={fields[4]} ft, hdg={fields[7]}, speed={fields[8]} kn, vspeed={fields[5]} ft/min")
         return 0
 
     def _forward(self, name):

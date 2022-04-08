@@ -23,7 +23,6 @@ class Airline(Company):
     """
     An Airline is an operator of Airroute
     """
-
     _DB = {}
     _DB_IATA = {}
 

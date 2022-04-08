@@ -1,4 +1,4 @@
-# Airspace Utility Classes
+# Airspace class defined from X-Plane files and datasets.
 #
 import os.path
 import re
@@ -57,7 +57,9 @@ FIX_TYPE = {
 # (Alternatives are Navigraph, ARIAC 424, etc.)
 #
 class XPAirspace(Airspace):
-
+    """
+    Airspace definition based on X-Plane data.
+    """
     def __init__(self, bbox=None):
         Airspace.__init__(self, bbox)
         self.basename = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data")
@@ -69,7 +71,11 @@ class XPAirspace(Airspace):
 
 
     def loadAirports(self):
-        # From https://www.partow.net/miscellaneous/airportdatabase/index.html#Downloads
+        """
+        Loads all airports from a csv file.
+        (From https://www.partow.net/miscellaneous/airportdatabase/index.html#Downloads)
+        Source can be changed as needed.
+        """
         startLen = len(self.vert_dict.keys())
         count = 0
         filename = os.path.join(SYSTEM_DIRECTORY, "GlobalAirportDatabase.txt")
@@ -102,13 +108,29 @@ class XPAirspace(Airspace):
         return [True, "XPXPAirspace::Airport loaded"]
 
     def getAirportIATA(self, iata):
+        """
+        Returns airport from airspace airport database with matching IATA code.
+
+        :param      iata:  The iata
+        :type       iata:  { type_description }
+        """
         return self.airports_iata[iata] if iata in self.airports_iata.keys() else None
 
     def getAirportICAO(self, icao):
+        """
+        Returns airport from airspace airport database with matching ICAO code.
+
+        :param      iata:  The iata
+        :type       iata:  { type_description }
+        """
+        return self.airports_iata[iata] if iata in self.airports_iata.keys() else None
         return self.airports_icao[icao] if icao in self.airports_icao.keys() else None
 
 
     def loadFixes(self):
+        """
+        Loads X-Plane fixes database.
+        """
         startLen = len(self.vert_dict.keys())
         count = 0
         filename = os.path.join(self.basename, "earth_fix.dat")
@@ -147,6 +169,9 @@ class XPAirspace(Airspace):
 
 
     def loadNavaids(self):
+        """
+        Loads X-Plane navigation aids database. Additional data (frequencies, etc.) is not loaded.
+        """
         startLen = len(self.vert_dict.keys())
         count = 0
         filename = os.path.join(self.basename, "earth_nav.dat")
@@ -229,6 +254,9 @@ class XPAirspace(Airspace):
 
 
     def createIndex(self):
+        """
+        Reverse index of fixes and navaids.
+        """
         if self._cached_vectex_ids is None:
             ss = time.perf_counter()
             self._cached_vectex_ids = {}
@@ -259,6 +287,12 @@ class XPAirspace(Airspace):
 
 
     def dropIndex(self):
+        """
+        Drops reverse index of fixes and navaids.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
         logger.debug(":dropIndex: %d fixes, %d navaids" % (self._cached_vectex_ids["Fix"], self._cached_vectex_ids["VHF"]))
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
@@ -266,6 +300,19 @@ class XPAirspace(Airspace):
 
 
     def findControlledPoint(self, region, ident, navtypeid):
+        """
+        Find fix or navaid from region, identifier, and navigation aid "gross" type.
+
+        :param      region:     The region
+        :type       region:     { type_description }
+        :param      ident:      The identifier
+        :type       ident:      { type_description }
+        :param      navtypeid:  The navtypeid
+        :type       navtypeid:  { type_description }
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
         self.createIndex()
         if region in self._cached_vectex_ids:
             if ident in self._cached_vectex_ids[region]:
@@ -275,12 +322,14 @@ class XPAirspace(Airspace):
 
 
     def findControlledPointByName(self, ident):
+        """
+        Finds fix or navaid from its identifier.
+        """
         self.createIndex()
         if ident in self._cached_vectex_idents:
             return self._cached_vectex_idents[ident]
         return []
 
-        """
         s = region + ":" + ident + (":Fix" if int(navtypeid) == 11 else "") + ":"
         candidates = [key for key in self.vert_dict.keys() if key.startswith(s)]
 
@@ -291,9 +340,12 @@ class XPAirspace(Airspace):
 
         logger.debug(":findControlledPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
         return None
-        """
+
 
     def findClosestControlledPoint(self, reference, vertlist):
+        """
+        Finds closest navigation aid or fix to reference vertex.
+        """
         closest = None
         refvtx = self.get_vertex(reference)
         dist = inf
@@ -307,6 +359,9 @@ class XPAirspace(Airspace):
 
 
     def loadAirwaySegments(self):
+        """
+        Loads airway segments from X-Plane segments database.
+        """
         # 0     1  2  3     4  5
         # ABILO LG 11 PERIM LG 11 F 1   0   0 L53
         #   LAS K2  3 SUVIE K2 11 N 2 180 450 J100-J9
@@ -360,40 +415,11 @@ class XPAirspace(Airspace):
         logger.debug(":loadAirwaySegments: %d segments loaded.", len(self.edges_arr))
         return [True, "XPXPAirspace::AirwaySegments loaded"]
 
-    """
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [
-          [
-            [
-              48.0,
-              22.0
-            ],
-            [
-              55.0,
-              22.0
-            ],
-            [
-              55.0,
-              28.0
-            ],
-            [
-              48.0,
-              28.0
-            ],
-            [
-              48.0,
-              22.0
-            ]
-          ]
-        ]
-      }
-    }"""
 
     def loadHolds(self):
+        """
+        Loads holding positions and patterns from X-Plane holds databaes.
+        """
         filename = os.path.join(self.basename, "earth_hold.dat")
         file = open(filename, "r")
         line = file.readline()

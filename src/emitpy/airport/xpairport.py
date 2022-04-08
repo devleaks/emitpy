@@ -1,10 +1,12 @@
-# Airport as defined in X-Plane
-#
+"""
+ManagedAirport loaded from X-Plane configuration and data files
+"""
 import os.path
 import re
 import logging
 import random
 
+from math import inf
 from geojson import Point, Polygon, Feature
 from turfpy.measurement import distance, destination, bearing
 
@@ -528,12 +530,12 @@ class XPAirport(AirportBase):
             logger.debug(f":selectServicePOI: trying generic rest area")
             return self.selectRandomServiceRestArea(service)
 
-    def getClosestPOI(self, poi_list, position: Feature):
+    def getNearestPOI(self, poi_list, position: Feature):
         if len(poi_list) == 0:
-            logger.warning(f":getClosestPOI: no POI list for { service }")
+            logger.warning(f":getNearestPOI: no POI in list")
             return None
         if len(poi_list) == 1:
-            logger.debug(f":getClosestPOI: {poi_list[0].getProp('name')} for { service }")
+            logger.debug(f":getNearestPOI: one in list, returning {poi_list[0].getProp('name')}")
             return poi_list[0]
 
         closest = None
@@ -543,20 +545,20 @@ class XPAirport(AirportBase):
             if d < dist:
                 dist = d
                 closest = p
-        logger.debug(f":getClosestPOI: {closest.getProp('name')} for { service }")
+        logger.debug(f":getNearestPOI: found {poi_list[0].getProp('name')}")
         return closest
 
     def getDepots(self, service_name: str):
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOIs(service_name)))
 
-    def getClosestDepot(self, service_name: str, position: Feature):
-        return self.getClosestPOI(self.getDepots(service_name), position)
+    def getNearestServiceDepot(self, service_name: str, position: Feature):
+        return self.getNearestPOI(self.getDepots(service_name), position)
 
     def getRestAreas(self, service_name: str):
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOIs(service_name)))
 
-    def getClosestRestArea(self, service_name: str, position: Feature):
-        return self.getClosestPOI(self.getRestAreas(service_name), position)
+    def getNearestServiceRestArea(self, service_name: str, position: Feature):
+        return self.getNearestPOI(self.getRestAreas(service_name), position)
 
     def selectRandomServiceDepot(self, service: str):
         service = service.lower()

@@ -1,6 +1,7 @@
 """
-A Flight Route is an array of ProcedurePoint.
-A ProcedurePoint is either a waypoint or just a coordinate with mandatory properties.
+CIFP is a collection of standard instrument arrival and departure procedures for an airport.
+It also contains runways, approches and final approaches.
+A couple of helper classes help deal with CIFP file parsing.
 """
 import os
 import logging

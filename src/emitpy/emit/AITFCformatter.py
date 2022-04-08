@@ -13,7 +13,7 @@ from .format import Formatter
 logger = logging.getLogger("LiveTrafficFormatter")
 
 
-class LiveTrafficFormatter(Formatter):
+class AITFCFormatter(Formatter):
 
     FILE_FORMAT = "csv"
 

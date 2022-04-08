@@ -51,18 +51,24 @@ class Service:
 
 
     def getId(self):
+        return type(self).__name__ + ":" + self.getShortId()
+
+
+    def getShortId(self):
         r = self.ramp.getProp("name") if self.ramp is not None else "noramp"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
-        return type(self).__name__ + "-" + v + "-" + r
+        return r + ":" + v
 
 
     def getInfo(self):
         return {
+            "service-type": type(self).__name__,
+            "service-identifier": self.getId(),
             "operator": self.operator.getInfo(),
             "ramp": self.ramp.getInfo(),
             "vehicle": self.vehicle.getInfo(),
             "icao24": self.vehicle.icao24,
-            "ident": self.vehicle.registration
+            "registration": self.vehicle.registration
         }
 
 

@@ -925,7 +925,7 @@ class FlightMovement(Movement):
         """
         to_interp = self.moves_st
         # before = []
-        check = "vspeed"
+        check = "altitude"
         logger.debug(":interpolate: interpolating ..")
         for name in ["speed", "vspeed", "altitude"]:
             logger.debug(f":interpolate: .. {name} ..")
@@ -943,7 +943,7 @@ class FlightMovement(Movement):
                 if a is not None:
                     f["geometry"]["coordinates"].append(float(a))
                 else:
-                    logger.warning(f":interpolate: not altitude?{f['geometry']['name'] if name in f['geometry'] else '?'}")
+                    logger.warning(f":interpolate: no altitude? {f['property'][name] if name in f['property'] else '?'}")
         logger.debug(":interpolate: .. done.")
 
         # name = check

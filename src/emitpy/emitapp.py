@@ -10,7 +10,7 @@ from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, ServiceFlight
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE
+from emitpy.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
@@ -42,12 +42,12 @@ class EmitApp(ManagedAirport):
     def __init__(self, airport):
         ManagedAirport.__init__(self, airport)
         # Default queue
-        self.queue = Queue(name="viewapp", formatter_name="viewapp", starttime=datetime.now().isoformat())
+        self.queue = Queue(name="lt", formatter_name="lt", starttime=datetime.now().isoformat())
         self.queue.save()
         self.init()
 
 
-    def do_flight(self, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False):
+    def do_flight(self, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
         logger.debug("Airline, airport..")
         # Add pure commercial stuff
         airline = Airline.find(airline)
@@ -113,6 +113,8 @@ class EmitApp(ManagedAirport):
             gate = ramp_name
         flight.setGate(gate)
 
+        aircraft.setCallsign(airline.icao+flightnumber)
+
         logger.debug("..planning..")
         flight.plan()
 
@@ -136,11 +138,15 @@ class EmitApp(ManagedAirport):
         ret = emit.emit(30)
         if not ret[0]:
             return StatusInfo(104, f"problem during emit", ret[1])
+        # emit.save()
 
         logger.debug("..scheduling..")
+        # Schedule actual time if supplied
+        emit_time_str = actual_datetime if actual_datetime is not None else scheduled
+        emit_time = datetime.fromisoformat(emit_time_str)
+
         logger.debug(emit.getMarkList())
-        schedtime = datetime.fromisoformat(scheduled)
-        ret = emit.schedule(sync, schedtime)
+        ret = emit.schedule(sync, emit_time)
         if not ret[0]:
             return StatusInfo(105, f"problem during schedule", ret[1])
 
@@ -159,7 +165,7 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(107, f"problem during formatting", ret[1])
         ret = formatted.save()
-        if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
+        if not ret[0] and ret[1] != "FormatToRedis::save key already exist":
             return StatusInfo(108, f"problem during formatted output save", ret[1])
         ret = formatted.enqueue()
         if not ret[0]:
@@ -173,7 +179,7 @@ class EmitApp(ManagedAirport):
         st = emit.getRelativeEmissionTime(sync)
         bt = emit.getRelativeEmissionTime(svc_sync)  # 0 for departure...
         td = bt - st
-        blocktime = schedtime + timedelta(seconds=td)
+        blocktime = emit_time + timedelta(seconds=td)
 
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
 
@@ -239,7 +245,7 @@ class EmitApp(ManagedAirport):
         nextpos = self.airport.selectServicePOI(vehicle_endpos, service)
         if nextpos is None:
             return StatusInfo(513, f"EmitApp:do_service: start position {vehicle_endpos} for {service} not found", None)
-        this_service.setNextPosition(nextpos)
+        this_vehicle.setNextPosition(nextpos)
 
         logger.debug(".. moving ..")
         move = ServiceMove(this_service, self.airport)
@@ -299,8 +305,7 @@ class EmitApp(ManagedAirport):
 
 
     def do_schedule(self, ident, sync, scheduled):
-        ident2 = ident.replace("-enqueued", "")
-        emit = ReEmit(ident2)
+        emit = ReEmit(ident)
         ret = emit.schedule(sync, datetime.fromisoformat(scheduled))
         if not ret[0]:
             return StatusInfo(160, f"problem during rescheduling", ret[1])
@@ -336,8 +341,8 @@ class EmitApp(ManagedAirport):
         ret = q.save()
         if not ret[0]:
             return StatusInfo(1, f"problem during creation of queue {name} ", ret)
-
         return StatusInfo(0, "queue created successfully", None)
+
 
     def do_delete_queue(self, name):
         """
@@ -346,6 +351,4 @@ class EmitApp(ManagedAirport):
         ret = Queue.delete(name)
         if not ret[0]:
             return StatusInfo(1, f"problem during deletion of queue {name} ", ret)
-
         return StatusInfo(0, "queue delete successfully", None)
-

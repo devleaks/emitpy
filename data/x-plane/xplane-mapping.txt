@@ -1,3 +1,0 @@
-# mapping of objects
-A321=aircraft/a320.obj
-ZZCA=gse/catering.obj

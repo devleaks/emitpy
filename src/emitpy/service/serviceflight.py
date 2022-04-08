@@ -57,6 +57,7 @@ class ServiceFlight:
         svcs = self.flight.aircraft.actype.tarprofile[move]
 
         for svc in svcs:
+            print(">>>", svc)
             sname, sched = list(svc.items())[0]
 
             logger.debug(f"creating service {sname}..")
@@ -64,7 +65,10 @@ class ServiceFlight:
 
             this_service.setRamp(self.flight.ramp)
             this_service.setAircraftType(self.flight.aircraft.actype)
-            this_vehicle = self.airport.manager.selectServiceVehicle(operator=self.operator, service=this_service)
+            if len(sched) > 2:
+                this_vehicle = self.airport.manager.selectServiceVehicle(operator=self.operator, service=this_service, model=sched[2])
+            else:
+                this_vehicle = self.airport.manager.selectServiceVehicle(operator=self.operator, service=this_service)
             if this_vehicle is None:
                 return {
                     "errno": 512,
@@ -76,7 +80,7 @@ class ServiceFlight:
             this_vehicle.setPosition(vehicle_startpos)
 
             vehicle_endpos = self.airport.selectRandomServiceRestArea(sname)
-            this_service.setNextPosition(vehicle_endpos)
+            this_vehicle.setNextPosition(vehicle_endpos)
 
             # logger.debug(".. moving ..")
             # move = ServiceMove(this_service, self.airport)
