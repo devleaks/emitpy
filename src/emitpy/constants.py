@@ -182,6 +182,18 @@ class FLIGHT_PHASE(Enum):
     TOP_OF_DESCENT = "TOP_OF_DESCENT"
 
 
+class MISSION_PHASE(Enum):
+    START = "start"
+    CHECKPOINT = "checkpoint"
+    EN_ROUTE = "enroute"
+    END = "end"
+
+class MISSION_COLOR(Enum):
+    START = "#00dd00"
+    CHECKPOINT = "#0000dd"
+    EN_ROUTE = "#eeeeee"
+    END = "#dd0000"
+
 class SERVICE_PHASE(Enum):
     START = "start"
     ARRIVED = "arrived"

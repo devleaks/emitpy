@@ -71,6 +71,11 @@ class XPAirport(AirportBase):
 
 
     def load(self):
+        """
+        Loads X-Plane airport from apt.dat definition file.
+        Uses same scanning pattern as X-Plane, starting with scenery_packs file.
+        First match wins.
+        """
         logger.debug(":load: loading super..")
         status = super().load()
         if not status[0]:
@@ -84,6 +89,10 @@ class XPAirport(AirportBase):
 
 
     def loadFromFile(self):
+        """
+        Scans scenery_packs collection for apt.dat files.
+        Tries to locate manage airport ICAO. If match is found, data lines are loaded.
+        """
         SCENERY_PACKS = os.path.join(SYSTEM_DIRECTORY, "Custom Scenery", "scenery_packs.ini")
         scenery_packs = open(SCENERY_PACKS, "r")
         scenery = scenery_packs.readline()
@@ -135,8 +144,15 @@ class XPAirport(AirportBase):
 
 
     def loadRunways(self):
+        """
+        Loads runways from apt.dat lines.
+        Line format is:
         #     0     1 2 3    4 5 6 7    8            9               10 11  1213141516   17           18              19 20  21222324
         # 100 60.00 1 1 0.25 1 3 0 16L  25.29609337  051.60889908    0  300 2 2 1 0 34R  25.25546269  051.62677745    0  306 3 2 1 0
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
         runways = {}
         for aptline in self.lines:
             if aptline.linecode() == 100:  # runway
@@ -150,9 +166,16 @@ class XPAirport(AirportBase):
         return [True, "XPAirport::loadRunways loaded"]
 
     def loadRamps(self):
+        """
+        Loads ramps from apt.dat lines.
+        Line format is:
         # 1300  25.26123160  051.61147754 155.90 gate heavy|jets|turboprops A1
         # 1301 E airline
         # 1202 ignored.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
         ramps = {}
 
         ramp = None
@@ -180,9 +203,15 @@ class XPAirport(AirportBase):
         return [True, "XPAirport::loadRamps loaded"]
 
     def loadTaxiways(self):
-        # Collect 1201 and (102,1204) line codes and create routing network (graph) of taxiways
+        """
+        Loads taxiways from apt.dat lines.
+        Line format is:
         # code  LAT          LON          WAY  ID NAME...
         # 1201  25.29549372  051.60759816 both 16 unnamed entity(split)
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
         def addVertex(aptline):
             args = aptline.content().split()
             return self.taxiways.add_vertex(Vertex(node=args[3], point=Point((float(args[1]), float(args[0]))), usage=[ args[2]], name=" ".join(args[3:])))
@@ -234,8 +263,14 @@ class XPAirport(AirportBase):
         return [True, "XPAirport::loadTaxiways loaded"]
 
     def loadServiceRoads(self):
-        # Collect 1201 and 1206 line codes and create routing network (graph) of service roads
+        """
+        Loads service roads from apt.dat lines.
+        Line format is:
         # 1201  25.29549372  051.60759816 both 16 unnamed entity(split)
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
         def addVertex(aptline):
             args = aptline.content().split()
             return self.service_roads.add_vertex(Vertex(node=args[3], point=Point((float(args[1]), float(args[0]))), usage=[ args[2]], name=" ".join(args[3:])))
@@ -273,6 +308,14 @@ class XPAirport(AirportBase):
 
 
     def loadPOIS(self):
+        """
+        Loads a Points of Interest from user-supplied GeoJSON FeatureCollection files.
+        Each feature in the collection is a Feature<Point> and contains mandatory
+        properties to help identify points of interest.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
         status = self.loadServiceDestinations()
         if not status[0]:
             return status
@@ -290,11 +333,18 @@ class XPAirport(AirportBase):
 
 
     def loadServiceDestinations(self):
+        """
+        Loads X-Plane ATC/animated traffic service destinations from apt.dat lines.
+        Line format is:
         # 1400 47.44374472 -122.30463464 88.1 baggage_train 3 Svc Baggage
         # 1401 47.44103438 -122.30382493 0.0 baggage_train Luggage Train Destination South 2
         # @todo: need to map X-Plane service names to ours.
         # X-Plane: baggage_loader, baggage_train, crew_car, crew_ferrari, crew_limo, pushback, fuel_liners, fuel_jets, fuel_props, food, gpu
         # Baggage train have additional param: 0 to 10 if type is baggage_train, 0 if not
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
         service_destinations = {}
         svc_dest = 0
         svc_park = 0
@@ -318,6 +368,13 @@ class XPAirport(AirportBase):
         return [True, "XPAirport::loadServiceDestination loaded"]
 
     def loadAerowaysPOIS(self):
+        """
+        Loads an aeroways points of interest from a user-supplied GeoJSON FeatureCollection file.
+        Aeroways POIs help aircraft move on the ground. POIs include:
+        - Runway exists
+        - Take-off Queue LineString.
+        The take-off Queue LineString is used to build a collection of queueing position for takeoffs.
+        """
         self.loadGeometries("aeroway-pois.geojson")
         if self.data is not None and self.data["features"] is not None:
             self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
@@ -346,6 +403,13 @@ class XPAirport(AirportBase):
         return [True, "XPAirport::loadAerowaysPOIS loaded"]
 
     def loadServicePOIS(self):
+        """
+        Loads a service points of interest from a user-supplied GeoJSON FeatureCollection file.
+        Service POIs help ground support vehicle move on the ground. POIs include:
+        - Depots for services (Fuel, Catering, Water...)
+        - Parking and rest areas for inactive ground vehicle
+        POIs contain mandatory properties to help identify depot and rest area functions and use.
+        """
         self.loadGeometries("service-pois.geojson")
         if self.data is not None and self.data["features"] is not None:
             self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
@@ -375,11 +439,17 @@ class XPAirport(AirportBase):
         return [True, "XPAirport::loadServicePOIS loaded"]
 
     def getServicePoisCombo(self):
+        """
+        Returns a list of (code, description) pairs for all service points of interest.
+        """
         l = sorted(self.service_pois.values(),key=lambda x: x.getProp("name"))
         a = [(a.getProp("name"), a.getProp("name")) for a in l]
         return a
 
     def loadCheckpointPOIS(self):
+        """
+        Loads a checkpoint for missions.
+        """
         self.loadGeometries("check-pois.geojson")
         if self.data is not None and self.data["features"] is not None:
             self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
@@ -401,23 +471,56 @@ class XPAirport(AirportBase):
         return [True, "XPAirport::loadCheckpointPOIS loaded"]
 
     def getCheckpointCombo(self):
+        """
+        Returns a list of (code, description) pairs for all checkpoints.
+        """
         l = sorted(self.check_pois.values(),key=lambda x: x.getProp("name"))
         a = [(a.getProp("name"), a.getProp("name")) for a in l]
         return a
 
+    def getCheckpoint(self, name):
+        """
+        Gets a named checkpoint.
+
+        :param      name:  The name
+        :type       name:  { type_description }
+        """
+        return self.check_pois[name] if name in self.check_pois.keys() else None
+
     def getAerowayPOI(self, name):
+        """
+        Gets a aeroway POI identified by name.
+
+        :param      name:  The name
+        :type       name:  { type_description }
+        """
         res = list(filter(lambda f: f.name == name, self.aeroway_pois))
         return res[0] if len(res) == 1 else None
 
     def getRamp(self, name):
+        """
+        Gets the ramp as a X-Plane entity (not a GeoJSON feature)
+
+        :param      name:  The name
+        :type       name:  { type_description }
+        """
         return self.ramps[name] if name in self.ramps.keys() else None
 
     def miles(self, airport):
+        """
+        Returns the distance, in nautical miles, from the current (managed) airport to the supplied airport.
+        Used to compute bonus milage.
+
+        :param      airport:  The airport
+        :type       airport:  { type_description }
+        """
         return distance(self, airport)
 
 
     def makeAdditionalAerowayPOIS(self):
-        # build additional points and positions
+        """
+        Builds additional aeroway POIs Feature<Point> from user-supplied Feature>LineString>.
+        """
 
         def makeQueue(line):
             # place TAKEOFF_QUEUE_SIZE points on line
@@ -477,6 +580,15 @@ class XPAirport(AirportBase):
 
 
     def closest_runway_exit(self, runway, dist):
+        """
+        Utility function to located the closest runway exit in front of the plane
+        located at dist distance from the runway threshold.
+
+        :param      runway:  The runway
+        :type       runway:  { type_description }
+        :param      dist:    The distance
+        :type       dist:    { type_description }
+        """
         i = 0
         closest = None
         while closest is None and i < len(self.runway_exits[runway]):
@@ -493,7 +605,9 @@ class XPAirport(AirportBase):
 
 
     def queue_point(self, runway, qid):
-        # no extra checks
+        """
+        Returns the takeoff queue position from the runway name and the position in the queue.
+        """
         res = list(filter(lambda f: f["properties"][FEATPROP.NAME.value] == qid, self.takeoff_queues[runway]))
         return res[0]
 
@@ -501,6 +615,9 @@ class XPAirport(AirportBase):
     In Service POI Feature<Point>, property "service" is a list of | separated services, and "poi" is {depot|rest}.
     """
     def getServicePOIs(self, service_name: str):
+        """
+        Returns a list of POIs for the supplied service.
+        """
         sl = []
         for f in self.service_pois.values():
             s = f.getProp(FEATPROP.SERVICE.value)
@@ -513,9 +630,21 @@ class XPAirport(AirportBase):
         return sl
 
     def getServicePOI(self, name: str):
+        """
+        Returns the named POI.
+        """
         return self.service_pois[name] if name in self.service_pois.keys() else None
 
     def selectServicePOI(self, name: str, service: str):
+        """
+        Returns the named POI if existing, otherwise tries to locate an alternative POI
+        for the supplied service.
+
+        :param      name:     The name
+        :type       name:     str
+        :param      service:  The service
+        :type       service:  str
+        """
         ret = self.service_pois[name] if name in self.service_pois.keys() else None
         if ret is None:
             logger.debug(f":selectServicePOI: {name} is not a service poi, may be a ramp?")
@@ -531,6 +660,14 @@ class XPAirport(AirportBase):
             return self.selectRandomServiceRestArea(service)
 
     def getNearestPOI(self, poi_list, position: Feature):
+        """
+        Gets the nearest POI from a list pof POIs and a reference position.
+
+        :param      poi_list:  The poi list
+        :type       poi_list:  { type_description }
+        :param      position:  The position
+        :type       position:  Feature
+        """
         if len(poi_list) == 0:
             logger.warning(f":getNearestPOI: no POI in list")
             return None
@@ -549,18 +686,48 @@ class XPAirport(AirportBase):
         return closest
 
     def getDepots(self, service_name: str):
+        """
+        Get all depot POIs for named service.
+
+        :param      service_name:  The service name
+        :type       service_name:  str
+        """
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOIs(service_name)))
 
     def getNearestServiceDepot(self, service_name: str, position: Feature):
+        """
+        Get nearest depot POI for named service.
+
+        :param      service_name:  The service name
+        :type       service_name:  str
+        """
         return self.getNearestPOI(self.getDepots(service_name), position)
 
     def getRestAreas(self, service_name: str):
+        """
+        Get all rest area POIs for named service.
+
+        :param      service_name:  The service name
+        :type       service_name:  str
+        """
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOIs(service_name)))
 
     def getNearestServiceRestArea(self, service_name: str, position: Feature):
+        """
+        Get nearest rest area POI for named service.
+
+        :param      service_name:  The service name
+        :type       service_name:  str
+        """
         return self.getNearestPOI(self.getRestAreas(service_name), position)
 
     def selectRandomServiceDepot(self, service: str):
+        """
+        Selects a random depot for named service.
+
+        :param      service:  The service
+        :type       service:  str
+        """
         service = service.lower()
         l = self.getDepots(service)
         if len(l) == 0:
@@ -569,6 +736,12 @@ class XPAirport(AirportBase):
         return random.choice(l)
 
     def selectRandomServiceRestArea(self, service: str):
+        """
+        Selects a random service area for named service.
+
+        :param      service:  The service
+        :type       service:  str
+        """
         service = service.lower()
         l = self.getRestAreas(service)
         if len(l) == 0:
@@ -577,6 +750,14 @@ class XPAirport(AirportBase):
         return random.choice(l)
 
     def getServiceDepot(self, name: str, service_name: str=None):
+        """
+        Returns the named depot POI if existing, otherwise tries to locate an alternative depot for service.
+
+        :param      name:     The name
+        :type       name:     str
+        :param      service:  The service
+        :type       service:  str
+        """
         dl = self.service_pois if service_name is None else self.getServicePOIs(service_name)
         dn = list(filter(lambda f: f.getProp("name") == name, dl))
         if len(dn) == 0:
@@ -585,6 +766,14 @@ class XPAirport(AirportBase):
         return dn[0]  # name may not be unique
 
     def getServiceRestArea(self, name: str, service_name: str=None):
+        """
+        Returns the named rest area POI if existing, otherwise tries to locate an alternative rest area for service.
+
+        :param      name:     The name
+        :type       name:     str
+        :param      service:  The service
+        :type       service:  str
+        """
         dl = self.service_pois if service_name is None else self.getServicePOIs(service_name)
         dn = list(filter(lambda f: f.getProp("name") == name, dl))
         if len(dn) == 0:
