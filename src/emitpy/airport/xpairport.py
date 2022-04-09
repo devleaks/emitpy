@@ -68,7 +68,7 @@ class XPAirport(AirportBase):
         self.airport_base = os.path.join(DATA_DIR, "managedairport", icao)
         self.runway_exits = {}
         self.takeoff_queues = {}
-
+        self.all_pois_combo = {}
 
     def load(self):
         """
@@ -780,3 +780,46 @@ class XPAirport(AirportBase):
             logger.warning(f":getServiceRestArea: { name } not found")
             return None
         return dn[0]
+
+    def getPOI(self, combo_name):
+        """
+        Returns the combo_named point of interest.
+        This function is meant to work with poisCombo().
+
+        :param      name:  The name
+        :type       name:  { type_description }
+        """
+        if len(self.all_pois_combo) == 0:  # builds the list
+            self.getPOICombo()
+        return self.all_pois_combo[combo_name] if combo_name in self.all_pois_combo.keys() else None
+
+    def getPOICombo(self):
+        """
+        Builds a list of (code, description) of all Points of Interest.
+        POIs include ramps, depots, rest areas, checkpoints.
+        Original item is retrieved with getPOI
+        """
+        if len(self.all_pois_combo) > 0:  # builds the list
+            return [(v.combo_name, v.display_name) for v in self.all_pois_combo.values()]
+
+        # In the process, we add a .desc attribute to simplify presentation in list
+        # Ramps
+        for k, v in self.ramps.items():
+            v.combo_name = "ramp:"+k
+            v.display_name = "Ramp " + k
+            self.all_pois_combo[v.combo_name] = v
+        # Checkpoints
+        for k, v in self.check_pois.items():
+            v.combo_name = "ckpt:"+k
+            v.display_name = "Checkpoint " + k
+            self.all_pois_combo[v.combo_name] = v
+        # Depots and rest areas
+        for k, v in self.service_pois.items():
+            v.combo_name = "svc:"+k
+            v.display_name = k
+            self.all_pois_combo[v.combo_name] = v
+
+        logger.debug(f":getCombo: {self.all_pois_combo.keys()}")
+        return self.getPOICombo()
+
+

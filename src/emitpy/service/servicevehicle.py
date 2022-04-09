@@ -431,7 +431,7 @@ class AircraftACU(ServiceVehicle):
 # ########################
 # AIPORT SUPPORT
 #
-class AirportSecurity(ServiceVehicle):
+class MissionVehicle(ServiceVehicle):
 
     def __init__(self, registration: str, operator: Company):
         ServiceVehicle.__init__(self, registration=registration,  operator=operator)
@@ -439,8 +439,22 @@ class AirportSecurity(ServiceVehicle):
         self.setup_time = 4
         self.flow = 1
 
+    @staticmethod
+    def getCombo():
+        # No meta code introspection! vehicle types (and models) are manually hardcoded.
+        a = []
+        a.append(("security", "Security"))
+        return a
 
-class AirportEmergency(ServiceVehicle):
+class MissionVehicleSecurity(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.model = "ZZAS"
+        self.setup_time = 4
+        self.flow = 1
+
+class MissionVehicleEmergency(ServiceVehicle):
 
     def __init__(self, registration: str, operator: Company):
         ServiceVehicle.__init__(self, registration=registration,  operator=operator)
@@ -449,7 +463,7 @@ class AirportEmergency(ServiceVehicle):
         self.flow = 1
 
 
-class AirportFire(ServiceVehicle):
+class MissionVehicleFire(ServiceVehicle):
 
     def __init__(self, registration: str, operator: Company):
         ServiceVehicle.__init__(self, registration=registration,  operator=operator)

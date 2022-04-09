@@ -15,15 +15,22 @@ logger = logging.getLogger("Service")
 
 class Mission:
 
-    def __init__(self, operator: "Company", checkpoints: [FeatureWithProps]):
+    def __init__(self, operator: "Company", checkpoints: [FeatureWithProps], name: str):
         self.operator = operator
         self.checkpoints = checkpoints
-        self.mission = f"mission-{round(random.random()*10000):d}"
+        self.mission = f"{name}-{round(random.random()*10000):d}"
         self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
         self.vehicle = None
         self.starttime = None
         self.route = []
         self.checkpoint_control_time = 120  # seconds
+
+    @staticmethod
+    def getCombo():
+        # No meta code introspection! vehicle types (and models) are manually hardcoded.
+        a = []
+        a.append(("security", "Security"))
+        return a
 
     def getId(self):
         return self.mission
