@@ -1,5 +1,6 @@
 import logging
 import json
+import random
 
 from datetime import datetime, timedelta
 
@@ -7,10 +8,10 @@ from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
-from emitpy.service import Service, ServiceMove, ServiceFlight
+from emitpy.service import Service, ServiceMove, ServiceFlight, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE
+from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
@@ -227,7 +228,7 @@ class EmitApp(ManagedAirport):
 
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
 
-        logger.debug("creating single service..")
+        logger.debug("creating service..")
         this_service = Service.getService(service)(operator=operator, quantity=quantity)
         rampval = self.airport.getRamp(ramp)
         if rampval is None:
@@ -300,8 +301,78 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "completed successfully", len(emit._emit))
 
 
-    def do_mission(self, operator, checkpoints, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
-        return StatusInfo(1, "unimplemented", None)
+    def do_mission(self, operator, checkpoints, mission, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
+        if len(checkpoints) == 0:
+            checkpoints = random.choices(['checkpoint:0', 'checkpoint:1', 'checkpoint:2', 'checkpoint:3', 'checkpoint:4', 'checkpoint:5',
+               'checkpoint:6', 'checkpoint:7', 'checkpoint:8', 'checkpoint:9', 'checkpoint:10', 'checkpoint:11',
+               'checkpoint:12', 'checkpoint:13', 'checkpoint:14', 'checkpoint:15', 'checkpoint:16', 'checkpoint:17',
+               'checkpoint:18', 'checkpoint:19', 'checkpoint:20', 'checkpoint:21', 'checkpoint:22', 'checkpoint:23',
+               'checkpoint:24', 'checkpoint:25', 'checkpoint:26', 'checkpoint:27', 'checkpoint:28', 'checkpoint:29',
+               'checkpoint:30', 'checkpoint:31', 'checkpoint:32', 'checkpoint:33', 'checkpoint:34', 'checkpoint:35',
+               'checkpoint:36', 'checkpoint:37', 'checkpoint:38'], k=3)
+
+        logger.debug("creating mission..")
+        operator = Company(orgId="Airport Security", classId="Airport Operator", typeId="Airport Operator", name=operator)
+        mission = Mission(operator=operator, checkpoints=checkpoints, name=mission)
+
+        mission_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=mission, model=vehicle_model, registration=vehicle_ident, use=True)
+        mission_vehicle.setICAO24(vehicle_icao24)
+
+        start_pos = self.airport.getPOI(vehicle_startpos)
+        if start_pos is None:
+            return StatusInfo(614, f"connot find start position {vehicle_startpos}", None)
+        mission_vehicle.setPosition(start_pos)
+        end_pos = self.airport.getPOI(vehicle_endpos)
+        if end_pos is None:
+            return StatusInfo(614, f"connot find end position {vehicle_endpos}", None)
+        mission_vehicle.setNextPosition(end_pos)
+
+        # logger.debug("..running..")
+        # mission.run()  # do nothing...
+
+        logger.debug(".. moving ..")
+        move = MissionMove(mission, self.airport)
+        ret = move.move()
+        if not ret[0]:
+            return StatusInfo(614, f"problem during mission move", ret[1])
+        if SAVE_TO_FILE:
+            ret = move.save()
+            if not ret[0]:
+                return StatusInfo(614, f"problem during mission move save", ret[1])
+
+        logger.debug(".. emission positions ..")
+        emit = Emit(move)
+        ret = emit.emit()
+        if not ret[0]:
+            return StatusInfo(614, f"problem during mission emission", ret[1])
+
+        logger.debug(".. scheduling broadcast ..")
+        logger.debug(emit.getMarkList())
+        ret = emit.schedule(MISSION_PHASE.START.value, datetime.fromisoformat(scheduled))
+        if not ret[0]:
+            return StatusInfo(514, f"problem during mission scheduling", ret[1])
+        if SAVE_TO_FILE:
+            ret = emit.save()
+            if not ret[0]:
+                return StatusInfo(514, f"problem during mission emission save", ret[1])
+        ret = emit.saveDB()
+        if not ret[0]:
+            return StatusInfo(514, f"problem during service mission save to Redis", ret[1])
+
+        logger.debug(".. broadcasting position ..")
+        formatted = EnqueueToRedis(emit, self.queue)
+        ret = formatted.format()
+        if not ret[0]:
+            return StatusInfo(614, f"problem during service formatting", ret[1])
+        ret = formatted.save(overwrite=True)
+        if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
+            return StatusInfo(615, f"problem during service save", ret[1])
+        ret = formatted.enqueue()
+        if not ret[0]:
+            return StatusInfo(616, f"problem during service save to Redis", ret[1])
+
+        logger.debug("..done")
+        return StatusInfo(0, "do_mission completed successfully", None)
 
 
     def do_schedule(self, ident, sync, scheduled):

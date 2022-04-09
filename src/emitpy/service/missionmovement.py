@@ -154,7 +154,7 @@ class MissionMove(Movement):
                 logger.warning(":move: no nearest_vertex for finalpos")
         else:
             final_pos = start_pos
-            final_npe = start_npee
+            final_npe = start_npe
             final_nv = start_nv
 
         # Route from last checkpoint to closest vertex to final_pos
@@ -183,3 +183,6 @@ class MissionMove(Movement):
         final_pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.END.value)
         pos.setColor(MISSION_COLOR.END.value)
         self.moves.append(final_pos)
+
+        return (True, "Mission::move completed")
+

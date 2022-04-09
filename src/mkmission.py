@@ -45,7 +45,7 @@ def main():
     logger.debug("creating mission..")
     # managed.service_roads.print(vertex=False)
     operator = Company(orgId="Airport Security", classId="Airport Operator", typeId="Airport Operator", name="SECURE")
-    mission = Mission(operator=operator, checkpoints=[])
+    mission = Mission(operator=operator, checkpoints=[], name="security")
     mission_vehicle = AirportSecurity(operator=operator, registration="JB007")
     mission_vehicle.setICAO24("abcdef")
     mission.setVehicle(mission_vehicle)
@@ -62,11 +62,9 @@ def main():
                'checkpoint:24', 'checkpoint:25', 'checkpoint:26', 'checkpoint:27', 'checkpoint:28', 'checkpoint:29',
                'checkpoint:30', 'checkpoint:31', 'checkpoint:32', 'checkpoint:33', 'checkpoint:34', 'checkpoint:35',
                'checkpoint:36', 'checkpoint:37', 'checkpoint:38']
-    for i in range(3):
-        cp = random.choice(cp_list)
+    for cp in random.choices(cp_list, k=3):
         mission.addCheckpoint(cp)
         logger.debug(f"..adding checkpoint {cp}..")
-        cp_list.remove(cp)
 
     # logger.debug("..running..")
 

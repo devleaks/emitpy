@@ -167,7 +167,10 @@ class AirportManager:
             self.vehicle_number = self.vehicle_number + 1
             vname = sty + ("%03d" % self.vehicle_number)
         if vname not in self.service_vehicles.keys():
-            vcl = type(service).__name__.replace("Service", "Vehicle")
+            if type(service).__name__ == "Mission":  # special treatment, may be missions should be "Service"?
+                vcl = "MissionVehicle"
+            else:
+                vcl = type(service).__name__.replace("Service", "Vehicle")
             if model is not None:
                 model = model.replace("-", "_")  # now model is snake_case
                 mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase

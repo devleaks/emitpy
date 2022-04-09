@@ -103,10 +103,6 @@ class Service:
 
 
     def run(self, moment: datetime):
-        if len(self.route) == 0:
-            logger.warning(f":run: {type(self).__name__}: no movement")
-            return (False, "Service::run no movement")
-        self.starttime = moment
         return (False, "Service::run not implemented")
 
 

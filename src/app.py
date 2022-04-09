@@ -14,7 +14,7 @@ from emitpy.utils import Timezone
 from emitpy.aircraft import AircraftPerformance as Aircraft
 from emitpy.airport import Airport
 from emitpy.business import Airline
-from emitpy.service import Service, ServiceVehicle
+from emitpy.service import Service, ServiceVehicle, Mission, MissionVehicle
 from emitpy.emit import Emit, Format, Queue
 from emitpy.utils import RedisUtils
 
@@ -141,6 +141,48 @@ def create_service_form():
     return render_template(
         'create.html',
         title="Create service",
+        create_form=form
+    )
+
+
+class CreateMissionForm(FlaskForm):
+    operator = SelectField(choices=[('QAS', 'Qatar Airport Security'), ('QAFD', 'Qatar Airport Fire Department'), ('QAPD', 'Qatar Airport Police Department')])
+    mission = SelectField(choices=Mission.getCombo())
+    service_vehicle_type = SelectField(choices=MissionVehicle.getCombo())
+    service_vehicle_reg = StringField("Vehicle Registration", description="Vehicle registration or identifier")
+    icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form of service vehicle")
+    previous_position = SelectField(choices=e.airport.getPOICombo(), description="Position where the mission vehicle will start")
+    next_position = SelectField(choices=e.airport.getPOICombo(), description="Position where the mission vehicle will go after last checkpoint")
+    service_date = DateField()
+    service_time = TimeField()
+    submit = SubmitField("Create service")
+
+@app.route('/create_mission', methods=['GET', 'POST'])
+def create_mission_form():
+    form = CreateMissionForm()
+    if form.validate_on_submit():
+        dt = datetime(year=form.service_date.data.year,
+                      month=form.service_date.data.month,
+                      day=form.service_date.data.day,
+                      hour=form.service_time.data.hour,
+                      minute=form.service_time.data.minute)
+        ret = e.do_mission(operator=form.operator.data,
+                           checkpoints=[],
+                           mission=form.mission.data,
+                           vehicle_model=form.service_vehicle_type.data,
+                           vehicle_ident=form.service_vehicle_reg.data,
+                           vehicle_icao24=form.icao24.data,
+                           vehicle_startpos=form.previous_position.data,
+                           vehicle_endpos=form.next_position.data,
+                           scheduled=dt.isoformat())
+        if ret.status == 0:
+            flash('Mission created', 'success')
+        else:
+            flash(ret.message, 'error')
+        return redirect(url_for('index'))
+    return render_template(
+        'create.html',
+        title="Create mission",
         create_form=form
     )
 
