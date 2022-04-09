@@ -12,6 +12,7 @@ from turfpy.measurement import distance, destination
 
 from ..graph import Vertex, Edge, Graph
 from ..parameters import LOAD_AIRWAYS
+from ..geo import FeatureWithProps
 
 
 logger = logging.getLogger("Airspace")

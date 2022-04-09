@@ -7,7 +7,7 @@ import random
 from datetime import datetime
 
 from .servicevehicle import ServiceVehicle
-from ..geo import FeatureWithProps, printFeatures, asLineString
+from ..geo import FeatureWithProps
 from ..graph import Route
 
 logger = logging.getLogger("Service")
@@ -18,11 +18,12 @@ class Mission:
     def __init__(self, operator: "Company", checkpoints: [FeatureWithProps]):
         self.operator = operator
         self.checkpoints = checkpoints
-        self.mission = "some id"
+        self.mission = f"mission-{round(random.random()*10000):d}"
         self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
         self.vehicle = None
         self.starttime = None
         self.route = []
+        self.checkpoint_control_time = 120  # seconds
 
     def getId(self):
         return self.mission
@@ -46,10 +47,19 @@ class Mission:
         self.vehicle = vehicle
 
 
-    def run(self, moment: datetime):
-        if len(self.route) == 0:
-            logger.warning(f":run: {type(self).__name__}: no movement")
-            return (False, "Service::run no vehicle")
-        self.starttime = moment
-        return (False, "Service::run not implemented")
+    def addCheckpoint(self, checkpoint: FeatureWithProps):
+        self.checkpoints.append(checkpoint)
+
+    def missionDuration(self, name: str = None):
+        """
+        Returns mission duration (in minutes) for supplied checkpoint identifier.
+        Control at checkpoint can have a variable control duration.
+
+        :param      name:  The name
+        :type       name:  str
+        """
+        return self.checkpoint_control_time
+
+    def run(self):
+        return (False, "Mission::run not implemented")
 

@@ -50,7 +50,7 @@ class LiveTrafficFormatter(Formatter):
         heading = f.getProp("heading")
 
         actype = f.getProp("aircraft:actype:actype")  # ICAO
-        if f.getProp("service-type") is not None:  # service
+        if f.getProp("service-type") is not None or f.getProp("mission") is not None:  # mission or service
             callsign = f.getProp("vehicle:callsign").replace(" ","").replace("-","")
         else:  # fight
             callsign = f.getProp("aircraft:callsign").replace(" ","").replace("-","")
