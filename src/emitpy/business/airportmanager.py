@@ -32,7 +32,9 @@ class AirportManager:
         self.vehicle_number = 0
 
     def load(self):
-
+        """
+        Loads airport manager data from files.
+        """
         status = self.loadFromFile()
         if not status[0]:
             return status
@@ -45,6 +47,9 @@ class AirportManager:
 
 
     def loadFromFile(self):
+        """
+        Loads an airport's data file and place its content in self.data
+        """
         self.airport_base_path = os.path.join(SYSTEM_DIRECTORY, self.icao)
         business = os.path.join(self.airport_base_path, "airport.yaml")
         if os.path.exists(business):
@@ -57,6 +62,9 @@ class AirportManager:
 
 
     def loadAirRoutes(self):
+        """
+        Loads this airport's air routes from a data file.
+        """
         routes = os.path.join(self.airport_base_path, "airline-routes.csv")
         file = open(routes, "r")
         csvdata = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
@@ -106,10 +114,16 @@ class AirportManager:
 
 
     def getAirlineCombo(self):
+        """
+        Builds a list of (code, description) pairs for all airlines operating at this airport.
+        """
         return [(a.iata, a.orgId) for a in sorted(self.airlines.values(), key=operator.attrgetter('orgId'))]
 
 
     def getAirrouteCombo(self, airline = None):
+        """
+        Builds a list of (code, description) pairs for all routes for the airline operating at this airport.
+        """
         routes = set()
         if airline is None:
             for al in self.airline_route_frequencies.values():
@@ -123,6 +137,9 @@ class AirportManager:
 
 
     def selectRandomAirline(self):
+        """
+        Selects a random airline operating at this airport.
+        """
         aln = None
         if self.airline_frequencies is not None:
             a = a = random.choices(population=list(self.airline_frequencies.keys()), weights=list(self.airline_frequencies.values()))
@@ -139,6 +156,10 @@ class AirportManager:
 
 
     def selectRandomAirroute(self, airline: Airline = None):
+        """
+        Selects a random air route from this airport. If no airline is supplied,
+        selects first a random airline operating at this airport.
+        """
         aln = airline if airline is not None else self.selectRandomAirline()
         apt = None
         if self.airline_route_frequencies is not None:
@@ -156,11 +177,30 @@ class AirportManager:
         return (aln, apt)
 
     def hub(self, airport, airline):
+        """
+        Defines that an airline is using this airport as a hub.
+        """
         airport.addHub(airline)
         airline.addHub(airport)
 
 
     def selectServiceVehicle(self, operator: "Company", service: "Service", model: str=None, registration: str = None, use: bool=True):
+        """
+        Selects a service vehicle for ground support.
+        The airport manager keeps a list of all vehicle and their use.
+        It will return a vehicle available at the datetime of the request for a supplied duration.
+
+        :param      operator:      The operator
+        :type       operator:      { type_description }
+        :param      service:       The service
+        :type       service:       { type_description }
+        :param      model:         The model
+        :type       model:         str
+        :param      registration:  The registration
+        :type       registration:  str
+        :param      use:           The use
+        :type       use:           bool
+        """
         vname = registration
         if vname is None:
             sty = type(service).__name__[0:3].upper()
@@ -200,6 +240,16 @@ class AirportManager:
 
     @staticmethod
     def randomICAO24(root: int = None):
+        """
+        Create a random ICOA 24 bit address for ADS-B broadcast.
+        If a root value is supplied, it is used as the first character/number.
+        The rot value must be an integer value in [0-15] range.
+        This allows for artificial address separation and easy vehicle identification
+        during generation and simulation.
+
+        :param      root:  The root
+        :type       root:  int
+        """
         # can set the first number form 1 to F
         if root is not None:
             if root < 1:

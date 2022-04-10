@@ -73,7 +73,7 @@ class MissionMove(Movement):
         prev_vtx = start_nv[0]
         for cp_id in self.mission.checkpoints:
             # We enter at the last service_road network vertex.
-            cp = self.airport.getCheckpoint(cp_id)
+            cp = self.airport.getControlPoint(cp_id)  # list of checkpoints extended to all POI and stops.
             if cp is None:
                 logger.warning(f":move: cannot find checkpoint {cp_id}")
                 continue
@@ -105,7 +105,7 @@ class MissionMove(Movement):
                 logger.debug(f":move: no route from {prev_vtx.id} to {cp_nv[0].id}")
 
             # find closest point on network to checkpoint
-            logger.debug(f":move: route to checkpoint {cp}")
+            # logger.debug(f":move: route to checkpoint {cp}")
             cp_npe = self.airport.service_roads.nearest_point_on_edge(cp)
             if cp_npe[0] is None:
                 logger.warning(f":move: no nearest_point_on_edge for checkpoint {cp.getPprop('name')}")
@@ -121,7 +121,7 @@ class MissionMove(Movement):
             pos.setSpeed(0)  # starts moving
             pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.CHECKPOINT.value)
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
-            pos.pause(self.mission.missionDuration(cp_id))
+            pos.pause(self.mission.missionDuration(cp))
             self.moves.append(pos)
 
             # goes back on service road network (edge)

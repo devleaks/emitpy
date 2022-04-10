@@ -15,8 +15,7 @@ from emitpy.aircraft import AircraftPerformance as Aircraft
 from emitpy.airport import Airport
 from emitpy.business import Airline
 from emitpy.service import Service, ServiceVehicle, Mission, MissionVehicle
-from emitpy.emit import Emit, Format, Queue
-from emitpy.utils import RedisUtils
+from emitpy.emit import Emit, Format, Queue, RedisUtils
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("app")

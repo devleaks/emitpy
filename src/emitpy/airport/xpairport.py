@@ -487,6 +487,15 @@ class XPAirport(AirportBase):
         """
         return self.check_pois[name] if name in self.check_pois.keys() else None
 
+    def getControlPoint(self, name):
+        """
+        Gets a named checkpoint, if not found, get a POI from self.all_pois_combo.
+
+        :param      name:  The name
+        :type       name:  { type_description }
+        """
+        return self.check_pois[name] if name in self.check_pois.keys() else self.getPOI(name)
+
     def getAerowayPOI(self, name):
         """
         Gets a aeroway POI identified by name.
@@ -819,7 +828,7 @@ class XPAirport(AirportBase):
             v.display_name = k
             self.all_pois_combo[v.combo_name] = v
 
-        logger.debug(f":getCombo: {self.all_pois_combo.keys()}")
+        # logger.debug(f":getCombo: {self.all_pois_combo.keys()}")
         return self.getPOICombo()
 
 
