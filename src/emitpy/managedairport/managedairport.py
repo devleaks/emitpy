@@ -1,6 +1,4 @@
 import logging
-import pickle
-import redis
 
 from ..airspace import XPAirspace, Metar
 from ..business import Airline, Company
@@ -21,13 +19,7 @@ class ManagedAirport:
         self._this_airport = airport
         self.airport = None
 
-    def init(self, cache: bool = False, usecached: bool = False):
-
-        if usecached:
-            ret = self.loadFromRedis()
-            if not ret[0]:
-                return ret
-            return (True, "ManagedAirport::init from redis")
+    def init(self):
 
         airspace = XPAirspace()
         logger.debug("loading airspace..")
@@ -73,16 +65,7 @@ class ManagedAirport:
         logger.debug("..done")
 
         self.update_metar()
-
-        cached = False
-        if cache:
-            ret = self.cacheToRedis()
-            if not ret[0]:
-                return ret
-            cached = True
-
-        return (True, "ManagedAirport::init done" + (" & cached" if cached else ""))
-
+        return (True, "ManagedAirport::init done")
 
 
     def update_metar(self):
@@ -91,26 +74,3 @@ class ManagedAirport:
         metar = Metar(icao=self._this_airport["ICAO"])
         self.airport.setMETAR(metar=metar)  # calls prepareRunways()
         logger.debug("..done")
-
-
-    def cacheToRedis(self):
-        _redis = redis.Redis()
-        keyname = self._this_airport["ICAO"]+"-airport"
-        logger.debug(f":cacheToRedis: {keyname}..")
-        _redis.set(keyname, pickle.dumps(self.airport))
-        _redis.set(keyname+"-airport-icao", pickle.dumps(Airport._DB))
-        _redis.set(keyname+"-airport-iata", pickle.dumps(Airport._DB_IATA))
-        _redis.set(keyname+"-actype-iata", pickle.dumps(AircraftType._DB))
-        _redis.set(keyname+"-actype-perf", pickle.dumps(AircraftPerformance._DB_PERF))
-        logger.debug(":cacheToRedis: ..done")
-        return (True, "ManagedAirport::cacheToRedis saved")
-
-
-    def loadFromRedis(self):
-        _redis = redis.Redis()
-        keyname = self._this_airport["ICAO"]+"-airport"
-        logger.debug(f":loadFromRedis: {keyname}..")
-        ret = _redis.get(keyname)
-        self.airport = pickle.loads(ret)
-        logger.debug(":loadFromRedis: ..done")
-        return (True, "ManagedAirport::loadFromRedis saved")

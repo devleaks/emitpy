@@ -52,9 +52,10 @@ class LiveTrafficFormatter(Formatter):
         actype = f.getProp("aircraft:actype:actype")  # ICAO
         if f.getProp("service-type") is not None or f.getProp("mission") is not None:  # mission or service
             callsign = f.getProp("vehicle:callsign").replace(" ","").replace("-","")
+            tailnumber = f.getProp("vehicle:icao")
         else:  # fight
             callsign = f.getProp("aircraft:callsign").replace(" ","").replace("-","")
-        tailnumber = f.getProp("aircraft:acreg")
+            tailnumber = f.getProp("aircraft:acreg")
         aptfrom = f.getProp("departure:icao")     # IATA
         aptto = f.getProp("arrival:icao")  # IATA
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)

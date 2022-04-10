@@ -66,12 +66,14 @@ class ServiceVehicle(Identity):
 
     def getInfo(self):
         return {
+            "icao": self.icao,
             "registration": self.registration,
             "callsign": self.registration,
             "icao24": self.icao24,
             "operator": self.operator.getInfo(),
-            "service": type(self).__name__.replace("Vehicle", "").lower(),  # a try...
-            "model": self.model
+            "service": type(self).__name__.replace("Vehicle", "").lower(),  # a try..., not 100% correct
+            "model": self.model,
+            "model_name": self.model_name
         }
 
     def setICAO24(self, icao24):

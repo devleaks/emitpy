@@ -303,13 +303,7 @@ class EmitApp(ManagedAirport):
 
     def do_mission(self, operator, checkpoints, mission, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         if len(checkpoints) == 0:
-            checkpoints = random.choices(['checkpoint:0', 'checkpoint:1', 'checkpoint:2', 'checkpoint:3', 'checkpoint:4', 'checkpoint:5',
-               'checkpoint:6', 'checkpoint:7', 'checkpoint:8', 'checkpoint:9', 'checkpoint:10', 'checkpoint:11',
-               'checkpoint:12', 'checkpoint:13', 'checkpoint:14', 'checkpoint:15', 'checkpoint:16', 'checkpoint:17',
-               'checkpoint:18', 'checkpoint:19', 'checkpoint:20', 'checkpoint:21', 'checkpoint:22', 'checkpoint:23',
-               'checkpoint:24', 'checkpoint:25', 'checkpoint:26', 'checkpoint:27', 'checkpoint:28', 'checkpoint:29',
-               'checkpoint:30', 'checkpoint:31', 'checkpoint:32', 'checkpoint:33', 'checkpoint:34', 'checkpoint:35',
-               'checkpoint:36', 'checkpoint:37', 'checkpoint:38'], k=3)
+            checkpoints = [c[0] for c in random.choices(self.airport.getPOICombo(), k=3)]
 
         logger.debug("creating mission..")
         operator = Company(orgId="Airport Security", classId="Airport Operator", typeId="Airport Operator", name=operator)

@@ -1,6 +1,6 @@
 """
 Entities for aircraft parking on the ground.
-
+(Currently not used. Meant to be used with the reservation/allocation system.)
 """
 from typing import Union
 
