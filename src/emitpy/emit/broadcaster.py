@@ -18,7 +18,7 @@ def df(ts):
     return f"{datetime.fromtimestamp(ts).isoformat(timespec='seconds')} ({round(ts, 1)})"
 
 def td(ts):
-    return f"{timedelta(seconds=round(ts, 1))} ({round(ts, 1)})"
+    return f"{timedelta(seconds=round(ts))} ({round(ts, 1)})"
 
 ZPOPMIN_TIMEOUT = 10  # secs
 
@@ -28,36 +28,61 @@ ZPOPMIN_TIMEOUT = 10  # secs
 #
 class Broadcaster:
 
-    def __init__(self, name: str, speed: float = 1, startime: datetime = datetime.now()):
+    def __init__(self, name: str, speed: float = 1, starttime: datetime = None):
         self.name = name
         self.speed = speed
-        self.startime = startime.timestamp()
-
+        if type(starttime) == str:
+            self._starttime = datetime.fromisoformat(starttime)
+        else:
+            self._starttime = starttime
+        self.timeshift = None
         self.redis = redis.Redis()
         self.pubsub = self.redis.pubsub()
+        self.setTimeshift()
 
-    def setSpeed(self, speed: float):
+    def setTimeshift(self):
+        self.timeshift = datetime.now() - self.starttime()  # timedelta
+        if self.timeshift < timedelta(seconds=10):
+            self.timeshift = timedelta(seconds=0)
+        logger.debug(f":setTimeshift: {self.name}: now: {df(datetime.now().timestamp())}, queue time: {df(self.now())}")
+        return self.timeshift
+
+    def starttime(self):
+        if self._starttime is None:
+            return datetime.now()
+        return self._starttime
+
+    def reset(self, speed: float = 1, starttime: datetime = None):
         self.speed = speed
+        if starttime is not None:
+            if type(starttime) == str:
+                self._starttime = datetime.fromisoformat(starttime)
+            else:
+                self._starttime = starttime
+            self.setTimeshift()
 
-    def setStartTime(self, startime: datetime):
-        self.startime = startime.timestamp()
+    def now(self, format_output: bool = False):
+        if self.speed == 1 and self.timeshift.total_seconds() == 0:
+            newnow = datetime.now()
+            logger.debug(f":now: {self.name}: no time speed, no time shift: new now: {df(newnow.timestamp())}")
+            return newnow.timestamp()
 
-    def reset(self):
-        self.speed = 1
-        self.startime = startime.timestamp()
-
-    def now(self, format: bool = False):
-        return datetime.now().timestamp()
-        # now = datetime.now().timestamp()
-        # diff = now - self.startime
-        # compressed = diff / self.speed
-        # newnow = self.startime + compressed
-        # logger.debug(f"clock: {now}, {diff}, {compressed}: {datetime.fromtimestamp(newnow).isoformat(timespec='seconds')}")
-        # return newnow if not format else datetime.fromtimestamp(newnow).isoformat(timespec='seconds')
+        logger.debug(f":now: {self.name}: asked at {df(datetime.now().timestamp())})")
+        elapsed = datetime.now() - (self.starttime() + self.timeshift)  # time elapsed since setTimeshift().
+        logger.debug(f":now: {self.name}: elapsed since start of queue: {elapsed})")
+        if self.speed == 1:
+            newnow = self.starttime() + elapsed
+            logger.debug(f":now: {self.name}: no time speed: new now: {df(newnow.timestamp())}")
+        else:
+            newdeltasec = elapsed.total_seconds() * self.speed
+            newdelta = timedelta(seconds=newdeltasec)
+            newnow = self.starttime() + newdelta
+            logger.debug(f":now: {self.name}: time speed {self.speed}: new elapsed: {newdelta}, newnow={df(newnow.timestamp())}")
+        return newnow.timestamp() if not format_output else datetime.fromtimestamp(newnow).isoformat(timespec='seconds')
 
     def _do_trim(self):
         now = self.now()
-        logger.debug(f":_do_trim: {df(now)}): trimming..")
+        logger.debug(f":_do_trim: {self.name}: {df(now)}): trimming..")
         oldones = self.redis.zrangebyscore(self.name, min=0, max=now)
         if oldones and len(oldones) > 0:
             self.redis.zrem(self.name, *oldones)
@@ -67,7 +92,7 @@ class Broadcaster:
 
     def trim(self):
         self.pubsub.subscribe("Q"+self.name)
-        logger.debug(":trim: listening..")
+        logger.debug(f":trim: {self.name}: listening..")
         for message in self.pubsub.listen():
             msg = message["data"]
             if type(msg) == bytes:
@@ -115,10 +140,11 @@ class Broadcaster:
                 logger.debug(f":run: {self.name}: {numval} items left in queue")
                 now = self.now()
                 logger.debug(f":run: {self.name}: it is now {df(now)}")
-                wt = (nv[2] - now) / self.speed
+                wt = nv[2] - now       # wait time independant of time warp
+                rwt = wt / self.speed  # real wait time, taking warp time into account
                 if wt > 0:
-                    logger.debug(f":run: {self.name}: need to send at {df(nv[2])}, waiting {td(wt)}")
-                    if not self.rdv.wait(timeout=wt):  # we timed out
+                    logger.debug(f":run: {self.name}: need to send at {df(nv[2])}, waiting {td(wt)}, speed={self.speed}, waiting={round(rwt, 1)}")
+                    if not self.rdv.wait(timeout=rwt):  # we timed out
                         logger.debug(f":run: {self.name}: sending..")
                         self.redis.publish(self.name, nv[1].decode('UTF-8'))
                         logger.debug(f":run: {self.name}: ..done")
@@ -136,7 +162,7 @@ class Broadcaster:
                         self.trimmingcompleted.wait()
                         logger.debug(f":run: {self.name}: trim completed, restarted")
                 else:
-                    logger.debug(f":run: {self.name}: should have sent at {df(nv[2])} ({td(wt)} ago)")
+                    logger.debug(f":run: {self.name}: should have sent at {df(nv[2])} ({td(wt)} sec. ago, rwt={rwt} sec. ago")
                     logger.debug(f":run: {self.name}: did not send {nv[1].decode('UTF-8')}")
         except KeyboardInterrupt:
             if nv is not None:
@@ -169,20 +195,12 @@ class HyperCaster:
         self.init()
 
     def init(self):
-        self.get_queues()
-        for k in self.queues.keys():
+        self.queues = Queue.loadAllQueuesFromDB()
+        for k in self.queues.values():
             self.start_queue(k)
         logger.debug(f":get_queues: {self.queues.keys()}")
         self.admin_queue_thread = threading.Thread(target=self.admin_queue)
         self.admin_queue_thread.start()
-
-
-    def get_queues(self):
-        queues = self.redis.smembers(REDIS_DATABASE.QUEUES.value)
-        for q in queues:
-            qn = Queue.getQueueName(q.decode("UTF-8"))
-            self.queues[qn] = Queue.create(qn)
-        logger.debug(f":get_queues: {self.queues.keys()}")
 
     def admin_queue(self):
         self.pubsub.subscribe(REDIS_DATABASE.QUEUES.value)
@@ -196,10 +214,19 @@ class HyperCaster:
                 arr = msg.split(":")
                 qn  = arr[1]
                 if qn not in self.queues.keys():  # queue already exists, parameter changed, stop it first
-                    self.queues[qn] = Queue.create(qn)
-                    self.start_queue(qn)
+                    self.queues[qn] = Queue.loadFromDB(qn)
+                    self.start_queue(self.queues[qn])
                 else:
-                    logger.debug(f":admin_queue: queue {qn} already running")
+                    logger.debug(f":admin_queue: queue {qn} already running, reseting")
+                    oldsp = self.queues[qn].speed
+                    oldst = self.queues[qn].starttime
+                    oldbr = self.queues[qn].broadcaster
+                    self.queues[qn] = Queue.loadFromDB(qn)
+                    self.queues[qn].broadcaster = oldbr
+                    oldbr.reset(speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
+                    logger.debug(f":admin_queue: queue {qn} speed {self.queues[qn].speed} (was {oldsp})")
+                    logger.debug(f":admin_queue: queue {qn} starttime {self.queues[qn].starttime} (was {oldst})")
+
             elif type(msg).__name__ == "str" and msg.startswith("del-queue:"):
                 arr = msg.split(":")
                 qn  = arr[1]
@@ -217,11 +244,11 @@ class HyperCaster:
                 logger.debug(f":admin_queue: ignoring '{msg}'")
 
     def start_queue(self, queue):
-        b = Broadcaster(queue)
-        self.queues[queue].broadcaster = b
-        self.queues[queue].thread = threading.Thread(target=b.broadcast)
-        self.queues[queue].thread.start()
-        logger.debug(f":start_queue: {queue} started")
+        b = Broadcaster(queue.name, queue.speed, queue.starttime)
+        self.queues[queue.name].broadcaster = b
+        self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
+        self.queues[queue.name].thread.start()
+        logger.debug(f":start_queue: {queue.name} started")
 
     def terminate_queue(self, queue):
         if hasattr(self.queues[queue], "broadcaster"):

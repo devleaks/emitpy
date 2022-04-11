@@ -2,6 +2,7 @@
 from flask import Flask, render_template, request, flash, Markup, redirect, url_for, jsonify
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms.fields import *
+from wtforms import validators
 from flask_bootstrap import Bootstrap5, SwitchField
 from datetime import datetime, timedelta
 
@@ -73,7 +74,8 @@ def create_flight_form():
                       day=form.flight_date.data.day,
                       hour=form.flight_time.data.hour,
                       minute=form.flight_time.data.minute)
-        ret = e.do_flight(airline=form.airline.data,
+        ret = e.do_flight(queue=form.queue.data,
+                    airline=form.airline.data,
                     flightnumber=form.flight_number.data,
                     scheduled=dt.isoformat(),
                     apt=form.airport.data,
@@ -110,6 +112,7 @@ class CreateServiceForm(FlaskForm):
     next_position = SelectField(choices=service_pos, description="Position where the service vehicle is going to after service")
     service_date = DateField()
     service_time = TimeField()
+    queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Create service")
 
 @app.route('/create_service', methods=['GET', 'POST'])
@@ -121,7 +124,8 @@ def create_service_form():
                       day=form.service_date.data.day,
                       hour=form.service_time.data.hour,
                       minute=form.service_time.data.minute)
-        ret = e.do_service(operator=form.handler.data,
+        ret = e.do_service(queue=form.queue.data,
+                     operator=form.handler.data,
                      service=form.service.data,
                      quantity=form.quantity.data,
                      ramp=form.ramp.data,
@@ -154,6 +158,7 @@ class CreateMissionForm(FlaskForm):
     next_position = SelectField(choices=e.airport.getPOICombo(), description="Position where the mission vehicle will go after last checkpoint")
     service_date = DateField()
     service_time = TimeField()
+    queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Create service")
 
 @app.route('/create_mission', methods=['GET', 'POST'])
@@ -165,7 +170,8 @@ def create_mission_form():
                       day=form.service_date.data.day,
                       hour=form.service_time.data.hour,
                       minute=form.service_time.data.minute)
-        ret = e.do_mission(operator=form.operator.data,
+        ret = e.do_mission(queue=form.queue.data,
+                           operator=form.operator.data,
                            checkpoints=[],
                            mission=form.mission.data,
                            vehicle_model=form.service_vehicle_type.data,
@@ -187,10 +193,11 @@ def create_mission_form():
 
 
 class RescheduleForm(FlaskForm):
-    movement = SelectField(choices=r.list_emits(), id="movement_id")
-    syncname = SelectField(choices=[], id="syncname_id", validate_choice=False)  # Emit.getCombo()
-    new_date = DateField()
-    new_time = TimeField()
+    movement = SelectField(choices=r.list_emits(), description="Movement to synchronize", id="movement_id")
+    syncname = SelectField(choices=[], description="Synchronization event", id="syncname_id", validate_choice=False)  # Emit.getCombo()
+    new_date = DateField(description="Date of synchronized event", validators=[validators.optional()])
+    new_time = TimeField(description="Time of synchronized event", validators=[validators.optional()])
+    queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("New ETA")
 
     @classmethod
@@ -204,12 +211,14 @@ class RescheduleForm(FlaskForm):
 def create_schedule_form():
     form = RescheduleForm.new()
     if form.validate_on_submit():
-        dt = datetime(year=form.new_date.data.year,
-                      month=form.new_date.data.month,
-                      day=form.new_date.data.day,
-                      hour=form.new_time.data.hour,
-                      minute=form.new_time.data.minute)
-        ret = e.do_schedule(ident=form.movement.data, sync=form.syncname.data, scheduled=dt.isoformat())
+        input_d = form.new_date.data if form.new_date.data is not None else datetime.now()
+        input_t = form.new_time.data if form.new_time.data is not None else datetime.now()
+        dt = datetime(year=input_d.year,
+                      month=input_d.month,
+                      day=input_d.day,
+                      hour=input_t.hour,
+                      minute=input_t.minute)
+        ret = e.do_schedule(queue=form.queue.data, ident=form.movement.data, sync=form.syncname.data, scheduled=dt.isoformat())
         if ret.status == 0:
             flash(f'Re-scheduled {form.movement.data}', 'success')
         else:
@@ -230,6 +239,7 @@ def emitsyncs(emitid):
 
 class RemoveForm(FlaskForm):
     movement = SelectField(choices=r.list_emits())
+    queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Remove movement from queue")
 
     @classmethod
@@ -242,7 +252,7 @@ class RemoveForm(FlaskForm):
 def create_remove_form():
     form = RemoveForm.new()
     if form.validate_on_submit():
-        ret = e.do_delete(ident=form.movement.data)
+        ret = e.do_delete(queue=form.queue.data, ident=form.movement.data)
         if ret.status == 0:
             flash(f'Removed {form.movement.data}', 'success')
         else:
@@ -258,28 +268,71 @@ def create_remove_form():
 class CreateQueueForm(FlaskForm):
     queue_name = StringField("Queue name", description="Name of queue")
     formatting = SelectField(choices=Format.getCombo(), description="Data formatter for the GeoJSON Feature<Point>")
-    simulation_date = DateField(description="Start date of queue")
-    simulation_time = TimeField(description="Start time of queue")
+    simulation_date = DateField(description="Start date of queue", validators=[validators.optional()])
+    simulation_time = TimeField(description="Start time of queue", validators=[validators.optional()])
 #    speed = DecimalRangeField()
-    speed = FloatField(description="1 = real time speed, smaller than 1 slows down, larger than 1 speeds up. Ex: speed=60 one minute last one second.")
+    speed = FloatField(default=1, description="1 = real time speed, smaller than 1 slows down, larger than 1 speeds up. Ex: speed=60 one minute last one second.")
     submit = SubmitField("Create queue")
 
 @app.route('/create_queue', methods=['GET', 'POST'])
 def create_queue_form():
     form = CreateQueueForm()
     if form.validate_on_submit():
-        dt = datetime(year=form.simulation_date.data.year,
-                      month=form.simulation_date.data.month,
-                      day=form.simulation_date.data.day,
-                      hour=form.simulation_time.data.hour,
-                      minute=form.simulation_time.data.minute)
+        if form.simulation_date.data is not None or form.simulation_time.data is not None:
+            input_d = form.simulation_date.data if form.simulation_date.data is not None else datetime.now()
+            input_t = form.simulation_time.data if form.simulation_time.data is not None else datetime.now()
+            dt = datetime(year=input_d.year,
+                          month=input_d.month,
+                          day=input_d.day,
+                          hour=input_t.hour,
+                          minute=input_t.minute).isoformat()
+        else:
+            dt = None
         ret = e.do_create_queue(name=form.queue_name.data,
                                 formatting=form.formatting.data,
-                                starttime=dt.isoformat(),
+                                starttime=dt,
                                 speed=float(form.speed.data)
         )
         if ret.status == 0:
             flash(f'Queue {form.queue_name.data} created', 'success')
+        else:
+            flash(ret.message, 'error')
+        return redirect(url_for('index'))
+    return render_template(
+        'create.html',
+        title="Manage output queues",
+        create_form=form
+    )
+
+
+class ResetQueueForm(FlaskForm):
+    queue_name = SelectField(choices=Queue.getCombo())
+    simulation_date = DateField(description="Start date of queue", validators=[validators.optional()])
+    simulation_time = TimeField(description="Start time of queue", validators=[validators.optional()])
+#    speed = DecimalRangeField()
+    speed = FloatField(default=1, description="1 = real time speed, smaller than 1 slows down, larger than 1 speeds up. Ex: speed=60 one minute last one second.")
+    submit = SubmitField("Reset queue")
+
+@app.route('/reset_queue', methods=['GET', 'POST'])
+def reset_queue_form():
+    form = ResetQueueForm()
+    if form.validate_on_submit():
+        if form.simulation_date.data is not None or form.simulation_time.data is not None:
+            input_d = form.simulation_date.data if form.simulation_date.data is not None else datetime.now()
+            input_t = form.simulation_time.data if form.simulation_time.data is not None else datetime.now()
+            dt = datetime(year=input_d.year,
+                          month=input_d.month,
+                          day=input_d.day,
+                          hour=input_t.hour,
+                          minute=input_t.minute).isoformat()
+        else:
+            dt = None
+        ret = e.do_reset_queue(name=form.queue_name.data,
+                               starttime=dt,
+                               speed=float(form.speed.data)
+        )
+        if ret.status == 0:
+            flash(f'Queue {form.queue_name.data} reset', 'success')
         else:
             flash(ret.message, 'error')
         return redirect(url_for('index'))
