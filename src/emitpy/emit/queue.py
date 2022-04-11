@@ -6,10 +6,11 @@ from ..constants import REDIS_DATABASE, REDIS_QUEUE
 
 logger = logging.getLogger("Queue")
 
+QUEUE_NAME_SEP = ":"
 
 class Queue:
 
-    def __init__(self, name: str, formatter_name: str, starttime: str, speed: float = 1):
+    def __init__(self, name: str, formatter_name: str, starttime: str = None, speed: float = 1):
         self.name = name
         self.formatter_name = formatter_name
         self.speed = speed
@@ -17,7 +18,22 @@ class Queue:
 
 
     @staticmethod
-    def create(name):
+    def loadAllQueuesFromDB():
+        """
+        Instantiate Queue from characteristics saved in Redis
+        """
+        queues = {}
+        r = Redis()
+        qs = r.smembers(REDIS_DATABASE.QUEUES.value)
+        for q in qs:
+            qn = Queue.getQueueName(q.decode("UTF-8"))
+            queues[qn] = Queue.loadFromDB(qn)
+        logger.debug(f":loadAllQueuesFromDB: loaded {queues.keys()}")
+        return queues
+
+
+    @staticmethod
+    def loadFromDB(name):
         """
         Instantiate Queue from characteristics saved in Redis
         """
@@ -42,7 +58,7 @@ class Queue:
 
     @staticmethod
     def getCombo():
-        prefix = REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + "-"
+        prefix = REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + QUEUE_NAME_SEP
         r = Redis()
         keys = r.keys(prefix + "*")
         return [(k.decode("utf-8").replace(prefix, ""), k.decode("utf-8").replace(prefix, "")) for k in sorted(keys)]
@@ -50,12 +66,17 @@ class Queue:
 
     @staticmethod
     def getAdminQueue(name):
-        return REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + "-" + name
+        return REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + QUEUE_NAME_SEP + name
 
     @staticmethod
     def getQueueName(admin_queue_name):
-        return admin_queue_name.replace(REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + "-", "")
+        return admin_queue_name.replace(REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + QUEUE_NAME_SEP, "")
 
+
+    def reset(self, speed: float = 1, starttime: str = None):
+        self.speed = speed
+        self.starttime = starttime
+        return self.save()
 
     def save(self):
         """

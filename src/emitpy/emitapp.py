@@ -43,12 +43,13 @@ class EmitApp(ManagedAirport):
     def __init__(self, airport):
         ManagedAirport.__init__(self, airport)
         # Default queue
-        self.queue = Queue(name="lt", formatter_name="lt", starttime=datetime.now().isoformat())
-        self.queue.save()
+        default_queue = Queue(name="lt", formatter_name="lt")
+        default_queue.save()
+        self.queues = Queue.loadAllQueuesFromDB()
         self.init()
 
 
-    def do_flight(self, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
+    def do_flight(self, queue, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
         logger.debug("Airline, airport..")
         # Add pure commercial stuff
         airline = Airline.find(airline)
@@ -161,7 +162,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(110, f"problem during schedule", ret[1])
         logger.info("SAVED " + ("*" * 84))
         logger.debug("..broadcasting positions..")
-        formatted = EnqueueToRedis(emit, self.queue)
+        formatted = EnqueueToRedis(emit, self.queues[queue])
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(107, f"problem during formatting", ret[1])
@@ -218,7 +219,7 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "completed successfully", None)
 
 
-    def do_service(self, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
+    def do_service(self, queue, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         logger.debug("loading aircraft..")
         actype = AircraftPerformance.find(aircraft)
         if actype is None:
@@ -285,7 +286,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(514, f"problem during service emission save to Redis", ret[1])
 
         logger.debug(".. broadcasting position ..")
-        formatted = EnqueueToRedis(emit, self.queue)
+        formatted = EnqueueToRedis(emit, self.queues[queue])
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(514, f"problem during service formatting", ret[1])
@@ -301,7 +302,7 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "completed successfully", len(emit._emit))
 
 
-    def do_mission(self, operator, checkpoints, mission, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
+    def do_mission(self, queue, operator, checkpoints, mission, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         if len(checkpoints) == 0:
             checkpoints = [c[0] for c in random.choices(self.airport.getPOICombo(), k=3)]
 
@@ -354,7 +355,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(514, f"problem during service mission save to Redis", ret[1])
 
         logger.debug(".. broadcasting position ..")
-        formatted = EnqueueToRedis(emit, self.queue)
+        formatted = EnqueueToRedis(emit, self.queues[queue])
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(614, f"problem during service formatting", ret[1])
@@ -369,14 +370,14 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "do_mission completed successfully", None)
 
 
-    def do_schedule(self, ident, sync, scheduled):
+    def do_schedule(self, queue, ident, sync, scheduled):
         emit = ReEmit(ident)
         ret = emit.schedule(sync, datetime.fromisoformat(scheduled))
         if not ret[0]:
             return StatusInfo(160, f"problem during rescheduling", ret[1])
 
         logger.debug("..broadcasting positions..")
-        formatted = EnqueueToRedis(emit, self.queue)
+        formatted = EnqueueToRedis(emit, self.queues[queue])
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(160, f"problem during rescheduled formatting", ret[1])
@@ -391,8 +392,8 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "rescheduled successfully", None)
 
 
-    def do_delete(self, ident):
-        ret = EnqueueToRedis.delete(ident, queue=self.queue.name)
+    def do_delete(self, queue, ident):
+        ret = EnqueueToRedis.delete(ident, queue=queue)
         if not ret[0]:
             return StatusInfo(190, f"problem during deletion of {ident} ", ret)
         return StatusInfo(0, "deleted successfully", None)
@@ -400,13 +401,26 @@ class EmitApp(ManagedAirport):
 
     def do_create_queue(self, name, formatting, starttime, speed):
         """
-        Creates of "register" a Queue for (direct) use
+        Creates or "register" a Queue for (direct) use
         """
-        q = Queue(name, formatting, starttime, speed)
+        q = Queue(name=name, formatter_name=formatting, starttime=starttime, speed=speed)
+
         ret = q.save()
         if not ret[0]:
             return StatusInfo(1, f"problem during creation of queue {name} ", ret)
+        self.queues[name] = q
         return StatusInfo(0, "queue created successfully", None)
+
+
+    def do_reset_queue(self, name, starttime, speed):
+        """
+        Reset a queue'start time
+        """
+        q = self.queues[name]
+        ret = q.reset(speed=speed, starttime=starttime)
+        if not ret[0]:
+            return StatusInfo(1, f"problem during restart of queue {name} ", ret)
+        return StatusInfo(0, "queue started successfully", None)
 
 
     def do_delete_queue(self, name):
@@ -416,4 +430,5 @@ class EmitApp(ManagedAirport):
         ret = Queue.delete(name)
         if not ret[0]:
             return StatusInfo(1, f"problem during deletion of queue {name} ", ret)
+        del self.queues[name]
         return StatusInfo(0, "queue delete successfully", None)
