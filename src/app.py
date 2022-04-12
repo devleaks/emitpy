@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 import json
 import logging
+import re
 
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT
@@ -36,18 +37,25 @@ csrf = CSRFProtect(app)
 e = EmitApp(MANAGED_AIRPORT)
 r = RedisUtils()
 
+def validate_icao24(form, field):
+    re.compile('[0-9A-F]{6}', re.IGNORECASE)
+    if re.match(field.data) is None:
+        raise ValidationError('Must be a 6-digit hexadecimal number [0-9A-F]{6}')
+
 class CreateFlightForm(FlaskForm):
     airline = SelectField(choices=Airline.getCombo())
-    flight_number = StringField()
-    flight_date = DateField()
-    flight_time = TimeField()
-    movement = RadioField(choices=[('arrival', 'Arrival'), ('departure', 'Departure')])
+    flight_number = StringField(validators=[validators.InputRequired()])
+    flight_date = DateField(validators=[validators.optional()])
+    flight_time = TimeField(validators=[validators.optional()])
+    movement = RadioField(choices=[('arrival', 'Arrival'), ('departure', 'Departure')], validators=[validators.InputRequired("Please provide movement type")])
     airport = SelectField(choices=Airport.getCombo())
     ramp = SelectField(choices=e.airport.getRampCombo())
     aircraft_type = SelectField(choices=Aircraft.getCombo())
-    aircraft_reg = StringField("Aircraft Registration", description="Aircraft registration in country of operation (tail number)")
-    call_sign = StringField(description="Aircraft call sign in operation, usually the flight number")
-    icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form")
+    aircraft_reg = StringField("Aircraft Registration", description="Aircraft registration in country of operation (tail number)", validators=[validators.InputRequired("Please provide aircraft registration")])
+    call_sign = StringField(description="Aircraft call sign in operation, usually the flight number", validators=[validators.InputRequired("Please provide aircraft callsign")])
+    icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form",
+                         validators=[validators.InputRequired("Please provide aircraft ADS-B transponder address"),
+                                     validators.Regexp("[0-9A-F]{6}", flags=re.IGNORECASE, message="Must be a 6-digit hexadecimal number [0-9A-F]{6}")])
     runway = SelectField(choices=e.airport.getRunwayCombo())
     queue = SelectField(choices=Queue.getCombo())
     # DANGEROUS
@@ -69,11 +77,13 @@ class CreateFlightForm(FlaskForm):
 def create_flight_form():
     form = CreateFlightForm.new()
     if form.validate_on_submit():
-        dt = datetime(year=form.flight_date.data.year,
-                      month=form.flight_date.data.month,
-                      day=form.flight_date.data.day,
-                      hour=form.flight_time.data.hour,
-                      minute=form.flight_time.data.minute)
+        input_d = form.flight_date.data if form.flight_date.data is not None else datetime.now()
+        input_t = form.flight_time.data if form.flight_time.data is not None else datetime.now()
+        dt = datetime(year=input_d.year,
+                      month=input_d.month,
+                      day=input_d.day,
+                      hour=input_t.hour,
+                      minute=input_t.minute)
         ret = e.do_flight(queue=form.queue.data,
                     airline=form.airline.data,
                     flightnumber=form.flight_number.data,
@@ -110,8 +120,8 @@ class CreateServiceForm(FlaskForm):
     service_pos = [('depot', 'Depot'), ('rest-area', 'Rest Area')] + e.airport.getRampCombo() + e.airport.getServicePoisCombo()
     previous_position = SelectField(choices=service_pos, description="Position where the service vehicle is coming from")
     next_position = SelectField(choices=service_pos, description="Position where the service vehicle is going to after service")
-    service_date = DateField()
-    service_time = TimeField()
+    service_date = DateField(validators=[validators.optional()])
+    service_time = TimeField(validators=[validators.optional()])
     queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Create service")
 
@@ -119,11 +129,13 @@ class CreateServiceForm(FlaskForm):
 def create_service_form():
     form = CreateServiceForm()
     if form.validate_on_submit():
-        dt = datetime(year=form.service_date.data.year,
-                      month=form.service_date.data.month,
-                      day=form.service_date.data.day,
-                      hour=form.service_time.data.hour,
-                      minute=form.service_time.data.minute)
+        input_d = form.service_date.data if form.service_date.data is not None else datetime.now()
+        input_t = form.service_time.data if form.service_time.data is not None else datetime.now()
+        dt = datetime(year=input_d.year,
+                      month=input_d.month,
+                      day=input_d.day,
+                      hour=input_t.hour,
+                      minute=input_t.minute)
         ret = e.do_service(queue=form.queue.data,
                      operator=form.handler.data,
                      service=form.service.data,
@@ -156,8 +168,8 @@ class CreateMissionForm(FlaskForm):
     icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form of service vehicle")
     previous_position = SelectField(choices=e.airport.getPOICombo(), description="Position where the mission vehicle will start")
     next_position = SelectField(choices=e.airport.getPOICombo(), description="Position where the mission vehicle will go after last checkpoint")
-    service_date = DateField()
-    service_time = TimeField()
+    mission_date = DateField(validators=[validators.optional()])
+    mission_time = TimeField(validators=[validators.optional()])
     queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Create service")
 
@@ -165,11 +177,13 @@ class CreateMissionForm(FlaskForm):
 def create_mission_form():
     form = CreateMissionForm()
     if form.validate_on_submit():
-        dt = datetime(year=form.service_date.data.year,
-                      month=form.service_date.data.month,
-                      day=form.service_date.data.day,
-                      hour=form.service_time.data.hour,
-                      minute=form.service_time.data.minute)
+        input_d = form.mission_date.data if form.mission_date.data is not None else datetime.now()
+        input_t = form.mission_time.data if form.mission_time.data is not None else datetime.now()
+        dt = datetime(year=input_d.year,
+                      month=input_d.month,
+                      day=input_d.day,
+                      hour=input_t.hour,
+                      minute=input_t.minute)
         ret = e.do_mission(queue=form.queue.data,
                            operator=form.operator.data,
                            checkpoints=[],
