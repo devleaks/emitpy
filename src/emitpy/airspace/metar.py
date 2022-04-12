@@ -5,8 +5,9 @@ import os
 import json
 import logging
 import requests_cache
-from datetime import datetime, timedelta
+import redis
 
+from datetime import datetime, timedelta
 from metar import Metar as MetarLib
 
 import flightplandb as fpdb
@@ -27,8 +28,13 @@ class Metar:
     """
     Loads cached METAR for ICAO or fetch **current** from flightplandatabase.
     """
-    def __init__(self, icao: str):
+
+    USE_REDIS = False
+
+    def __init__(self, icao: str, use_redis: bool = False):
         self.icao = icao
+        if use_redis:  # sets it once and for all
+            Metar.USE_REDIS = use_redis
         self.raw = None
         self.metar = None
         self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
@@ -40,10 +46,16 @@ class Metar:
 
 
     def init(self):
-        self.load()
-        if self.raw is None:
-            self.fetch()
-            self.save()
+        if Metar.USE_REDIS:
+            self.loadDB()
+            if self.raw is None:
+                self.fetch()
+                self.saveDB()
+        else:
+            self.load()
+            if self.raw is None:
+                self.fetch()
+                self.save()
 
 
     def fetch(self):
@@ -83,6 +95,35 @@ class Metar:
             logger.debug(f":load: found {fn}")
         else:
             logger.debug(f":load: not found {fn}")
+
+
+    def saveDB(self):
+        if self.raw is not None:
+            metid = "METAR:" + self.raw.METAR[0:4] + ':' + self.raw.METAR[5:12]
+            r = redis.Redis()
+            if not r.exists(metid):
+                r.set(metid, json.dumps(self.raw._to_api_dict()))
+
+
+    def loadDB(self):
+        def round_dt(dt, delta):  # rounds date to delta after date.
+            return dt + (datetime.min - dt) % delta
+
+        now = datetime.utcnow()
+        now2 = round_dt(now - timedelta(minutes=90), timedelta(minutes=60))
+        nowstr = now2.strftime('%d%H%MZ')
+        metid = "METAR:" + self.icao + ":" + nowstr
+        logger.debug(f":loadDB: trying {metid}")
+        r = redis.Redis()
+        if r.exists(metid):
+            raw = r.get(metid)
+            self.raw = json.loads(raw.decode("UTF-8"))
+            if self.raw is not None:
+                self.parse(self.raw["METAR"])
+            logger.debug(f":loadDB: loaded {metid}")
+        else:
+            logger.debug(f":loadDB: not found {metid}")
+
 
     def get(self):
         return None if self.raw is None else self.raw["METAR"]
