@@ -11,7 +11,7 @@ from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, ServiceFlight, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE
+from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE, DEFAULT_QUEUES
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
@@ -42,9 +42,10 @@ class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
         ManagedAirport.__init__(self, airport)
-        # Default queue
-        default_queue = Queue(name="lt", formatter_name="lt")
-        default_queue.save()
+        # Default queue(s)
+        for k, v in DEFAULT_QUEUES.items():
+            default_queue = Queue(name=k, formatter_name=v)
+            default_queue.save()
         self.queues = Queue.loadAllQueuesFromDB()
         self.init()
 
