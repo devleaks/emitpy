@@ -70,11 +70,7 @@ class ServiceFlight:
             else:
                 this_vehicle = self.airport.manager.selectServiceVehicle(operator=self.operator, service=this_service)
             if this_vehicle is None:
-                return {
-                    "errno": 512,
-                    "errmsg": f"service: vehicle not found",
-                    "data": None
-                }
+                return (True, f"ServiceFlight::service: vehicle not found")
 
             vehicle_startpos = self.airport.selectRandomServiceDepot(sname)
             this_vehicle.setPosition(vehicle_startpos)
@@ -113,11 +109,11 @@ class ServiceFlight:
         return (True, "ServiceFlight::move: completed")
 
 
-    def emit(self):
+    def emit(self, emit_rate: int):
         for service in self.services:
             logger.debug(f"emitting {service['type']}..")
             emit = Emit(service["move"])
-            ret = emit.emit()
+            ret = emit.emit(emit_rate)
             if not ret[0]:
                 return ret
             service["emit"] = emit

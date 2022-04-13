@@ -105,7 +105,7 @@ def main():
     turnaround.setManagedAirport(managed)
     turnaround.service()
     turnaround.move()
-    turnaround.emit()
+    turnaround.emit(emit_rate=30)
     turnaround.saveDB()
 
     logger.debug("..done")

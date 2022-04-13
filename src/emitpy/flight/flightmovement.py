@@ -1150,8 +1150,11 @@ class ArrivalMove(FlightMovement):
         parkingentrypos.setProp(FEATPROP.MARK.value, "taxi end")
         fc.append(parkingentrypos)
 
+        # This is the last point, we make sure available info is in props
         parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
         parkingpos.setSpeed(0)
+        parkingpos.setVSpeed(0)
+        parkingpos.setAltitude(self.airport.altitude())
         parkingpos.setColor("#880088")  # parking
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.ONBLOCK.value)
         fc.append(parkingpos)
@@ -1193,13 +1196,17 @@ class DepartureMove(FlightMovement):
         show_pos = False
         fc = []
 
+
         parking = self.flight.ramp
         if show_pos:
             logger.debug(f":taxi:out: parking: {parking}")
         else:
             logger.debug(f":taxi:out: taxi start: parking {parking.getProp('name')}")
+        # This is the first point, we make sure available info is in props
         parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
         parkingpos.setSpeed(0)
+        parkingpos.setVSpeed(0)
+        parkingpos.setAltitude(self.airport.altitude())
         parkingpos.setColor("#880088")  # parking
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.OFFBLOCK.value)
         fc.append(parkingpos)
@@ -1276,7 +1283,7 @@ class DepartureMove(FlightMovement):
                     qspos.setProp(FEATPROP.MARK.value, f"queue {i}")
                     fc.append(qspos)
                     cnt = cnt + 1
-            logger.warning(":taxi:out: added %d queue points" % cnt)
+            logger.warning(":taxi:out: added %d take-off queue points" % cnt)
 
             if last_queue_on[0] is None:
                 logger.warning(":taxi:out: could not find last queue point")
