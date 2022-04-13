@@ -8,7 +8,7 @@ from emitpy.airspace.metar import Metar
 def main():
 
     m = Metar("OTHH")
-    print(m)
+    print(m.raw["METAR"])
 
 
 if __name__ == "__main__":

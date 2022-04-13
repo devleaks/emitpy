@@ -35,3 +35,10 @@ MANAGED_AIRPORT = {
 }
 
 LOAD_AIRWAYS=False  # to speedup developments
+
+# Default queues are created in emitpy if they do not exists.
+DEFAULT_QUEUES = {
+    "lt": "lt",
+    "raw": "raw"
+}
+

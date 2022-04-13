@@ -31,9 +31,9 @@ class Turnaround:
         self.arrival.move()
         self.departure.move()
 
-    def emit(self):
-        self.arrival.emit()
-        self.departure.emit()
+    def emit(self, emit_rate: int):
+        self.arrival.emit(emit_rate)
+        self.departure.emit(emit_rate)
 
     def saveDB(self):
         self.arrival.saveDB()

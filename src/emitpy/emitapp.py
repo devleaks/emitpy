@@ -11,7 +11,8 @@ from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, ServiceFlight, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE, DEFAULT_QUEUES
+from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE
+from emitpy.parameters import DEFAULT_QUEUES
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
@@ -35,7 +36,7 @@ class StatusInfo:
         })
 
 
-SAVE_TO_FILE = False
+SAVE_TO_FILE = True
 
 
 class EmitApp(ManagedAirport):
@@ -50,7 +51,7 @@ class EmitApp(ManagedAirport):
         self.init()
 
 
-    def do_flight(self, queue, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
+    def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
         logger.debug("Airline, airport..")
         # Add pure commercial stuff
         airline = Airline.find(airline)
@@ -138,7 +139,7 @@ class EmitApp(ManagedAirport):
 
         logger.debug("..emission positions..")
         emit = Emit(move)
-        ret = emit.emit(30)
+        ret = emit.emit(emit_rate)
         if not ret[0]:
             return StatusInfo(104, f"problem during emit", ret[1])
         # emit.save()
@@ -198,7 +199,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(151, f"problem during flight service movement creation", ret[1])
 
         logger.debug("..emission positions service vehicle..")
-        ret = flight_service.emit()
+        ret = flight_service.emit(emit_rate)
         if not ret[0]:
             return StatusInfo(152, f"problem during flight service emission", ret[1])
 
@@ -220,7 +221,7 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "completed successfully", None)
 
 
-    def do_service(self, queue, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
+    def do_service(self, queue, emit_rate, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         logger.debug("loading aircraft..")
         actype = AircraftPerformance.find(aircraft)
         if actype is None:
@@ -261,7 +262,7 @@ class EmitApp(ManagedAirport):
                 return StatusInfo(514, f"problem during service move save", ret[1])
         logger.debug(".. emission positions ..")
         emit = Emit(move)
-        ret = emit.emit()
+        ret = emit.emit(emit_rate)
         if not ret[0]:
             return StatusInfo(514, f"problem during service emission", ret[1])
 
@@ -270,7 +271,7 @@ class EmitApp(ManagedAirport):
 
         logger.debug(f".. service duration {service_duration} ..")
         emit.addToPause(SERVICE_PHASE.SERVICE_START.value, service_duration)
-        # will trigger new call to emit.emit() to adjust
+        # will trigger new call to emit.emit(emit_rate) to adjust
 
         logger.debug(".. scheduling broadcast ..")
         # default is to serve at scheduled time
@@ -303,7 +304,7 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "completed successfully", len(emit._emit))
 
 
-    def do_mission(self, queue, operator, checkpoints, mission, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
+    def do_mission(self, emit_rate, queue, operator, checkpoints, mission, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         if len(checkpoints) == 0:
             checkpoints = [c[0] for c in random.choices(self.airport.getPOICombo(), k=3)]
 
@@ -338,7 +339,7 @@ class EmitApp(ManagedAirport):
 
         logger.debug(".. emission positions ..")
         emit = Emit(move)
-        ret = emit.emit()
+        ret = emit.emit(emit_rate)
         if not ret[0]:
             return StatusInfo(614, f"problem during mission emission", ret[1])
 

@@ -114,6 +114,9 @@ class FeatureWithProps(Feature):
     def setTags(self, tagname, tags, sep=TAG_SEP):
         self.setProp(tagname, sep.join(tags))
 
+    def hasColor(self):
+        return self.getProp("marker-color") is not None or self.getProp("stroke") is not None
+
     def setColor(self, color: str):
         # geojson.io specific
         self.addProps({

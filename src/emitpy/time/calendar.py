@@ -11,19 +11,16 @@ import logging
 
 logger = logging.getLogger("Calendar")
 
-from .info import Info
-
 CONFIRMED = 0
 PROVISIONED = 1
 
 
-class Reservation(Info):
+class Reservation:
     """
     Reservation for a given duration
     """
 
     def __init__(self, resource: str, startime: str, endtime: str, status: int = PROVISIONED):
-        Info.__init__(self)
         self.resource = resource
         self.starttime = startime
         self.endtime = endtime

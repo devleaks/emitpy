@@ -6,7 +6,7 @@ from emitpy.business import Airline
 from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.airport import Airport, AirportBase, XPAirport
-from emitpy.emit import Emit, Format, ADSB
+from emitpy.emit import Emit, Format, ADSBFormatter
 from emitpy.business import AirportManager
 from emitpy.parameters import MANAGED_AIRPORT
 from emitpy.constants import FLIGHT_PHASE
@@ -136,7 +136,7 @@ def main():
 
     logger.debug("..broadcasting positions..")
 
-    b = Format(ae, ADSB)
+    b = Format(ae, ADSBFormatter)
     b.format()
     b.save()
 

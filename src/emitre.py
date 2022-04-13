@@ -5,5 +5,8 @@ from emitpy.parameters import MANAGED_AIRPORT
 
 e = EmitApp(MANAGED_AIRPORT)
 
-ret = e.do_schedule(ident="FuelService-FUE001-A7", sync="service-start", scheduled=(datetime.now() + timedelta(seconds=10)).isoformat(timespec="seconds"))
+ret = e.do_schedule(queue="raw",
+                    ident="FuelService:H3:FUE003",
+                    sync="service-start",
+                    scheduled=(datetime.now() + timedelta(seconds=10)).isoformat(timespec="seconds"))
 print(ret)

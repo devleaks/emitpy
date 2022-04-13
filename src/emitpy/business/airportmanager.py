@@ -29,6 +29,7 @@ class AirportManager:
         self.airline_route_frequencies = None
         self.airline_frequencies = None
         self.service_vehicles = {}
+        self.vehicle_by_type = {}
         self.vehicle_number = 0
 
     def load(self):
@@ -201,27 +202,68 @@ class AirportManager:
         :param      use:           The use
         :type       use:           bool
         """
+        def isAvailable(ve):
+            return False
+
         vname = registration
-        if vname is None:
-            sty = type(service).__name__[0:3].upper()
+        svc_name = type(service).__name__.replace("Service", "")
+
+        if vname is not None and vname in self.service_vehicles.keys():
+            vehicle = self.service_vehicles[vname]
+            if use:
+                logger.debug(f":selectServiceVehicle: reusing {vehicle.registration}")
+                service.setVehicle(vehicle)
+            return vehicle
+
+        # is there a vehicle of same type available:
+        if type(service).__name__ == "Mission":  # special treatment, may be missions should be "Service"?
+            vcl = "MissionVehicle"
+            vcl_short = "MIS"
+        else:
+            vcl = svc_name + "Vehicle"
+            vcl_short = svc_name[0:3].upper()
+        if model is not None:
+            model = model.replace("-", "_")  # now model is snake_case
+            mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
+            vcl = vcl + mdl
+            vcl_short = vcl_short + mdl[0:2].upper()
+        else:
+            vcl_short = vcl_short + "SV"  # Standard Vehicle
+
+        logger.debug(f":selectServiceVehicle: searching for available {vcl}")
+
+        if vcl in self.vehicle_by_type:
+            avail = None
+            for v in self.vehicle_by_type[vcl]:
+                if avail is None:
+                    if isAvailable(v):
+                        avail = v
+            if avail is not None:
+                vehicle = avail
+                if use:
+                    logger.debug(f":selectServiceVehicle: found {vcl}, reusing {vehicle.registration}")
+                    service.setVehicle(vehicle)
+                return vehicle
+
+        logger.debug(f":selectServiceVehicle: no {vcl} available")
+
+        # need to create one...
+        if vname is None:  # else uses supplied registration
             self.vehicle_number = self.vehicle_number + 1
-            vname = sty + ("%03d" % self.vehicle_number)
+            vname = f"{vcl_short}{self.vehicle_number:03d}"
+            logger.debug(f":selectServiceVehicle: no registration supplied, creating {vname}..")
+        else:
+            logger.debug(f":selectServiceVehicle: vehicle {vname} does not exist, creating..")
         if vname not in self.service_vehicles.keys():
-            if type(service).__name__ == "Mission":  # special treatment, may be missions should be "Service"?
-                vcl = "MissionVehicle"
-            else:
-                vcl = type(service).__name__.replace("Service", "Vehicle")
-            if model is not None:
-                model = model.replace("-", "_")  # now model is snake_case
-                mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
-                vcl = vcl + mdl
-            logger.debug(f":selectServiceVehicle: creating {vcl} {vname}")
             servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
             if hasattr(servicevehicleclasses, vcl):
                 vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
                 vehicle.setICAO24(AirportManager.randomICAO24(15))  # starts with F
                 self.service_vehicles[vname] = vehicle
-                logger.debug(f":selectServiceVehicle: added {vname}")
+                if vcl not in self.vehicle_by_type:
+                    self.vehicle_by_type[vcl] = []
+                self.vehicle_by_type[vcl].append(vehicle)
+                logger.debug(f":selectServiceVehicle: ..added {vname}")
                 if use:
                     logger.debug(f":selectServiceVehicle: using {vname}")
                     service.setVehicle(vehicle)
@@ -229,11 +271,7 @@ class AirportManager:
             else:
                 logger.warning(f":selectServiceVehicle: no class {vcl}")
         else:
-            vehicle = self.service_vehicles[vname]
-            if use:
-                logger.debug(f":selectServiceVehicle: reusing {vname}")
-                service.setVehicle(vehicle)
-            return vehicle
+            logger.warning(f":selectServiceVehicle: already exist {vname}?")
 
         logger.debug(f":selectServiceVehicle: returning no vehicle?")
         return None
