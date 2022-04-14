@@ -11,7 +11,7 @@ from emitpy.service import Service
 from emitpy.utils import Timezone
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("testemit")
+logger = logging.getLogger("emitalot")
 
 e = EmitApp(MANAGED_AIRPORT)
 

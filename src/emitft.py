@@ -10,8 +10,8 @@ from emitpy.parameters import MANAGED_AIRPORT
 from emitpy.service import Service
 from emitpy.utils import Timezone
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("testemit")
+# logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("emitft")
 
 e = EmitApp(MANAGED_AIRPORT)
 
@@ -38,6 +38,12 @@ for r in csvdata:
     if r['REGISTRATION NO'] not in icao.keys():
         icao[r['REGISTRATION NO']] = f"{random.getrandbits(24):x}"
 
+    move = None
+    if r['IS ARRIVAL'] == True or r['IS ARRIVAL'] == 'True':
+        move = "arrival"
+    else:
+        move = "departure"
+
     try:
         dt = datetime.strptime(r['FLIGHT SCHEDULED TIME'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
         at = datetime.strptime(r['FLIGHT ACTUAL TIME'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
@@ -47,28 +53,30 @@ for r in csvdata:
                           flightnumber=r['FLIGHT NO'],
                           scheduled=dt.isoformat(),
                           apt=r['AIRPORT'],
-                          movetype='arrival',
+                          movetype=move,
                           acarr=(r['AC TYPE'], r['AC TYPE IATA']),
                           acreg=r['REGISTRATION NO'],
                           icao24=icao[r['REGISTRATION NO']],
                           ramp=r['RAMP'],
                           runway='RW16L',
-                          do_services=False,
+                          do_services=True,
                           actual_datetime=at.isoformat())
 
         if ret.status != 0:
             logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
             logger.warning(ret)
-            logger.warning(f"print(e.do_flight('raw', 30, {r['AIRLINE CODE']}', '{r['FLIGHT NO']}',"
+            logger.warning(f"print(e.do_flight('raw', 30, '{r['AIRLINE CODE']}', '{r['FLIGHT NO']}',"
                 + f" '{dt.isoformat()}', '{r['AIRPORT']}',"
-                + f" 'arrival', ('{r['AC TYPE']}', '{r['AC TYPE IATA']}'), '{r['RAMP']}',"
+                + f" '{move}', ('{r['AC TYPE']}', '{r['AC TYPE IATA']}'), '{r['RAMP']}',"
                 + f" '{icao[r['REGISTRATION NO']]}', '{r['REGISTRATION NO']}', 'RW16L'))")
-    except:
+
+    except Exception as ex:
         logger.error(f"EXCEPTION around line {cnt}: {ret.status}" + ">=" * 30)
         logger.error(ret)
+        ## logger.error(e)
         logger.warning(f"print(e.do_flight('raw', 30, '{r['AIRLINE CODE']}', '{r['FLIGHT NO']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT']}',"
-            + f" 'arrival', ('{r['AC TYPE']}', '{r['AC TYPE IATA']}'), '{r['RAMP']}',"
+            + f" '{move}', ('{r['AC TYPE']}', '{r['AC TYPE IATA']}'), '{r['RAMP']}',"
             + f" '{icao[r['REGISTRATION NO']]}', '{r['REGISTRATION NO']}', 'RW16L'))")
 
     cnt = cnt + 1

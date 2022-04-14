@@ -8,8 +8,6 @@ import logging
 from ..constants import REDIS_DATABASE
 from .queue import Queue
 
-
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Broadcaster")
 
 
