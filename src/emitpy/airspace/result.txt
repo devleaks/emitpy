@@ -1,0 +1,53 @@
+<!-- $Id$ -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>Display metars</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="Author" content="G. Ballester">
+  <meta name="GENERATOR" content="Quanta Plus">
+  <meta name="robots" content="index,nofollow">
+  <meta name="keywords" content="metar, speci, taf, weather reports">
+  <meta name=viewport content="width=device-width, initial-scale=1">  
+  <link rel="stylesheet" href="/ogimet.css">
+  <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.css" />
+<script src="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.js"></script>
+<script>
+window.addEventListener("load", function(){
+window.cookieconsent.initialise({
+  "palette": {
+    "popup": {
+      "background": "#eb6c44",
+      "text": "#ffffff"
+    },
+    "button": {
+      "background": "#f5d948"
+    }
+  },
+  "theme": "classic",
+  "position": "top",
+  "content": {
+    "message": "Las cookies de este sitio web se usan para personalizar el contenido y los anuncios, ofrecer funciones de redes sociales y analizar el tráfico. Ademas, compartimos el uso que haga del sitio web con nuestros partners de redes sociales, publicidad y análisis web, quienes pueden combinarla con otra información que les haya proporcionado o que hayan recopilado a partir del uso que haya hecho de sus servicios. Si continua navegando en estas páginas consideramos que acepta su uso. ",
+    "dismiss": "Entendido",
+    "link": "Saber más",
+    "href": "/cookiespolicy.phtml"
+  }
+})});
+</script>
+</head>
+<body>
+<pre>
+##########################################################
+# Query made at 04/14/2022 08:40:28 UTC
+# Time interval: from 03/31/2019 23:00  to 03/31/2019 23:59  UTC
+##########################################################
+
+###################################
+#  METAR/SPECI from OTHH
+###################################
+201903312300 METAR OTHH 312300Z 13015KT CAVOK 26/16 Q1004 NOSIG=
+
+</pre>
+
+</body>
+</html>
