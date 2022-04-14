@@ -4,7 +4,7 @@ Origin and destination airport details data is also cached.
 (We suspect flightplan database uses the same X-Plane Arinc cycle 1802 dataset.)
 """
 import copy
-from geojson import FeatureCollection
+from geojson import Feature, FeatureCollection
 from ..airspace import Airspace, FlightPlanBase
 from ..aircraft import AircraftPerformance
 import logging

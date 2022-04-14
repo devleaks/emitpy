@@ -23,7 +23,6 @@ from ..private import FLIGHT_PLAN_DATABASE_APIKEY
 
 METAR_DIR = os.path.join(AODB_DIR, METAR_DATABASE)
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Metar")
 
 

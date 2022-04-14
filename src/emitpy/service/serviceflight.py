@@ -57,7 +57,6 @@ class ServiceFlight:
         svcs = self.flight.aircraft.actype.tarprofile[move]
 
         for svc in svcs:
-            print(">>>", svc)
             sname, sched = list(svc.items())[0]
 
             logger.debug(f"creating service {sname}..")

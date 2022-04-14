@@ -123,7 +123,6 @@ EMIT PRODUCES EMIT POINTS: (Feature(<Point>))
         "aircraft:ident": null,
         "aircraft:icao24": "efface",
         "icao24": "efface",
-        "ident": null,
         "flightnumber": "QR 196",
         "codeshare": null,
         "ramp:name": "E15",

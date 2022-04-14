@@ -36,7 +36,7 @@ class StatusInfo:
         })
 
 
-SAVE_TO_FILE = True
+SAVE_TO_FILE = False
 
 
 class EmitApp(ManagedAirport):
@@ -75,8 +75,8 @@ class EmitApp(ManagedAirport):
             return ret
 
         logger.debug("..collecting metar..")
-        origin_metar = Metar(icao=remote_apt.icao, use_redis=True)
-        remote_apt.setMETAR(metar=origin_metar)  # calls prepareRunways()
+        remote_metar = Metar(icao=remote_apt.icao, use_redis=True)
+        remote_apt.setMETAR(metar=remote_metar)  # calls prepareRunways()
         logger.debug("..done")
 
         logger.debug("loading aircraft..")
