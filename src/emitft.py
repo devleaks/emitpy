@@ -10,7 +10,7 @@ from emitpy.parameters import MANAGED_AIRPORT
 from emitpy.service import Service
 from emitpy.utils import Timezone
 
-# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("emitft")
 
 e = EmitApp(MANAGED_AIRPORT)
@@ -24,7 +24,7 @@ csvdata = csv.DictReader(file)
 icao = {}
 cnt = 0
 cnt_begin = 0
-cnt_end = cnt_begin + 600
+cnt_end = cnt_begin + 2
 
 for r in csvdata:
     """

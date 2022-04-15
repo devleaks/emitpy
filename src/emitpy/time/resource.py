@@ -8,6 +8,9 @@ def dt(t):
     # return t  # no debug
     return round((((t+timedelta(seconds=1)) - datetime.now()).seconds) / 6)/10  # debug
 
+
+
+
 class Reservation:
     """
     A reservation is a occupied slot in an allocation table.
@@ -18,9 +21,9 @@ class Reservation:
         self.scheduled = (date_from, date_to)
         self.estimated = None
         self._actual = None
-        self.status = status
+        self.status = "reserved"  # to normalize
 
-        self.adjust(date_from, date_to)
+        self.eta(date_from, date_to)
 
     def getId(self):
         return self.label if self.label is not None else "reservation has no id"
@@ -155,3 +158,21 @@ class Resource:
         soonest = busy[-1].estimated[1] + timedelta(milliseconds=1)
         logger.debug(f":firstAvailable: cannot squeeze, added after last reservation {dt(soonest)}")
         return (soonest, soonest + duration)
+
+
+class AllocationTable:
+    """
+    An allocation table is a collection of resources and usage.
+    """
+    def __init__(self, resources):
+        self.resources = {}
+
+        for r in resources:
+            self.resources[r.getId()] = Resource(r.getId())
+
+    def isAvailable(self, name, req_from: datetime, req_to: datetime):
+        return self.resources[name].isAvailable(req_from, req_to)
+
+    def book(self, name, req_from: datetime, req_to: datetime):
+        return self.resources[name].book(req_from, req_to)
+

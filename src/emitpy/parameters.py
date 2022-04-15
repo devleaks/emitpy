@@ -18,6 +18,7 @@ AODB_DIR = os.path.join(HOME_DIR, "..", "db")
 
 AIRCRAFT_TYPE_DATABASE = "aircraft"
 
+
 METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"
 
 MANAGED_AIRPORT = {

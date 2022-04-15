@@ -32,8 +32,11 @@ def main():
     logger.debug("loading managed airport..")
 
     logger.debug("..loading airport manager..")
-    airportManager = AirportManager(icao=MANAGED_AIRPORT["ICAO"])
-    airportManager.load()
+    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
+    airportManager = AirportManager(icao=MANAGED_AIRPORT["ICAO"], operator=operator)
+    ret = airportManager.load()
+    if not ret[0]:
+        print("Managed airport not loaded")
     # print(airportManager.getAirlineCombo())
     # print(airportManager.getAirrouteCombo("PC"))
 
@@ -52,6 +55,8 @@ def main():
     if not ret[0]:
         print("Managed airport not loaded")
 
+    airportManager.setRamps(managed.getRamps())
+
     logger.debug("..done")
 
 
@@ -60,17 +65,23 @@ def main():
     actype.load()
     logger.debug(f"..done {actype.available}")
 
+
+    OBT = datetime.now()
+    reqtime = OBT + timedelta(minutes=5)
+
     ramp = managed.selectRamp(None)
+    airportManager.bookRamp(ramp, OBT, 90)
 
     # managed.service_roads.print(vertex=False)
-    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
+    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
     logger.debug("creating single service..")
     fs = Service.getService("fuel")
     fuel_service = fs(operator=operator, quantity=24)
+
     fuel_service.setRamp(ramp)
     fuel_service.setAircraftType(actype)
-    fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="pump")
+    fuel_vehicle = airportManager.selectServiceVehicle(operator=operator, service=fuel_service, model="pump", reqtime=reqtime)
     fuel_vehicle.setICAO24("abcdef")
     fuel_depot = managed.selectRandomServiceDepot(SERVICE.FUEL.value)
     fuel_vehicle.setPosition(fuel_depot)
@@ -97,7 +108,7 @@ def main():
     se.pause(SERVICE_PHASE.SERVICE_START.value, service_duration)
     logger.debug(f".. service duration {service_duration} ..")
 
-    se.schedule(SERVICE_PHASE.SERVICE_START.value, datetime.now() + timedelta(minutes=5))
+    se.schedule(SERVICE_PHASE.SERVICE_START.value, reqtime)
 
     logger.debug(".. broadcasting position ..")
 

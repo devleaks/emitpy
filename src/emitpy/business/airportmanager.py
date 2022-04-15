@@ -9,8 +9,13 @@ import random
 import importlib
 import operator
 
+from datetime import datetime, timedelta
+
 from .airline import Airline
 from ..airport import Airport
+from ..time import AllocationTable
+
+
 from ..parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
@@ -21,16 +26,23 @@ logger = logging.getLogger("AirportManager")
 
 class AirportManager:
 
-    def __init__(self, icao):
+    def __init__(self, icao, operator: "Company"):
         self.icao = icao
+        self.operator = operator
         self.airlines = {}
         self.airport_base_path = None
         self.data = None
         self.airline_route_frequencies = None
         self.airline_frequencies = None
+        self.vehicle_number = 200
         self.service_vehicles = {}
         self.vehicle_by_type = {}
-        self.vehicle_number = 0
+        self.vehicle_allocator = None
+        self.ramps = {}
+        self.ramp_allocator = None
+        self.runways = {}
+        self.runway_allocator = None
+
 
     def load(self):
         """
@@ -44,7 +56,11 @@ class AirportManager:
         if not status[0]:
             return status
 
-        return [False, "AirportManager::loaded"]
+        status = self.loadServiceVehicles()
+        if not status[0]:
+            return status
+
+        return [True, "AirportManager::loaded"]
 
 
     def loadFromFile(self):
@@ -185,7 +201,52 @@ class AirportManager:
         airline.addHub(airport)
 
 
-    def selectServiceVehicle(self, operator: "Company", service: "Service", model: str=None, registration: str = None, use: bool=True):
+    def loadServiceVehicles(self):
+        """
+        Loads service vehicle fleet and creates vehicle.
+        """
+        self.airport_base_path = os.path.join(SYSTEM_DIRECTORY, self.icao)
+        business = os.path.join(self.airport_base_path, "servicevehiclefleet.yaml")
+        if os.path.exists(business):
+            with open(business, "r") as fp:
+                self.data = yaml.safe_load(fp)
+            logger.warning(f":file: {business} loaded")
+            servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
+            for vtype in self.data["ServiceVehicleFleet"]:
+                (vcl, vqty) = list(vtype.items())[0]
+                logger.debug(f":loadServiceVehicles: doing {vtype}..")
+                names = vcl.split("Vehicle")
+                vname_root = names[0][0:3].upper()
+                if len(names) > 1 and names[1] != "":
+                    vname_root = vname_root + names[1][0:2].upper()
+                else:
+                    vname_root = vname_root + "SV"  # "standard vehicle"
+                if hasattr(servicevehicleclasses, vcl):
+                    for idx in range(int(vqty)):
+                        vname = f"{vname_root}{idx:03d}"
+                        vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=self.operator)  ## getattr(sys.modules[__name__], str) if same module...
+                        vehicle.setICAO24(AirportManager.randomICAO24(15))  # starts with F like fleet.
+                        self.service_vehicles[vname] = vehicle
+                        if vcl not in self.vehicle_by_type:
+                            self.vehicle_by_type[vcl] = []
+                        self.vehicle_by_type[vcl].append(vehicle)
+                        # logger.debug(f":selectServiceVehicle: ..added {vname}")
+                else:
+                    logger.warning(f":loadServiceVehicles: vehicle type {vcl} not found")
+
+                logger.debug(f":loadServiceVehicles: ..loaded allocating..")
+                self.vehicle_allocator = AllocationTable(self.service_vehicles.values())
+                logger.debug(f":loadServiceVehicles: ..done")
+
+            return [True, "AirportManager::loadServiceVehicles: loaded"]
+
+
+        logger.warning(f":loadServiceVehicles: {business} not found")
+        return [False, "AirportManager::loadServiceVehicles file %s not found", business]
+
+
+
+    def selectServiceVehicle(self, operator: "Company", service: "Service", reqtime: "datetime", model: str=None, registration: str = None, use: bool=True):
         """
         Selects a service vehicle for ground support.
         The airport manager keeps a list of all vehicle and their use.
@@ -202,8 +263,12 @@ class AirportManager:
         :param      use:           The use
         :type       use:           bool
         """
-        def isAvailable(ve):
-            return False
+        def isAvailable(ve, reqtime, reqduration):
+            reqend = reqtime + timedelta(minutes=reqduration)
+            avail = self.vehicle_allocator.isAvailable(ve.getId(), reqtime, reqend)
+            if avail:
+                self.vehicle_allocator.book(ve.getId(), reqtime, reqend)
+            return avail
 
         vname = registration
         svc_name = type(service).__name__.replace("Service", "")
@@ -236,7 +301,7 @@ class AirportManager:
             avail = None
             for v in self.vehicle_by_type[vcl]:
                 if avail is None:
-                    if isAvailable(v):
+                    if isAvailable(v, reqtime, service.serviceDuration()):  # request with default value
                         avail = v
             if avail is not None:
                 vehicle = avail
@@ -258,7 +323,7 @@ class AirportManager:
             servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
             if hasattr(servicevehicleclasses, vcl):
                 vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
-                vehicle.setICAO24(AirportManager.randomICAO24(15))  # starts with F
+                vehicle.setICAO24(AirportManager.randomICAO24(10))  # starts with A
                 self.service_vehicles[vname] = vehicle
                 if vcl not in self.vehicle_by_type:
                     self.vehicle_by_type[vcl] = []
@@ -275,6 +340,7 @@ class AirportManager:
 
         logger.debug(f":selectServiceVehicle: returning no vehicle?")
         return None
+
 
     @staticmethod
     def randomICAO24(root: int = None):
@@ -299,4 +365,17 @@ class AirportManager:
         return f"{random.getrandbits(24):x}"
 
 
+    def setRamps(self, ramps):
+        self.ramps = ramps
+        logger.debug(f":setRamps: allocating..")
+        self.ramp_allocator = AllocationTable(self.ramps.values())
+        logger.debug(f":setRamps: ..done")
+
+
+    def bookRamp(self, ramp: "Ramp", reqtime: "datetime", reqduration: int):
+        reqend = reqtime + timedelta(minutes=reqduration)
+        avail = self.ramp_allocator.isAvailable(ramp.getId(), reqtime, reqend)
+        if avail:
+            self.ramp_allocator.book(ramp.getId(), reqtime, reqend)
+        return avail
 

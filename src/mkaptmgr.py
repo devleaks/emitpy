@@ -1,5 +1,5 @@
 import logging
-from emitpy.business import AirportManager, Airline
+from emitpy.business import AirportManager, Airline, Company
 from emitpy.airport import Airport
 
 logging.basicConfig(level=logging.DEBUG)
@@ -17,8 +17,8 @@ def main():
     Airline.loadAll()
     logger.debug("..done")
 
-
-    a = AirportManager(icao=MANAGED_AIRPORT["ICAO"])
+    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
+    a = AirportManager(icao=MANAGED_AIRPORT["ICAO"], operator=operator)
     logger.debug("loading..")
     a.load()
     logger.debug("..done")

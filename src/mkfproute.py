@@ -5,7 +5,7 @@ from emitpy.airspace import XPAirspace, FlightPlanRoute
 from emitpy.parameters import MANAGED_AIRPORT
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("Airspace")
+logger = logging.getLogger("Flightplan-Route")
 
 
 def main():
@@ -17,13 +17,13 @@ def main():
 
     fpb = FlightPlanRoute(
         managedAirport=MANAGED_AIRPORT["ICAO"],
-        fromICAO="EBBR",
-        toICAO="KLAX")
+        fromICAO="LTAC",
+        toICAO="OTHH")
 
     fpb.setAirspace(a)
 
     plan = fpb.getFlightPlan()
-    print("got plan" if plan is not None else "not found")
+    print(plan)
 
 main()
 
