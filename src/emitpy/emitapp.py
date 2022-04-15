@@ -185,7 +185,7 @@ class EmitApp(ManagedAirport):
         td = bt - st
         blocktime = emit_time + timedelta(seconds=td)
 
-        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
+        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
         flight_service = ServiceFlight(flight, operator)
         flight_service.setManagedAirport(self.airport)
@@ -229,7 +229,7 @@ class EmitApp(ManagedAirport):
         actype.load()
         logger.debug(f"..done {actype.available}")
 
-        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
+        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
         logger.debug("creating service..")
         this_service = Service.getService(service)(operator=operator, quantity=quantity)

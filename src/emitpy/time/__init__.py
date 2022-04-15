@@ -1,1 +1,1 @@
-from .resource import Reservation, Resource
+from .resource import AllocationTable
