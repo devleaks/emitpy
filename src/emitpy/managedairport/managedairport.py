@@ -20,7 +20,9 @@ class ManagedAirport:
         self.airport = None
 
     def init(self):
-
+        """
+        Load entire managed airport data together with airport manager.
+        """
         airspace = XPAirspace()
         logger.debug("loading airspace..")
         airspace.load()
@@ -42,8 +44,14 @@ class ManagedAirport:
         logger.debug("loading managed airport..")
 
         logger.debug("..loading airport manager..")
-        manager = AirportManager(icao=self._this_airport["ICAO"])
-        manager.load()
+        operator = Company(orgId="Airport Operator",
+                           classId="Airport Operator",
+                           typeId="Airport Operator",
+                           name=self._this_airport["operator"])
+        manager = AirportManager(icao=self._this_airport["ICAO"], operator=operator)
+        ret = manager.load()
+        if not ret[0]:
+            print("Airport manager not loaded")
 
         logger.debug("..loading managed airport..")
         self.airport = XPAirport(
@@ -61,6 +69,11 @@ class ManagedAirport:
             print("Managed airport not loaded")
 
         self.airport.setAirspace(airspace)
+
+        # Set for resource usage
+        manager.setRamps(self.airport.getRamps())
+        manager.setRunways(self.airport.getRunways())
+
         self.airport.setManager(manager)
         logger.debug("..done")
 
@@ -69,6 +82,12 @@ class ManagedAirport:
 
 
     def update_metar(self):
+        """
+        Update METAR data for managed airport.
+        If self instance is loaded for a long time, this procedure should be called
+        at regular interval. (It will, sometimes, be automatic (Thread).)
+        (Let's dream, someday, it will load, parse and interpret TAF.)
+        """
         logger.debug("collecting METAR..")
         # Prepare airport for each movement
         metar = Metar(icao=self._this_airport["ICAO"], use_redis=True)

@@ -7,19 +7,16 @@ import os
 DEVELOPMENT = True  # produces additional debug
 PRODUCTION = False  # removed caches and short circuits
 
-HOME_DIR = "."
+HOME_DIR = os.path.join(".", "..")
 
 # DATA is a database of static data, definitions, etc.
-DATA_DIR = os.path.join(HOME_DIR, "..", "data")
+DATA_DIR = os.path.join(HOME_DIR, "data")
 
 # AODB is a database of working data
-AODB_DIR = os.path.join(HOME_DIR, "..", "db")
-
-
-AIRCRAFT_TYPE_DATABASE = "aircraft"
-
+AODB_DIR = os.path.join(HOME_DIR, "db")
 
 METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"
+METAR_HISTORICAL_URL = ""
 
 MANAGED_AIRPORT = {
     "ICAO": "OTHH",
@@ -32,10 +29,15 @@ MANAGED_AIRPORT = {
     "lat": 25.2745,
     "lon": 51.6077,
     "tzoffset": 3,
-    "tzname": "Doha"
+    "tzname": "Doha",
+    "operator": "MATAR"
 }
 
 LOAD_AIRWAYS=False  # to speedup developments
+
+
+# REDIS stuff if not on same host
+
 
 # Default queues are created in emitpy if they do not exists.
 DEFAULT_QUEUES = {

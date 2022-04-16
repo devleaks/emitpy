@@ -263,13 +263,6 @@ class AirportManager:
         :param      use:           The use
         :type       use:           bool
         """
-        def isAvailable(ve, reqtime, reqduration):
-            reqend = reqtime + timedelta(minutes=reqduration)
-            avail = self.vehicle_allocator.isAvailable(ve.getId(), reqtime, reqend)
-            if avail:
-                self.vehicle_allocator.book(ve.getId(), reqtime, reqend)
-            return avail
-
         vname = registration
         svc_name = type(service).__name__.replace("Service", "")
 
@@ -298,19 +291,22 @@ class AirportManager:
         logger.debug(f":selectServiceVehicle: searching for available {vcl}")
 
         if vcl in self.vehicle_by_type:
-            avail = None
-            for v in self.vehicle_by_type[vcl]:
-                if avail is None:
-                    if isAvailable(v, reqtime, service.serviceDuration()):  # request with default value
-                        avail = v
-            if avail is not None:
-                vehicle = avail
-                if use:
-                    logger.debug(f":selectServiceVehicle: found {vcl}, reusing {vehicle.registration}")
-                    service.setVehicle(vehicle)
-                return vehicle
+            idx = 0
+            vehicle = None
+            while vehicle is None and idx < len(self.vehicle_by_type[vcl]):
+                v = self.vehicle_by_type[vcl][idx]
+                reqend = reqtime + timedelta(seconds=service.serviceDuration())
+                if self.vehicle_allocator.isAvailable(v.getId(), reqtime, reqend):
+                    res = self.vehicle_allocator.book(v.getId(), reqtime, reqend, service.getId())
+                    vehicle = v
+                idx = idx + 1
 
-        logger.debug(f":selectServiceVehicle: no {vcl} available")
+            if vehicle is not None:
+                logger.debug(f":selectServiceVehicle: found {vcl}, reusing {vehicle.registration}")
+                service.setVehicle(vehicle)
+            return vehicle
+        else:
+            logger.debug(f":selectServiceVehicle: no {vcl} available")
 
         # need to create one...
         if vname is None:  # else uses supplied registration
@@ -328,6 +324,9 @@ class AirportManager:
                 if vcl not in self.vehicle_by_type:
                     self.vehicle_by_type[vcl] = []
                 self.vehicle_by_type[vcl].append(vehicle)
+                #
+                #  need to add it to alloc table and book it
+                #
                 logger.debug(f":selectServiceVehicle: ..added {vname}")
                 if use:
                     logger.debug(f":selectServiceVehicle: using {vname}")
@@ -372,10 +371,25 @@ class AirportManager:
         logger.debug(f":setRamps: ..done")
 
 
-    def bookRamp(self, ramp: "Ramp", reqtime: "datetime", reqduration: int):
+    def bookRamp(self, ramp: "Ramp", reqtime: "datetime", reqduration: int, reason: str):
         reqend = reqtime + timedelta(minutes=reqduration)
         avail = self.ramp_allocator.isAvailable(ramp.getId(), reqtime, reqend)
         if avail:
-            self.ramp_allocator.book(ramp.getId(), reqtime, reqend)
+            self.ramp_allocator.book(ramp.getId(), reqtime, reqend, reason)
+        return avail
+
+
+    def setRunways(self, runways):
+        self.runways = runways
+        logger.debug(f":setRunways: allocating..")
+        self.runway_allocator = AllocationTable(self.runways.values())
+        logger.debug(f":setRunways: ..done")
+
+
+    def bookRunway(self, runway: "Runway", reqtime: "datetime", reqduration: int, reason: str):
+        reqend = reqtime + timedelta(minutes=reqduration)
+        avail = self.runway_allocator.isAvailable(ramp.getId(), reqtime, reqend)
+        if avail:
+            self.runway_allocator.book(runway.getId(), reqtime, reqend, reason)
         return avail
 
