@@ -5,10 +5,8 @@ logger = logging.getLogger("Resource")
 
 
 def dt(t):
-    # return t  # no debug
-    return round((((t+timedelta(seconds=1)) - datetime.now()).seconds) / 6)/10  # debug
-
-
+    return t  # no debug
+    # return round((((t+timedelta(seconds=1)) - datetime.now()).seconds) / 6)/10  # debug
 
 
 class Reservation:
@@ -84,7 +82,7 @@ class Resource:
 
 
     def book(self, req_from: datetime, req_to: datetime, label: str = None):
-        r =Reservation(self, req_from, req_to, label)
+        r = Reservation(self, req_from, req_to, label)
         self.add(r)
         return r
 
@@ -166,13 +164,57 @@ class AllocationTable:
     """
     def __init__(self, resources):
         self.resources = {}
-
         for r in resources:
-            self.resources[r.getId()] = Resource(r.getId())
+            r._resource = Resource(r.getId())  # attach it to the resource
+            self.resources[r.getId()] = r._resource
+
 
     def isAvailable(self, name, req_from: datetime, req_to: datetime):
+        """
+        Checks whether a reservation overlap with another for the supplied resource identifier.
+
+        :param      name:      The name
+        :type       name:      { type_description }
+        :param      req_from:  The request from
+        :type       req_from:  datetime
+        :param      req_to:    The request to
+        :type       req_to:    datetime
+
+        :returns:   True if available, False otherwise.
+        :rtype:     bool
+        """
         return self.resources[name].isAvailable(req_from, req_to)
 
-    def book(self, name, req_from: datetime, req_to: datetime):
-        return self.resources[name].book(req_from, req_to)
+
+    def book(self, name, req_from: datetime, req_to: datetime, reason: str):
+        """
+        Book a reservation, even if it overlaps with other reservation.
+        Returns the reservation.
+
+        :param      name:      The name
+        :type       name:      { type_description }
+        :param      req_from:  The request from
+        :type       req_from:  datetime
+        :param      req_to:    The request to
+        :type       req_to:    datetime
+        :param      reason:    The reason
+        :type       reason:    str
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        return self.resources[name].book(req_from, req_to, label=reason)
+
+
+    def table(self, actual: bool = False):
+        """
+        Returns a dictionary of all resources and their reservations.
+        """
+        ret = {}
+        for r, v in self.resources.items():
+            if actual:
+                ret[r.getId()] = [rz.actual+[rz.label] for rz in v]
+            else:
+                ret[r.getId()] = [rz.estimated+[rz.label] for rz in v]
+        return ret
 

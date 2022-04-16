@@ -32,7 +32,8 @@ def main():
     logger.debug("loading managed airport..")
 
     logger.debug("..loading airport manager..")
-    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
+    # managed.service_roads.print(vertex=False)
+    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=MANAGED_AIRPORT["operator"])
     airportManager = AirportManager(icao=MANAGED_AIRPORT["ICAO"], operator=operator)
     ret = airportManager.load()
     if not ret[0]:
@@ -56,6 +57,7 @@ def main():
         print("Managed airport not loaded")
 
     airportManager.setRamps(managed.getRamps())
+    airportManager.setRunways(managed.getRunways())
 
     logger.debug("..done")
 
@@ -70,10 +72,8 @@ def main():
     reqtime = OBT + timedelta(minutes=5)
 
     ramp = managed.selectRamp(None)
-    airportManager.bookRamp(ramp, OBT, 90)
+    airportManager.bookRamp(ramp, OBT, 90, "test")
 
-    # managed.service_roads.print(vertex=False)
-    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
     logger.debug("creating single service..")
     fs = Service.getService("fuel")

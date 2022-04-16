@@ -629,6 +629,16 @@ class AirportBase(Airport):
         return None
 
 
+    def getRunways(self):
+        """
+        Utility function to get all Runway's for resource usage.
+
+        :returns:   The runways.
+        :rtype:     { return_type_description }
+        """
+        return self.runways
+
+
     def getRamps(self):
         """
         Utility function to get all Ramp's for resource usage.
