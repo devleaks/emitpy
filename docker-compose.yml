@@ -1,15 +1,12 @@
 version: '3'
 services:
-  app:
-    build: src
-    volumes:
-      - app:/app
+  redis:
+    image: redis:alpine
     ports:
-      - "8000:8000"
-    links:
-      - redis:redis
-    depends_on:
-      - redis
+      - 6379:6379
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
 
   redis-commander:
     image: rediscommander/redis-commander:latest
@@ -20,13 +17,16 @@ services:
     depends_on:
       - redis
 
-  redis:
-    image: redis:alpine
-    ports:
-      - 6379:6379
-    command: ["redis-server", "--appendonly", "yes"]
+  app:
+    build: src
     volumes:
-      - redis-data:/data
+      - app/db:/app/db
+    ports:
+      - "8000:8000"
+    links:
+      - redis:redis
+    depends_on:
+      - redis
 
 volumes:
   redis-data:

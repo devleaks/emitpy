@@ -1,9 +1,11 @@
-FROM python:3.10-alpine
-RUN mkdir /app
+FROM mambaorg/micromamba:0.22.0
+COPY --chown=$MAMBA_USER:$MAMBA_USER env.txt /tmp/env.txt
+RUN micromamba create -n emitpy -y -f /tmp/env.txt && \
+    micromamba clean --all --yes
+
 WORKDIR /app
-ADD requirements.txt /app
-COPY emitpy /app
+COPY data /app/data
+COPY emitpy /app/emitpy
+COPY emitpy/parameters-docker.py /app/emitpy/parameters.py
 COPY app.py /app
-COPY ../data /data
-RUN pip3 install -r requirements.txt
-CMD ["gunicorn", "-w 4", "-b", "0.0.0.0:8000", "main:app"]
+ENTRYPOINT ["micromamba", "run", "--no-capture-output", "-n", "emitpy", "python", "app.py"]
