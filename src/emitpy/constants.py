@@ -356,12 +356,6 @@ class REDIS_QUEUE(Enum):
     ADSB = "adsb"
     LIVETRAFFIC = "lt"
 
-# Default queues are created in emitpy if they do not exists.
-DEFAULT_QUEUES = {
-    "lt": "lt",
-    "raw": "raw"
-}
-
 class POI_TYPE(Enum):
     # Feature property names
     RUNWAY_EXIT = "runway-exit"

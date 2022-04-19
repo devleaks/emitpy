@@ -36,7 +36,7 @@ class Movement:
         self.moves = []  # Array of Features<Point>
 
     def getId(self):
-        return "id"
+        return "Movement::abstract-class-id"
 
     def save(self):
         """
@@ -77,16 +77,12 @@ class Movement:
         logger.debug(":load: loaded %d " % ident)
         return (True, "Movement::load loaded")
 
-    def getId(self):
-        return "move-name"
-
     def getInfo(self):
         # Drill down on original object to get info
         return {}
 
     def getMoves(self):
         return self.moves
-
 
     def move(self):
         """

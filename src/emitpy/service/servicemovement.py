@@ -450,6 +450,8 @@ class ServiceMove(Movement):
         self.moves.append(finalpos)
         self.service.vehicle.setPosition(finalpos)
 
+        # No interpolation necessary:
+        # Each point should have speed set, altitude and vspeed irrelevant.
         ret = doTime(self.moves)
         if not ret[0]:
             return ret

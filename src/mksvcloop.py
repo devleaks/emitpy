@@ -63,7 +63,7 @@ def main():
     ramp = managed.selectRamp(None)
 
     # managed.service_roads.print(vertex=False)
-    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
+    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
     logger.debug("creating single service..")
     fs = Service.getService("baggage")

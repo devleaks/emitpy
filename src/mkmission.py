@@ -6,7 +6,7 @@ from emitpy.business import AirportManager, Company
 from emitpy.airport import Airport, XPAirport
 from emitpy.service import Mission, MissionMove
 from emitpy.emit import Emit, Format, LiveTrafficFormatter
-from emitpy.service.servicevehicle import AirportSecurity
+from emitpy.service.servicevehicle import MissionVehicleSecurity
 
 from emitpy.parameters import MANAGED_AIRPORT
 from emitpy.constants import SERVICE, MISSION_PHASE
@@ -46,7 +46,7 @@ def main():
     # managed.service_roads.print(vertex=False)
     operator = Company(orgId="Airport Security", classId="Airport Operator", typeId="Airport Operator", name="SECURE")
     mission = Mission(operator=operator, checkpoints=[], name="security")
-    mission_vehicle = AirportSecurity(operator=operator, registration="JB007")
+    mission_vehicle = MissionVehicleSecurity(operator=operator, registration="JB007")
     mission_vehicle.setICAO24("abcdef")
     mission.setVehicle(mission_vehicle)
 

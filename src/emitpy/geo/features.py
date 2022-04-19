@@ -114,6 +114,9 @@ class FeatureWithProps(Feature):
     def setTags(self, tagname, tags, sep=TAG_SEP):
         self.setProp(tagname, sep.join(tags))
 
+    def hasColor(self):
+        return self.getProp("marker-color") is not None or self.getProp("stroke") is not None
+
     def setColor(self, color: str):
         # geojson.io specific
         self.addProps({
@@ -244,6 +247,10 @@ class Ramp(FeatureWithProps):
             "apron": a.upper()
         }
 
+    def getId(self):
+        # remove spaces
+        return "".join(self.getProp("name").split())
+
     def busy(self):
         self["properties"]["available"] = False
 
@@ -318,13 +325,19 @@ class Runway(FeatureWithProps):
             "name": self.getProp("name")
         }
 
+    def getId(self):
+        return self.getProp("name")
+
 
 # ################################@
 # SERVICE PARKING
 #
 #
 class ServiceParking(FeatureWithProps):
-
+    """
+    A service parking is a depot or a destination in X-Plane
+    for service vehicle movements (row codes 1400, 1401).
+    """
     def __init__(self, name: str, parking_type: str, position: [float], orientation: float, use: str):
         FeatureWithProps.__init__(self, geometry=Point(position), properties={
             "type": "service-parking",

@@ -123,7 +123,6 @@ class XPAirspace(Airspace):
         :param      iata:  The iata
         :type       iata:  { type_description }
         """
-        return self.airports_iata[iata] if iata in self.airports_iata.keys() else None
         return self.airports_icao[icao] if icao in self.airports_icao.keys() else None
 
 

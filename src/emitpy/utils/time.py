@@ -21,7 +21,8 @@ def roundTime(dt: datetime, roundTo: int = 300):
 
 def actual_time(scheduled_time: str, is_arrival: bool, delay: int, block: bool = True):
     """
-    Compute the actual time for the supplied scheduled time,
+    Compute the actual time for the supplied scheduled time, and delay in minutes.
+    Returns actual take-off or touch-down time, or off-block and on-block time if block is True.
 
     :param      scheduled_time:  The scheduled time
     :type       scheduled_time:  { type_description }

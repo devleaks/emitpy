@@ -628,6 +628,27 @@ class AirportBase(Airport):
         logger.warning(f":getRunway: runway {n} not found")
         return None
 
+
+    def getRunways(self):
+        """
+        Utility function to get all Runway's for resource usage.
+
+        :returns:   The runways.
+        :rtype:     { return_type_description }
+        """
+        return self.runways
+
+
+    def getRamps(self):
+        """
+        Utility function to get all Ramp's for resource usage.
+
+        :returns:   The ramps.
+        :rtype:     { return_type_description }
+        """
+        return self.ramps
+
+
     def selectRamp(self, flight: 'Flight') -> Ramp:
         """
         Gets a valid ramp for flight depending on its attibutes.
