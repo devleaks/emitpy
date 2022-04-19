@@ -21,7 +21,6 @@ class AITFCFormatter(Formatter):
         Formatter.__init__(self, feature=feature)
         self.name = "lt"
 
-    def __str__(self):
         # AITFC,hexid   ,lat    ,lon      ,alt  ,vs  ,airborne,hdg,spd,cs     ,type,tail  ,from,to ,timestamp
         # AITFC,11231627,34.9619,-116.6734,31174,1088,1       ,47 ,493,UAL1136,A319,N832UA,LAX ,DEN,1593034598
         # AITFC,11231627,34.9619,-116.6734,31174,1088,1,47,493,UAL1136,A319,N832UA,LAX,DEN,1593034598
@@ -50,11 +49,12 @@ class AITFCFormatter(Formatter):
         heading = f.getProp("heading")
 
         actype = f.getProp("aircraft:actype:actype")  # ICAO
-        if f.getProp("service-type") is not None:  # service
+        if f.getProp("service-type") is not None or f.getProp("mission") is not None:  # mission or service
             callsign = f.getProp("vehicle:callsign").replace(" ","").replace("-","")
+            tailnumber = f.getProp("vehicle:icao")
         else:  # fight
             callsign = f.getProp("aircraft:callsign").replace(" ","").replace("-","")
-        tailnumber = f.getProp("aircraft:acreg")
+            tailnumber = f.getProp("aircraft:acreg")
         aptfrom = f.getProp("departure:icao")     # IATA
         aptto = f.getProp("arrival:icao")  # IATA
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
@@ -84,4 +84,5 @@ class LiveTrafficWeather(Formatter):
             "METAR": self.metar.metarcode,
             "NAME": Airport.findICAO(self.metar.station_id)
         }
+        logger.debug(f"LiveTrafficWeather: {weather}")
         return json.dumps(weather)

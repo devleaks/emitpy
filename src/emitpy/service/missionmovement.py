@@ -35,7 +35,11 @@ class MissionMove(Movement):
 
 
     def getInfo(self):
-        return self.mission.getInfo()
+        return {
+            "type": "mission",
+            "ident": self.getId(),
+            "mission": self.mission.getInfo()
+        }
 
 
     def move(self):

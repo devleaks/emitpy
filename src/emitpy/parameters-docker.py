@@ -32,4 +32,10 @@ MANAGED_AIRPORT = {
     "tzname": "Doha"
 }
 
+REDIS_CONNECT = {
+    "host": "redis",
+    "port": 6379,
+    "db": 0
+}
+
 LOAD_AIRWAYS=True  # to speedup developments
