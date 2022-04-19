@@ -203,12 +203,13 @@ class Emit:
             e.setProp(FEATPROP.EMIT_INDEX.value, len(self._emit))
             e.setProp(FEATPROP.BROADCAST.value, not waypt)
             e.setProp(FEATPROP.EMIT_REASON.value, reason)
-            if waypt:
-                e.setColor("#eeeeee")
-                # logger.debug(f":emit:emit_point:waypoint: {reason} i={idx} t={time} ({timedelta(seconds=time)}) s={e.speed()}")
-            else:
-                e.setColor("#ccccff")
-                # logger.debug(f":emit:emit_point: {reason} i={idx} t={time} ({timedelta(seconds=time)}) s={e.speed()}")
+            if not e.hasColor():
+                if waypt:
+                    e.setColor("#eeeeee")
+                    # logger.debug(f":emit:emit_point:waypoint: {reason} i={idx} t={time} ({timedelta(seconds=time)}) s={e.speed()}")
+                else:
+                    e.setColor("#ccccff")
+                    # logger.debug(f":emit:emit_point: {reason} i={idx} t={time} ({timedelta(seconds=time)}) s={e.speed()}")
             self._emit.append(e)
             # logger.debug(f":emit:emit_point: dist2nvtx={round(distance(e, self.moves[idx+1])*1000,1)} i={idx} e={len(self._emit)}")
 
@@ -374,36 +375,47 @@ class Emit:
         Compute interpolated values for altitude and speed based on distance.
         This is a simple linear interpolation based on distance between points.
         Runs for flight portion of flight.
+        Added 13/4/22: First element of array *must* have the property we interpolate set.
         """
         to_interp = self._emit
         # before = []
         check = "vspeed"
-        logger.debug(":interpolate: interpolating ..")
+        logger.debug(f":interpolate: {self.getId()}: interpolating ..")
         for name in ["speed", "vspeed", "altitude"]:
             logger.debug(f":interpolate: .. {name} ..")
             if name == check:
                 before = list(map(lambda x: x.getProp(name), to_interp))
-            status = doInterpolation(to_interp, name)
+            x = to_interp[0].getProp(name)
+            if x is not None:  # first element has value set
+                status = doInterpolation(to_interp, name)
+            else:
+                logger.warning(f":interpolate: {self.getId()}: first value has no property {name}, do not interpolate")
+                continue
             if not status[0]:
                 logger.warning(status[1])
-        logger.debug(":interpolate: .. done.")
+        logger.debug(f":interpolate: {self.getId()}: .. done.")
 
-        logger.debug(":interpolate: checking and transposing altitudes to geojson coordinates..")
-        for f in to_interp:
-            if len(f["geometry"]["coordinates"]) == 2:
-                a = f.altitude()
-                if a is not None:
-                    f["geometry"]["coordinates"].append(float(a))
-                else:
-                    logger.warning(f":interpolate: no altitude? {f['properties']['emit-index']}. Grounded?")
-        logger.debug(":interpolate: .. done.")
+        x = to_interp[0].getProp("altitude")
+        if x is not None:
+            logger.debug(f":interpolate: {self.getId()}: checking and transposing altitudes to geojson coordinates..")
+            for f in to_interp:
+                if len(f["geometry"]["coordinates"]) == 2:
+                    a = f.altitude()
+                    if a is not None:
+                        f["geometry"]["coordinates"].append(float(a))
+                    else:
+                        logger.warning(f":interpolate: no altitude? {f['properties']['emit-index']}. Grounded?")
+            logger.debug(f":interpolate: {self.getId()}: .. done.")
+        else:
+            # may be we should then set altitude to the airport
+            logger.warning(f":interpolate: {self.getId()}: first value has no altitude, do not interpolate altitude")
 
-        logger.debug(":interpolate: computing headings..")
+        logger.debug(f":interpolate: {self.getId()}: computing headings..")
         res = compute_headings(self._emit)
         if not res[0]:
             logger.warning(":emit: problem computing headings")
             return res
-        logger.debug(":interpolate: .. done.")
+        logger.debug(f":interpolate: {self.getId()}: .. done.")
 
 
         # name = check

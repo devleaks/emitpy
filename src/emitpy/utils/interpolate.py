@@ -45,8 +45,13 @@ def interpolate(arr: list, value: str):
     This is a simple linear interpolation based on distance between points.
     Runs for flight portion of flight.
     """
-    # we do have a speed for first point in flight for both arrival (takeoff_speed, apt.alt) and departure (landing_speed, apt.alt)
-    noval_idx = None  # index of last elem with not speed, elem[0] has speed.
+
+    s = arr[0].getProp(value)
+    if s is None:
+        logger.warning(f":interpolate: first value has no property {value}")
+        return (False, f":interpolate: not interpolated {value}, no first value")
+
+    noval_idx = None  # index of last elem with no value, elem[0] has speed.
     for idx in range(1, len(arr)):
         f = arr[idx]
 

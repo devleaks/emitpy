@@ -90,7 +90,7 @@ def main():
     logger.debug("..done")
 
     # managed.service_roads.print(vertex=False)
-    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MARTAR")
+    operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
     # logger.debug("creating service..")
     # service_arr = ServiceFlight(flight=arr, operator=operator)
@@ -105,7 +105,7 @@ def main():
     turnaround.setManagedAirport(managed)
     turnaround.service()
     turnaround.move()
-    turnaround.emit()
+    turnaround.emit(emit_rate=30)
     turnaround.saveDB()
 
     logger.debug("..done")

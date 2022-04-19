@@ -57,7 +57,6 @@ class ServiceFlight:
         svcs = self.flight.aircraft.actype.tarprofile[move]
 
         for svc in svcs:
-            print(">>>", svc)
             sname, sched = list(svc.items())[0]
 
             logger.debug(f"creating service {sname}..")
@@ -65,16 +64,14 @@ class ServiceFlight:
 
             this_service.setRamp(self.flight.ramp)
             this_service.setAircraftType(self.flight.aircraft.actype)
-            if len(sched) > 2:
-                this_vehicle = self.airport.manager.selectServiceVehicle(operator=self.operator, service=this_service, model=sched[2])
-            else:
-                this_vehicle = self.airport.manager.selectServiceVehicle(operator=self.operator, service=this_service)
+            vehicle_model = sched[2] if len(sched) > 2 else None
+            this_vehicle = self.airport.manager.selectServiceVehicle(operator=self.operator,
+                                                                     service=this_service,
+                                                                     model=vehicle_model,
+                                                                     reqtime=self.flight.scheduled_dt)
+
             if this_vehicle is None:
-                return {
-                    "errno": 512,
-                    "errmsg": f"service: vehicle not found",
-                    "data": None
-                }
+                return (True, f"ServiceFlight::service: vehicle not found")
 
             vehicle_startpos = self.airport.selectRandomServiceDepot(sname)
             this_vehicle.setPosition(vehicle_startpos)
@@ -113,11 +110,11 @@ class ServiceFlight:
         return (True, "ServiceFlight::move: completed")
 
 
-    def emit(self):
+    def emit(self, emit_rate: int):
         for service in self.services:
             logger.debug(f"emitting {service['type']}..")
             emit = Emit(service["move"])
-            ret = emit.emit()
+            ret = emit.emit(emit_rate)
             if not ret[0]:
                 return ret
             service["emit"] = emit

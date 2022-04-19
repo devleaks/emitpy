@@ -98,7 +98,9 @@ class Service:
         self.pos_next = position
 
 
-    def serviceDuration(self):
+    def serviceDuration(self, dflt: int = 30 * 60):
+        if self.vehicle is None:
+            return dflt
         return self.vehicle.service_duration(self.quantity)
 
 

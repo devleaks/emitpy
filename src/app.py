@@ -33,14 +33,16 @@ app.config['BOOTSTRAP_BOOTSWATCH_THEME'] = 'lux'  # uncomment this line to test 
 bootstrap = Bootstrap5(app)
 csrf = CSRFProtect(app)
 
+EMIT_RATES = [(str(x), str(x)) for x in [1, 5, 10, 30, 60, 120, 300]]
 
 e = EmitApp(MANAGED_AIRPORT)
 r = RedisUtils()
 
-def validate_icao24(form, field):
-    re.compile('[0-9A-F]{6}', re.IGNORECASE)
-    if re.match(field.data) is None:
-        raise ValidationError('Must be a 6-digit hexadecimal number [0-9A-F]{6}')
+# # using regex validator instead of this custom one.
+# def validate_icao24(form, field):
+#     re.compile('[0-9A-F]{6}', re.IGNORECASE)
+#     if re.match(field.data) is None:
+#         raise ValidationError('Must be a 6-digit hexadecimal number [0-9A-F]{6}')
 
 class CreateFlightForm(FlaskForm):
     airline = SelectField(choices=Airline.getCombo())
@@ -57,6 +59,9 @@ class CreateFlightForm(FlaskForm):
                          validators=[validators.InputRequired("Please provide aircraft ADS-B transponder address"),
                                      validators.Regexp("[0-9A-F]{6}", flags=re.IGNORECASE, message="Must be a 6-digit hexadecimal number [0-9A-F]{6}")])
     runway = SelectField(choices=e.airport.getRunwayCombo())
+    emit_rate = SelectField(choices=EMIT_RATES, default="30",
+                            description="Rate, in seconds, at which position will be emitted",
+                            validators=[validators.InputRequired("Please provide movement type")])
     queue = SelectField(choices=Queue.getCombo())
     # DANGEROUS
     create_services = BooleanField("Create flight services", description="Note: Services created depends on airline, aircraft type, ramp.")
@@ -85,17 +90,18 @@ def create_flight_form():
                       hour=input_t.hour,
                       minute=input_t.minute)
         ret = e.do_flight(queue=form.queue.data,
-                    airline=form.airline.data,
-                    flightnumber=form.flight_number.data,
-                    scheduled=dt.isoformat(),
-                    apt=form.airport.data,
-                    movetype=form.movement.data,
-                    acarr=(form.aircraft_type.data, form.aircraft_type.data),
-                    ramp=form.ramp.data,
-                    icao24=form.icao24.data,
-                    acreg=form.aircraft_reg.data,
-                    runway=form.runway.data,
-                    do_services=form.create_services.data)
+                          emit_rate=int(form.emit_rate.data),
+                          airline=form.airline.data,
+                          flightnumber=form.flight_number.data,
+                          scheduled=dt.isoformat(),
+                          apt=form.airport.data,
+                          movetype=form.movement.data,
+                          acarr=(form.aircraft_type.data, form.aircraft_type.data),
+                          ramp=form.ramp.data,
+                          icao24=form.icao24.data,
+                          acreg=form.aircraft_reg.data,
+                          runway=form.runway.data,
+                          do_services=form.create_services.data)
         if ret.status == 0:
             flash('Flight created', 'success')
         else:
@@ -113,15 +119,20 @@ class CreateServiceForm(FlaskForm):
     aircraft_type = SelectField(choices=Aircraft.getCombo())
     handler = SelectField(choices=[('QAS', 'Qatar Airport Services'), ('BRU', 'Bru Partners'), ('SWI', 'Swissport')])
     service = SelectField(choices=Service.getCombo())
-    quantity = FloatField()
+    quantity = FloatField(validators=[validators.InputRequired("Please provide a quantity to serve")])
     service_vehicle_type = SelectField(choices=ServiceVehicle.getCombo())
-    service_vehicle_reg = StringField("Vehicle Registration", description="Vehicle registration or identifier")
-    icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form of service vehicle")
+    service_vehicle_reg = StringField("Vehicle Registration", description="Vehicle registration", validators=[validators.InputRequired("Please provide aircraft registration")])
+    icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form",
+                         validators=[validators.InputRequired("Please provide aircraft ADS-B transponder address"),
+                                     validators.Regexp("[0-9A-F]{6}", flags=re.IGNORECASE, message="Must be a 6-digit hexadecimal number [0-9A-F]{6}")])
     service_pos = [('depot', 'Depot'), ('rest-area', 'Rest Area')] + e.airport.getRampCombo() + e.airport.getServicePoisCombo()
     previous_position = SelectField(choices=service_pos, description="Position where the service vehicle is coming from")
     next_position = SelectField(choices=service_pos, description="Position where the service vehicle is going to after service")
     service_date = DateField(validators=[validators.optional()])
     service_time = TimeField(validators=[validators.optional()])
+    emit_rate = SelectField(choices=EMIT_RATES, default="30",
+                            description="Rate, in seconds, at which position will be emitted",
+                            validators=[validators.InputRequired("Please provide movement type")])
     queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Create service")
 
@@ -137,17 +148,18 @@ def create_service_form():
                       hour=input_t.hour,
                       minute=input_t.minute)
         ret = e.do_service(queue=form.queue.data,
-                     operator=form.handler.data,
-                     service=form.service.data,
-                     quantity=form.quantity.data,
-                     ramp=form.ramp.data,
-                     aircraft=form.aircraft_type.data,
-                     vehicle_model=form.service_vehicle_type.data,
-                     vehicle_ident=form.service_vehicle_reg.data,
-                     vehicle_icao24=form.icao24.data,
-                     vehicle_startpos=form.previous_position.data,
-                     vehicle_endpos=form.next_position.data,
-                     scheduled=dt.isoformat())
+                           emit_rate=int(form.emit_rate.data),
+                           operator=form.handler.data,
+                           service=form.service.data,
+                           quantity=form.quantity.data,
+                           ramp=form.ramp.data,
+                           aircraft=form.aircraft_type.data,
+                           vehicle_model=form.service_vehicle_type.data,
+                           vehicle_ident=form.service_vehicle_reg.data,
+                           vehicle_icao24=form.icao24.data,
+                           vehicle_startpos=form.previous_position.data,
+                           vehicle_endpos=form.next_position.data,
+                           scheduled=dt.isoformat())
         if ret.status == 0:
             flash('Service created', 'success')
         else:
@@ -164,12 +176,17 @@ class CreateMissionForm(FlaskForm):
     operator = SelectField(choices=[('QAS', 'Qatar Airport Security'), ('QAFD', 'Qatar Airport Fire Department'), ('QAPD', 'Qatar Airport Police Department')])
     mission = SelectField(choices=Mission.getCombo())
     service_vehicle_type = SelectField(choices=MissionVehicle.getCombo())
-    service_vehicle_reg = StringField("Vehicle Registration", description="Vehicle registration or identifier")
-    icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form of service vehicle")
+    service_vehicle_reg = StringField("Vehicle Registration", description="Vehicle registration or identifier", validators=[validators.InputRequired("Please provide vehicle registration")])
+    icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form",
+                         validators=[validators.InputRequired("Please provide aircraft ADS-B transponder address"),
+                                     validators.Regexp("[0-9A-F]{6}", flags=re.IGNORECASE, message="Must be a 6-digit hexadecimal number [0-9A-F]{6}")])
     previous_position = SelectField(choices=e.airport.getPOICombo(), description="Position where the mission vehicle will start")
     next_position = SelectField(choices=e.airport.getPOICombo(), description="Position where the mission vehicle will go after last checkpoint")
     mission_date = DateField(validators=[validators.optional()])
     mission_time = TimeField(validators=[validators.optional()])
+    emit_rate = SelectField(choices=EMIT_RATES, default="30",
+                            description="Rate, in seconds, at which position will be emitted",
+                            validators=[validators.InputRequired("Please provide movement type")])
     queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Create service")
 
@@ -185,6 +202,7 @@ def create_mission_form():
                       hour=input_t.hour,
                       minute=input_t.minute)
         ret = e.do_mission(queue=form.queue.data,
+                           emit_rate=int(form.emit_rate.data),
                            operator=form.operator.data,
                            checkpoints=[],
                            mission=form.mission.data,

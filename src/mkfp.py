@@ -25,7 +25,8 @@ def main():
         descentRate=1500,
         descentSpeed=250)
 
-    print("got plan" if plan.getFlightPlan() is not None else "not found")
+    p = plan.getFlightPlan()
+    print(p if p is not None else "not found")
 
 if __name__ == "__main__":
     main()

@@ -50,8 +50,7 @@ class Mission:
             "operator": self.operator.getInfo(),
             "mission": self.mission,
             "vehicle": self.vehicle.getInfo(),
-            "icao24": self.vehicle.icao24,
-            "ident": self.vehicle.registration
+            "icao24": self.vehicle.icao24
         }
 
     def __str__(self):
