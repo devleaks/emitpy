@@ -7,7 +7,7 @@ import time
 from math import inf
 from turfpy.measurement import distance
 
-from .airspace import Airspace, Apt, Fix, ControlledPoint, AirwaySegment, CPIDENT
+from .airspace import Airspace, Terminal, Fix, ControlledPoint, AirwaySegment, CPIDENT
 from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 
 from ..parameters import DATA_DIR
@@ -92,7 +92,7 @@ class XPAirspace(Airspace):
                 lon = float(args[15])
                 alt = int(args[13])
                 if lat != 0.0 or lon != 0.0:
-                    apt = Apt(args[0], lat, lon, alt, args[1], args[2], args[3], args[4])
+                    apt = Terminal(args[0], lat, lon, alt, args[1], args[2], args[3], args[4])
                     self.airports_iata[args[1]] = apt
                     self.airports_icao[args[0]] = apt
                     self.add_vertex(apt)

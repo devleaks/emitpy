@@ -35,6 +35,11 @@ MANAGED_AIRPORT = {
 
 LOAD_AIRWAYS=False  # to speedup developments
 
+REDIS_CONNECT = {
+    "host": "locahost",
+    "port": 6379,
+    "db": 0
+}
 
 # REDIS stuff if not on same host
 

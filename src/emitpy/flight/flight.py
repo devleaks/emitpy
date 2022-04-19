@@ -38,6 +38,10 @@ class Flight:
         self.dep_procs = None
         self.arr_procs = None
         self.rwy = None               # RWY object
+        self.meta = {
+            "departure": {},
+            "arrival": {}
+        }
 
         self.flight_type = PAYLOAD.PAX
         try:
@@ -99,7 +103,9 @@ class Flight:
             "flightnumber": self.getName(),
             "codeshare": self.codeshare,
             "ramp": self.ramp.getInfo() if self.ramp is not None else {},
-            "runway": self.runway.getInfo() if self.runway is not None else {}  # note: this is the GeoJSON feature, not the RWY procedure
+            "runway": self.runway.getInfo() if self.runway is not None else {},  # note: this is the GeoJSON feature, not the RWY procedure
+            # "metar": self.metar,
+            "meta": self.meta
         }
 
 
@@ -228,6 +234,7 @@ class Flight:
         rwydep = None
 
         # RWY
+        # self.meta["departure"]["metar"] = depapt.getMetar()
         if depapt.has_rwys():
             rwydep = depapt.selectRWY(self)
             logger.debug(f":plan: departure airport {depapt.icao} using runway {rwydep.name}")
@@ -237,6 +244,7 @@ class Flight:
             planpts[0].setProp("_plan_segment_type", "origin/rwy")
             planpts[0].setProp("_plan_segment_name", depapt.icao+"/"+rwydep.name)
             self.dep_procs = [rwydep]
+            self.meta["departure"]["procedure"] = (rwydep.name)
         else:  # no runway, we leave from airport
             logger.warning(f":plan: departure airport {rwydep.icao} has no runway, first point is departure airport")
             planpts = depapt
@@ -254,6 +262,7 @@ class Flight:
                 Flight.setProp(ret, "_plan_segment_name", sid.name)
                 planpts = planpts + ret
                 self.dep_procs = (rwydep, sid)
+                self.meta["departure"]["procedure"] = (rwydep.name, sid.name)
             else:
                 logger.warning(f":plan: departure airport {depapt.icao} has no SID for {rwydep.name}")
 
@@ -276,6 +285,7 @@ class Flight:
         rwyarr = None
 
         # RWY
+        # self.meta["arrival"]["metar"] = depapt.getMetar()
         if arrapt.has_rwys():
             rwyarr = arrapt.selectRWY(self)
             logger.debug(f":plan: arrival airport {arrapt.icao} using runway {rwyarr.name}")
@@ -286,6 +296,7 @@ class Flight:
             Flight.setProp(ret, "_plan_segment_name", rwyarr.name)
             planpts = planpts[:-1] + ret  # no need to add last point which is arrival airport, we replace it with the precise runway end.
             self.arr_procs = [rwyarr]
+            self.meta["arrival"]["procedure"] = (rwyarr.name)
         else:  # no star, we are done, we arrive in a straight line
             logger.warning(f":plan: arrival airport {arrapt.icao} has no runway, last point is arrival airport")
 
@@ -300,6 +311,7 @@ class Flight:
                 Flight.setProp(ret, "_plan_segment_name", star.name)
                 planpts = planpts[:-1] + ret + [planpts[-1]]  # insert STAR before airport
                 self.arr_procs = (rwyarr, star)
+                self.meta["arrival"]["procedure"] = (rwyarr.name, star.name)
             else:
                 logger.warning(f":plan: arrival airport {arrapt.icao} has no STAR for runway {rwyarr.name}")
         else:  # no star, we are done, we arrive in a straight line
@@ -319,6 +331,7 @@ class Flight:
                 else:
                     planpts = planpts[:-1] + ret + [planpts[-1]]  # insert APPCH before airport
                 self.arr_procs = (rwyarr, star, appch)
+                self.meta["arrival"]["procedure"] = (rwyarr.name, star.name, appch.name)
             else:
                 logger.warning(f":plan: arrival airport {arrapt.icao} has no APPCH for {rwyarr.name} ")
         else:

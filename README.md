@@ -14,3 +14,5 @@ I used their tools and free software numerous time during the development of min
  3. LiveTraffic, to allow me to "inject" my generated tracks into X-Plane and get a "Digital Twin" vizualisation of them.
  4. XPPython3, to allow me to smoothly integrate my development to X-Plane
 
+
+Gépès Cidesimal & Ahouiyassa.
