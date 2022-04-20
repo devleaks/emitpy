@@ -49,7 +49,6 @@ class FlightPlanBase:
         self.routeLS = None
         self.api = None
 
-
         # creates file caches
         self.flightplan_cache = os.path.join(DATA_DIR, "managedairport", managedAirport, "flightplans")
         if not os.path.exists(self.flightplan_cache):
@@ -67,7 +66,7 @@ class FlightPlanBase:
         if FLIGHT_PLAN_DATABASE_APIKEY != "":
             self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
         else:
-            logger.warning(":init: no api key to flightplandatabase, no route will be computed")
+            logger.warning(":init: no api key to flightplandatabase, no route will be computed from flight plan database")
 
         # For development
         if DEVELOPMENT or not PRODUCTION:
@@ -103,10 +102,11 @@ class FlightPlanBase:
             with open(ffp, "r") as file:
                 self.flight_plan = json.load(file)
                 self._convertToGeoJSON()
-                logger.debug("getFlightPlan: %d from file cache %s" % (self.flight_plan["id"], ffp))
+                logger.debug(f"getFlightPlan: {self.flight_plan['id']} from file cache {ffp}")
 
             return self.flight_plan
 
+        logger.debug(f"getFlightPlan: no cached plan {ffp}, fetching from database")
         return self.fetchFlightPlan()
 
 

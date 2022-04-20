@@ -7,7 +7,7 @@ import os
 DEVELOPMENT = False  # produces additional debug
 PRODUCTION = True  # removed caches and short circuits
 
-HOME_DIR = "/app"
+HOME_DIR = os.path.join(".", "..")
 
 # DATA is a database of static data, definitions, etc.
 DATA_DIR = os.path.join(HOME_DIR, "data")
@@ -41,9 +41,9 @@ DEFAULT_QUEUES = {
 
 # REDIS stuff if not on same host
 REDIS_CONNECT = {
-    "host": "macbookdepierre.voo.be", # "redis",
+    "host": "localhost", # "redis",
     "port": 6379,
     "db": 0
 }
 
-LOAD_AIRWAYS=True  # to speedup developments
+LOAD_AIRWAYS=False  # to speedup developments

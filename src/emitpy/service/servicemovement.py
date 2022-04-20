@@ -196,6 +196,10 @@ class ServiceMove(Movement):
 
 
     def move_loop(self):
+        """
+        Simulates a vehicle that goes back and forth between the aircraft and a depot
+        until all load is loaded/unloaded.
+        """
         # BEGINNING OF LOOP, go to ramp
         #
         speeds = self.service.vehicle.speed

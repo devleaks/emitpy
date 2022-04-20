@@ -36,10 +36,10 @@ class FormatToRedis(Format):
             r.zrem(queue, *oldvalues)
             # 2. Remove enqueued list
             r.delete(enqueued)
-            logger.debug(f":enqueue: deleted {len(oldvalues)} entries")
+            logger.debug(f":dequeue: dequeued {len(oldvalues)} entries for {ident}")
         else:
-            logger.debug(f":enqueue: no enqueued entries for {len(oldvalues)}")
-        return (True, f"Format::dequeue dequeued {ident}")
+            logger.debug(f":dequeue: no enqueued entries for {len(oldvalues)}")
+        return (True, f"FormatToRedis::dequeue dequeued {ident}")
 
 
     @staticmethod
@@ -55,8 +55,8 @@ class FormatToRedis(Format):
         r.delete(enqueued)
         # 3. Remove from list of available emissions
         r.srem(REDIS_DATABASE.MOVEMENTS.value, ident)
-        logger.debug(f":enqueue: deleted {ident} emits")
-        return (True, f"Format::delete deleted {ident}")
+        logger.debug(f":delete: deleted {ident} emits")
+        return (True, f"FormatToRedis::delete deleted {ident}")
 
 
     def save(self, overwrite: bool = False):
@@ -67,21 +67,20 @@ class FormatToRedis(Format):
             logger.warning(":save: no emission point")
             return (False, "FormatToRedis::save: no emission point")
 
-        ident = self.emit.getId()
-        ident = ident + REDIS_TYPE.FORMAT.value
+        emit_id = self.emit.mkDBKey(REDIS_TYPE.FORMAT.value)  # ident + REDIS_TYPE.EMIT.value
 
-        n = self.redis.scard(ident)
+        n = self.redis.scard(emit_id)
         if n > 0 and not overwrite:
-            logger.warning(f":save: key {ident} already exist, not saved")
+            logger.warning(f":save: key {emit_id} already exist, not saved")
             return (False, "FormatToRedis::save key already exist")
 
         if n > 0:
-            self.redis.delete(ident)
+            self.redis.delete(emit_id)
         tosave = []
         for f in self.output:
             tosave.append(str(f))
-        self.redis.sadd(ident, *tosave)
-        logger.debug(f":save: key {ident} saved {len(tosave)} entries")
+        self.redis.sadd(emit_id, *tosave)
+        logger.debug(f":save: key {emit_id} saved {len(tosave)} entries")
         return (True, "FormatToRedis::save completed")
 
 
@@ -94,19 +93,19 @@ class FormatToRedis(Format):
             return (False, "FormatToRedis::enqueue: no emission point")
 
         ident = self.emit.getId()
-        ident = ident + REDIS_TYPE.QUEUE.value
+        emit_id = self.emit.mkDBKey(REDIS_TYPE.QUEUE.value)
 
-        oldvalues = self.redis.smembers(ident)
+        oldvalues = self.redis.smembers(emit_id)
         if oldvalues and len(oldvalues) > 0:
             self.redis.zrem(queue, *oldvalues)
-            self.redis.delete(ident)
+            self.redis.delete(emit_id)
             logger.debug(f":enqueue: removed {len(oldvalues)} old entries")
 
         emit = {}
         for f in self.output:
             emit[str(f)] = f.ts
         self.redis.zadd(queue, emit)
-        self.redis.sadd(ident, *list(emit.keys()))
+        self.redis.sadd(emit_id, *list(emit.keys()))
         logger.debug(f":enqueue: added {len(emit)} new entries")
         self.redis.publish("Q"+queue, "new-data")
 

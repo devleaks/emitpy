@@ -105,7 +105,7 @@ class Flight:
             "ramp": self.ramp.getInfo() if self.ramp is not None else {},
             "runway": self.runway.getInfo() if self.runway is not None else {},  # note: this is the GeoJSON feature, not the RWY procedure
             # "metar": self.metar,
-            "meta": self.meta
+            # "meta": self.meta
         }
 
 
@@ -176,15 +176,18 @@ class Flight:
 
         if not self.flightplan.has_plan():
             logger.warning(":loadFlightPlan: no flight plan in database")
-             # return
 
-        if LOAD_AIRWAYS:
-            logger.debug(":loadFlightPlan: trying to build own route..")
-            self.flightplan = FlightPlanRoute(managedAirport=self.managedAirport.icao, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
-            logger.debug(":loadFlightPlan: ..done")
+            if LOAD_AIRWAYS:  # we loaded airways, we try to build our route
+                logger.debug(":loadFlightPlan: trying to build route..")
+                self.flightplan = FlightPlanRoute(managedAirport=self.managedAirport.icao, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
+                if self.flightplan is not None:
+                    if self.flightplan.has_plan():
+                        logger.debug(":loadFlightPlan: ..found")
+                    else:
+                        logger.warning(":loadFlightPlan: ..no route for flight, no plan")
 
         if not self.flightplan.has_plan():
-            logger.warning(":loadFlightPlan: no route for flight, no plan")
+            logger.warning(":loadFlightPlan: no flight plan, cannot proceed.")
             return
 
         fplen = len(self.flightplan.nodes())
