@@ -126,3 +126,4 @@ src/http_cache.sqlite
 *.rdb
 data/aircraft-types/aircraft-types.csv
 .DS_Store
+src/data-docker.tar

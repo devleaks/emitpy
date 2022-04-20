@@ -19,8 +19,6 @@ services:
 
   app:
     build: src
-    volumes:
-      - app/db:/app/db
     ports:
       - "8000:8000"
     links:
@@ -30,4 +28,3 @@ services:
 
 volumes:
   redis-data:
-  app:
