@@ -15,7 +15,7 @@ from geojson import Feature, LineString, Point, FeatureCollection
 
 from ..utils import FT
 from ..private import FLIGHT_PLAN_DATABASE_APIKEY
-from ..parameters import DEVELOPMENT, PRODUCTION
+from ..parameters import DEVELOPMENT, PRODUCTION, DATA_DIR
 
 import logging
 
@@ -47,23 +47,27 @@ class FlightPlanBase:
         self.flight_plan = None
         self.route = None
         self.routeLS = None
+        self.api = None
 
 
         # creates file caches
-        self.flightplan_cache = os.path.join("..", "data", "managedairport", managedAirport, "flightplans")
+        self.flightplan_cache = os.path.join(DATA_DIR, "managedairport", managedAirport, "flightplans")
         if not os.path.exists(self.flightplan_cache):
-            logger.warning("no file plan cache directory")
+            logger.warning(":init: no file plan cache directory")
             #print("create new fpdb file cache")
             #os.mkdir(self.flightplan_cache)
 
-        self.airports_cache = os.path.join("..", "data", "airports", "fpdb")
+        self.airports_cache = os.path.join(DATA_DIR, "airports", "fpdb")
         if not os.path.exists(self.airports_cache):
-            logger.warning("no airport cache directory")
+            logger.warning(":init: no airport cache directory")
             #print("create new fpdb file cache")
             #os.mkdir(self.flightplan_cache)
 
         self.filename = f"{fromICAO.lower()}-{toICAO.lower()}"
-        self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
+        if FLIGHT_PLAN_DATABASE_APIKEY != "":
+            self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
+        else:
+            logger.warning(":init: no api key to flightplandatabase, no route will be computed")
 
         # For development
         if DEVELOPMENT or not PRODUCTION:
@@ -126,6 +130,10 @@ class FlightPlanBase:
         fpid = None
         plans = None
 
+        if self.api is None:
+            logger.warning("fetchFlightPlan: no api")
+            return None
+
         try:
             plans = self.api.user.plans(username="devleaks", limit=1000)
         except BaseErrorHandler:
@@ -168,6 +176,10 @@ class FlightPlanBase:
 
 
     def createFPDBFlightPlan(self):
+        if self.api is None:
+            logger.warning("createFPDBFlightPlan: no api")
+            return None
+
         plan_data = GenerateQuery(
             fromICAO=self.fromICAO,
             toICAO=self.toICAO
@@ -202,6 +214,10 @@ class FlightPlanBase:
         """
         We cache airport data because it contains interesting information like elevation.
         """
+        if self.api is None:
+            logger.warning("cacheAirports: no api")
+            return None
+
         for f in [self.fromICAO, self.toICAO]:
             fn = os.path.join(self.airports_cache, f + ".json")
             if not os.path.exists(fn) or os.stat(fn).st_size == 0 or self.force:

@@ -12,6 +12,8 @@ import re
 
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT
+from emitpy.private import SECRET_KEY
+from emitpy.constants import EMIT_RATES
 from emitpy.utils import Timezone
 from emitpy.aircraft import AircraftPerformance as Aircraft
 from emitpy.airport import Airport
@@ -23,7 +25,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("app")
 
 app = Flask(__name__)
-app.secret_key = 'dev'
+app.secret_key = SECRET_KEY
 
 # set default button sytle and size, will be overwritten by macro parameters
 app.config['BOOTSTRAP_BTN_STYLE'] = 'primary'
@@ -32,8 +34,6 @@ app.config['BOOTSTRAP_BOOTSWATCH_THEME'] = 'lux'  # uncomment this line to test 
 
 bootstrap = Bootstrap5(app)
 csrf = CSRFProtect(app)
-
-EMIT_RATES = [(str(x), str(x)) for x in [1, 5, 10, 30, 60, 120, 300]]
 
 e = EmitApp(MANAGED_AIRPORT)
 r = RedisUtils()
