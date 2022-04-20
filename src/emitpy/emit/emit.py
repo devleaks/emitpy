@@ -47,6 +47,8 @@ class Emit:
     def __init__(self, move: Movement = None):
         self.move = move
         self.moves = None
+        self.emit_id = None
+        self.emit_type = None
         self.frequency = 30  # seconds
         self._emit = []  # [ EmitPoint ], time-relative emission of messages
         self.scheduled_emit = []  # [ EmitPoint ], a copy of self._emit but with actual emission time (absolute time)
@@ -57,9 +59,11 @@ class Emit:
         self.offset = None
 
         if move is not None:
+            self.emit_id = self.move.getId()
+            m = self.move.getInfo()
+            self.emit_type = m["type"]
             self.moves = self.move.getMoves()
-            # collect common props from movement
-            self.props = self.move.getInfo()
+            self.props = self.move.getInfo()  # collect common props from movement
             logger.debug(f":__init__: {len(self.moves)} points to emit with props {self.props}")
 
 
@@ -75,11 +79,20 @@ class Emit:
         return a
 
 
+    def mkDBKey(self, extension: str):
+        return self.emit_id + ":" + extension
+
+
+    def parseDBKey(self, emit_id: str):
+        arr = emit_id.split(":")
+        self.emit_id = ":".join(arr[:-1])  # remove extension
+
+
     def save(self):
         """
         Save flight paths to file for emitted positions.
         """
-        ident = self.move.getId()
+        ident = self.getId()
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, ident)
 
         # filename = os.path.join(basename + "-5-emit.json")
@@ -105,7 +118,7 @@ class Emit:
         if self.redis is None:
             self.redis = redis.Redis()
 
-        ident = self.move.getId()
+        ident = self.getId()
         emit_id = ident + REDIS_TYPE.EMIT.value
 
         emit = {}
@@ -116,7 +129,7 @@ class Emit:
         self.redis.sadd(REDIS_DATABASE.MOVEMENTS.value, ident)
 
         if self.props is not None and len(self.props) > 0:
-            ident = self.move.getId()
+            ident = self.getId()
             emit_id = ident + REDIS_TYPE.EMIT_META.value
             self.redis.set(emit_id, json.dumps(self.props))
 
@@ -124,15 +137,16 @@ class Emit:
         return (True, "Movement::saveDB saved")
 
 
-    def load(self, flight_id):
+    def load(self, emit_id):
         # load output of Movement file.
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, flight_id)
+        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, emit_id)
 
         filename = os.path.join(basename, "-4-move.json")
         if os.path.exists(filename):
             with open(filename, "r") as fp:
                 self.moves = json.load(fp)
-            logger.debug(":loadAll: loaded %d " % self.flight_id)
+            self.emit_id = emit_id
+            logger.debug(":loadAll: loaded %d " % self.emit_id)
             return (True, "Movement::load loaded")
 
         logger.debug(f":loadAll: cannot find {filename}")
@@ -140,7 +154,28 @@ class Emit:
 
 
     def getId(self):
-        return self.move.getId()
+        """
+        Gets the underlying movement identifier. The movement identifier contains the type of movement
+        (flight, service, or mission)
+        """
+        return self.emit_id
+
+
+    def getInfo(self):
+        """
+        Emit's own identifier based on the underlying movement identifier.
+        """
+        ty = "unknown"
+        m = self.move.getInfo()
+        if m is not None:
+            ty = m.type
+        return {
+            "type": "emit",
+            "subtype": ty,
+            "ident": self.emit_id,
+            "frequency": self.frequency,
+            "version": self.version
+        }
 
 
     def emit(self, frequency: int = 30):

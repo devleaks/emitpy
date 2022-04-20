@@ -365,7 +365,7 @@ class AirportBase(Airport):
         a = [(a.getProp("name"), "RW" + a.getProp("name")) for a in l]
         return a
 
-    def setMETAR(self, metar: 'Metar'):
+    def setMETAR(self, metar: "Metar"):
         """
         Set METAR at airport. Triggers computation of operational runways depending on wind direction.
 

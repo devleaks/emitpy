@@ -240,9 +240,9 @@ class Fix(ControlledPoint):
 # A I R P O R T S
 #
 #
-class Apt(ControlledPoint):
+class Terminal(ControlledPoint):
     """
-    This airport is a ControlledPoint airport. Should may be renamed Terminal?
+    This Terminam is a ControlledPoint airport.
     """
     AS_WAYPOINTS = {}
 
@@ -251,9 +251,9 @@ class Apt(ControlledPoint):
         self.iata = iata
         self.country = country
         self.city = city
-        # logger.debug(f"Apt:__init__: name: {self.id} / {name[0:2]}:{iata} / {longname}")
+        # logger.debug(f"Terminal:__init__: name: {self.id} / {name[0:2]}:{iata} / {longname}")
         self.name = longname
-        Apt.AS_WAYPOINTS[f"{name[0:2]}:{iata}"] = self  # keep region:iata name for reference in lnav
+        Terminal.AS_WAYPOINTS[f"{name[0:2]}:{iata}"] = self  # keep region:iata name for reference in lnav
 
         if len(self["geometry"]["coordinates"]) > 2:
             self["geometry"]["coordinates"][2] = alt
@@ -262,7 +262,7 @@ class Apt(ControlledPoint):
 
     @staticmethod
     def as_waypoint(name):
-        return Apt.AS_WAYPOINTS[name] if name in Apt.AS_WAYPOINTS.keys() else None
+        return Terminal.AS_WAYPOINTS[name] if name in Terminal.AS_WAYPOINTS.keys() else None
 
 
 ################################

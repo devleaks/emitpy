@@ -55,11 +55,16 @@ class FlightMovement(Movement):
 
 
     def getId(self):
-        return self.flight_id
+        return self.flight.getId()
 
 
     def getInfo(self):
-        return self.flight.getInfo()
+        return {
+            "type": "flight",
+            "ident": self.getId(),
+            "flight": self.flight.getInfo()
+        }
+        return
 
 
     def move(self):
