@@ -14,7 +14,6 @@ logger = logging.getLogger("FormatToRedis")
 
 class FormatToRedis(Format):
 
-
     def __init__(self, emit: "Emit", formatter: Formatter):
         Format.__init__(self, emit=emit, formatter=formatter)
         self.redis = redis.Redis(**REDIS_CONNECT)

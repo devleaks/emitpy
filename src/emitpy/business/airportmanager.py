@@ -18,7 +18,7 @@ from ..time import AllocationTable
 
 from ..parameters import DATA_DIR
 
-SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
+MANAGED_AIRPORT_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 
 
 logger = logging.getLogger("AirportManager")
@@ -67,7 +67,7 @@ class AirportManager:
         """
         Loads an airport's data file and place its content in self.data
         """
-        self.airport_base_path = os.path.join(SYSTEM_DIRECTORY, self.icao)
+        self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
         business = os.path.join(self.airport_base_path, "airport.yaml")
         if os.path.exists(business):
             with open(business, "r") as fp:
@@ -205,7 +205,7 @@ class AirportManager:
         """
         Loads service vehicle fleet and creates vehicle.
         """
-        self.airport_base_path = os.path.join(SYSTEM_DIRECTORY, self.icao)
+        self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
         business = os.path.join(self.airport_base_path, "servicevehiclefleet.yaml")
         if os.path.exists(business):
             with open(business, "r") as fp:

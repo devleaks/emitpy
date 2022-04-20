@@ -51,7 +51,8 @@ class ManagedAirport:
         manager = AirportManager(icao=self._this_airport["ICAO"], operator=operator)
         ret = manager.load()
         if not ret[0]:
-            print("Airport manager not loaded")
+            logger.warning("Airport manager not loaded")
+            return ret
 
         logger.debug("..loading managed airport..")
         self.airport = XPAirport(
@@ -66,18 +67,22 @@ class ManagedAirport:
             alt=self._this_airport["elevation"])
         ret = self.airport.load()
         if not ret[0]:
-            print("Managed airport not loaded")
+            logger.warning("Managed airport not loaded")
+            return ret
+
+        logger.debug("..setting resources..")
 
         self.airport.setAirspace(airspace)
 
         # Set for resource usage
         manager.setRamps(self.airport.getRamps())
         manager.setRunways(self.airport.getRunways())
-
         self.airport.setManager(manager)
-        logger.debug("..done")
 
+
+        logger.debug("..updating metar..")
         self.update_metar()
+        logger.debug("..done")
         return (True, "ManagedAirport::init done")
 
 
@@ -88,8 +93,8 @@ class ManagedAirport:
         at regular interval. (It will, sometimes, be automatic (Thread).)
         (Let's dream, someday, it will load, parse and interpret TAF.)
         """
-        logger.debug("collecting METAR..")
+        logger.debug(":update_metar: collecting METAR..")
         # Prepare airport for each movement
         metar = Metar(icao=self._this_airport["ICAO"], use_redis=True)
         self.airport.setMETAR(metar=metar)  # calls prepareRunways()
-        logger.debug("..done")
+        logger.debug(":update_metar: ..done")

@@ -331,7 +331,7 @@ class Flight:
                 else:
                     planpts = planpts[:-1] + ret + [planpts[-1]]  # insert APPCH before airport
                 self.arr_procs = (rwyarr, star, appch)
-                self.meta["arrival"]["procedure"] = (rwyarr.name, star.name, appch.name)
+                self.meta["arrival"]["procedure"] = (rwyarr.name, star.name if star is not None else "no STAR", appch.name)
             else:
                 logger.warning(f":plan: arrival airport {arrapt.icao} has no APPCH for {rwyarr.name} ")
         else:

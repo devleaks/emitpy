@@ -394,3 +394,5 @@ TAKEOFF_QUEUE_SIZE = 1
 
 TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
 SLOW_SPEED = 1.4 # 1.4m/s = 5km/h = slow speed
+
+EMIT_RATES = [(str(x), str(x)) for x in [1, 5, 10, 30, 60, 120, 300]]

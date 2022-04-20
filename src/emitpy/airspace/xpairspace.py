@@ -105,7 +105,7 @@ class XPAirspace(Airspace):
         file.close()
 
         logger.debug(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
-        return [True, "XPXPAirspace::Airport loaded"]
+        return [True, "XPAirspace::Airport loaded"]
 
     def getAirportIATA(self, iata):
         """
@@ -164,7 +164,7 @@ class XPAirspace(Airspace):
         file.close()
 
         logger.debug(":loadFixes: %d/%d fixes loaded.", len(self.vert_dict.keys()) - startLen, count)
-        return [True, "XPXPAirspace::Fixes loaded"]
+        return [True, "XPAirspace::Fixes loaded"]
 
 
     def loadNavaids(self):
@@ -249,7 +249,7 @@ class XPAirspace(Airspace):
         file.close()
 
         logger.debug(":loadNavaids: %d/%d navaids loaded.", len(self.vert_dict.keys()) - startLen, count)
-        return [True, "XPXPAirspace::Navaids loaded"]
+        return [True, "XPAirspace::Navaids loaded"]
 
 
     def createIndex(self):
@@ -412,7 +412,7 @@ class XPAirspace(Airspace):
         self.dropIndex()
 
         logger.debug(":loadAirwaySegments: %d segments loaded.", len(self.edges_arr))
-        return [True, "XPXPAirspace::AirwaySegments loaded"]
+        return [True, "XPAirspace::AirwaySegments loaded"]
 
 
     def loadHolds(self):
@@ -465,6 +465,6 @@ class XPAirspace(Airspace):
 
         # logger.info(":loadHolds: %d holds loaded.", len(self.holds))
         logger.debug(f":loadHolds: {len(self.holds)} holds loaded. {self.holds.keys()}")
-        return [True, "XPXPAirspace::Holds loaded"]
+        return [True, "XPAirspace::Holds loaded"]
 
 
