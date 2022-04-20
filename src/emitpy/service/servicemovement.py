@@ -35,7 +35,11 @@ class ServiceMove(Movement):
 
 
     def getInfo(self):
-        return self.service.getInfo()
+        return {
+            "type": "service",
+            "ident": self.getId(),
+            "service": self.service.getInfo()
+        }
 
 
     def move(self):

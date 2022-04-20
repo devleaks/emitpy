@@ -42,7 +42,7 @@ class Format:
             return LiveTrafficFormatter
         elif name == "viewapp":
             return ViewerFormatter
-        # default is raw
+        # default is raw, i.e. leave as it is
         return Formatter
 
     def format(self):
