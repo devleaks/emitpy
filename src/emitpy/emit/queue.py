@@ -3,6 +3,7 @@ import logging
 
 from redis import Redis
 from ..constants import REDIS_DATABASE, REDIS_QUEUE
+from ..parameters import REDIS_CONNECT
 
 logger = logging.getLogger("Queue")
 
@@ -23,7 +24,7 @@ class Queue:
         Instantiate Queue from characteristics saved in Redis
         """
         queues = {}
-        r = Redis()
+        r = Redis(**REDIS_CONNECT)
         qs = r.smembers(REDIS_DATABASE.QUEUES.value)
         for q in qs:
             qn = Queue.getQueueName(q.decode("UTF-8"))
@@ -37,7 +38,7 @@ class Queue:
         """
         Instantiate Queue from characteristics saved in Redis
         """
-        r = Redis()
+        r = Redis(**REDIS_CONNECT)
         ident = Queue.getAdminQueue(name)
         qstr = r.get(ident)
         q = json.loads(qstr.decode("UTF-8"))
@@ -47,7 +48,7 @@ class Queue:
 
     @staticmethod
     def delete(name):
-        r = Redis()
+        r = Redis(**REDIS_CONNECT)
         ident = Queue.getAdminQueue(name)
         r.srem(REDIS_DATABASE.QUEUES.value, ident)
         r.delete(ident)
@@ -59,7 +60,7 @@ class Queue:
     @staticmethod
     def getCombo():
         prefix = REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + QUEUE_NAME_SEP
-        r = Redis()
+        r = Redis(**REDIS_CONNECT)
         keys = r.keys(prefix + "*")
         return [(k.decode("utf-8").replace(prefix, ""), k.decode("utf-8").replace(prefix, "")) for k in sorted(keys)]
 
@@ -83,7 +84,7 @@ class Queue:
         Saves Queue characteristics in a structure for Broadcaster
         Also saves Queue existence in "list of queues" set ("Queue Database"), to build combo, etc.
         """
-        r = Redis()
+        r = Redis(**REDIS_CONNECT)
         ident = Queue.getAdminQueue(self.name)
         r.set(ident, json.dumps({
             "name": self.name,

@@ -6,6 +6,8 @@ import json
 from datetime import datetime
 from simple_websocket_server import WebSocketServer, WebSocket
 
+from ..parameters import REDIS_CONNECT
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("WSForwarder")
@@ -68,7 +70,7 @@ class WSForwarder:
     def __init__(self, queue_names):
         self.queue_names = queue_names if type(queue_names).__name__ == "list" else [queue_names]
 
-        self.redis = redis.Redis()
+        self.redis = redis.Redis(**REDIS_CONNECT)
         self.pubsub = self.redis.pubsub()
         self._wsserver = WebSocketServer(WSS_HOST, WSS_PORT, WSHandler)
 

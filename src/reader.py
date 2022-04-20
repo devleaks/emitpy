@@ -1,6 +1,7 @@
 import redis
 import logging
 
+from ..parameters import REDIS_CONNECT
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Reader")
@@ -10,7 +11,7 @@ class Reader:
 
     def __init__(self, name: str):
         self.name = name
-        self.redis = redis.Redis()
+        self.redis = redis.Redis(**REDIS_CONNECT)
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe(self.name)
 

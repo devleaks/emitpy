@@ -6,6 +6,7 @@ import redis
 import logging
 
 from ..constants import REDIS_DATABASE
+from ..parameters import REDIS_CONNECT
 from .queue import Queue
 
 logger = logging.getLogger("Broadcaster")
@@ -34,7 +35,7 @@ class Broadcaster:
         else:
             self._starttime = starttime
         self.timeshift = None
-        self.redis = redis.Redis()
+        self.redis = redis.Redis(**REDIS_CONNECT)
         self.pubsub = self.redis.pubsub()
         self.setTimeshift()
 
@@ -185,7 +186,7 @@ class HyperCaster:
     Starts a Broadcaster for each queue
     """
     def __init__(self):
-        self.redis = redis.Redis()
+        self.redis = redis.Redis(**REDIS_CONNECT)
         self.queues = {}
         self.pubsub = self.redis.pubsub()
         self.admin_queue_thread = None
