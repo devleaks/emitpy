@@ -18,7 +18,7 @@ from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, 
 from ..utils import interpolate as doInterpolation, compute_headings
 
 from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE, REDIS_TYPE
-from ..parameters import AODB_DIR
+from ..parameters import AODB_DIR, REDIS_CONNECT
 
 logger = logging.getLogger("Emit")
 
@@ -80,12 +80,13 @@ class Emit:
 
 
     def mkDBKey(self, extension: str):
-        return self.emit_id + ":" + extension
+        return self.emit_type + ":" + self.emit_id + ":" + extension
 
 
     def parseDBKey(self, emit_id: str):
         arr = emit_id.split(":")
-        self.emit_id = ":".join(arr[:-1])  # remove extension
+        self.emit_type = arr[0]
+        self.emit_id = ":".join(arr[1:-1])  # remove extension
 
 
     def save(self):
@@ -116,10 +117,10 @@ class Emit:
             return (False, "Movement::saveDB: no emission point")
 
         if self.redis is None:
-            self.redis = redis.Redis()
+            self.redis = redis.Redis(**REDIS_CONNECT)
 
         ident = self.getId()
-        emit_id = ident + REDIS_TYPE.EMIT.value
+        emit_id = self.mkDBKey(REDIS_TYPE.EMIT.value)  # ident + REDIS_TYPE.EMIT.value
 
         emit = {}
         for f in self._emit:
@@ -130,7 +131,7 @@ class Emit:
 
         if self.props is not None and len(self.props) > 0:
             ident = self.getId()
-            emit_id = ident + REDIS_TYPE.EMIT_META.value
+            emit_id = self.mkDBKey(REDIS_TYPE.EMIT_META.value)  # ident + REDIS_TYPE.EMIT_META.value
             self.redis.set(emit_id, json.dumps(self.props))
 
         logger.debug(f":saveDB: saved {ident}")

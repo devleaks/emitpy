@@ -9,6 +9,7 @@ from .format import Format
 from .formattoredis import FormatToRedis
 from .queue import Queue
 from ..constants import REDIS_QUEUE, REDIS_DATABASE, REDIS_TYPE
+from ..parameters import REDIS_CONNECT
 
 logger = logging.getLogger("EnqueueToRedis")
 
@@ -24,7 +25,7 @@ class EnqueueToRedis(FormatToRedis):  # could/should inherit from Format
 
     @staticmethod
     def dequeue(ident: str, queue: str):
-        r = redis.Redis()
+        r = redis.Redis(**REDIS_CONNECT)
         # Remove ident entries from sending queue.
         enqueued = ident + REDIS_TYPE.QUEUE.value
         # 1. Remove queued elements
@@ -43,7 +44,7 @@ class EnqueueToRedis(FormatToRedis):  # could/should inherit from Format
     def delete(ident: str, queue: str = None):
         # Remove ident entries from sending queue if queue is provided.
         # Remove ident from list of emits (normally, this is done with expiration date).
-        r = redis.Redis()
+        r = redis.Redis(**REDIS_CONNECT)
         enqueued = ident + REDIS_TYPE.QUEUE.value
         # 1. Dequeue
         if queue is not None:

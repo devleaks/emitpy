@@ -5,6 +5,8 @@ import redis
 from datetime import datetime
 from enum import Enum
 
+from ..parameters import REDIS_CONNECT
+
 STATS_PREFIX = "stats$"
 
 class STATS(Enum):
@@ -20,7 +22,7 @@ class STATS(Enum):
 class Stat:
 
     def __init__(self):
-        self.redis = redis.Redis()
+        self.redis = redis.Redis(**REDIS_CONNECT)
         self.stats = []
 
     def init(self):

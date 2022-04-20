@@ -5,11 +5,12 @@ import logging
 logger = logging.getLogger("Utils/Redis")
 
 from ..constants import REDIS_DATABASE, REDIS_QUEUE, REDIS_TYPE
+from ..parameters import REDIS_CONNECT
 
 class RedisUtils:
 
     def __init__(self):
-        self.redis = redis.Redis()
+        self.redis = redis.Redis(**REDIS_CONNECT)
 
     def list_emits(self):
         return self.getKeys(REDIS_TYPE.EMIT.value)

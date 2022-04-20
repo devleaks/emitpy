@@ -7,6 +7,7 @@ import time
 
 from datetime import datetime
 
+from ..parameters import REDIS_CONNECT
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("LiveTrafficForwarder")
@@ -22,7 +23,7 @@ class LiveTrafficForwarder:
     def __init__(self, queue_names):
         self.queue_names = queue_names if type(queue_names).__name__ == "list" else [queue_names]
 
-        self.redis = redis.Redis()
+        self.redis = redis.Redis(**REDIS_CONNECT)
         self.pubsub = self.redis.pubsub()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 

@@ -17,7 +17,7 @@ import flightplandb as fpdb
 # from metar import Metar as MetarLib
 
 from ..constants import METAR_DATABASE
-from ..parameters import AODB_DIR
+from ..parameters import AODB_DIR, REDIS_CONNECT
 
 from ..private import FLIGHT_PLAN_DATABASE_APIKEY
 
@@ -125,7 +125,7 @@ class Metar:
     def saveDB(self):
         if self.raw is not None:
             metid = "METAR:" + self.raw.METAR[0:4] + ':' + self.raw.METAR[5:12]
-            r = redis.Redis()
+            r = redis.Redis(**REDIS_CONNECT)
             if not r.exists(metid):
                 r.set(metid, json.dumps(self.raw._to_api_dict()))
 
@@ -134,7 +134,7 @@ class Metar:
         nowstr = self.moment_norm.strftime('%d%H%MZ')
         metid = "METAR:" + self.icao + ":" + nowstr
         logger.debug(f":loadDB: trying {metid}")
-        r = redis.Redis()
+        r = redis.Redis(**REDIS_CONNECT)
         if r.exists(metid):
             raw = r.get(metid)
             self.raw = json.loads(raw.decode("UTF-8"))
