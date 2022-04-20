@@ -3,13 +3,13 @@ Emit
 """
 import os
 import json
-import logging
+import redis
 import flatdict
+import logging
+
 from datetime import datetime, timedelta
 from random import randrange
-import redis
 from typing import Mapping
-
 from geojson import Feature, FeatureCollection, Point, LineString
 from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
@@ -80,7 +80,7 @@ class Emit:
 
 
     def mkDBKey(self, extension: str):
-        return self.emit_type + ":" + self.emit_id + ":" + extension
+        return self.emit_type + ":" + self.emit_id + extension
 
 
     def parseDBKey(self, emit_id: str):
@@ -119,7 +119,6 @@ class Emit:
         if self.redis is None:
             self.redis = redis.Redis(**REDIS_CONNECT)
 
-        ident = self.getId()
         emit_id = self.mkDBKey(REDIS_TYPE.EMIT.value)  # ident + REDIS_TYPE.EMIT.value
 
         emit = {}
@@ -127,14 +126,14 @@ class Emit:
             emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
         self.redis.delete(emit_id)
         self.redis.zadd(emit_id, emit)
-        self.redis.sadd(REDIS_DATABASE.MOVEMENTS.value, ident)
+        move_id = self.mkDBKey("")
+        self.redis.sadd(REDIS_DATABASE.MOVEMENTS.value, move_id)
 
         if self.props is not None and len(self.props) > 0:
-            ident = self.getId()
-            emit_id = self.mkDBKey(REDIS_TYPE.EMIT_META.value)  # ident + REDIS_TYPE.EMIT_META.value
-            self.redis.set(emit_id, json.dumps(self.props))
+            meta_id = self.mkDBKey(REDIS_TYPE.EMIT_META.value)  # ident + REDIS_TYPE.EMIT_META.value
+            self.redis.set(meta_id, json.dumps(self.props))
 
-        logger.debug(f":saveDB: saved {ident}")
+        logger.debug(f":saveDB: saved {move_id}")
         return (True, "Movement::saveDB saved")
 
 
@@ -385,7 +384,7 @@ class Emit:
             p = flatdict.FlatDict(self.props)
             for f in self._emit:
                 f.addProps(p)
-            logger.debug(f":emit: added { len(self.props) } properties to { len(self._emit) } features")
+            logger.debug(f":emit: added { len(p) } properties to { len(self._emit) } features")
 
         res = compute_headings(self._emit)
         if not res[0]:

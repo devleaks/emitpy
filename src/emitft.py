@@ -23,8 +23,8 @@ csvdata = csv.DictReader(file)
 
 icao = {}
 cnt = 0
-cnt_begin = 25
-cnt_end = cnt_begin + 50
+cnt_begin = 2
+cnt_end = cnt_begin + 1
 
 for r in csvdata:
     """

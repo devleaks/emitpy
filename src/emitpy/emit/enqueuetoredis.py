@@ -32,12 +32,14 @@ class EnqueueToRedis(FormatToRedis):  # could/should inherit from Format
         oldvalues = r.smembers(enqueued)
         if oldvalues and len(oldvalues) > 0:
             r.zrem(queue, *oldvalues)
-            # 2. Remove enqueued list
-            r.delete(enqueued)
-            logger.debug(f":enqueue: deleted {len(oldvalues)} entries")
+            logger.debug(f":dequeue: deleted {len(oldvalues)} entries for {enqueued}")
         else:
-            logger.debug(f":enqueue: no enqueued entries for {len(oldvalues)}")
-        return (True, f"Format::dequeue dequeued {ident}")
+            logger.debug(f":dequeue: no enqueued entries for {enqueued}")
+        # 2. Remove enqueued list
+        r.delete(enqueued)
+        logger.debug(f":dequeue: deleted {enqueued}")
+
+        return (True, f"EnqueueToRedis::dequeue dequeued {ident}")
 
 
     @staticmethod
@@ -45,16 +47,25 @@ class EnqueueToRedis(FormatToRedis):  # could/should inherit from Format
         # Remove ident entries from sending queue if queue is provided.
         # Remove ident from list of emits (normally, this is done with expiration date).
         r = redis.Redis(**REDIS_CONNECT)
-        enqueued = ident + REDIS_TYPE.QUEUE.value
         # 1. Dequeue
         if queue is not None:
             FormatToRedis.dequeue(ident, queue)
-        # 2. Remove emit
-        r.delete(enqueued)
-        # 3. Remove from list of available emissions
+        # 2. Remove formatted
+        emits = ident + REDIS_TYPE.FORMAT.value
+        r.delete(emits)
+        logger.debug(f":delete: deleted {emits} formats")
+        # 3. Remove emit
+        emits = ident + REDIS_TYPE.EMIT.value
+        r.delete(emits)
+        logger.debug(f":delete: deleted {emits} emits")
+        # 4. Remove emit meta
+        emits = ident + REDIS_TYPE.EMIT_META.value
+        r.delete(emits)
+        logger.debug(f":delete: deleted {emits} emit meta data")
+        # 5. Remove from list of available emissions
         r.srem(REDIS_DATABASE.MOVEMENTS.value, ident)
-        logger.debug(f":enqueue: deleted {ident} emits")
-        return (True, f"Format::delete deleted {ident}")
+        logger.debug(f":delete: deleted {ident} emit")
+        return (True, f"EnqueueToRedis::delete deleted {ident}")
 
 
     def enqueue(self):
@@ -63,11 +74,9 @@ class EnqueueToRedis(FormatToRedis):  # could/should inherit from Format
         """
         if self.output is None or len(self.output) == 0:
             logger.warning(":enqueue: no emission point")
-            return (False, "Enqueue::enqueue: no emission point")
+            return (False, "EnqueueToRedis::enqueue: no emission point")
 
-        ident = self.emit.getId()
-        ident = ident + REDIS_TYPE.QUEUE.value
-
+        ident = self.emit.mkDBKey(REDIS_TYPE.QUEUE.value)
         oldvalues = self.redis.smembers(ident)
         if oldvalues and len(oldvalues) > 0:
             self.redis.zrem(self.queue.name, *oldvalues)

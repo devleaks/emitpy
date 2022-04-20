@@ -163,6 +163,7 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(110, f"problem during schedule", ret[1])
         logger.info("SAVED " + ("*" * 84))
+
         logger.debug("..broadcasting positions..")
         formatted = EnqueueToRedis(emit, self.queues[queue])
         ret = formatted.format()
@@ -216,6 +217,11 @@ class EmitApp(ManagedAirport):
         ret = flight_service.saveDB()
         if not ret[0]:
             return StatusInfo(155, f"problem during flight service save in Redis", ret[1])
+
+        logger.debug("..broadcasting positions..")
+        ret = flight_service.enqueuetoredis(self.queues[queue])
+        if not ret[0]:
+            return StatusInfo(156, f"problem during enqueue of services", ret[1])
 
         logger.debug("..done, service included.")
         return StatusInfo(0, "completed successfully", None)

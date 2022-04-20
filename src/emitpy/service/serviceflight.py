@@ -11,7 +11,7 @@ from .servicemovement import ServiceMove
 from .. import service
 
 from ..flight import Flight
-from ..emit import Emit
+from ..emit import Emit, EnqueueToRedis
 from ..constants import SERVICE_PHASE
 
 logger = logging.getLogger("Turnaround")
@@ -32,19 +32,25 @@ class ServiceFlight:
 
 
     def save(self):
-        for svc in self.services:
-            ret = svc["emit"].save()
+        for service in self.services:
+            logger.debug(f"saving {service['type']}..")
+            emit = service["emit"]
+            ret = emit.save()
             if not ret[0]:
                 return ret
-        return (True, "ServiceFlight::save saved")
+            logger.debug(f"..done")
+        return (True, "ServiceFlight::save: completed")
 
 
     def saveDB(self):
-        for svc in self.services:
-            ret = svc["emit"].saveDB()
+        for service in self.services:
+            logger.debug(f"saving to redis {service['type']}..")
+            emit = service["emit"]
+            ret = emit.saveDB()
             if not ret[0]:
                 return ret
-        return (True, "ServiceFlight::saveDB saved")
+            logger.debug(f"..done")
+        return (True, "ServiceFlight::saveDB: completed")
 
 
     def service(self):
@@ -122,17 +128,6 @@ class ServiceFlight:
         return (True, "ServiceFlight::emit: completed")
 
 
-    def saveDB(self):
-        for service in self.services:
-            logger.debug(f"saving {service['type']}..")
-            emit = service["emit"]
-            ret = emit.saveDB()
-            if not ret[0]:
-                return ret
-            logger.debug(f"..done")
-        return (True, "ServiceFlight::saveDB: completed")
-
-
     def schedule(self, scheduled: datetime):
         # The scheduled date time recevied should be
         # ONBLOCK time for arrival
@@ -144,3 +139,23 @@ class ServiceFlight:
             service["emit"].schedule(SERVICE_PHASE.SERVICE_START.value, stime)
             logger.debug(f"..done")
         return (True, "ServiceFlight::schedule: completed")
+
+
+    def enqueuetoredis(self, queue):
+        for service in self.services:
+            logger.debug(f"enqueuing to redis {service['type']}..")
+            formatted = EnqueueToRedis(service["emit"], queue)
+            ret = formatted.format()
+            if not ret[0]:
+                return ret
+            ret = formatted.save()
+            if not ret[0] and ret[1] != "FormatToRedis::save key already exist":
+                return ret
+            ret = formatted.enqueue()
+            if not ret[0]:
+                return ret
+            logger.debug(f"..done")
+        return (True, "ServiceFlight::enqueuetoredis: completed")
+
+
+

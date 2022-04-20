@@ -355,6 +355,9 @@ class REDIS_QUEUE(Enum):
     ADMIN_QUEUE_PREFIX = "adm"
     ADSB = "adsb"
     LIVETRAFFIC = "lt"
+    RAW = "raw"
+    DEFAULT = "raw"
+
 
 class POI_TYPE(Enum):
     # Feature property names

@@ -18,7 +18,6 @@ print(r.usage)
 
 for a in [(0, 5), (4, 12), (6, 7), (9, 13), (14, 17), (7.5, 9.5)]:
     b = [t(i) for i in a]
-    print(">>>", a)
     if not r.isAvailable(*b):
         alt = r.firstAvailable(*b)
         k = r.book(*alt, f"{a[0]}->{a[1]}")
