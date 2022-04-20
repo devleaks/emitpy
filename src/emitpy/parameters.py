@@ -4,10 +4,10 @@ Used for file location, connection details, etc.
 """
 import os
 
-DEVELOPMENT = True  # produces additional debug
-PRODUCTION = False  # removed caches and short circuits
+DEVELOPMENT = False  # produces additional debug
+PRODUCTION = True  # removed caches and short circuits
 
-HOME_DIR = os.path.join(".", "..")
+HOME_DIR = "/app"
 
 # DATA is a database of static data, definitions, etc.
 DATA_DIR = os.path.join(HOME_DIR, "data")
@@ -15,8 +15,8 @@ DATA_DIR = os.path.join(HOME_DIR, "data")
 # AODB is a database of working data
 AODB_DIR = os.path.join(HOME_DIR, "db")
 
+
 METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"
-METAR_HISTORICAL_URL = ""
 
 MANAGED_AIRPORT = {
     "ICAO": "OTHH",
@@ -33,20 +33,17 @@ MANAGED_AIRPORT = {
     "operator": "MATAR"
 }
 
-LOAD_AIRWAYS=False  # to speedup developments
-
-REDIS_CONNECT = {
-    "host": "localhost",
-    "port": 6379,
-    "db": 0
-}
-
-# REDIS stuff if not on same host
-
-
 # Default queues are created in emitpy if they do not exists.
 DEFAULT_QUEUES = {
     "lt": "lt",
     "raw": "raw"
 }
 
+# REDIS stuff if not on same host
+REDIS_CONNECT = {
+    "host": "macbookdepierre.voo.be", # "redis",
+    "port": 6379,
+    "db": 0
+}
+
+LOAD_AIRWAYS=True  # to speedup developments
