@@ -1,16 +1,31 @@
 import redis
 import json
 import logging
+from enum import Enum
 
-logger = logging.getLogger("Utils/Redis")
+logger = logging.getLogger("RedisUtils")
 
 from ..constants import REDIS_DATABASE, REDIS_QUEUE, REDIS_TYPE
 from ..parameters import REDIS_CONNECT
+
+
+STATS_PREFIX = "stats$"
+
+class STATS(Enum):
+    FLIGHTS = "flights"
+    SERVICES = "services"
+    ENQUEUES = "enqueues"
+    DEQUEUES = "dequeues"
+    SENT = "sent"
+    PREFIX = "STATS"
+    SNAPSHOT = "snap"
+
 
 class RedisUtils:
 
     def __init__(self):
         self.redis = redis.Redis(**REDIS_CONNECT)
+        self.stats = []
 
     def list_emits(self):
         return self.getKeys(REDIS_TYPE.EMIT.value)
@@ -18,16 +33,9 @@ class RedisUtils:
     def list_queues(self):
         return ("none", "none")
 
-    def dashboard(self):
-        pass
-
-    def inc(self, name:str, val: int = 1):
-        pass
-
     def getKeys(self, suffix):
         keys = self.redis.keys("*"+suffix)
         return [(k.decode("utf-8").replace(suffix, ""), k.decode("utf-8").replace(suffix, "")) for k in sorted(keys)]
-
 
     def getMovementCombo(self):
         ret = self.redis.smembers(REDIS_DATABASE.MOVEMENTS.value)
@@ -49,3 +57,19 @@ class RedisUtils:
             if "properties" in e and "_mark" in e["properties"]:
                 s[e["properties"]["_mark"]] = True
         return [(m, m.upper()) for m in s.keys()]
+
+    def dashboard(self):
+        pass
+
+    def inc(self, name:str, incr: int = 1):
+        self.redis.incrby(STATS.PREFIX.valuename, incr)
+        if name not in self.stats:
+            self.stats.append(name)
+
+    def snapshot(self):
+        statk = STATS.SNAPSHOT.value + ":" + datetime.now().isoformat()
+        stats = {}
+        for k in self.stats:
+            stats[k] = self.redis.get(STATS.PREFIX.valuename + k)
+        self.redis.set(statk, stats)
+        return (True, "Snapshop completed")

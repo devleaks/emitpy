@@ -49,6 +49,7 @@ class EmitApp(ManagedAirport):
             default_queue.save()
         self.queues = Queue.loadAllQueuesFromDB()
         self.init()
+        logger.debug(":init: initialized. listening..")
 
 
     def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
