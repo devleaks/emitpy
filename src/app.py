@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from flask import Flask, render_template, request, flash, Markup, redirect, url_for, jsonify
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms.fields import *
@@ -9,6 +8,8 @@ from datetime import datetime, timedelta
 import json
 import logging
 import re
+
+import emitpy
 
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT
@@ -34,6 +35,11 @@ app.config['BOOTSTRAP_BOOTSWATCH_THEME'] = 'lux'  # uncomment this line to test 
 
 bootstrap = Bootstrap5(app)
 csrf = CSRFProtect(app)
+
+# git describe --tags
+# git log -1 --format=%cd --relative-date
+# + redis_connect info
+logger.info(f"emitpy {emitpy.__version__} starting..")
 
 e = EmitApp(MANAGED_AIRPORT)
 r = RedisUtils()
@@ -344,10 +350,15 @@ class ResetQueueForm(FlaskForm):
 #    speed = DecimalRangeField()
     speed = FloatField(default=1, description="1 = real time speed, smaller than 1 slows down, larger than 1 speeds up. Ex: speed=60 one minute last one second.")
     submit = SubmitField("Reset queue")
+    @classmethod
+    def new(cls):
+        form = cls()
+        form.queue_name.choices = Queue.getCombo()
+        return form
 
 @app.route('/reset_queue', methods=['GET', 'POST'])
 def reset_queue_form():
-    form = ResetQueueForm()
+    form = ResetQueueForm.new()
     if form.validate_on_submit():
         if form.simulation_date.data is not None or form.simulation_time.data is not None:
             input_d = form.simulation_date.data if form.simulation_date.data is not None else datetime.now()
