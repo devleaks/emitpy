@@ -20,7 +20,7 @@ services:
   app:
     build: src
     ports:
-      - "8000:8000"
+      - "5000:5000"
     links:
       - redis:redis
     depends_on:
