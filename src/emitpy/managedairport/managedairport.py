@@ -98,3 +98,30 @@ class ManagedAirport:
         metar = Metar(icao=self._this_airport["ICAO"], use_redis=True)
         self.airport.setMETAR(metar=metar)  # calls prepareRunways()
         logger.debug(":update_metar: ..done")
+
+
+    def cache(self, dbid: int = 0):
+        """
+        Saves Managed Airport and Airport Manager static data into Redis datastore.
+
+        :param      dbid:  The dbid
+        :type       dbid:  int
+        """
+        # Airports
+        # Airports + procedures
+        # Aircraft Types
+        # Aircraft types + performances
+        # Airlines
+        # Airlines + routes
+        # Airspace (terminals, navaids, fixes, airways)
+        pass
+
+
+    def loadFromCache(self, dbid: int = 0):
+        """
+        Loads static and reference data for Managed Airport and Airport Manager from Redis datastore.
+
+        :param      dbid:  The dbid
+        :type       dbid:  int
+        """
+        pass
