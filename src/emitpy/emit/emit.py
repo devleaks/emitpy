@@ -83,10 +83,14 @@ class Emit:
         return self.emit_type + ":" + self.emit_id + extension
 
 
-    def parseDBKey(self, emit_id: str):
+    def parseDBKey(self, emit_id: str, extension: str = None):
         arr = emit_id.split(":")
         self.emit_type = arr[0]
-        self.emit_id = ":".join(arr[1:-1])  # remove extension
+        if extension is not None:
+            self.emit_id = ":".join(arr[1:-1])  # remove extension
+        else:
+            self.emit_id = ":".join(arr[1:])
+        logger.debug(f":parseDBKey: {arr}: {self.emit_type} : {self.emit_id}")
 
 
     def save(self):
