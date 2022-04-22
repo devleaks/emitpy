@@ -44,9 +44,11 @@ class EmitApp(ManagedAirport):
     def __init__(self, airport):
         ManagedAirport.__init__(self, airport)
         # Default queue(s)
-        for k, v in DEFAULT_QUEUES.items():
-            default_queue = Queue(name=k, formatter_name=v)
-            default_queue.save()
+        self.queues = Queue.loadAllQueuesFromDB()
+        if len(self.queues) == 0:
+            for k, v in DEFAULT_QUEUES.items():
+                default_queue = Queue(name=k, formatter_name=v)
+                default_queue.save()
         self.queues = Queue.loadAllQueuesFromDB()
         self.init()
         logger.debug(":init: initialized. listening..")
