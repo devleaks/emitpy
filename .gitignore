@@ -128,3 +128,5 @@ data/aircraft-types/aircraft-types.csv
 .DS_Store
 src/data-docker.tar
 src/emitpy/private.py
+src/emitpy/parameters.py
+src/emitpy/private.py
