@@ -5,6 +5,7 @@ from wtforms import validators
 from flask_bootstrap import Bootstrap5, SwitchField
 from datetime import datetime, timedelta
 
+import traceback
 import json
 import logging
 import re
@@ -25,13 +26,17 @@ from emitpy.emit import Emit, Format, Queue, RedisUtils
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("app")
 
-app = Flask(__name__)
+logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» starting..")
+
+app = Flask(__name__,
+            template_folder="web/templates",
+            static_folder="web/static")
 app.secret_key = SECRET_KEY
 
 # set default button sytle and size, will be overwritten by macro parameters
-app.config['BOOTSTRAP_BTN_STYLE'] = 'primary'
-app.config['BOOTSTRAP_BTN_SIZE'] = 'sm'
-app.config['BOOTSTRAP_BOOTSWATCH_THEME'] = 'lux'  # uncomment this line to test bootswatch theme
+app.config["BOOTSTRAP_BTN_STYLE"] = "primary"
+app.config["BOOTSTRAP_BTN_SIZE"] = "sm"
+app.config["BOOTSTRAP_BOOTSWATCH_THEME"] = "lux"  # uncomment this line to test bootswatch theme
 
 bootstrap = Bootstrap5(app)
 csrf = CSRFProtect(app)
@@ -39,8 +44,6 @@ csrf = CSRFProtect(app)
 # git describe --tags
 # git log -1 --format=%cd --relative-date
 # + redis_connect info
-logger.info(f"emitpy {emitpy.__version__} starting..")
-
 e = EmitApp(MANAGED_AIRPORT)
 r = RedisUtils()
 
@@ -55,7 +58,7 @@ class CreateFlightForm(FlaskForm):
     flight_number = StringField(validators=[validators.InputRequired()])
     flight_date = DateField(validators=[validators.optional()])
     flight_time = TimeField(validators=[validators.optional()])
-    movement = RadioField(choices=[('arrival', 'Arrival'), ('departure', 'Departure')], validators=[validators.InputRequired("Please provide movement type")])
+    movement = RadioField(choices=[("arrival", "Arrival"), ("departure", "Departure")], validators=[validators.InputRequired("Please provide movement type")])
     airport = SelectField(choices=Airport.getCombo())
     ramp = SelectField(choices=e.airport.getRampCombo())
     aircraft_type = SelectField(choices=Aircraft.getCombo())
@@ -84,37 +87,42 @@ class CreateFlightForm(FlaskForm):
         form.queue.choices = Queue.getCombo()
         return form
 
-@app.route('/create_flight', methods=['GET', 'POST'])
+@app.route("/create_flight", methods=["GET", "POST"])
 def create_flight_form():
     form = CreateFlightForm.new()
     if form.validate_on_submit():
-        input_d = form.flight_date.data if form.flight_date.data is not None else datetime.now()
-        input_t = form.flight_time.data if form.flight_time.data is not None else datetime.now()
-        dt = datetime(year=input_d.year,
-                      month=input_d.month,
-                      day=input_d.day,
-                      hour=input_t.hour,
-                      minute=input_t.minute)
-        ret = e.do_flight(queue=form.queue.data,
-                          emit_rate=int(form.emit_rate.data),
-                          airline=form.airline.data,
-                          flightnumber=form.flight_number.data,
-                          scheduled=dt.isoformat(),
-                          apt=form.airport.data,
-                          movetype=form.movement.data,
-                          acarr=(form.aircraft_type.data, form.aircraft_type.data),
-                          ramp=form.ramp.data,
-                          icao24=form.icao24.data,
-                          acreg=form.aircraft_reg.data,
-                          runway=form.runway.data,
-                          do_services=form.create_services.data)
-        if ret.status == 0:
-            flash('Flight created', 'success')
-        else:
-            flash(ret.message, 'error')
-        return redirect(url_for('index'))
+        try:
+            input_d = form.flight_date.data if form.flight_date.data is not None else datetime.now()
+            input_t = form.flight_time.data if form.flight_time.data is not None else datetime.now()
+            dt = datetime(year=input_d.year,
+                          month=input_d.month,
+                          day=input_d.day,
+                          hour=input_t.hour,
+                          minute=input_t.minute)
+            ret = e.do_flight(queue=form.queue.data,
+                              emit_rate=int(form.emit_rate.data),
+                              airline=form.airline.data,
+                              flightnumber=form.flight_number.data,
+                              scheduled=dt.isoformat(),
+                              apt=form.airport.data,
+                              movetype=form.movement.data,
+                              acarr=(form.aircraft_type.data, form.aircraft_type.data),
+                              ramp=form.ramp.data,
+                              icao24=form.icao24.data,
+                              acreg=form.aircraft_reg.data,
+                              runway=form.runway.data,
+                              do_services=form.create_services.data)
+            if ret.status == 0:
+                flash("Flight created", "success")
+            else:
+                flash(ret.message, "error")
+        except Exception as ex:
+            track = traceback.format_exc() # .replace("\n", "<br/>")
+            flash(track, "error")
+        finally:
+            return redirect(url_for("index"))
     return render_template(
-        'create.html',
+        "create.html",
         title="Create flight",
         create_form=form
     )
@@ -123,15 +131,15 @@ def create_flight_form():
 class CreateServiceForm(FlaskForm):
     ramp = SelectField(choices=e.airport.getRampCombo())
     aircraft_type = SelectField(choices=Aircraft.getCombo())
-    handler = SelectField(choices=[('QAS', 'Qatar Airport Services'), ('BRU', 'Bru Partners'), ('SWI', 'Swissport')])
+    handler = SelectField(choices=[("QAS", "Qatar Airport Services"), ("BRU", "Bru Partners"), ("SWI", "Swissport")])
     service = SelectField(choices=Service.getCombo())
     quantity = FloatField(validators=[validators.InputRequired("Please provide a quantity to serve")])
-    service_vehicle_type = SelectField(choices=ServiceVehicle.getCombo())
+    service_vehicle_model = SelectField(choices=ServiceVehicle.getCombo())
     service_vehicle_reg = StringField("Vehicle Registration", description="Vehicle registration", validators=[validators.InputRequired("Please provide aircraft registration")])
     icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form",
                          validators=[validators.InputRequired("Please provide aircraft ADS-B transponder address"),
                                      validators.Regexp("[0-9A-F]{6}", flags=re.IGNORECASE, message="Must be a 6-digit hexadecimal number [0-9A-F]{6}")])
-    service_pos = [('depot', 'Depot'), ('rest-area', 'Rest Area')] + e.airport.getRampCombo() + e.airport.getServicePoisCombo()
+    service_pos = [("depot", "Depot"), ("rest-area", "Rest Area")] + e.airport.getRampCombo() + e.airport.getServicePoisCombo()
     previous_position = SelectField(choices=service_pos, description="Position where the service vehicle is coming from")
     next_position = SelectField(choices=service_pos, description="Position where the service vehicle is going to after service")
     service_date = DateField(validators=[validators.optional()])
@@ -142,44 +150,49 @@ class CreateServiceForm(FlaskForm):
     queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Create service")
 
-@app.route('/create_service', methods=['GET', 'POST'])
+@app.route("/create_service", methods=["GET", "POST"])
 def create_service_form():
     form = CreateServiceForm()
     if form.validate_on_submit():
-        input_d = form.service_date.data if form.service_date.data is not None else datetime.now()
-        input_t = form.service_time.data if form.service_time.data is not None else datetime.now()
-        dt = datetime(year=input_d.year,
-                      month=input_d.month,
-                      day=input_d.day,
-                      hour=input_t.hour,
-                      minute=input_t.minute)
-        ret = e.do_service(queue=form.queue.data,
-                           emit_rate=int(form.emit_rate.data),
-                           operator=form.handler.data,
-                           service=form.service.data,
-                           quantity=form.quantity.data,
-                           ramp=form.ramp.data,
-                           aircraft=form.aircraft_type.data,
-                           vehicle_model=form.service_vehicle_type.data,
-                           vehicle_ident=form.service_vehicle_reg.data,
-                           vehicle_icao24=form.icao24.data,
-                           vehicle_startpos=form.previous_position.data,
-                           vehicle_endpos=form.next_position.data,
-                           scheduled=dt.isoformat())
-        if ret.status == 0:
-            flash('Service created', 'success')
-        else:
-            flash(ret.message, 'error')
-        return redirect(url_for('index'))
+        try:
+            input_d = form.service_date.data if form.service_date.data is not None else datetime.now()
+            input_t = form.service_time.data if form.service_time.data is not None else datetime.now()
+            dt = datetime(year=input_d.year,
+                          month=input_d.month,
+                          day=input_d.day,
+                          hour=input_t.hour,
+                          minute=input_t.minute)
+            ret = e.do_service(queue=form.queue.data,
+                               emit_rate=int(form.emit_rate.data),
+                               operator=form.handler.data,
+                               service=form.service.data,
+                               quantity=form.quantity.data,
+                               ramp=form.ramp.data,
+                               aircraft=form.aircraft_type.data,
+                               vehicle_model=form.service_vehicle_model.data,
+                               vehicle_ident=form.service_vehicle_reg.data,
+                               vehicle_icao24=form.icao24.data,
+                               vehicle_startpos=form.previous_position.data,
+                               vehicle_endpos=form.next_position.data,
+                               scheduled=dt.isoformat())
+            if ret.status == 0:
+                flash("Service created", "success")
+            else:
+                flash(ret.message, "error")
+        except Exception as ex:
+            track = traceback.format_exc() # .replace("\n", "<br/>")
+            flash(track, "error")
+        finally:
+            return redirect(url_for("index"))
     return render_template(
-        'create.html',
+        "create.html",
         title="Create service",
         create_form=form
     )
 
 
 class CreateMissionForm(FlaskForm):
-    operator = SelectField(choices=[('QAS', 'Qatar Airport Security'), ('QAFD', 'Qatar Airport Fire Department'), ('QAPD', 'Qatar Airport Police Department')])
+    operator = SelectField(choices=[("QAS", "Qatar Airport Security"), ("QAFD", "Qatar Airport Fire Department"), ("QAPD", "Qatar Airport Police Department")])
     mission = SelectField(choices=Mission.getCombo())
     service_vehicle_type = SelectField(choices=MissionVehicle.getCombo())
     service_vehicle_reg = StringField("Vehicle Registration", description="Vehicle registration or identifier", validators=[validators.InputRequired("Please provide vehicle registration")])
@@ -196,35 +209,40 @@ class CreateMissionForm(FlaskForm):
     queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Create service")
 
-@app.route('/create_mission', methods=['GET', 'POST'])
+@app.route("/create_mission", methods=["GET", "POST"])
 def create_mission_form():
     form = CreateMissionForm()
     if form.validate_on_submit():
-        input_d = form.mission_date.data if form.mission_date.data is not None else datetime.now()
-        input_t = form.mission_time.data if form.mission_time.data is not None else datetime.now()
-        dt = datetime(year=input_d.year,
-                      month=input_d.month,
-                      day=input_d.day,
-                      hour=input_t.hour,
-                      minute=input_t.minute)
-        ret = e.do_mission(queue=form.queue.data,
-                           emit_rate=int(form.emit_rate.data),
-                           operator=form.operator.data,
-                           checkpoints=[],
-                           mission=form.mission.data,
-                           vehicle_model=form.service_vehicle_type.data,
-                           vehicle_ident=form.service_vehicle_reg.data,
-                           vehicle_icao24=form.icao24.data,
-                           vehicle_startpos=form.previous_position.data,
-                           vehicle_endpos=form.next_position.data,
-                           scheduled=dt.isoformat())
-        if ret.status == 0:
-            flash('Mission created', 'success')
-        else:
-            flash(ret.message, 'error')
-        return redirect(url_for('index'))
+        try:
+            input_d = form.mission_date.data if form.mission_date.data is not None else datetime.now()
+            input_t = form.mission_time.data if form.mission_time.data is not None else datetime.now()
+            dt = datetime(year=input_d.year,
+                          month=input_d.month,
+                          day=input_d.day,
+                          hour=input_t.hour,
+                          minute=input_t.minute)
+            ret = e.do_mission(queue=form.queue.data,
+                               emit_rate=int(form.emit_rate.data),
+                               operator=form.operator.data,
+                               checkpoints=[],
+                               mission=form.mission.data,
+                               vehicle_model=form.service_vehicle_type.data,
+                               vehicle_ident=form.service_vehicle_reg.data,
+                               vehicle_icao24=form.icao24.data,
+                               vehicle_startpos=form.previous_position.data,
+                               vehicle_endpos=form.next_position.data,
+                               scheduled=dt.isoformat())
+            if ret.status == 0:
+                flash("Mission created", "success")
+            else:
+                flash(ret.message, "error")
+        except Exception as ex:
+            track = traceback.format_exc() # .replace("\n", "<br/>")
+            flash(track, "error")
+        finally:
+            return redirect(url_for("index"))
     return render_template(
-        'create.html',
+        "create.html",
         title="Create mission",
         create_form=form
     )
@@ -245,31 +263,36 @@ class RescheduleForm(FlaskForm):
         form.movement.choices = r.list_emits()
         return form
 
-@app.route('/schedule', methods=['GET', 'POST'])
+@app.route("/schedule", methods=["GET", "POST"])
 def create_schedule_form():
     form = RescheduleForm.new()
     if form.validate_on_submit():
-        input_d = form.new_date.data if form.new_date.data is not None else datetime.now()
-        input_t = form.new_time.data if form.new_time.data is not None else datetime.now()
-        dt = datetime(year=input_d.year,
-                      month=input_d.month,
-                      day=input_d.day,
-                      hour=input_t.hour,
-                      minute=input_t.minute)
-        ret = e.do_schedule(queue=form.queue.data, ident=form.movement.data, sync=form.syncname.data, scheduled=dt.isoformat())
-        if ret.status == 0:
-            flash(f'Re-scheduled {form.movement.data}', 'success')
-        else:
-            flash(ret.message, 'error')
-        return redirect(url_for('index'))
+        try:
+            input_d = form.new_date.data if form.new_date.data is not None else datetime.now()
+            input_t = form.new_time.data if form.new_time.data is not None else datetime.now()
+            dt = datetime(year=input_d.year,
+                          month=input_d.month,
+                          day=input_d.day,
+                          hour=input_t.hour,
+                          minute=input_t.minute)
+            ret = e.do_schedule(queue=form.queue.data, ident=form.movement.data, sync=form.syncname.data, scheduled=dt.isoformat())
+            if ret.status == 0:
+                flash(f"Re-scheduled {form.movement.data}", "success")
+            else:
+                flash(ret.message, "error")
+        except Exception as ex:
+            track = traceback.format_exc() # .replace("\n", "<br/>")
+            flash(track, "error")
+        finally:
+            return redirect(url_for("index"))
     return render_template(
-        'create-syncs.html',
+        "create-syncs.html",
         title="Reschedule movement",
         create_form=form
     )
 
 # Helper for cascaded combo
-@app.route('/emitsyncs/<emitid>')
+@app.route("/emitsyncs/<emitid>")
 def emitsyncs(emitid):
     l = r.getSyncsForEmit(emit_id=emitid)
     return jsonify(syncs=l)
@@ -286,18 +309,23 @@ class RemoveForm(FlaskForm):
         form.movement.choices = r.list_emits()
         return form
 
-@app.route('/remove', methods=['GET', 'POST'])
+@app.route("/remove", methods=["GET", "POST"])
 def create_remove_form():
     form = RemoveForm.new()
     if form.validate_on_submit():
-        ret = e.do_delete(queue=form.queue.data, ident=form.movement.data)
-        if ret.status == 0:
-            flash(f'Removed {form.movement.data}', 'success')
-        else:
-            flash(ret.message, 'error')
-        return redirect(url_for('index'))
+        try:
+            ret = e.do_delete(queue=form.queue.data, ident=form.movement.data)
+            if ret.status == 0:
+                flash(f"Removed {form.movement.data}", "success")
+            else:
+                flash(ret.message, "error")
+        except Exception as ex:
+            track = traceback.format_exc() # .replace("\n", "<br/>")
+            flash(track, "error")
+        finally:
+            return redirect(url_for("index"))
     return render_template(
-        'create.html',
+        "create.html",
         title="Remove movement",
         create_form=form
     )
@@ -312,32 +340,37 @@ class CreateQueueForm(FlaskForm):
     speed = FloatField(default=1, description="1 = real time speed, smaller than 1 slows down, larger than 1 speeds up. Ex: speed=60 one minute last one second.")
     submit = SubmitField("Create queue")
 
-@app.route('/create_queue', methods=['GET', 'POST'])
+@app.route("/create_queue", methods=["GET", "POST"])
 def create_queue_form():
     form = CreateQueueForm()
     if form.validate_on_submit():
-        if form.simulation_date.data is not None or form.simulation_time.data is not None:
-            input_d = form.simulation_date.data if form.simulation_date.data is not None else datetime.now()
-            input_t = form.simulation_time.data if form.simulation_time.data is not None else datetime.now()
-            dt = datetime(year=input_d.year,
-                          month=input_d.month,
-                          day=input_d.day,
-                          hour=input_t.hour,
-                          minute=input_t.minute).isoformat()
-        else:
-            dt = None
-        ret = e.do_create_queue(name=form.queue_name.data,
-                                formatting=form.formatting.data,
-                                starttime=dt,
-                                speed=float(form.speed.data)
-        )
-        if ret.status == 0:
-            flash(f'Queue {form.queue_name.data} created', 'success')
-        else:
-            flash(ret.message, 'error')
-        return redirect(url_for('index'))
+        try:
+            if form.simulation_date.data is not None or form.simulation_time.data is not None:
+                input_d = form.simulation_date.data if form.simulation_date.data is not None else datetime.now()
+                input_t = form.simulation_time.data if form.simulation_time.data is not None else datetime.now()
+                dt = datetime(year=input_d.year,
+                              month=input_d.month,
+                              day=input_d.day,
+                              hour=input_t.hour,
+                              minute=input_t.minute).isoformat()
+            else:
+                dt = None
+            ret = e.do_create_queue(name=form.queue_name.data,
+                                    formatting=form.formatting.data,
+                                    starttime=dt,
+                                    speed=float(form.speed.data)
+            )
+            if ret.status == 0:
+                flash(f"Queue {form.queue_name.data} created", "success")
+            else:
+                flash(ret.message, "error")
+        except Exception as ex:
+            track = traceback.format_exc() # .replace("\n", "<br/>")
+            flash(track, "error")
+        finally:
+            return redirect(url_for("index"))
     return render_template(
-        'create.html',
+        "create.html",
         title="Manage output queues",
         create_form=form
     )
@@ -356,31 +389,36 @@ class ResetQueueForm(FlaskForm):
         form.queue_name.choices = Queue.getCombo()
         return form
 
-@app.route('/reset_queue', methods=['GET', 'POST'])
+@app.route("/reset_queue", methods=["GET", "POST"])
 def reset_queue_form():
     form = ResetQueueForm.new()
     if form.validate_on_submit():
-        if form.simulation_date.data is not None or form.simulation_time.data is not None:
-            input_d = form.simulation_date.data if form.simulation_date.data is not None else datetime.now()
-            input_t = form.simulation_time.data if form.simulation_time.data is not None else datetime.now()
-            dt = datetime(year=input_d.year,
-                          month=input_d.month,
-                          day=input_d.day,
-                          hour=input_t.hour,
-                          minute=input_t.minute).isoformat()
-        else:
-            dt = None
-        ret = e.do_reset_queue(name=form.queue_name.data,
-                               starttime=dt,
-                               speed=float(form.speed.data)
-        )
-        if ret.status == 0:
-            flash(f'Queue {form.queue_name.data} reset', 'success')
-        else:
-            flash(ret.message, 'error')
-        return redirect(url_for('index'))
+        try:
+            if form.simulation_date.data is not None or form.simulation_time.data is not None:
+                input_d = form.simulation_date.data if form.simulation_date.data is not None else datetime.now()
+                input_t = form.simulation_time.data if form.simulation_time.data is not None else datetime.now()
+                dt = datetime(year=input_d.year,
+                              month=input_d.month,
+                              day=input_d.day,
+                              hour=input_t.hour,
+                              minute=input_t.minute).isoformat()
+            else:
+                dt = None
+            ret = e.do_reset_queue(name=form.queue_name.data,
+                                   starttime=dt,
+                                   speed=float(form.speed.data)
+            )
+            if ret.status == 0:
+                flash(f"Queue {form.queue_name.data} reset", "success")
+            else:
+                flash(ret.message, "error")
+        except Exception as ex:
+            track = traceback.format_exc() # .replace("\n", "<br/>")
+            flash(track, "error")
+        finally:
+            return redirect(url_for("index"))
     return render_template(
-        'create.html',
+        "create.html",
         title="Manage output queues",
         create_form=form
     )
@@ -395,23 +433,28 @@ class DeleteQueueForm(FlaskForm):
         form.queue_name.choices = Queue.getCombo()
         return form
 
-@app.route('/delete_queue', methods=['GET', 'POST'])
+@app.route("/delete_queue", methods=["GET", "POST"])
 def delete_queue_form():
     form = DeleteQueueForm.new()
     if form.validate_on_submit():
-        ret = e.do_delete_queue(name=form.queue_name.data)
-        if ret.status == 0:
-            flash(f'Queue {form.queue_name.data} deleted', 'success')
-        else:
-            flash(ret.message, 'error')
-        return redirect(url_for('index'))
+        try:
+            ret = e.do_delete_queue(name=form.queue_name.data)
+            if ret.status == 0:
+                flash(f"Queue {form.queue_name.data} deleted", "success")
+            else:
+                flash(ret.message, "error")
+        except Exception as ex:
+            track = traceback.format_exc() # .replace("\n", "<br/>")
+            flash(track, "error")
+        finally:
+            return redirect(url_for("index"))
     return render_template(
-        'create.html',
+        "create.html",
         title="Manage output queues",
         create_form=form
     )
 
 
-@app.route('/')
+@app.route("/")
 def index():
-    return render_template('index.html')
+    return render_template("index.html")

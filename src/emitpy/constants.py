@@ -52,7 +52,7 @@ PARCEL = "parcel"
 
 # 3. GSE types
 class SERVICE(Enum):
-    CLEANING = "clean"
+    CLEANING = "cleaning"
     CATERING = "catering"
     FUEL = "fuel"
     CARGO = "cargo"

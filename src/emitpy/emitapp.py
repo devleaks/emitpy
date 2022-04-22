@@ -245,7 +245,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(511, f"EmitApp:do_service: ramp {ramp} not found", None)
         this_service.setRamp(rampval)
         this_service.setAircraftType(actype)
-        this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, model=vehicle_model, registration=vehicle_ident, use=True)
+        this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, reqtime=datetime.fromisoformat(scheduled), model=vehicle_model, registration=vehicle_ident, use=True)
         if this_vehicle is None:
             return StatusInfo(512, f"EmitApp:do_service: vehicle not found", None)
         this_vehicle.setICAO24(vehicle_icao24)
@@ -274,7 +274,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(514, f"problem during service emission", ret[1])
 
         logger.debug(emit.getMarkList())
-        service_duration = this_service.serviceDuration()
+        service_duration = this_service.duration()
 
         logger.debug(f".. service duration {service_duration} ..")
         emit.addToPause(SERVICE_PHASE.SERVICE_START.value, service_duration)
@@ -319,7 +319,7 @@ class EmitApp(ManagedAirport):
         operator = Company(orgId="Airport Security", classId="Airport Operator", typeId="Airport Operator", name=operator)
         mission = Mission(operator=operator, checkpoints=checkpoints, name=mission)
 
-        mission_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=mission, model=vehicle_model, registration=vehicle_ident, use=True)
+        mission_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=mission, reqtime=datetime.fromisoformat(scheduled), model=vehicle_model, registration=vehicle_ident, use=True)
         mission_vehicle.setICAO24(vehicle_icao24)
 
         start_pos = self.airport.getPOI(vehicle_startpos)

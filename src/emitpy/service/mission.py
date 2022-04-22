@@ -62,7 +62,7 @@ class Mission:
     def addCheckpoint(self, checkpoint: str):
         self.checkpoints.append(checkpoint)
 
-    def missionDuration(self, checkpoint: FeatureWithProps):
+    def duration(self, checkpoint: FeatureWithProps = None):
         """
         Returns mission duration (in minutes) for supplied checkpoint identifier.
         Control at checkpoint can have a variable control duration.
@@ -70,6 +70,8 @@ class Mission:
         :param      name:  The name
         :type       name:  str
         """
+        if checkpoint is None:
+            return self.checkpoint_control_time
         control_time = checkpoint.getProp("control-time")
         if control_time is None:
             return self.checkpoint_control_time

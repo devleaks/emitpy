@@ -230,7 +230,7 @@ class AirportManager:
                         if vcl not in self.vehicle_by_type:
                             self.vehicle_by_type[vcl] = []
                         self.vehicle_by_type[vcl].append(vehicle)
-                        # logger.debug(f":selectServiceVehicle: ..added {vname}")
+                        # logger.debug(f":loadServiceVehicles: ..added {vname}")
                 else:
                     logger.warning(f":loadServiceVehicles: vehicle type {vcl} not found")
 
@@ -263,8 +263,15 @@ class AirportManager:
         :param      use:           The use
         :type       use:           bool
         """
+        def is_default_model(model):
+            if model is None:
+                return True
+
+            DEFAULT_VEHICLE = ":default"
+            return len(model) <= len(DEFAULT_VEHICLE) or model[:-len(DEFAULT_VEHICLE)] != DEFAULT_VEHICLE
+
         vname = registration
-        svc_name = type(service).__name__.replace("Service", "")
+        svc_name = (type(service).__name__).replace("Service", "")
 
         if vname is not None and vname in self.service_vehicles.keys():
             vehicle = self.service_vehicles[vname]
@@ -280,22 +287,26 @@ class AirportManager:
         else:
             vcl = svc_name + "Vehicle"
             vcl_short = svc_name[0:3].upper()
-        if model is not None:
+
+        if is_default_model(model):
+            vcl_short = vcl_short + "SV"  # Standard Vehicle
+            logger.debug(f":selectServiceVehicle: without model is {vcl}, {vcl_short}")
+        else:
+            logger.debug(f":selectServiceVehicle: model is {model}")
             model = model.replace("-", "_")  # now model is snake_case
             mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
             vcl = vcl + mdl
             vcl_short = vcl_short + mdl[0:2].upper()
-        else:
-            vcl_short = vcl_short + "SV"  # Standard Vehicle
+            logger.debug(f":selectServiceVehicle: with model is {vcl}, {vcl_short}")
 
-        logger.debug(f":selectServiceVehicle: searching for available {vcl}")
+        logger.debug(f":selectServiceVehicle: searching for available {vcl}, {vcl_short}")
 
         if vcl in self.vehicle_by_type:
             idx = 0
             vehicle = None
             while vehicle is None and idx < len(self.vehicle_by_type[vcl]):
                 v = self.vehicle_by_type[vcl][idx]
-                reqend = reqtime + timedelta(seconds=service.serviceDuration())
+                reqend = reqtime + timedelta(seconds=service.duration())
                 if self.vehicle_allocator.isAvailable(v.getId(), reqtime, reqend):
                     res = self.vehicle_allocator.book(v.getId(), reqtime, reqend, service.getId())
                     vehicle = v

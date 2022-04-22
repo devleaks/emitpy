@@ -10,6 +10,7 @@ from ..constants import SERVICE
 
 logger = logging.getLogger("ServiceVehicle")
 
+DEFAULT_VEHICLE = ":default"
 
 #####################################
 # SERVICE VEHICLE TYPES AND MODELS
