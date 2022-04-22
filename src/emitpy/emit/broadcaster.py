@@ -30,10 +30,13 @@ class Broadcaster:
     def __init__(self, name: str, speed: float = 1, starttime: datetime = None):
         self.name = name
         self.speed = speed
-        if type(starttime) == str:
+        if starttime is None:
+            self._starttime = datetime.now()
+        elif type(starttime) == str:
             self._starttime = datetime.fromisoformat(starttime)
         else:
             self._starttime = starttime
+        # logger.debug(f":__init__: {self.name}: start_time: {self._starttime}, speed: {self.speed}")
         self.timeshift = None
         self.redis = redis.Redis(**REDIS_CONNECT)
         self.pubsub = self.redis.pubsub()
@@ -43,12 +46,12 @@ class Broadcaster:
         self.timeshift = datetime.now() - self.starttime()  # timedelta
         if self.timeshift < timedelta(seconds=10):
             self.timeshift = timedelta(seconds=0)
-        logger.debug(f":setTimeshift: {self.name}: now: {df(datetime.now().timestamp())}, queue time: {df(self.now())}")
+        logger.debug(f":setTimeshift: {self.name}: timeshift: {self.timeshift}, now: {df(datetime.now().timestamp())}, queue time: {df(self.now())}")
         return self.timeshift
 
     def starttime(self):
         if self._starttime is None:
-            return datetime.now()
+            return datetime.now()  # should never happen...
         return self._starttime
 
     def reset(self, speed: float = 1, starttime: datetime = None):
@@ -61,14 +64,15 @@ class Broadcaster:
             self.setTimeshift()
 
     def now(self, format_output: bool = False):
+        realnow = datetime.now()
         if self.speed == 1 and self.timeshift.total_seconds() == 0:
-            newnow = datetime.now()
+            newnow = realnow
             logger.debug(f":now: {self.name}: no time speed, no time shift: new now: {df(newnow.timestamp())}")
             return newnow.timestamp()
 
-        logger.debug(f":now: {self.name}: asked at {df(datetime.now().timestamp())})")
-        elapsed = datetime.now() - (self.starttime() + self.timeshift)  # time elapsed since setTimeshift().
-        logger.debug(f":now: {self.name}: elapsed since start of queue: {elapsed})")
+        logger.debug(f":now: {self.name}: asked at {df(realnow.timestamp())})")
+        elapsed = realnow - (self.starttime() + self.timeshift)  # time elapsed since setTimeshift().
+        logger.debug(f":now: {self.name}: real elapsed since start of queue: {elapsed})")
         if self.speed == 1:
             newnow = self.starttime() + elapsed
             logger.debug(f":now: {self.name}: no time speed: new now: {df(newnow.timestamp())}")
@@ -76,7 +80,7 @@ class Broadcaster:
             newdeltasec = elapsed.total_seconds() * self.speed
             newdelta = timedelta(seconds=newdeltasec)
             newnow = self.starttime() + newdelta
-            logger.debug(f":now: {self.name}: time speed {self.speed}: new elapsed: {newdelta}, newnow={df(newnow.timestamp())}")
+            logger.debug(f":now: {self.name}: time speed {self.speed}: new elapsed: {newdelta}, new now={df(newnow.timestamp())}")
         return newnow.timestamp() if not format_output else datetime.fromtimestamp(newnow).isoformat(timespec='seconds')
 
     def _do_trim(self):
@@ -131,6 +135,7 @@ class Broadcaster:
         try:
             while not self.shutdown_flag.is_set():
                 logger.debug(f":run: {self.name}: listening..")
+                dummy = self.now()
                 nv = self.redis.bzpopmin(self.name, timeout=ZPOPMIN_TIMEOUT)
                 if nv is None:
                     # logger.debug(f":run: {self.name}: bzpopmin timed out..")
