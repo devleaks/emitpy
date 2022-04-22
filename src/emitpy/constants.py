@@ -346,13 +346,13 @@ class REDIS_DATABASE(Enum):
 
 class REDIS_TYPE(Enum):
     EMIT = ":e"
-    EMIT_META = ":em"
+    EMIT_META = ":m"
     FORMAT = ":f"
     QUEUE = ":q"
 
 
 class REDIS_QUEUE(Enum):
-    ADMIN_QUEUE_PREFIX = "adm"
+    ADMIN_QUEUE_PREFIX = "queues"
     ADSB = "adsb"
     LIVETRAFFIC = "lt"
     RAW = "raw"

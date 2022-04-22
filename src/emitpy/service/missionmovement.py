@@ -48,11 +48,13 @@ class MissionMove(Movement):
 
         start_pos = self.mission.vehicle.getPosition()
         # logger.debug(":move: start position %s" % (start_pos))
+        pos = FeatureWithProps(geometry=start_pos["geometry"], properties=start_pos["properties"])
 
-        start_pos.setSpeed(0)  # starts at rest
-        start_pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.START.value)
-        start_pos.setColor(MISSION_COLOR.START.value)
-        self.moves.append(start_pos)
+        pos.setSpeed(0)  # starts at rest
+        pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.START.value)
+        pos.setColor(MISSION_COLOR.START.value)
+        self.moves.append(pos)
+        logger.debug(f":move: start added")
 
         # starting position to network
         start_npe = self.airport.service_roads.nearest_point_on_edge(start_pos)
@@ -128,6 +130,7 @@ class MissionMove(Movement):
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
             pos.pause(self.mission.duration(cp))
             self.moves.append(pos)
+            logger.debug(f":move: checkpoint added")
 
             # goes back on service road network (edge)
             if cp_npe[0] is None:
@@ -184,10 +187,12 @@ class MissionMove(Movement):
         self.moves.append(pos)
 
         # from closest point on service road network to final_pos, stops there
-        final_pos.setSpeed(0)  # ends at rest
-        final_pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.END.value)
+        pos = FeatureWithProps(geometry=final_pos["geometry"], properties=final_pos["properties"])
+        pos.setSpeed(0)  # ends at rest
+        pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.END.value)
         pos.setColor(MISSION_COLOR.END.value)
-        self.moves.append(final_pos)
+        self.moves.append(pos)
+        logger.debug(f":move: end added")
 
         return (True, "Mission::move completed")
 
