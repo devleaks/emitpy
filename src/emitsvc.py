@@ -1,7 +1,12 @@
+import logging
+
 from emitpy.emitapp import EmitApp
 from datetime import datetime, timedelta
 
 from emitpy.parameters import MANAGED_AIRPORT
+
+
+logging.basicConfig(level=logging.DEBUG)
 
 e = EmitApp(MANAGED_AIRPORT)
 

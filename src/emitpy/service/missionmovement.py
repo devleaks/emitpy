@@ -38,7 +38,8 @@ class MissionMove(Movement):
         return {
             "type": "mission",
             "ident": self.getId(),
-            "mission": self.mission.getInfo()
+            "mission": self.mission.getInfo(),
+            "icao24": self.mission.getInfo()["icao24"]
         }
 
 
@@ -125,7 +126,7 @@ class MissionMove(Movement):
             pos.setSpeed(0)  # starts moving
             pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.CHECKPOINT.value)
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
-            pos.pause(self.mission.missionDuration(cp))
+            pos.pause(self.mission.duration(cp))
             self.moves.append(pos)
 
             # goes back on service road network (edge)

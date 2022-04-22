@@ -38,7 +38,8 @@ class ServiceMove(Movement):
         return {
             "type": "service",
             "ident": self.getId(),
-            "service": self.service.getInfo()
+            "service": self.service.getInfo(),
+            "icao24": self.service.getInfo()["icao24"]
         }
 
 

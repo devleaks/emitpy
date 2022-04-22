@@ -52,6 +52,6 @@ def randomServicePause(service: "Service", short: bool = True):
 
 
 def randomServiceDuration(service: "Service"):
-    duration = service.serviceDuration()
+    duration = service.duration()
     variable = int(duration * 0.1)
     return duration - variable + random.range(2 * variable)

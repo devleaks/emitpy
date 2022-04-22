@@ -28,9 +28,9 @@ class Format:
     @staticmethod
     def getCombo():
         return [
-            ("adsb", "ADS-B"),
-            ("view", "Viewer"),
-            ("lt", "X-Plane LiveTraffic"),
+            # ("adsb", "ADS-B"),
+            # ("view", "Viewer"),
+            # ("lt", "X-Plane LiveTraffic"),
             ("raw", "Raw")
         ]
 

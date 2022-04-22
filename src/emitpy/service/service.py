@@ -21,7 +21,6 @@ class Service:
         self.operator = operator
         self.quantity = quantity
         self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
-        self.duration = None      # scheduled duration in minutes, will be different from actual duration
         self.ramp = None
         self.actype = None
         self.turnaround = None
@@ -98,7 +97,7 @@ class Service:
         self.pos_next = position
 
 
-    def serviceDuration(self, dflt: int = 30 * 60):
+    def duration(self, dflt: int = 30 * 60):
         if self.vehicle is None:
             return dflt
         return self.vehicle.service_duration(self.quantity)

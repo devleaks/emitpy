@@ -104,7 +104,7 @@ def main():
 
     print(se.getMarkList())
 
-    service_duration = fuel_service.serviceDuration()
+    service_duration = fuel_service.duration()
     se.pause(SERVICE_PHASE.SERVICE_START.value, service_duration)
     logger.debug(f".. service duration {service_duration} ..")
 

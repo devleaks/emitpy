@@ -62,7 +62,8 @@ class FlightMovement(Movement):
         return {
             "type": "flight",
             "ident": self.getId(),
-            "flight": self.flight.getInfo()
+            "flight": self.flight.getInfo(),
+            "icao24": self.flight.getInfo()["icao24"]
         }
         return
 

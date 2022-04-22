@@ -37,7 +37,10 @@ class LiveTrafficFormatter(Formatter):
         f = self.feature
 
         icao24x = f.getProp("icao24")
-        icao24 = int(icao24x, 16)
+        if icao24x is not None:
+            icao24 = int(str(icao24x), 16)  # https://stackoverflow.com/questions/46341329/int-cant-convert-non-string-with-explicit-base-when-converting-to-gui
+        else:
+            icao24 = None
 
         coords = f.coords()
 
@@ -50,14 +53,16 @@ class LiveTrafficFormatter(Formatter):
         heading = f.getProp("heading")
 
         actype = f.getProp("aircraft:actype:actype")  # ICAO
-        if f.getProp("service-type") is not None or f.getProp("mission") is not None:  # mission or service
+        if f.getProp("flight:identifier") is not None:  # it's a flight
+            callsign = f.getProp("flight:aircraft:callsign").replace(" ","").replace("-","")
+            tailnumber = f.getProp("flight:aircraft:acreg")
+            aptfrom = f.getProp("flight:departure:icao")     # IATA
+            aptto = f.getProp("flight:arrival:icao")  # IATA
+        else:  # not a flight
             callsign = f.getProp("vehicle:callsign").replace(" ","").replace("-","")
             tailnumber = f.getProp("vehicle:icao")
-        else:  # fight
-            callsign = f.getProp("aircraft:callsign").replace(" ","").replace("-","")
-            tailnumber = f.getProp("aircraft:acreg")
-        aptfrom = f.getProp("departure:icao")     # IATA
-        aptto = f.getProp("arrival:icao")  # IATA
+            aptfrom = ""
+            aptto = ""
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
         #         0    ,1       ,2          ,3          ,4    ,5       ,6                     ,7                 ,8
         #         AITFC,hexid   ,lat        ,lon        ,alt  ,vs      ,airborne              ,hdg               ,spd ### ,cs,type,tail,from,to,timestamp
