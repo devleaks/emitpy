@@ -1,4 +1,7 @@
 import sys
+sys.path.append('/Users/pierre/Developer/oscars/emitpy/src')
+
+import sys
 import logging
 
 from emitpy.business import Airline

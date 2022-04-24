@@ -7,14 +7,13 @@ import os
 DEVELOPMENT = False  # produces additional debug
 PRODUCTION = True  # removed caches and short circuits
 
-HOME_DIR = os.path.join("/", "app")  # should work even on windows... python guys are genius.
+HOME_DIR = os.path.join(".", "..")  # should work even on windows... python guys are genius.
 
 # DATA is a database of static data, definitions, etc.
 DATA_DIR = os.path.join(HOME_DIR, "data")
 
 # AODB is a database of working data
 AODB_DIR = os.path.join(HOME_DIR, "db")
-
 
 METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"  # on window, don't you have to change / to \?
 
@@ -40,10 +39,12 @@ DEFAULT_QUEUES = {
 
 # REDIS stuff if not on same host
 REDIS_CONNECT = {
-    "host": "redis",
+    "host": "localhost",
     "port": 6379,
     "db": 0
 }
 
-LOAD_AIRWAYS=True  # to speedup developments
+REDIS_COMMANDER_URL = "http://127.0.0.1:8081/"
+
+LOAD_AIRWAYS=False  # to speedup developments
 

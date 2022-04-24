@@ -13,6 +13,25 @@ from .format import Formatter
 logger = logging.getLogger("LiveTrafficFormatter")
 
 
+class LiveTrafficWeather(Formatter):
+
+    FILE_FORMAT = "csv"
+
+    def __init__(self, metar):
+        Formatter.__init__(self, feature=None)
+        self.fileformat = "json"
+        self.metar = metar
+
+    def __str__(self):
+        weather = {
+            "ICAO": self.metar.station_id,
+            "QNH": self.metar.pressure("MB"),
+            "METAR": self.metar.metarcode,
+            "NAME": Airport.findICAO(self.metar.station_id)
+        }
+        return json.dumps(weather)
+
+
 class LiveTrafficFormatter(Formatter):
 
     FILE_FORMAT = "csv"
@@ -72,22 +91,3 @@ class LiveTrafficFormatter(Formatter):
         part2 = f",{callsign},{actype},{tailnumber},{aptfrom},{aptto},{round(ts, 3)}"
 
         return (part1 + part2).replace("None", "")
-
-
-class LiveTrafficWeather(Formatter):
-
-    FILE_FORMAT = "csv"
-
-    def __init__(self, metar):
-        Formatter.__init__(self, feature=None)
-        self.fileformat = "json"
-        self.metar = metar
-
-    def __str__(self):
-        weather = {
-            "ICAO": self.metar.station_id,
-            "QNH": self.metar.pressure("MB"),
-            "METAR": self.metar.metarcode,
-            "NAME": Airport.findICAO(self.metar.station_id)
-        }
-        return json.dumps(weather)
