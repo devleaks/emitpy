@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/Users/pierre/Developer/oscars/emitpy/src')
+
 import logging
 import random
 
