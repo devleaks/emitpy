@@ -82,7 +82,7 @@ class AirportManager:
         """
         Loads this airport's air routes from a data file.
         """
-        routes = os.path.join(self.airport_base_path, "airline-routes.csv")
+        routes = os.path.join(self.airport_base_path, "airlines", "airline-routes.csv")
         file = open(routes, "r")
         csvdata = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
         cnt = 0
@@ -103,7 +103,7 @@ class AirportManager:
         file.close()
         logger.debug(":loadAirRoutes: loaded %d airline routes for %d airlines" % (cnt, len(self.airlines)))
 
-        fn = os.path.join(self.airport_base_path, "airline-frequencies.csv")
+        fn = os.path.join(self.airport_base_path, "airlines", "airline-frequencies.csv")
         if os.path.exists(fn):
             self.airline_frequencies = {}
             with open(fn, "r") as file:
@@ -112,7 +112,7 @@ class AirportManager:
                     self.airline_frequencies[row["AIRLINE CODE"]] = int(row["COUNT"])
                 logger.debug(":loadAirRoutes: airline-frequencies loaded")
 
-        fn = os.path.join(self.airport_base_path, "airline-route-frequencies.csv")
+        fn = os.path.join(self.airport_base_path, "airlines", "airline-route-frequencies.csv")
         if os.path.exists(fn):
             self.airline_route_frequencies = {}
             with open(fn, "r") as file:
@@ -206,7 +206,7 @@ class AirportManager:
         Loads service vehicle fleet and creates vehicle.
         """
         self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
-        business = os.path.join(self.airport_base_path, "servicevehiclefleet.yaml")
+        business = os.path.join(self.airport_base_path, "services", "servicevehiclefleet.yaml")
         if os.path.exists(business):
             with open(business, "r") as fp:
                 self.data = yaml.safe_load(fp)
