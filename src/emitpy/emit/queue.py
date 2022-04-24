@@ -25,11 +25,14 @@ class Queue:
         """
         queues = {}
         r = Redis(**REDIS_CONNECT)
-        qs = r.smembers(REDIS_DATABASE.QUEUES.value)
-        for q in qs:
-            qn = Queue.getQueueName(q.decode("UTF-8"))
-            queues[qn] = Queue.loadFromDB(qn)
-        logger.debug(f":loadAllQueuesFromDB: loaded {queues.keys()}")
+        if r.exists(REDIS_DATABASE.QUEUES.value):
+            qs = r.smembers(REDIS_DATABASE.QUEUES.value)
+            for q in qs:
+                qn = Queue.getQueueName(q.decode("UTF-8"))
+                queues[qn] = Queue.loadFromDB(qn)
+            logger.debug(f":loadAllQueuesFromDB: loaded {queues.keys()}")
+        else:
+            logger.debug(f":loadAllQueuesFromDB: no database key")
         return queues
 
 
@@ -41,9 +44,11 @@ class Queue:
         r = Redis(**REDIS_CONNECT)
         ident = Queue.getAdminQueue(name)
         qstr = r.get(ident)
-        q = json.loads(qstr.decode("UTF-8"))
-        logger.debug(f":create: created {name}")
-        return Queue(name=name, formatter_name=q["formatter_name"], starttime=q["starttime"], speed=q["speed"])
+        if qstr is not None:
+            q = json.loads(qstr.decode("UTF-8"))
+            logger.debug(f":create: created {name}")
+            return Queue(name=name, formatter_name=q["formatter_name"], starttime=q["starttime"], speed=q["speed"])
+        return None
 
 
     @staticmethod
