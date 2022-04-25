@@ -327,6 +327,7 @@ class FEATPROP(Enum):
     EMIT_REASON = "emit-reason"
     EMIT_REL_TIME = "emit_relative_time"
     EMIT_ABS_TIME = "emit_absolute_time"
+    CONTROL_TIME = "control-time"
 
 
 class FILE_EXT(Enum):
@@ -347,6 +348,7 @@ class REDIS_DATABASE(Enum):
 class REDIS_TYPE(Enum):
     EMIT = ":e"
     EMIT_META = ":m"
+    EMIT_KML = ":k"
     FORMAT = ":f"
     QUEUE = ":q"
 

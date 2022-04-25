@@ -137,6 +137,11 @@ class Emit:
             meta_id = self.mkDBKey(REDIS_TYPE.EMIT_META.value)  # ident + REDIS_TYPE.EMIT_META.value
             self.redis.set(meta_id, json.dumps(self.props))
 
+        # save kml to redis...
+        if callable(getattr(self.moves, "getKML", None)):
+            kml_id = self.mkDBKey(REDIS_TYPE.EMIT_KML.value)  # ident + REDIS_TYPE.EMIT_META.value
+            self.redis.set(kml_id, json.dumps(self.moves.getKML()))
+
         logger.debug(f":saveDB: saved {move_id}")
         return (True, "Movement::saveDB saved")
 

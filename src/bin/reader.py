@@ -1,7 +1,7 @@
 import redis
 import logging
 
-from ..parameters import REDIS_CONNECT
+from emitpy.parameters import REDIS_CONNECT
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Reader")
@@ -28,5 +28,5 @@ class Reader:
         # shoud do some check to not forward redis internal messages
         logger.debug(f":forward: {msg}")
 
-r = Reader("lt")
+r = Reader("raw")
 r.run()
