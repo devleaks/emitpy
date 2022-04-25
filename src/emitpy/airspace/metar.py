@@ -36,11 +36,16 @@ def normalize_dt(dt):
     return dtret
 
 
-class MetarOjb(object):
+class MetarHistorical(object):
+    """
+    Wrapper to maintain symmetry with current metar
+    """
     def __init__(self, metar: str):
         self.METAR = metar
+        self.TAF = None
     def _to_api_dict(self):
         return {"METAR": self.METAR}
+
 
 class Metar:
     """
@@ -81,6 +86,14 @@ class Metar:
 
 
     def fetch(self):
+        """
+        Fetches the object.
+        Flightplandb returns something like:
+        {
+          "METAR": "KLAX 042053Z 26015KT 10SM FEW180 SCT250 25/17 A2994",
+          "TAF": "TAF AMD KLAX 042058Z 0421/0524 26012G22KT P6SM SCT180 SCT250 FM050400 26007KT P6SM SCT200 FM050700 VRB05KT P6SM SCT007 SCT200 FM051800 23006KT P6SM SCT020 SCT180"
+        }
+        """
         if self.moment is not None:
             ret = self.fetchHistoricalMetar()
             if ret[0]:
@@ -90,10 +103,9 @@ class Metar:
         metar = self.api.weather.fetch(icao=self.icao)
         if metar is not None and metar.METAR is not None:
             self.raw = metar
-            if self.raw is not None:
-                logger.debug(f":fetch: {self.raw.METAR},")
-                self.parse(self.raw.METAR)
-                return (True, "Metar::fetch:got metar")
+            logger.debug(f":fetch: {self.raw.METAR},")
+            self.parse(self.raw.METAR)
+            return (True, "Metar::fetch: metar parsed")
         return (False, "Metar::fetch: could not get metar")
 
 
@@ -160,6 +172,7 @@ class Metar:
         if parsed is not None:
             self.metar = parsed
 
+
     def fetchHistoricalMetar(self):
         """
         https://www.ogimet.com/display_metars2.php?lang=en&lugar=OTHH&tipo=SA&ord=REV&nil=SI&fmt=txt&ano=2019&mes=04&day=13&hora=07&anof=2019&mesf=04&dayf=13&horaf=07&minf=59&send=send      ==>
@@ -190,7 +203,7 @@ class Metar:
         if metar is None:
             return (False, "failed to get historical metar")
 
-        self.raw = MetarOjb(metar=metar[len(nowstr2)+7:-1])
+        self.raw = MetarHistorical(metar=metar[len(nowstr2)+7:-1])
         self.parse(self.raw.METAR)
 
         return (True, "Metar::fetchHistoricalMetar: got historical metar")
