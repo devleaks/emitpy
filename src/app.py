@@ -132,9 +132,9 @@ class CreateServiceForm(FlaskForm):
     ramp = SelectField(choices=e.airport.getRampCombo())
     aircraft_type = SelectField(choices=Aircraft.getCombo())
     handler = SelectField(choices=[("QAS", "Qatar Airport Services"), ("BRU", "Bru Partners"), ("SWI", "Swissport")])
-    service = SelectField(choices=Service.getCombo())
+    service = SelectField(choices=Service.getCombo(), id="service_id")
     quantity = FloatField(validators=[validators.InputRequired("Please provide a quantity to serve")])
-    service_vehicle_model = SelectField(choices=ServiceVehicle.getCombo())
+    service_vehicle_model = SelectField(choices=ServiceVehicle.getCombo(), id="vehicle_model_id")
     service_vehicle_reg = StringField("Vehicle Registration", description="Vehicle registration", validators=[validators.InputRequired("Please provide aircraft registration")])
     icao24 = StringField(description="ICAO 24 bit transponder address in hexadecimal form",
                          validators=[validators.InputRequired("Please provide aircraft ADS-B transponder address"),
@@ -150,9 +150,24 @@ class CreateServiceForm(FlaskForm):
     queue = SelectField(choices=Queue.getCombo())
     submit = SubmitField("Create service")
 
+    @classmethod
+    # https://stackoverflow.com/questions/12170995/flask-and-wtforms-how-to-get-wtforms-to-refresh-select-data
+    def new(cls):
+        form = cls()
+        form.service.data = "catering"  # j'ai faim
+        form.service_vehicle_model.choices = ServiceVehicle.getModels(form.service.data)
+        return form
+
+# Helper for cascaded combo
+@app.route("/servicevehiclemodels/<serviceid>")
+def servicevehicles(serviceid):
+    l = ServiceVehicle.getModels(service=serviceid)
+    return jsonify(syncs=l)
+
+
 @app.route("/create_service", methods=["GET", "POST"])
 def create_service_form():
-    form = CreateServiceForm()
+    form = CreateServiceForm.new()
     if form.validate_on_submit():
         try:
             input_d = form.service_date.data if form.service_date.data is not None else datetime.now()
@@ -185,7 +200,7 @@ def create_service_form():
         finally:
             return redirect(url_for("index"))
     return render_template(
-        "create.html",
+        "create-service.html",
         title="Create service",
         create_form=form
     )

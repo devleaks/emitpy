@@ -62,6 +62,18 @@ class ServiceVehicle(Identity):
                 a.append((s.value+":default", s.value[0].upper()+s.value[1:]+" Vehicle"))
         return a
 
+    @staticmethod
+    def getModels(service: str = "catering"):
+        a = []
+        if service == "fuel":
+            a.append(("pump", "Fuel Jet Pump"))
+            a.append(("tanker_large", "Large Fuel Tanker"))
+            a.append(("tanker_medium", "Medium Fuel Tanker"))
+        else:
+            a.append((service+":default", service[0].upper()+service[1:]+" Vehicle"))
+        return a
+
+
     def getId(self):
         return self.name  # registration
 

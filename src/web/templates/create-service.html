@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% from 'bootstrap5/form.html' import render_form, render_field, render_form_row %}
+
+{% block content %}
+
+    <h2>{{ title }}</h2>
+
+    {{ render_form(create_form) }}
+
+    <script>
+        let service_select = document.getElementById("service_id")
+        let vehicle_model_select = document.getElementById("vehicle_model_id")
+        service_select.onchange = function() {
+            service_id = service_select.value;
+            fetch("/servicevehiclemodels/"+service_id).then(function(response){
+                response.json().then(function(data) {
+                    let optionHTML = "";
+                    for(let sn of data.syncs) {
+                        optionHTML += '<option value="'+sn[0]+'">'+sn[1]+'</option>'
+                    }
+                    vehicle_model_select.innerHTML = optionHTML
+                })
+            })
+        }
+        if(document.createEvent) { // provoke event for first init
+            let event = document.createEvent("HTMLEvents");
+            event.initEvent("change", true, true);
+            event.eventName = "change";
+            service_select.dispatchEvent(event);
+        }
+    </script>
+
+{% endblock %}
