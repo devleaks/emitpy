@@ -6,7 +6,6 @@ import re
 import json
 import logging
 import requests_cache
-import redis
 import urllib.request
 import importlib
 
@@ -43,12 +42,13 @@ class Metar:
     """
     Loads cached METAR for ICAO or fetch **current** from flightplandatabase.
     """
-    def __init__(self, icao: str):
+    def __init__(self, icao: str, redis = None):
         self.icao = icao
         self.moment = datetime.now()
         self.moment_norm = normalize_dt(self.moment)
         self.metar = None   # parsed metar
         self.raw = None     # metar string
+        self.redis = redis
 
     @staticmethod
     def new(icao: str, method: str = "MetarFPDB"):
@@ -128,12 +128,11 @@ class Metar:
 
 
     def saveDB(self):
-        if self.raw is not None:
+        if self.redis is not None and self.raw is not None:
             nowstr = self.getFullDT()
             metid = REDIS_DATABASE.METAR.value + ":" + self.raw[0:4] + ':' + nowstr
-            r = redis.Redis(**REDIS_CONNECT)
-            if not r.exists(metid):
-                r.set(metid, self.raw)
+            if not self.redis.exists(metid):
+                self.redis.set(metid, self.raw)
                 return (True, "Metar::saveDB: saved")
             else:
                 logger.warning(f":saveDB: alresaady exist {metid}")
@@ -141,18 +140,18 @@ class Metar:
 
 
     def loadDB(self):
-        nowstr = self.getFullDT()
-        metid = REDIS_DATABASE.METAR.value + ":" + self.icao + ":" + nowstr
-        logger.debug(f":loadDB: trying {metid}")
-        r = redis.Redis(**REDIS_CONNECT)
-        if r.exists(metid):
-            raw = r.get(metid)
-            self.raw = raw.decode("UTF-8")
-            if self.raw is not None:
-                return self.parse()
-            return (False, "Metar::loadDB: failed to get")
-        else:
-            logger.debug(f":loadDB: not found {metid}")
+        if self.redis is not None:
+            nowstr = self.getFullDT()
+            metid = REDIS_DATABASE.METAR.value + ":" + self.icao + ":" + nowstr
+            logger.debug(f":loadDB: trying {metid}")
+            if self.redis.exists(metid):
+                raw = self.redis.get(metid)
+                self.raw = raw.decode("UTF-8")
+                if self.raw is not None:
+                    return self.parse()
+                return (False, "Metar::loadDB: failed to get")
+            else:
+                logger.debug(f":loadDB: not found {metid}")
         return (False, "Metar::loadDB: failed to load")
 
 

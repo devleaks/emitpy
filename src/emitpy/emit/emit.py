@@ -3,7 +3,6 @@ Emit
 """
 import os
 import json
-import redis
 import flatdict
 import logging
 
@@ -55,7 +54,6 @@ class Emit:
         self.scheduled_emit = []  # [ EmitPoint ], a copy of self._emit but with actual emission time (absolute time)
         self.props = {}  # general purpose properties added to each emit point
         self.version = 0
-        self.redis = None
         self.offset_name = None
         self.offset = None
 
@@ -113,7 +111,7 @@ class Emit:
         return (True, "Movement::save saved")
 
 
-    def saveDB(self):
+    def saveDB(self, redis):
         """
         Save flight paths to file for emitted positions.
         """
@@ -121,34 +119,32 @@ class Emit:
             logger.warning(":saveDB: no emission point")
             return (False, "Movement::saveDB: no emission point")
 
-        if self.redis is None:
-            self.redis = redis.Redis(**REDIS_CONNECT)
-
         emit_id = self.mkDBKey(REDIS_TYPE.EMIT.value)  # ident + REDIS_TYPE.EMIT.value
 
         emit = {}
         for f in self._emit:
             emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
-        self.redis.delete(emit_id)
-        self.redis.zadd(emit_id, emit)
+        redis.delete(emit_id)
+        redis.zadd(emit_id, emit)
         move_id = self.mkDBKey("")
-        self.redis.sadd(REDIS_DATABASE.MOVEMENTS.value, move_id)
+        redis.sadd(REDIS_DATABASE.MOVEMENTS.value, move_id)
 
         if self.props is not None and len(self.props) > 0:
             meta_id = self.mkDBKey(REDIS_TYPE.EMIT_META.value)  # ident + REDIS_TYPE.EMIT_META.value
-            self.redis.set(meta_id, json.dumps(self.props))
+            redis.set(meta_id, json.dumps(self.props))
 
         # save kml to redis...
         if callable(getattr(self.moves, "getKML", None)):
             kml_id = self.mkDBKey(REDIS_TYPE.EMIT_KML.value)  # ident + REDIS_TYPE.EMIT_META.value
-            self.redis.set(kml_id, json.dumps(self.moves.getKML()))
+            redis.set(kml_id, json.dumps(self.moves.getKML()))
+            logger.debug(f":saveDB: saved kml")
 
         # save messages for broadcast
         if self.move is not None:
             mid = self.mkDBKey(REDIS_TYPE.EMIT_MESSAGE.value)
             for m in self.move.getMessages():
-                self.redis.sadd(mid, json.dumps(m.getInfo()))
-            logger.debug(f":saveDB: saved {self.redis.smembers(mid)} messages")
+                redis.sadd(mid, json.dumps(m.getInfo()))
+            logger.debug(f":saveDB: saved {redis.scard(mid)} messages")
 
         logger.debug(f":saveDB: saved {move_id}")
         return (True, "Movement::saveDB saved")

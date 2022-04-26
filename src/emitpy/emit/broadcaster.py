@@ -225,9 +225,9 @@ class HyperCaster:
                     oldsp = self.queues[qn].speed
                     oldst = self.queues[qn].starttime
                     oldbr = self.queues[qn].broadcaster
-                    self.queues[qn] = Queue.loadFromDB(qn)
+                    self.queues[qn] = Queue.loadFromDB(redis=self.redis, name=qn)
                     self.queues[qn].broadcaster = oldbr
-                    oldbr.reset(speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
+                    oldbr.reset(redis=self.redis, speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
                     logger.debug(f":admin_queue: queue {qn} speed {self.queues[qn].speed} (was {oldsp})")
                     logger.debug(f":admin_queue: queue {qn} starttime {self.queues[qn].starttime} (was {oldst})")
 

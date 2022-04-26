@@ -42,11 +42,11 @@ class ServiceFlight:
         return (True, "ServiceFlight::save: completed")
 
 
-    def saveDB(self):
+    def saveDB(self, redis):
         for service in self.services:
             logger.debug(f"saving to redis {service['type']}..")
             emit = service["emit"]
-            ret = emit.saveDB()
+            ret = emit.saveDB(redis)
             if not ret[0]:
                 return ret
             logger.debug(f"..done")

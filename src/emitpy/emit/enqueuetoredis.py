@@ -3,7 +3,6 @@
 import os
 import logging
 import datetime
-import redis
 
 from .format import Format
 from .formattoredis import FormatToRedis
@@ -17,53 +16,53 @@ logger = logging.getLogger("EnqueueToRedis")
 class EnqueueToRedis(FormatToRedis):  # could/should inherit from Format
 
 
-    def __init__(self, emit: "Emit", queue: Queue):
+    def __init__(self, emit: "Emit", queue: Queue, redis = None):
+        r = queue.redis if queue is not None else redis
         formatter = Format.getFormatter(queue.formatter_name)
-        FormatToRedis.__init__(self, emit, formatter)
+        FormatToRedis.__init__(self, emit, formatter, r)
         self.queue = queue
+        self.redis = r
 
 
     @staticmethod
-    def dequeue(ident: str, queue: str):
-        r = redis.Redis(**REDIS_CONNECT)
+    def dequeue(redis, ident: str, queue: str):
         # Remove ident entries from sending queue.
         enqueued = ident + REDIS_TYPE.QUEUE.value
         # 1. Remove queued elements
-        oldvalues = r.smembers(enqueued)
+        oldvalues = redis.smembers(enqueued)
         if oldvalues and len(oldvalues) > 0:
-            r.zrem(queue, *oldvalues)
+            redis.zrem(queue, *oldvalues)
             logger.debug(f":dequeue: deleted {len(oldvalues)} entries for {enqueued}")
         else:
             logger.debug(f":dequeue: no enqueued entries for {enqueued}")
         # 2. Remove enqueued list
-        r.delete(enqueued)
+        redis.delete(enqueued)
         logger.debug(f":dequeue: deleted {enqueued}")
 
         return (True, f"EnqueueToRedis::dequeue dequeued {ident}")
 
 
     @staticmethod
-    def delete(ident: str, queue: str = None):
+    def delete(redis, ident: str, queue: str = None):
         # Remove ident entries from sending queue if queue is provided.
         # Remove ident from list of emits (normally, this is done with expiration date).
-        r = redis.Redis(**REDIS_CONNECT)
         # 1. Dequeue
         if queue is not None:
             FormatToRedis.dequeue(ident, queue)
         # 2. Remove formatted
         emits = ident + REDIS_TYPE.FORMAT.value
-        r.delete(emits)
+        redis.delete(emits)
         logger.debug(f":delete: deleted {emits} formats")
         # 3. Remove emit
         emits = ident + REDIS_TYPE.EMIT.value
-        r.delete(emits)
+        redis.delete(emits)
         logger.debug(f":delete: deleted {emits} emits")
         # 4. Remove emit meta
         emits = ident + REDIS_TYPE.EMIT_META.value
-        r.delete(emits)
+        redis.delete(emits)
         logger.debug(f":delete: deleted {emits} emit meta data")
         # 5. Remove from list of available emissions
-        r.srem(REDIS_DATABASE.MOVEMENTS.value, ident)
+        redis.srem(REDIS_DATABASE.MOVEMENTS.value, ident)
         logger.debug(f":delete: deleted {ident} emit")
         return (True, f"EnqueueToRedis::delete deleted {ident}")
 

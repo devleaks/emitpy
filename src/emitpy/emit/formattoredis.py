@@ -3,20 +3,18 @@
 import os
 import logging
 import datetime
-import redis
 
 from .format import Format, Formatter
 from ..constants import REDIS_QUEUE, REDIS_DATABASE, REDIS_TYPE
-from ..parameters import REDIS_CONNECT
 
 logger = logging.getLogger("FormatToRedis")
 
 
 class FormatToRedis(Format):
 
-    def __init__(self, emit: "Emit", formatter: Formatter):
+    def __init__(self, emit: "Emit", formatter: Formatter, redis):
         Format.__init__(self, emit=emit, formatter=formatter)
-        self.redis = redis.Redis(**REDIS_CONNECT)
+        self.redis = redis
 
 
     @staticmethod

@@ -108,10 +108,10 @@ class Messages:
         self.entity = entity
         self.messages = []
 
-    def addMessage(self, message: Mess):
+    def addMessage(self, message: Message):
         self.messages.append(message)
 
-    def getMessages(self)
+    def getMessages(self):
         return self.messages
 
     def saveMessages(self, redis, key: str):
