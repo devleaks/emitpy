@@ -60,7 +60,7 @@ def main():
 
     logger.debug("..collecting METAR..")
     # Prepare airport for each movement
-    metar = Metar(icao=MANAGED_AIRPORT["ICAO"])
+    metar = Metar.new(icao=MANAGED_AIRPORT["ICAO"])
     managed.setMETAR(metar=metar)  # calls prepareRunways()
 
     logger.debug("..done")
@@ -88,7 +88,7 @@ def main():
         print(f"other airport not loaded: {ret}")
 
     logger.debug("..collecting METAR..")
-    origin_metar = Metar(icao=remote_apt.icao)
+    origin_metar = Metar.new(icao=remote_apt.icao)
     remote_apt.setMETAR(metar=origin_metar)  # calls prepareRunways()
     logger.debug("..done")
 
@@ -114,7 +114,7 @@ def main():
     ramp = managed.selectRamp(arr)  # Aircraft won't get towed
     arr.setRamp(ramp)
     gate = "C99"
-    ramp_name = ramp.getProp("name")
+    ramp_name = ramp.getName()
     if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
         gate = ramp_name
     arr.setGate(gate)

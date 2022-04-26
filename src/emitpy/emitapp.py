@@ -78,7 +78,7 @@ class EmitApp(ManagedAirport):
             return ret
 
         logger.debug("..collecting metar..")
-        remote_metar = Metar(icao=remote_apt.icao, use_redis=True)
+        remote_metar = Metar.new(icao=remote_apt.icao)
         remote_apt.setMETAR(metar=remote_metar)  # calls prepareRunways()
         logger.debug("..done")
 

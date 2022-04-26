@@ -95,7 +95,7 @@ class ManagedAirport:
         """
         logger.debug(":update_metar: collecting METAR..")
         # Prepare airport for each movement
-        metar = Metar(icao=self._this_airport["ICAO"], use_redis=True)
+        metar = Metar.new(icao=self._this_airport["ICAO"])
         self.airport.setMETAR(metar=metar)  # calls prepareRunways()
         logger.debug(":update_metar: ..done")
 

@@ -19,8 +19,6 @@ from ..parameters import DATA_DIR
 from ..utils import machToKmh, NAUTICAL_MILE, FT, toKmh
 
 
-print(">>>", sys.path)
-
 logger = logging.getLogger("Aircraft")
 
 

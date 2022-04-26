@@ -60,7 +60,7 @@ def main():
     managed.setAirspace(airspace)
 
     # Prepare airport for each movement
-    metar = Metar(icao=MANAGED_AIRPORT["ICAO"])
+    metar = Metar.new(icao=MANAGED_AIRPORT["ICAO"])
     managed.setMETAR(metar=metar)  # calls prepareRunways()
 
     # Add pure commercial stuff
@@ -92,7 +92,7 @@ def main():
     if not ret[0]:
         print("origin airport not loaded")
 
-    origin_metar = Metar(icao=origin_apt.icao)
+    origin_metar = Metar.new(icao=origin_apt.icao)
     origin_apt.setMETAR(metar=origin_metar)  # calls prepareRunways()
 
     destination_apt = None
@@ -115,7 +115,7 @@ def main():
     if not ret[0]:
         print("destination airport not loaded")
 
-    destination_metar = Metar(icao=destination_apt.icao)
+    destination_metar = Metar.new(icao=destination_apt.icao)
     destination_apt.setMETAR(metar=destination_metar)  # calls prepareRunways()
     logger.debug("..done")
 
@@ -139,7 +139,7 @@ def main():
     ramp = managed.selectRamp(arr)  # Aircraft won't get towed
     arr.setRamp(ramp)
     gate = "C99"
-    ramp_name = ramp.getProp("name")
+    ramp_name = ramp.getName()
     if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
         gate = ramp_name
     arr.setGate(gate)
