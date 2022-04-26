@@ -9,10 +9,17 @@ import logging
 import operator
 from math import inf
 
+from importlib_resources import files
+import sys
+sys.path.append('/Users/pierre/Developer/oscars/emitpy')
+
 from ..business import Identity, Company
 from ..constants import AIRCRAFT_TYPE_DATABASE
 from ..parameters import DATA_DIR
 from ..utils import machToKmh, NAUTICAL_MILE, FT, toKmh
+
+
+print(">>>", sys.path)
 
 logger = logging.getLogger("Aircraft")
 
@@ -78,21 +85,18 @@ class AircraftType(Identity):
             Main Gear Config,ICAO Code,Wake Category,ATCT Weight Class,Years Manufactured,
             Note,Parking Area (WS x Length)- sf
         """
-        filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "aircraft-types.csv")
-        file = open(filename, "r")
-        csvdata = csv.DictReader(file)
+        ac = files('data.aircraft_types').joinpath('aircraft-types.csv').read_text()
+        csvdata = csv.DictReader(ac.split("\n"))
         for row in csvdata:
             if row["ICAO Code"] != "tbd":
                 AircraftType._DB[row["ICAO Code"]] = AircraftType(orgId=row["Manufacturer"], classId=row["Wake Category"], typeId=row["ICAO Code"], name=row["Model"], data=row)
-        file.close()
         logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft types")
 
         # Aircraft equivalence patch(!)
-        filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "aircraft-equivalence.yaml")
-        with open(filename, "r") as file:
-            data = yaml.safe_load(file)
+        ae = files('data.aircraft_types').joinpath('aircraft-equivalence.yaml').read_text()
+        data = yaml.safe_load(ae)
         AircraftType._DB_EQUIVALENCE = data
-        logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft equivalences")
+        logger.debug(f":loadAll: loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences")
 
 
     @staticmethod
@@ -198,9 +202,8 @@ class AircraftPerformance(AircraftType):
         """
         Load all aircraft performance data files for all aircrafts where it is available.
         """
-        filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "aircraft-performances.json")
-        file = open(filename, "r")
-        jsondata = json.load(file)
+        ac = files('data.aircraft_types').joinpath('aircraft-performances.json').read_text()
+        jsondata = json.loads(ac)
         for ac in jsondata.keys():
             actype = AircraftType.find(ac)
             if actype is not None:
@@ -212,7 +215,6 @@ class AircraftPerformance(AircraftType):
                 AircraftPerformance._DB_PERF[ac] = acperf
             else:
                 logger.warning(f":loadAll: AircraftType {ac} not found")
-        file.close()
         cnt = len(list(filter(lambda a: a.available, AircraftPerformance._DB_PERF.values())))
         logger.debug(f":loadAll: loaded {len(AircraftPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
         logger.debug(f":loadAll: {list(map(lambda f: (f.typeId, f.getIata()), AircraftPerformance._DB_PERF.values()))}")

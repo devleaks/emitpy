@@ -54,7 +54,7 @@ class Service:
 
 
     def getShortId(self):
-        r = self.ramp.getProp("name") if self.ramp is not None else "noramp"
+        r = self.ramp.getName() if self.ramp is not None else "noramp"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
         return r + ":" + v
 
@@ -73,8 +73,8 @@ class Service:
 
     def __str__(self):
         s = type(self).__name__
-        s = s + " at ramp " + self.ramp.getProp("name")
-        s = s + " by vehicle " + self.vehicle.getProp("name")  # model, icao24
+        s = s + " at ramp " + self.ramp.getName()
+        s = s + " by vehicle " + self.vehicle.getName()  # model, icao24
 
 
     def setTurnaround(self, turnaround: "Turnaround"):

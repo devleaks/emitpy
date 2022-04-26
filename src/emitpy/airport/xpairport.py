@@ -442,8 +442,8 @@ class XPAirport(AirportBase):
         """
         Returns a list of (code, description) pairs for all service points of interest.
         """
-        l = sorted(self.service_pois.values(),key=lambda x: x.getProp("name"))
-        a = [(a.getProp("name"), a.getProp("name")) for a in l]
+        l = sorted(self.service_pois.values(),key=lambda x: x.getName())
+        a = [(a.getName(), a.getName()) for a in l]
         return a
 
     def loadCheckpointPOIS(self):
@@ -474,8 +474,8 @@ class XPAirport(AirportBase):
         """
         Returns a list of (code, description) pairs for all checkpoints.
         """
-        l = sorted(self.check_pois.values(),key=lambda x: x.getProp("name"))
-        a = [(a.getProp("name"), a.getProp("name")) for a in l]
+        l = sorted(self.check_pois.values(),key=lambda x: x.getName())
+        a = [(a.getName(), a.getName()) for a in l]
         return a
 
     def getCheckpoint(self, name):
@@ -533,7 +533,7 @@ class XPAirport(AirportBase):
 
         def makeQueue(line):
             # place TAKEOFF_QUEUE_SIZE points on line
-            name = line.getProp("runway")
+            name = line.getProp(FEATPROP.RUNWAY.value)
             q0 = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
             q1 = Feature(geometry=Point(line["geometry"]["coordinates"][-1]))
             rwy = self.procedures.RWYS[name]
@@ -556,7 +556,7 @@ class XPAirport(AirportBase):
 
 
         def makeRunwayExits(exitpt):
-            name = exitpt.getProp("runway")
+            name = exitpt.getProp(FEATPROP.RUNWAY.value)
             rwy = self.procedures.RWYS[name]
             rwypt = rwy.getPoint()
             dist = distance(Feature(geometry=Point(rwypt["geometry"]["coordinates"])), Feature(geometry=Point(exitpt["geometry"]["coordinates"])))
@@ -768,7 +768,7 @@ class XPAirport(AirportBase):
         :type       service:  str
         """
         dl = self.service_pois if service_name is None else self.getServicePOIs(service_name)
-        dn = list(filter(lambda f: f.getProp("name") == name, dl))
+        dn = list(filter(lambda f: f.getName() == name, dl))
         if len(dn) == 0:
             logger.warning(f":getServiceDepot: { name } not found")
             return None
@@ -784,7 +784,7 @@ class XPAirport(AirportBase):
         :type       service:  str
         """
         dl = self.service_pois if service_name is None else self.getServicePOIs(service_name)
-        dn = list(filter(lambda f: f.getProp("name") == name, dl))
+        dn = list(filter(lambda f: f.getName() == name, dl))
         if len(dn) == 0:
             logger.warning(f":getServiceRestArea: { name } not found")
             return None

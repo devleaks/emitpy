@@ -55,7 +55,7 @@ class LiveTrafficFormatter(Formatter):
         #
         f = self.feature
 
-        icao24x = f.getProp("icao24")
+        icao24x = f.getProp(FEATPROP.ICAO24.value)
         if icao24x is not None:
             icao24 = int(str(icao24x), 16)  # https://stackoverflow.com/questions/46341329/int-cant-convert-non-string-with-explicit-base-when-converting-to-gui
         else:
@@ -69,7 +69,7 @@ class LiveTrafficFormatter(Formatter):
         speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
         airborne = (alt > 0 and speed > 20)
 
-        heading = f.getProp("heading")
+        heading = f.getProp(FEATPROP.HEADING.value)
 
         actype = f.getProp("aircraft:actype:actype")  # ICAO
         if f.getProp("flight:identifier") is not None:  # it's a flight

@@ -174,8 +174,8 @@ class Airport(Location):
             "icao": self.icao,
             "iata": self.iata,
             "name": self.getProp(FEATPROP.NAME.value),
-            "city": self.getProp("city"),
-            "country": self.getProp("country")
+            "city": self.getProp(FEATPROP.CITY.value),
+            "country": self.getProp(FEATPROP.COUNTRY.value)
         }
 
 
@@ -350,8 +350,8 @@ class AirportBase(Airport):
         :returns:   The ramp combo.
         :rtype:     { return_type_description }
         """
-        l = sorted(self.ramps.values(),key=lambda x: x.getProp("name"))
-        a = [(a.getProp("name"), a.getProp("name")) for a in l]
+        l = sorted(self.ramps.values(),key=lambda x: x.getName())
+        a = [(a.getName(), a.getName()) for a in l]
         return a
 
     def getRunwayCombo(self):
@@ -361,8 +361,8 @@ class AirportBase(Airport):
         :returns:   The runway combo.
         :rtype:     { return_type_description }
         """
-        l = sorted(self.runways.values(),key=lambda x: x.getProp("name"))
-        a = [(a.getProp("name"), "RW" + a.getProp("name")) for a in l]
+        l = sorted(self.runways.values(),key=lambda x: x.getName())
+        a = [(a.getName(), "RW" + a.getName()) for a in l]
         return a
 
     def setMETAR(self, metar: "Metar"):
@@ -574,7 +574,7 @@ class AirportBase(Airport):
         :returns:   The runway.
         :rtype:     { return_type_description }
         """
-        n = "RW" + runway.getProp("name")
+        n = "RW" + runway.getName()
         if n in self.procedures.RWYS.keys():
             return self.procedures.RWYS[n]
         logger.warning(f":getRWY: RWY {n} not found")

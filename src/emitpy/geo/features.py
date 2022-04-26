@@ -80,6 +80,18 @@ class FeatureWithProps(Feature):
         else:
             self["properties"][name] = value
 
+    def getName(self):
+        return self.getProp(FEATPROP.NAME.value)
+
+    def setName(self, name: str):
+        self.setProp(FEATPROP.NAME.value, name)
+
+    def getId(self):
+        return self.id
+
+    def setId(self, ident: str):
+        self.id = ident
+
     def addProps(self, values: dict):
         for name, value in values.items():
             self.setProp(name, value)
@@ -213,9 +225,9 @@ class Location(FeatureWithProps):  # Location(Feature)
     def __init__(self, name: str, city: str, country: str, lat: float, lon: float, alt: float):
 
         FeatureWithProps.__init__(self, geometry=Point((lon, lat, alt)), properties={
-            "country": country,
-            "city": city,
-            "name": name
+            FEATPROP.COUNTRY.value: country,
+            FEATPROP.CITY.value: city,
+            FEATPROP.NAME.value: name
         })
 
 
@@ -238,18 +250,18 @@ class Ramp(FeatureWithProps):
         self.service_pois = {}
 
     def getInfo(self):
-        a = self.getProp("name")[0]
+        a = self.getName()[0]
         if a == "5":
             a = "J"
 
         return {
-            "name": self.getProp("name"),
+            "name": self.getName(),
             "apron": a.upper()
         }
 
     def getId(self):
         # remove spaces
-        return "".join(self.getProp("name").split())
+        return "".join(self.getName().split())
 
     def busy(self):
         self["properties"]["available"] = False
@@ -271,7 +283,7 @@ class Ramp(FeatureWithProps):
 
         # Parking position (center) is about aircraft nose tip position.
         self.setColor("#dddd00")
-        heading = self.getProp("orientation")
+        heading = self.getProp(FEATPROP.ORIENTATION.value)
         antiheading = heading - 180
         if antiheading < 0:
             antiheading = antiheading + 360
@@ -322,11 +334,11 @@ class Runway(FeatureWithProps):
 
     def getInfo(self):
         return {
-            "name": self.getProp("name")
+            "name": self.getName()
         }
 
     def getId(self):
-        return self.getProp("name")
+        return self.getName()
 
 
 # ################################@

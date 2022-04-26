@@ -34,6 +34,7 @@ class Movement:
     def __init__(self, airport: "AirportBase"):
         self.airport = airport
         self.moves = []  # Array of Features<Point>
+        self.messages = []  # Array of Messages
 
     def getId(self):
         return "Movement::abstract-class-id"

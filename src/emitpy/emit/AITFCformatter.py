@@ -35,7 +35,7 @@ class AITFCFormatter(Formatter):
         #
         f = self.feature
 
-        icao24x = f.getProp("icao24")
+        icao24x = f.getProp(FEATPROP.ICAO24.value)
         icao24 = int(icao24x, 16)
 
         coords = f.coords()
@@ -46,15 +46,15 @@ class AITFCFormatter(Formatter):
         speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
         airborne = (alt > 0 and speed > 20)
 
-        heading = f.getProp("heading")
+        heading = f.getProp(FEATPROP.HEADING.value)
 
         actype = f.getProp("aircraft:actype:actype")  # ICAO
-        if f.getProp("service-type") is not None or f.getProp("mission") is not None:  # mission or service
-            callsign = f.getProp("vehicle:callsign").replace(" ","").replace("-","")
-            tailnumber = f.getProp("vehicle:icao")
-        else:  # fight
+        if f.getProp("flight:identifier") is not None:  # it's a flight
             callsign = f.getProp("aircraft:callsign").replace(" ","").replace("-","")
             tailnumber = f.getProp("aircraft:acreg")
+        else:
+            callsign = f.getProp("vehicle:callsign").replace(" ","").replace("-","")
+            tailnumber = f.getProp("vehicle:icao")
         aptfrom = f.getProp("departure:icao")     # IATA
         aptto = f.getProp("arrival:icao")  # IATA
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)

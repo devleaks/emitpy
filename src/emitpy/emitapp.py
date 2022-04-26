@@ -11,7 +11,7 @@ from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, ServiceFlight, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE
+from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE, FEATPROP
 from emitpy.parameters import DEFAULT_QUEUES
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
@@ -97,7 +97,7 @@ class EmitApp(ManagedAirport):
 
         logger.info("*" * 90)
         logger.info("*** (%s, %dnm) %s-%s AC %s at FL%d" % (
-                    remote_apt.getProp("city"), aptrange/NAUTICAL_MILE, remote_apt.iata, self._this_airport["IATA"],
+                    remote_apt.getProp(FEATPROP.CITY.value), aptrange/NAUTICAL_MILE, remote_apt.iata, self._this_airport["IATA"],
                     acperf.typeId, reqfl))
         logger.debug("*" * 90)
 
@@ -115,7 +115,7 @@ class EmitApp(ManagedAirport):
 
         flight.setRamp(rampval)
         gate = "C99"
-        ramp_name = rampval.getProp("name")
+        ramp_name = rampval.getName()
         if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
             gate = ramp_name
         flight.setGate(gate)

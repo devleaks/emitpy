@@ -152,7 +152,7 @@ class Flight:
 
 
     def setRamp(self, ramp):
-        name = ramp.getProp("name")
+        name = ramp.getName()
         if name in self.managedAirport.ramps.keys():
             self.ramp = ramp
             logger.debug(f":setRamp: flight {self.getName()}: ramp {self.ramp.getProp('name')}")

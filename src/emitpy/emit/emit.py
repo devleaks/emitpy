@@ -395,12 +395,13 @@ class Emit:
         # => We limit high frequency emits to the vicinity of the airport.
         # @todo: It would be better to not generate the emission at the first place...
         # Somehow, the test has to be made somewhere. Let's assume filter() is efficient.
-        if RATE_LIMIT is not None and frequency < RATE_LIMIT:
+        if RATE_LIMIT is not None and frequency < RATE_LIMIT and EMIT_RANGE is not None:
             if self.move is not None and self.move.airport is not None:
                 center = self.move.airport  # yeah, it's a Feature
+                before = len(self._emit)
                 self._emit = list(filter(lambda f: distance(f, center) < EMIT_RANGE, self._emit))
-                logger.debug(f":emit: rate { self.frequency } high, limiting to { EMIT_RANGE }m")
-            else
+                logger.debug(f":emit: rate { self.frequency } high, limiting to { EMIT_RANGE }km: before: {before}, after: {len(self._emit)}")
+            else:
                 logger.warning(f":emit: rate { self.frequency } high, cannot locate airport")
 
         # transfert common data to each emit point for emission
@@ -455,7 +456,7 @@ class Emit:
                 logger.warning(status[1])
         logger.debug(f":interpolate: {self.getId()}: .. done.")
 
-        x = to_interp[0].getProp("altitude")
+        x = to_interp[0].getProp(FEATPROP.ALTITUDE.value)  # get the property, not the third coord.
         if x is not None:
             logger.debug(f":interpolate: {self.getId()}: checking and transposing altitudes to geojson coordinates..")
             for f in to_interp:

@@ -81,7 +81,8 @@ class SERVICE_COLOR(Enum):
 
 
 ########################################
-# Databases
+# Files and Databases
+#
 AIRPORT_DATABASE = "airports"
 AIRLINE_DATABASE = "airlines"
 GEOMETRY_DATABASE = "geometries"
@@ -94,6 +95,41 @@ METAR_DATABASE = "metar"
 MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation parameters
 FLIGHTROUTE_DATABASE = "flightplans"
 AODB = "aodb"
+
+
+class FILE_EXT(Enum):
+    FLIGHT_PLAN = "1-plan"
+    FLIGHT = "2-flight"
+    SERVICE = "3-service"
+    MOVE = "3-move"
+    EMIT = "4-emit"
+    BROADCAST = "5-broadcast"
+
+
+class REDIS_DATABASE(Enum):
+    FLIGHTS = "flights"
+    MOVEMENTS = "movements"
+    QUEUES = "queues"
+
+
+class REDIS_TYPE(Enum):
+    EMIT = ":e"
+    EMIT_META = ":m"
+    EMIT_KML = ":k"
+    FORMAT = ":f"
+    QUEUE = ":q"
+
+
+class REDIS_QUEUE(Enum):
+    ADMIN_QUEUE_PREFIX = "queues"
+    ADSB = "adsb"
+    LIVETRAFFIC = "lt"
+    RAW = "raw"
+    DEFAULT = "raw"
+
+
+TAG_SEP = "|"
+ID_SEP = ":"
 
 
 ########################################
@@ -116,7 +152,7 @@ AODB = "aodb"
 # E 14m 65m Boeing 747 to 400 / A330/ 340 , 787-8 (DL)
 # F 16m 80m 747_800, airbus
 #
-AIRCRAFT_TYPES = {  # Half width of taxiway in meters
+AIRCRAFT_CLASSES = {  # Half width of taxiway in meters
     'A': 4,     # 7.5m
     'B': 6,     # 10.5m
     'C': 8,     # 15m or 18m
@@ -125,7 +161,7 @@ AIRCRAFT_TYPES = {  # Half width of taxiway in meters
     'F': 15     # 30m
 }
 
-AICRAFT_DEFAULT = "AIRBUS"  # alt: "BOEING"
+AICRAFT_DEFAULT = "AIRBUS"  # {"AIRBUS","BOEING"}
 
 # X-Plane APT files keywords and constants
 #
@@ -145,6 +181,9 @@ TAXIWAY_ACTIVE_ARRIVAL = "arrival"
 TAXIWAY_ACTIVE_ILS = "ils"
 
 
+########################################
+# Movements and Emissions or positions
+#
 # @todo: Should distinguish "points" (top_of_descent) and "phases" ("climb")
 class FLIGHT_PHASE(Enum):
     OFFBLOCK = "OFFBLOCK"
@@ -188,11 +227,6 @@ class MISSION_PHASE(Enum):
     EN_ROUTE = "enroute"
     END = "end"
 
-class MISSION_COLOR(Enum):
-    START = "#00dd00"
-    CHECKPOINT = "#0000dd"
-    EN_ROUTE = "#eeeeee"
-    END = "#dd0000"
 
 class SERVICE_PHASE(Enum):
     START = "start"
@@ -202,15 +236,101 @@ class SERVICE_PHASE(Enum):
     LEAVE = "leave"
     END = "end"
 
-class SERVICE_PHASE_COLOR(Enum):
-    START = "#008800"
-    ARRIVED = "#00dd00"
-    SERVICE_START = "#0000dd"
-    SERVICE_END = "#000088"
-    LEAVE = "#dd0000"
-    END = "#880000"
 
-# geojson.io color for point and linestring features
+class POI_TYPE(Enum):
+    # Feature property names
+    RUNWAY_EXIT = "runway-exit"
+    TAKEOFF_QUEUE = "takeoff-queue"  # lineString
+    DEPOT = "depot"
+    REST_AREA = "rest-area"
+    RAMP_SERVICE_POINT = "ramp-service-point"
+    QUEUE_POSITION = "toq-pos"
+
+
+class RAMP_TYPE(Enum):
+    GATE = "gate"
+    TIE_DOWN = "tie-down"
+    HANGAR = "hangar"
+
+
+class ARRIVAL_DELAY(IntEnum):
+    HOLDING = 0
+    STAND_BYSU = 1
+
+
+class DEPARTURE_DELAY(IntEnum):
+    PUSHBACK = 0
+    TAXI = 1
+    RUNWAY_HOLD = 2
+    TAKEOFF_QUEUE = 3
+    TAKEOFF_HOLD = 4
+
+
+
+########################################
+# Feature properties
+#
+class FEATPROP(Enum):
+    # Feature property names
+    ALTITUDE = "altitude"
+    BROADCAST = "broadcast"
+    CITY = "city"
+    CONTROL_TIME = "control-time"
+    COUNTRY = "country"
+    DELAY = "delay"  # was pause in emitjs
+    EMIT_ABS_TIME = "emit-absolute-time"
+    EMIT_ABSOLUTE_TIME = "emit-absolute-time"
+    EMIT_INDEX = "emit-index"
+    EMIT_REASON = "emit-reason"
+    EMIT_REL_TIME = "emit-relative-time"
+    EMIT_RELATIVE_TIME = "emit-relative-time"
+    FLIGHT_PLAN_INDEX = "plan-index"
+    FLIGHT_PLANDB_INDEX = "fpdb-index"
+    HEADING = "heading"
+    ICAO24 = "icao24"
+    MARK = "_mark"
+    MISSION = "mission"
+    MOVE_INDEX = "move-index"
+    MOVEST_INDEX = "move-st-index"  # after standard turns added
+    NAME = "name"
+    ORIENTATION = "orientation"
+    PAUSE = "pause"
+    PLAN_SEGMENT_TYPE = "_plan_segment_type"
+    POI_TYPE = "poi-type"
+    REGION  = "region"
+    RUNWAY = "runway"
+    SAVED_TIME = "saved-time"
+    SERVICE = "service"
+    SERVICE_TYPE = "service-type"  # ~ SERVICE?
+    SPEED = "speed"
+    STOP_TIME = "stop-time"
+    TIME = "time"
+    VERTICAL_SPEED = "vspeed"
+    VSPEED = "vspeed"
+    ORG_ID = "orgId"
+    CLASS_ID = "classId"
+    TYPE_ID = "typeId"
+
+
+########################################
+# Simulation
+#
+TAKEOFF_QUEUE_SIZE = 1  # DO NOT CHANGE
+
+# Average default speeds
+TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
+SLOW_SPEED = 1.4 # 1.4m/s = 5km/h = slow speed
+
+# Point emission limit and control
+EMIT_RATES = [(str(x), str(x)) for x in [1, 5, 10, 30, 60, 120, 300]]  # possible values
+RATE_LIMIT = 10       # Maximum frequency when range of emission is limited to managed airport
+EMIT_RANGE = 5        # Maximum range (in kilometers) of emission when rate under RATE_LIMIT
+
+
+########################################
+# geojson.io coloring for point and linestring features
+# should be moved to parameters for custom coloring?
+# leave it here for now to avoid bad taste coloring.
 #
 class FLIGHT_COLOR(Enum):
     OFFBLOCK = "#990000"
@@ -301,107 +421,20 @@ class EDGE_COLOR(Enum):
     APPCH = "#666666"
     RUNWAY = "#666666"
 
+class MISSION_COLOR(Enum):
+    START = "#00dd00"
+    CHECKPOINT = "#0000dd"
+    EN_ROUTE = "#eeeeee"
+    END = "#dd0000"
 
-class FEATPROP(Enum):
-    # Feature property names
-    NAME = "name"
-    MARK = "_mark"
-    ALTITUDE = "altitude"
-    SPEED = "speed"
-    VSPEED = "vspeed"
-    VERTICAL_SPEED = "vspeed"
-    HEADING = "heading"
-    TIME = "time"
-    PAUSE = "pause"
-    DELAY = "delay"  # was pause in emitjs
-    FLIGHT_PLANDB_INDEX = "fpdb-index"
-    FLIGHT_PLAN_INDEX = "plan-index"
-    MOVE_INDEX = "move-index"
-    MOVEST_INDEX = "move-st-index"
-    POI_TYPE = "poi-type"
-    RUNWAY = "runway"
-    SERVICE = "service"
-    STOP_TIME = "stop-time"
-    BROADCAST = "broadcast"
-    EMIT_INDEX = "emit-index"
-    EMIT_REASON = "emit-reason"
-    EMIT_REL_TIME = "emit_relative_time"
-    EMIT_ABS_TIME = "emit_absolute_time"
-    CONTROL_TIME = "control-time"
+class SERVICE_PHASE_COLOR(Enum):
+    START = "#008800"
+    ARRIVED = "#00dd00"
+    SERVICE_START = "#0000dd"
+    SERVICE_END = "#000088"
+    LEAVE = "#dd0000"
+    END = "#880000"
 
-
-class FILE_EXT(Enum):
-    FLIGHT_PLAN = "1-plan"
-    FLIGHT = "2-flight"
-    SERVICE = "3-service"
-    MOVE = "3-move"
-    EMIT = "4-emit"
-    BROADCAST = "5-broadcast"
-
-
-class REDIS_DATABASE(Enum):
-    FLIGHTS = "flights"
-    MOVEMENTS = "movements"
-    QUEUES = "queues"
-
-
-class REDIS_TYPE(Enum):
-    EMIT = ":e"
-    EMIT_META = ":m"
-    EMIT_KML = ":k"
-    FORMAT = ":f"
-    QUEUE = ":q"
-
-
-class REDIS_QUEUE(Enum):
-    ADMIN_QUEUE_PREFIX = "queues"
-    ADSB = "adsb"
-    LIVETRAFFIC = "lt"
-    RAW = "raw"
-    DEFAULT = "raw"
-
-
-class POI_TYPE(Enum):
-    # Feature property names
-    RUNWAY_EXIT = "runway-exit"
-    TAKEOFF_QUEUE = "takeoff-queue"  # lineString
-    DEPOT = "depot"
-    REST_AREA = "rest-area"
-    RAMP_SERVICE_POINT = "ramp-service-point"
-    QUEUE_POSITION = "toq-pos"
-
-
-class RAMP_TYPE(Enum):
-    GATE = "gate"
-    TIE_DOWN = "tie-down"
-    HANGAR = "hangar"
-
-
-class ARRIVAL_DELAY(IntEnum):
-    # Feature property names
-    HOLDING = 0
-    STAND_BYSU = 1
-
-
-class DEPARTURE_DELAY(IntEnum):
-    # Feature property names
-    PUSHBACK = 0
-    TAXI = 1
-    RUNWAY_HOLD = 2
-    TAKEOFF_QUEUE = 3
-    TAKEOFF_HOLD = 4
-
-TAG_SEP = "|"
-ID_SEP = ":"
-
-# Simulation
-#
-TAKEOFF_QUEUE_SIZE = 1
-
-TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
-SLOW_SPEED = 1.4 # 1.4m/s = 5km/h = slow speed
-
-EMIT_RATES = [(str(x), str(x)) for x in [1, 5, 10, 30, 60, 120, 300]]
-RATE_LIMIT = 10       # Maximum frequency when range of emission is limited to managed airport
-EMIT_RANGE = None     # Maximum range of emission when rate under RATE_LIMIT
+class MESSAGE_COLOR(Enum):
+    DEFAULT = "#888888"
 

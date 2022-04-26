@@ -37,14 +37,14 @@ class RTTFCFormatter(Formatter):
         lon= coords[0]
 
         baro_alt = f.altitude(0) / FT  # m -> ft
-        baro_rate = f.prop("")
+        baro_rate = f.getProp("")
 
         airborne = (alt > 0 and speed > 20)
         gnd = not airborne  # :-)
 
         track = f.getProp("heading")
         gsp = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
-        cs_icao= f.prop("")
+        cs_icao= f.getProp("")
         ac_type= f.getProp("aircraft:actype:actype")  # ICAO
         ac_tailno = f.getProp("aircraft:acreg")
         from_iata = f.getProp("departure:iata")
@@ -54,33 +54,33 @@ class RTTFCFormatter(Formatter):
 
         source = "emitpy"
 
-        cs_iata = f.prop("")
-        msg_type = f.prop("")
-        alt_geom = f.prop("")
-        ias = f.prop("")
-        tas = f.prop("")
-        mach = f.prop("")
-        track_rate = f.prop("")
-        roll = f.prop("")
-        mag_heading = f.prop("")
-        true_heading = f.prop("")
-        geom_rate = f.prop("")
-        emergency = f.prop("")
-        category, = f.prop("")
-        nav_qnh = f.prop("")
-        nav_altitude_mcp = f.prop("")
-        nav_altitude_fms = f.prop("")
-        nav_heading = f.prop("")
-        nav_modes = f.prop("")
-        seen = f.prop("")
-        rssi, = f.prop("")
-        winddir = f.prop("")
-        windspd = f.prop("")
-        oat = f.prop("")
-        tat = f.prop("")
-        isicaohex = f.prop("")
-        augmentation_status = f.prop("")
-        authentication = f.prop("")
+        cs_iata = f.getProp("")
+        msg_type = f.getProp("")
+        alt_geom = f.getProp("")
+        ias = f.getProp("")
+        tas = f.getProp("")
+        mach = f.getProp("")
+        track_rate = f.getProp("")
+        roll = f.getProp("")
+        mag_heading = f.getProp("")
+        true_heading = f.getProp("")
+        geom_rate = f.getProp("")
+        emergency = f.getProp("")
+        category, = f.getProp("")
+        nav_qnh = f.getProp("")
+        nav_altitude_mcp = f.getProp("")
+        nav_altitude_fms = f.getProp("")
+        nav_heading = f.getProp("")
+        nav_modes = f.getProp("")
+        seen = f.getProp("")
+        rssi, = f.getProp("")
+        winddir = f.getProp("")
+        windspd = f.getProp("")
+        oat = f.getProp("")
+        tat = f.getProp("")
+        isicaohex = f.getProp("")
+        augmentation_status = f.getProp("")
+        authentication = f.getProp("")
 
         coords = f.coords()
 
@@ -89,7 +89,7 @@ class RTTFCFormatter(Formatter):
         vspeed = f.vspeed(0) * FT * 60  # m/s -> ft/min
         speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
 
-        heading = f.getProp("heading")
+        heading = f.getProp(FEATPROP.HEADING.value)
 
         actype = f.getProp("aircraft:actype:actype")  # ICAO
         if f.getProp("service-type") is not None:  # service

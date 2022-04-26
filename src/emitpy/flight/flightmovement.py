@@ -254,7 +254,7 @@ class FlightMovement(Movement):
         logger.debug((":vnav: %s: %d points in flight plan " + "*" * 50) % (type(self).__name__, len(fc)))
 
         # for f in self.flight.flightplan_cp:
-        #     logger.debug(":vnav: flight plan: %s" % (f.getProp("_plan_segment_type")))
+        #     logger.debug(":vnav: flight plan: %s" % (f.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
 
         # PART 1: FORWARD: From takeoff to top of ascent
         #
@@ -628,12 +628,12 @@ class FlightMovement(Movement):
         # if type(self).__name__ == "ArrivalMove":
         # find first point of approach:
         k = len(fc) - 1
-        while fc[k].getProp("_plan_segment_type") != "appch" and k > 0:
+        while fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE.value) != "appch" and k > 0:
             k = k - 1
         if k == 0:
             logger.warning(":vnav: no approach found")
         else:
-            logger.debug(":vnav:(rev) start of approach at index %d, %s" % (k, fc[k].getProp("_plan_segment_type")))
+            logger.debug(":vnav:(rev) start of approach at index %d, %s" % (k, fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
             if k <= fcidx:
                 logger.debug(":vnav:(rev) final fix seems further away than start of apprach")
             else:
@@ -641,7 +641,7 @@ class FlightMovement(Movement):
                 # add all approach points between start to approach to final fix
                 for i in range(fcidx+1, k):
                     wpt = fc[i]
-                    # logger.debug(":vnav: APPCH: flight level: %d %s" % (i, wpt.getProp("_plan_segment_type")))
+                    # logger.debug(":vnav: APPCH: flight level: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
                     p = addMovepoint(arr=revmoves,
                                      src=wpt,
                                      alt=alt+APPROACH_ALT,
@@ -667,12 +667,12 @@ class FlightMovement(Movement):
 
         # find first point of star:
         k = len(fc) - 1
-        while fc[k].getProp("_plan_segment_type") != "star" and k > 0:
+        while fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE.value) != "star" and k > 0:
             k = k - 1
         if k == 0:
             logger.warning(":vnav:(rev) no star found")
         else:
-            logger.debug(":vnav:(rev) start of star at index %d, %s" % (k, fc[k].getProp("_plan_segment_type")))
+            logger.debug(":vnav:(rev) start of star at index %d, %s" % (k, fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
             if k <= fcidx:
                 logger.debug(":vnav:(rev) final fix seems further away than start of star")
             else:
@@ -680,7 +680,7 @@ class FlightMovement(Movement):
                 # add all approach points between start to approach to final fix
                 for i in range(fcidx+1, k):
                     wpt = fc[i]
-                    # logger.debug(":vnav: STAR: flight level: %d %s" % (i, wpt.getProp("_plan_segment_type")))
+                    # logger.debug(":vnav: STAR: flight level: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
                     p = addMovepoint(arr=revmoves,
                                      src=wpt,
                                      alt=alt+STAR_ALT,
@@ -847,7 +847,7 @@ class FlightMovement(Movement):
             # logger.debug(":vnav: adding cruise: %d -> %d" % (top_of_ascent_idx, top_of_decent_idx))
             for i in range(top_of_ascent_idx, top_of_decent_idx):
                 wpt = self.flight.flightplan_cp[i]
-                # logger.debug(":vnav: adding cruise: %d %s" % (i, wpt.getProp("_plan_segment_type")))
+                # logger.debug(":vnav: adding cruise: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
 
                 p = addMovepoint(arr=self.moves,
                                  src=wpt,
@@ -988,7 +988,7 @@ class FlightMovement(Movement):
             return status
 
         for f in self.moves_st:
-            f.setProp("saved-time", f.time())
+            f.setProp(FEATPROP.SAVED_TIME.value, f.time())
 
         return (True, "Movement::time computed")
 
@@ -1018,7 +1018,7 @@ class FlightMovement(Movement):
             return status
 
         for f in self.taxipos:
-            f.setProp("saved-time", f.time())
+            f.setProp(FEATPROP.SAVED_TIME.value, f.time())
 
         logger.debug(":taxiInterpolateAndTime: .. done.")
 
@@ -1210,7 +1210,7 @@ class ArrivalMove(FlightMovement):
             return prev   # len(prev) == 0
         start = prev[-1].time()
         for f in self.taxipos:
-            f.setTime(start + f.getProp("saved-time"))
+            f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
         return prev + self.taxipos
 
 
@@ -1328,7 +1328,7 @@ class DepartureMove(FlightMovement):
         start = prev[-1].time()
         nextmv = super().getMoves()
         for f in nextmv:
-            f.setTime(start + f.getProp("saved-time"))
+            f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
         return self.taxipos + nextmv
 
 

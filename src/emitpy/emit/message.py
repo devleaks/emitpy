@@ -9,7 +9,7 @@ import uuid
 import json
 from datetime import datetime, timedelta
 from enum import Enum, IntEnum, Flag
-
+from ..constants import MESSAGE_COLOR
 
 class MESSAGE_STATUS(Enum):
     CREATED = "created"
@@ -24,10 +24,17 @@ class MESSAGE_CATEGORY(Enum):
     DEFAULT = "default"
 
 
+class MESSAGE_ICON(Enum):
+    # twitter bootstrap inspired: success,warning,error,info,primary,disabled,light,dark,default
+    DEFAULT = "default"
+
+
 class Message:
 
-    def __init__(self, subject: str, body: str):
+    def __init__(self, subject: str, body: str, related, feature):
         self.ident = uuid.uuid4()
+        self.related = related
+        self.feature = feature
         self.subject = subject
         self.body = body
         self.link = None
@@ -37,8 +44,8 @@ class Message:
 
         self.priority = 3
         self.category = MESSAGE_CATEGORY.DEFAULT.value
-        self.icon = "info"
-        self.color = "#8888FF"
+        self.icon = MESSAGE_ICON.DEFAULT.value
+        self.color = MESSAGE_COLOR.DEFAULT.value
         self.status = MESSAGE_STATUS.CREATED.value
 
         self.relative_reference = "start"
