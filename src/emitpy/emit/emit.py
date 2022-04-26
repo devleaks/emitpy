@@ -18,6 +18,7 @@ from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, 
 from ..utils import interpolate as doInterpolation, compute_headings
 
 from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE, REDIS_TYPE
+from ..constants import RATE_LIMIT, EMIT_RANGE
 from ..parameters import AODB_DIR, REDIS_CONNECT
 
 logger = logging.getLogger("Emit")
@@ -137,14 +138,11 @@ class Emit:
             meta_id = self.mkDBKey(REDIS_TYPE.EMIT_META.value)  # ident + REDIS_TYPE.EMIT_META.value
             self.redis.set(meta_id, json.dumps(self.props))
 
-<<<<<<< HEAD
-=======
         # save kml to redis...
         if callable(getattr(self.moves, "getKML", None)):
             kml_id = self.mkDBKey(REDIS_TYPE.EMIT_KML.value)  # ident + REDIS_TYPE.EMIT_META.value
             self.redis.set(kml_id, json.dumps(self.moves.getKML()))
 
->>>>>>> 28e09248ea1169b2af9da5ebc0a6af93eb16d385
         logger.debug(f":saveDB: saved {move_id}")
         return (True, "Movement::saveDB saved")
 
@@ -389,6 +387,21 @@ class Emit:
             total_dist_vtx = total_dist_vtx + controld  # sum of distances between vertices
             # logger.debug(f":emit: <<< {curridx}: {round(total_time, 2)} sec , {round(total_dist/1000,3)} m / {round(total_dist_vtx/1000, 3)} m")
             curridx = curridx + 1
+
+
+        # Restriction
+        # If frequency is high, we have thousands of points.
+        # So let's suppose we are close to the managed airport.
+        # => We limit high frequency emits to the vicinity of the airport.
+        # @todo: It would be better to not generate the emission at the first place...
+        # Somehow, the test has to be made somewhere. Let's assume filter() is efficient.
+        if RATE_LIMIT is not None and frequency < RATE_LIMIT:
+            if self.move is not None and self.move.airport is not None:
+                center = self.move.airport  # yeah, it's a Feature
+                self._emit = list(filter(lambda f: distance(f, center) < EMIT_RANGE, self._emit))
+                logger.debug(f":emit: rate { self.frequency } high, limiting to { EMIT_RANGE }m")
+            else
+                logger.warning(f":emit: rate { self.frequency } high, cannot locate airport")
 
         # transfert common data to each emit point for emission
         # (may be should think about a FeatureCollection-level property to avoid repetition.)

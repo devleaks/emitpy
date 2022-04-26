@@ -6,10 +6,7 @@ import logging
 import random
 from datetime import datetime
 
-<<<<<<< HEAD
-=======
 from ..constants import FEATPROP
->>>>>>> 28e09248ea1169b2af9da5ebc0a6af93eb16d385
 from .servicevehicle import ServiceVehicle
 from ..geo import FeatureWithProps
 from ..graph import Route
@@ -76,13 +73,9 @@ class Mission:
         """
         if checkpoint is None:
             return self.checkpoint_control_time
-<<<<<<< HEAD
-        control_time = checkpoint.getProp("control-time")
-=======
         control_time = checkpoint.getProp(FEATPROP.CONTROL_TIME.value)
->>>>>>> 28e09248ea1169b2af9da5ebc0a6af93eb16d385
         if control_time is None:
-            return self.checkpoint_control_time
+            return self.checkpoint_control_time  # default
         return control_time
 
     def run(self):

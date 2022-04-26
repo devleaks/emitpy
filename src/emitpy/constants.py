@@ -327,10 +327,7 @@ class FEATPROP(Enum):
     EMIT_REASON = "emit-reason"
     EMIT_REL_TIME = "emit_relative_time"
     EMIT_ABS_TIME = "emit_absolute_time"
-<<<<<<< HEAD
-=======
     CONTROL_TIME = "control-time"
->>>>>>> 28e09248ea1169b2af9da5ebc0a6af93eb16d385
 
 
 class FILE_EXT(Enum):
@@ -351,10 +348,7 @@ class REDIS_DATABASE(Enum):
 class REDIS_TYPE(Enum):
     EMIT = ":e"
     EMIT_META = ":m"
-<<<<<<< HEAD
-=======
     EMIT_KML = ":k"
->>>>>>> 28e09248ea1169b2af9da5ebc0a6af93eb16d385
     FORMAT = ":f"
     QUEUE = ":q"
 
@@ -398,6 +392,7 @@ class DEPARTURE_DELAY(IntEnum):
     TAKEOFF_HOLD = 4
 
 TAG_SEP = "|"
+ID_SEP = ":"
 
 # Simulation
 #
@@ -407,3 +402,6 @@ TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
 SLOW_SPEED = 1.4 # 1.4m/s = 5km/h = slow speed
 
 EMIT_RATES = [(str(x), str(x)) for x in [1, 5, 10, 30, 60, 120, 300]]
+RATE_LIMIT = 10       # Maximum frequency when range of emission is limited to managed airport
+EMIT_RANGE = None     # Maximum range of emission when rate under RATE_LIMIT
+

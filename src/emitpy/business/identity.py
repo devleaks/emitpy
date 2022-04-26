@@ -1,4 +1,5 @@
 from enum import Enum
+from ..constants import ID_SEP
 
 class IDENTIFIER(Enum):
     orgId = "orgId"
@@ -19,6 +20,9 @@ class Identity:
         self.classId = classId
         self.typeId = typeId
         self.name = name
+
+    def getId(self):
+        return self.orgId + ID_SEP + self.classId + ID_SEP + self.typeId + ID_SEP + self.name
 
     def getInfo(self):
         return {

@@ -147,11 +147,7 @@ class FlightMovement(Movement):
 
         filename = os.path.join(basename + ".kml")
         with open(filename, "w") as fp:
-<<<<<<< HEAD
-            fp.write(toKML(cleanFeatures(self.moves_st)))
-=======
             fp.write(self.getKML())
->>>>>>> 28e09248ea1169b2af9da5ebc0a6af93eb16d385
             logger.debug(f":save: saved kml {filename} ({len(self.moves_st)})")
 
         logger.debug(f":save: saved {self.flight_id}")
@@ -185,13 +181,10 @@ class FlightMovement(Movement):
         return (True, "Movement::load loaded")
 
 
-<<<<<<< HEAD
-=======
     def getKML(self):
         return toKML(cleanFeatures(self.moves_st))
 
 
->>>>>>> 28e09248ea1169b2af9da5ebc0a6af93eb16d385
     def getMoves(self):
         # Your choice... moves? (default from super()) moves_st? includes standard turns
         return self.moves_st
