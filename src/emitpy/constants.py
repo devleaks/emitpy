@@ -32,9 +32,6 @@ ROUTES = "routes"
 PASSENGER = "pax"
 CARGO = "cargo"
 
-LOCAL = "local"
-REMOTE = "remote"
-
 #
 # TYPES
 #
@@ -48,7 +45,6 @@ class PAYLOAD(Flag):
 # 2. freit type
 BULK = "bulk"
 PARCEL = "parcel"
-
 
 # 3. GSE types
 class SERVICE(Enum):
@@ -65,20 +61,6 @@ class SERVICE(Enum):
     SEWAGE = "sewage"
     STANDBY = "standby"
 
-class SERVICE_COLOR(Enum):
-    CLEANING = "#eeeeee"
-    CATERING = "#ffff66"
-    FUEL = "#FF66DD"
-    CARGO = "#330099"
-    ULD = "#9933FF"
-    BAGGAGE = "#009999"
-    MARSHALL = "#FFFF00"
-    PUSHBACK = "#FF3333"
-    WATER = "#0066FF"
-    APU = "#FFCC00"
-    SEWAGE = "#333300"
-    STANDBY = "#AAAAAA"
-
 
 ########################################
 # Files and Databases
@@ -87,34 +69,40 @@ AIRPORT_DATABASE = "airports"
 AIRLINE_DATABASE = "airlines"
 GEOMETRY_DATABASE = "geometries"
 XPLANE_DATABASE = "x-plane"
-AIRCRAFT_TYPE_DATABASE = "aircraft-types"
+AIRCRAFT_TYPE_DATABASE = "aircraft_types"
 AIRCRAFT_DATABASE = "aircrafts"
 FLIGHT_DATABASE = "flights"
 METAR_DATABASE = "metar"
+SERVICE_VEHICLE_TYPE_DATABASE = "service_vehicle_types"
 
 MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation parameters
 FLIGHTROUTE_DATABASE = "flightplans"
 AODB = "aodb"
 
 
+# Type of data stored into files
 class FILE_EXT(Enum):
     FLIGHT_PLAN = "1-plan"
     FLIGHT = "2-flight"
     SERVICE = "3-service"
     MOVE = "3-move"
+    TAXI = "3-taxi"
     EMIT = "4-emit"
     BROADCAST = "5-broadcast"
 
 
+# "Categories" of data stored, used as domain separator
 class REDIS_DATABASE(Enum):
     FLIGHTS = "flights"
     MOVEMENTS = "movements"
     QUEUES = "queues"
+    METAR = "METAR"
 
-
+# Type of data stored into keys
 class REDIS_TYPE(Enum):
     EMIT = ":e"
-    EMIT_META = ":m"
+    EMIT_META = ":d"
+    EMIT_MESSAGE = ":m"
     EMIT_KML = ":k"
     FORMAT = ":f"
     QUEUE = ":q"
@@ -190,9 +178,9 @@ class FLIGHT_PHASE(Enum):
     PUSHBACK = "PUSHBACK"
     TAXI = "TAXI"
     TAXIHOLD = "TAXIHOLD"  # just before entering the runway
-    TAKEOFF_HOLD = "TAKEOFF_HOLD"  # on the runways
+    TAKE_OFF_HOLD = "TAKE_OFF_HOLD"  # on the runways
     TAKE_OFF = "TAKE_OFF"
-    TAKEOFF_ROLL = "TAKEOFF_ROLL"
+    TAKE_OFF_ROLL = "TAKE_OFF_ROLL"
     ROTATE = "ROTATE"
     LIFT_OFF = "LIFT_OFF"
     INITIAL_CLIMB = "INITIAL_CLIMB"
@@ -240,7 +228,7 @@ class SERVICE_PHASE(Enum):
 class POI_TYPE(Enum):
     # Feature property names
     RUNWAY_EXIT = "runway-exit"
-    TAKEOFF_QUEUE = "takeoff-queue"  # lineString
+    TAKE_OFF_QUEUE = "takeoff-queue"  # lineString
     DEPOT = "depot"
     REST_AREA = "rest-area"
     RAMP_SERVICE_POINT = "ramp-service-point"
@@ -262,8 +250,8 @@ class DEPARTURE_DELAY(IntEnum):
     PUSHBACK = 0
     TAXI = 1
     RUNWAY_HOLD = 2
-    TAKEOFF_QUEUE = 3
-    TAKEOFF_HOLD = 4
+    TAKE_OFF_QUEUE = 3
+    TAKE_OFF_HOLD = 4
 
 
 
@@ -295,6 +283,7 @@ class FEATPROP(Enum):
     NAME = "name"
     ORIENTATION = "orientation"
     PAUSE = "pause"
+    PLAN_SEGMENT_NAME = "_plan_segment_name"
     PLAN_SEGMENT_TYPE = "_plan_segment_type"
     POI_TYPE = "poi-type"
     REGION  = "region"
@@ -315,7 +304,7 @@ class FEATPROP(Enum):
 ########################################
 # Simulation
 #
-TAKEOFF_QUEUE_SIZE = 1  # DO NOT CHANGE
+TAKE_OFF_QUEUE_SIZE = 1  # DO NOT CHANGE
 
 # Average default speeds
 TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
@@ -337,9 +326,9 @@ class FLIGHT_COLOR(Enum):
     PUSHBACK = "#FF0000"
     TAXI = "#FF3300"
     TAXIHOLD = "#CC3300"
-    TAKEOFF_HOLD = "#FF66D0"
+    TAKE_OFF_HOLD = "#FF66D0"
     TAKE_OFF = "#0033CC"
-    TAKEOFF_ROLL = "#FF9900"
+    TAKE_OFF_ROLL = "#FF9900"
     ROTATE = "#FFCC00"
     LIFT_OFF = "#FFFF00"
     INITIAL_CLIMB = "#FFFF00"
@@ -370,9 +359,9 @@ class POSITION_COLOR(Enum):
     PUSHBACK = "#FF0000"
     TAXI = "#FF3300"
     TAXIHOLD = "#CC3300"
-    TAKEOFF_HOLD = "#FF66D0"
+    TAKE_OFF_HOLD = "#FF66D0"
     TAKE_OFF = "#0033CC"
-    TAKEOFF_ROLL = "#0033CC"
+    TAKE_OFF_ROLL = "#0033CC"
     ROTATE = "#FFCC00"
     LIFT_OFF = "#FFFF00"
     INITIAL_CLIMB = "#FFFF00"
@@ -421,11 +410,28 @@ class EDGE_COLOR(Enum):
     APPCH = "#666666"
     RUNWAY = "#666666"
 
+
 class MISSION_COLOR(Enum):
     START = "#00dd00"
     CHECKPOINT = "#0000dd"
     EN_ROUTE = "#eeeeee"
     END = "#dd0000"
+
+
+class SERVICE_COLOR(Enum):
+    CLEANING = "#eeeeee"
+    CATERING = "#ffff66"
+    FUEL = "#FF66DD"
+    CARGO = "#330099"
+    ULD = "#9933FF"
+    BAGGAGE = "#009999"
+    MARSHALL = "#FFFF00"
+    PUSHBACK = "#FF3333"
+    WATER = "#0066FF"
+    APU = "#FFCC00"
+    SEWAGE = "#333300"
+    STANDBY = "#AAAAAA"
+
 
 class SERVICE_PHASE_COLOR(Enum):
     START = "#008800"
@@ -434,6 +440,7 @@ class SERVICE_PHASE_COLOR(Enum):
     SERVICE_END = "#000088"
     LEAVE = "#dd0000"
     END = "#880000"
+
 
 class MESSAGE_COLOR(Enum):
     DEFAULT = "#888888"

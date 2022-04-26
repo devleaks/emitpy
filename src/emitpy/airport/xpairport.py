@@ -14,7 +14,7 @@ from .airport import AirportBase
 from ..graph import Vertex, Edge, USAGE_TAG
 from ..geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
 from ..parameters import DATA_DIR
-from ..constants import TAKEOFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP
+from ..constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
@@ -532,7 +532,7 @@ class XPAirport(AirportBase):
         """
 
         def makeQueue(line):
-            # place TAKEOFF_QUEUE_SIZE points on line
+            # place TAKE_OFF_QUEUE_SIZE points on line
             name = line.getProp(FEATPROP.RUNWAY.value)
             q0 = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
             q1 = Feature(geometry=Point(line["geometry"]["coordinates"][-1]))
@@ -543,9 +543,9 @@ class XPAirport(AirportBase):
             (start, end) = (q1, q0) if d0 < d1 else (q0, q1)
             brng = bearing(start, Feature(geometry=Point(line["geometry"]["coordinates"][1])))
             length = distance(start, end)  # approximately
-            segment = length / TAKEOFF_QUEUE_SIZE
+            segment = length / TAKE_OFF_QUEUE_SIZE
             self.takeoff_queues[name] = []
-            for i in range(TAKEOFF_QUEUE_SIZE):
+            for i in range(TAKE_OFF_QUEUE_SIZE):
                 f = destination(start, i * segment, brng, {"units": "km"})
                 p = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
                 p.setProp(FEATPROP.RUNWAY.value, name)
@@ -573,12 +573,12 @@ class XPAirport(AirportBase):
 
         for k in self.aeroway_pois.values():
             pt = k.getProp(FEATPROP.POI_TYPE.value)
-            if TAKEOFF_QUEUE_SIZE > 0 and  pt == POI_TYPE.TAKEOFF_QUEUE.value:
+            if TAKE_OFF_QUEUE_SIZE > 0 and  pt == POI_TYPE.TAKE_OFF_QUEUE.value:
                 makeQueue(k)
             if pt == POI_TYPE.RUNWAY_EXIT.value:
                 makeRunwayExits(k)
 
-        logger.debug(":makeQueue: added %d queue points for %s" % (TAKEOFF_QUEUE_SIZE, self.runway_exits.keys()))
+        logger.debug(":makeQueue: added %d queue points for %s" % (TAKE_OFF_QUEUE_SIZE, self.runway_exits.keys()))
         for name in self.runway_exits.keys():
             self.runway_exits[name] = sorted(self.runway_exits[name], key=lambda f: f["properties"]["length"])
             logger.debug(f":makeRunwayExits: added {len(self.runway_exits[name])} runway exits for {name}")

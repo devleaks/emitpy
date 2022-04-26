@@ -3,6 +3,7 @@ A Service Vehicle is a vehicle used to perform a service or maintenance operatio
 It has a Service Vehicle Type that is ued to represent it.
 """
 import logging
+import importlib
 from math import inf
 
 from ..business import Identity, Company
@@ -72,6 +73,26 @@ class ServiceVehicle(Identity):
         else:
             a.append((service+":default", service[0].upper()+service[1:]+" Vehicle"))
         return a
+
+    @staticmethod
+    def new(service: str, registration: str, operator, model: str = None):
+        def is_default_model(model):
+            if model is None:
+                return True
+            DEFAULT_VEHICLE = ":default"
+            return len(model) <= len(DEFAULT_VEHICLE) or model[:-len(DEFAULT_VEHICLE)] != DEFAULT_VEHICLE
+
+        servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
+        vtype = service[0].upper() + service[1:].lower() + "Vehicle"
+
+        if not is_default_model(model):
+            model = model.replace("-", "_")  # now model is snake_case
+            vtype = vtype + ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
+            logger.debug(f"ServiceVehicle::new creating {vtype}")
+            if hasattr(servicevehicleclasses, vtype):
+                logger.debug(f"ServiceVehicle::new creating {vtype}")
+                return getattr(servicevehicleclasses, vtype)(registration=registration, operator=operator)
+        return None
 
 
     def getId(self):

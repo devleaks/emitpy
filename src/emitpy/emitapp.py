@@ -47,9 +47,8 @@ class EmitApp(ManagedAirport):
         self.queues = Queue.loadAllQueuesFromDB()
         if len(self.queues) == 0:
             for k, v in DEFAULT_QUEUES.items():
-                default_queue = Queue(name=k, formatter_name=v)
-                default_queue.save()
-        self.queues = Queue.loadAllQueuesFromDB()
+                self.queues[k] = Queue(name=k, formatter_name=v)
+                self.queues[k].save()
         self.init()
         logger.debug(":init: initialized. listening..")
 
@@ -232,11 +231,11 @@ class EmitApp(ManagedAirport):
 
     def do_service(self, queue, emit_rate, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         logger.debug("loading aircraft..")
-        actype = AircraftPerformance.find(aircraft)
-        if actype is None:
+        acperf = AircraftPerformance.find(aircraft)
+        if acperf is None:
             return StatusInfo(200, f"EmitApp:do_service: aircraft performance {aircraft} not found", None)
-        actype.load()
-        logger.debug(f"..done {actype.available}")
+        acperf.load()
+        logger.debug(f"..done {acperf.available}")
 
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
@@ -246,7 +245,7 @@ class EmitApp(ManagedAirport):
         if rampval is None:
             return StatusInfo(201, f"EmitApp:do_service: ramp {ramp} not found", None)
         this_service.setRamp(rampval)
-        this_service.setAircraftType(actype)
+        this_service.setAircraftType(acperf)
         this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, reqtime=datetime.fromisoformat(scheduled), model=vehicle_model, registration=vehicle_ident, use=True)
         if this_vehicle is None:
             return StatusInfo(202, f"EmitApp:do_service: vehicle not found", None)

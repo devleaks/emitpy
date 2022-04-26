@@ -16,6 +16,7 @@ from ..service import Mission, ServiceVehicle
 from ..graph import Route
 from ..utils import compute_time as doTime
 from ..constants import FEATPROP, MISSION_PHASE, MISSION_COLOR
+from ..business import Message, MESSAGE_TYPE
 
 logger = logging.getLogger("ServiceMove")
 
@@ -55,6 +56,10 @@ class MissionMove(Movement):
         pos.setColor(MISSION_COLOR.START.value)
         self.moves.append(pos)
         logger.debug(f":move: start added")
+
+        self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                msgsubtype=MISSION_PHASE.START.value,
+                                move=self, feature=pos))
 
         # starting position to network
         start_npe = self.airport.service_roads.nearest_point_on_edge(start_pos)
@@ -132,6 +137,10 @@ class MissionMove(Movement):
             self.moves.append(pos)
             logger.debug(f":move: checkpoint added")
 
+            self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                    msgsubtype=MISSION_PHASE.CHECKPOINT.value,
+                                    move=self, feature=pos))
+
             # goes back on service road network (edge)
             if cp_npe[0] is None:
                 logger.warning(f":move: no nearest_point_on_edge for checkpoint {cp.getPprop('name')}")
@@ -192,6 +201,11 @@ class MissionMove(Movement):
         pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.END.value)
         pos.setColor(MISSION_COLOR.END.value)
         self.moves.append(pos)
+
+        self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                msgsubtype=MISSION_PHASE.END.value,
+                                move=self, feature=pos))
+
         logger.debug(f":move: end added")
 
         return (True, "Mission::move completed")

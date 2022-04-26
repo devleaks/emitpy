@@ -16,6 +16,7 @@ from ..service import Service, ServiceVehicle
 from ..graph import Route
 from ..utils import compute_time as doTime
 from ..constants import FEATPROP, SERVICE_PHASE
+from ..business import Message, MESSAGE_TYPE
 
 logger = logging.getLogger("ServiceMove")
 
@@ -123,7 +124,15 @@ class ServiceMove(Movement):
         ramp_stop.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
         self.moves.append(ramp_stop)
 
+        self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                msgsubtype=SERVICE_PHASE.ARRIVED.value,
+                                move=self, feature=ramp_stop))
+
         self.service.vehicle.setPosition(ramp_stop)
+
+        self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                msgsubtype=SERVICE_PHASE.SERVICE_START.value,
+                                move=self, feature=ramp_stop))
 
         # .. servicing ..
         # before service, may first go to ramp rest area.
@@ -155,12 +164,20 @@ class ServiceMove(Movement):
         svc_end.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_END.value)
         self.moves.append(svc_end)
 
+        self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                msgsubtype=SERVICE_PHASE.SERVICE_END.value,
+                                move=self, feature=svc_end))
+
         # route ramp to end position
         if ramp_npe[0] is not None:
             ramp_leave = ramp_npe[0].copy()
             ramp_leave.setSpeed(speeds["slow"])
             ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
             self.moves.append(ramp_leave)
+
+        self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                msgsubtype=SERVICE_PHASE.LEAVE.value,
+                                move=self, feature=ramp_leave))
 
         logger.debug(f":move: route from {ramp_nv[0].id} to {endnv[0].id}")
         r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)

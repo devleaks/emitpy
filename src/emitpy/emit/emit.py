@@ -143,6 +143,13 @@ class Emit:
             kml_id = self.mkDBKey(REDIS_TYPE.EMIT_KML.value)  # ident + REDIS_TYPE.EMIT_META.value
             self.redis.set(kml_id, json.dumps(self.moves.getKML()))
 
+        # save messages for broadcast
+        if self.move is not None:
+            mid = self.mkDBKey(REDIS_TYPE.EMIT_MESSAGE.value)
+            for m in self.move.getMessages():
+                self.redis.sadd(mid, json.dumps(m.getInfo()))
+            logger.debug(f":saveDB: saved {self.redis.smembers(mid)} messages")
+
         logger.debug(f":saveDB: saved {move_id}")
         return (True, "Movement::saveDB saved")
 

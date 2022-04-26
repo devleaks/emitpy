@@ -57,9 +57,12 @@ class ServiceFlight:
         # From dict, make append appropriate service to list
         if self.actype.tarprofile is None:
             logger.warning(":run: no turnaround profile")
-            return (False, "Turnaround::run: no turnaround profile")
+            return (False, "ServiceFlight::run: no turnaround profile")
 
         move = "arrival" if self.flight.is_arrival() else "departure"
+        if not move in self.flight.aircraft.actype.tarprofile:
+            return (False, f"ServiceFlight::run: no turnaround profile for {move}")
+
         svcs = self.flight.aircraft.actype.tarprofile[move]
 
         for svc in svcs:

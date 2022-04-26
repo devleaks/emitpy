@@ -17,7 +17,7 @@ import flightplandb as fpdb
 
 # from metar import Metar as MetarLib
 
-from ..constants import METAR_DATABASE
+from ..constants import METAR_DATABASE, REDIS_DATABASE
 from ..parameters import AODB_DIR, REDIS_CONNECT, USE_REDIS
 
 from ..private import FLIGHT_PLAN_DATABASE_APIKEY
@@ -130,7 +130,7 @@ class Metar:
     def saveDB(self):
         if self.raw is not None:
             nowstr = self.getFullDT()
-            metid = "METAR:" + self.raw[0:4] + ':' + nowstr
+            metid = REDIS_DATABASE.METAR.value + ":" + self.raw[0:4] + ':' + nowstr
             r = redis.Redis(**REDIS_CONNECT)
             if not r.exists(metid):
                 r.set(metid, self.raw)
@@ -142,7 +142,7 @@ class Metar:
 
     def loadDB(self):
         nowstr = self.getFullDT()
-        metid = "METAR:" + self.icao + ":" + nowstr
+        metid = REDIS_DATABASE.METAR.value + ":" + self.icao + ":" + nowstr
         logger.debug(f":loadDB: trying {metid}")
         r = redis.Redis(**REDIS_CONNECT)
         if r.exists(metid):
@@ -157,6 +157,9 @@ class Metar:
 
 
     def getFullDT(self):
+        """
+        Gets the full data time for storage. METAR only have latest DDHHMM, with no year or month.
+        """
         return self.moment_norm.strftime('%Y%m%d%H%MZ')
 
 

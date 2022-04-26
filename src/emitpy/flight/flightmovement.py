@@ -17,9 +17,10 @@ from ..geo import MovePoint, Movement
 from ..geo import moveOn, cleanFeatures, printFeatures, findFeatures, asLineString, toKML
 from ..graph import Route
 from ..utils import FT, NAUTICAL_MILE
-from ..constants import POSITION_COLOR, FEATPROP, TAKEOFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
+from ..constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
 from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
 from ..parameters import AODB_DIR
+from ..business import Message, MESSAGE_TYPE
 
 from .standardturn import standard_turn_flyby
 from ..utils import interpolate as doInterpolation, compute_time as doTime
@@ -119,6 +120,7 @@ class FlightMovement(Movement):
         @todo should save file format version number.
         """
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.flight_id)
+        LINESTRING_EXTENSION = "_ls"
 
         def saveMe(arr, name):
             # filename = os.path.join(basename + "-" + name + ".json")
@@ -131,21 +133,21 @@ class FlightMovement(Movement):
 
         # saveMe(self.flight.flightplan_cp, "1-plan")
         ls = Feature(geometry=asLineString(self.flight.flightplan_cp))
-        saveMe(self.flight.flightplan_cp + [ls], "1-plan_ls")
+        saveMe(self.flight.flightplan_cp + [ls], FILE_EXT.FLIGHT_PLAN.value)
 
         # saveMe(self.moves, "2-flight")
         ls = Feature(geometry=asLineString(self.moves))
-        saveMe(self.moves + [ls], "2-flight_ls")
+        saveMe(self.moves + [ls], FILE_EXT.FLIGHT.value)
 
         # saveMe(self.moves_st, "3-move")
         ls = Feature(geometry=asLineString(self.moves_st))
-        saveMe(self.moves_st + [ls], "3-move_ls")
+        saveMe(self.moves_st + [ls], FILE_EXT.MOVE.value)
 
         # saveMe(self.taxipos, "4-taxi")
         ls = Feature(geometry=asLineString(self.taxipos))
-        saveMe(self.taxipos + [ls], "4-taxi_ls")
+        saveMe(self.taxipos + [ls], FILE_EXT.TAXI.value)
 
-        filename = os.path.join(basename + ".kml")
+        filename = os.path.join(basename + FILE_EXT.MOVE.value + ".kml")
         with open(filename, "w") as fp:
             fp.write(self.getKML())
             logger.debug(f":save: saved kml {filename} ({len(self.moves_st)})")
@@ -161,19 +163,19 @@ class FlightMovement(Movement):
         """
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.flight_id)
 
-        filename = os.path.join(basename, "1-plan.json")
+        filename = os.path.join(basename, FILE_EXT.FLIGHT_PLAN.value)
         with open(filename, "r") as fp:
             self.moves = json.load(fp)
 
-        filename = os.path.join(basename, "2-flight.json")
+        filename = os.path.join(basename, FILE_EXT.FLIGHT.value)
         with open(filename, "r") as fp:
             self.moves = json.load(fp)
 
-        filename = os.path.join(basename, "3-move.json")
+        filename = os.path.join(basename, FILE_EXT.MOVE.value)
         with open(filename, "r") as fp:
             self.moves_st = json.load(fp)
 
-        filename = os.path.join(basename, "4-taxi.json")
+        filename = os.path.join(basename, FILE_EXT.TAXI.value)
         with open(filename, "r") as fp:
             self.taxipos = json.load(fp)
 
@@ -204,7 +206,7 @@ class FlightMovement(Movement):
                     i = idx if not reverse else len(self.flight.flightplan_cp) - idx - 1
                     wpt = self.flight.flightplan_cp[i]
                     p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
-                    logger.debug(f":addCurrentpoint:{'(rev)' if reverse else ''} adding {p.getProp('_plan_segment_type')} {p.getProp('_plan_segment_name')}")
+                    logger.debug(f":addCurrentpoint:{'(rev)' if reverse else ''} adding {p.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)} {p.getProp(FEATPROP.PLAN_SEGMENT_NAME.value)}")
                     p.setColor(color)
                     p.setProp(FEATPROP.MARK.value, mark)
                     p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
@@ -286,8 +288,8 @@ class FlightMovement(Movement):
                              alt=alt,
                              speed=0,
                              vspeed=0,
-                             color=POSITION_COLOR.TAKEOFF_HOLD.value,
-                             mark=FLIGHT_PHASE.TAKEOFF_HOLD.value,
+                             color=POSITION_COLOR.TAKE_OFF_HOLD.value,
+                             mark=FLIGHT_PHASE.TAKE_OFF_HOLD.value,
                              ix=0)
             self.takeoff_hold = copy.deepcopy(p)  # we keep this special position for taxiing (end_of_taxi)
             logger.debug(f":vnav: takeoff hold at {rwy.name}, {TOH_BLASTOFF:f}")
@@ -305,6 +307,10 @@ class FlightMovement(Movement):
                              ix=0)
             groundmv = takeoff_distance
             logger.debug(f":vnav: takeoff at {rwy.name}, {takeoff_distance:f}")
+
+            self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
+                                    msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
+                                    move=self, feature=p))
 
             # initial climb, commonly accepted to above 1500ft AGL
             logger.debug(":vnav: initialClimb")
@@ -347,6 +353,10 @@ class FlightMovement(Movement):
                                    ix=fcidx)
             logger.debug(":vnav: origin added first point")
 
+            self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
+                                    msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
+                                    move=self, feature=currpos))
+
             # initial climb, commonly accepted to above 1500ft AGL
             logger.debug(":vnav: initialClimb")
             step = actype.initialClimb(alt)  # (t, d, altend)
@@ -366,7 +376,7 @@ class FlightMovement(Movement):
                                       mark_tr=FLIGHT_PHASE.INITIAL_CLIMB.value)
 
         # @todo: Transition to start of SID + follow SID
-        # we have an issue if first point of SID is between TAKEOFF and END_OF_INITIAL_CLIMB
+        # we have an issue if first point of SID is between TAKE_OFF and END_OF_INITIAL_CLIMB
         # but it is very unlikely (buy it may happen, in which case the solution is to remove the first point if SID)
         # Example of issue: BEY-DOH //DEP OLBA RW34 SID LEBO2F //ARR OTHH
         logger.debug(":vnav: climbToFL100")
@@ -549,6 +559,10 @@ class FlightMovement(Movement):
                              ix=len(fc)-fcidx)
             logger.debug(f":vnav:(rev) touch down at {rwy.name}, {LAND_TOUCH_DOWN:f}, {alt:f}")
 
+            self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
+                                    msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
+                                    move=self, feature=p))
+
             # we move to the final fix at max FINAL_ALT ft, approach speed, from touchdown
             logger.debug(":vnav:(rev) final")
             step = actype.descentFinal(alt+FINAL_ALT, alt)  # (t, d, altend)
@@ -607,6 +621,10 @@ class FlightMovement(Movement):
                                    mark="destination",
                                    ix=len(fc)-fcidx)
             logger.debug(":vnav:(rev) destination added as last point")
+
+            self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
+                                    msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
+                                    move=self, feature=currpos))
 
             # we move to the final fix at max 3000ft, approach speed either from  airport last point
             logger.debug(":vnav:(rev) final")
@@ -1108,6 +1126,10 @@ class TowMovement(Movement):
         if show_pos:
             logger.debug(f":tow: tow start: {parkingpos}")
 
+        self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
+                                msgsubtype=FLIGHT_PHASE.OFFBLOCK.value,
+                                move=self, feature=parkingpos))
+
         # we call the move from packing position to taxiway network the "pushback"
         pushback_end = self.airport.taxiways.nearest_point_on_edge(parking)
         if show_pos:
@@ -1302,6 +1324,10 @@ class ArrivalMove(FlightMovement):
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.ONBLOCK.value)
         fc.append(parkingpos)
 
+        self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
+                                msgsubtype=FLIGHT_PHASE.ONBLOCK.value,
+                                move=self, feature=parkingpos))
+
         if show_pos:
             logger.debug(f":taxi:in: taxi end: {parking}")
         else:
@@ -1353,6 +1379,11 @@ class DepartureMove(FlightMovement):
         parkingpos.setColor("#880088")  # parking
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.OFFBLOCK.value)
         fc.append(parkingpos)
+
+        self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
+                                msgsubtype=FLIGHT_PHASE.OFFBLOCK.value,
+                                move=self, feature=parkingpos))
+
         if show_pos:
             logger.debug(f":taxi:out: taxi start: {parkingpos}")
 
@@ -1377,7 +1408,7 @@ class DepartureMove(FlightMovement):
 
         last_vtx = pushback_vtx
 
-        if TAKEOFF_QUEUE_SIZE > 0:
+        if TAKE_OFF_QUEUE_SIZE > 0:
             # Taxi from pushback to start of queue
             #
             rwy = self.flight.rwy

@@ -85,6 +85,15 @@ class Movement:
     def getMoves(self):
         return self.moves
 
+
+    def addMessage(self, message: "Message"):
+        self.messages.append(message)
+
+
+    def getMessages(self):
+        return self.messages
+
+
     def move(self):
         """
         Perform actual movement
