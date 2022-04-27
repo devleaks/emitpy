@@ -144,6 +144,12 @@ def shortest_ls(lss):
 
 
 def cleanFeature(f):
+    """
+    Return a pure simple GeoJSON Feature (some libraries do not work if not fed with pure GeoJSON Feature)
+
+    :param      f:    { parameter_description }
+    :type       f:    { type_description }
+    """
     return Feature(geometry=f["geometry"], properties=f["properties"])
 
 

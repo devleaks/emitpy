@@ -428,7 +428,7 @@ class XPAirport(AirportBase):
                         else:
                             poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.service_pois))
                             n = poi_type + ":" + poi_name
-                            p = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                            p = FeatureWithProps.new(f)
                             p.setProp(FEATPROP.NAME.value, n)
                             self.service_pois[n] = p
 
@@ -461,7 +461,7 @@ class XPAirport(AirportBase):
                 if poi_type is not None and poi_type == "checkpoint":
                         poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.check_pois))
                         n = poi_type + ":" + poi_name
-                        p = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                        p = FeatureWithProps.new(f)
                         p.setProp(FEATPROP.NAME.value, n)
                         self.check_pois[n] = p
             logger.info(":loadCheckpointPOIS: loaded %d features.", len(self.check_pois))
@@ -547,7 +547,7 @@ class XPAirport(AirportBase):
             self.takeoff_queues[name] = []
             for i in range(TAKE_OFF_QUEUE_SIZE):
                 f = destination(start, i * segment, brng, {"units": "km"})
-                p = FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+                p = FeatureWithProps.new(f)
                 p.setProp(FEATPROP.RUNWAY.value, name)
                 p.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.QUEUE_POSITION.value)
                 p.setProp(FEATPROP.NAME.value, i)
@@ -559,7 +559,7 @@ class XPAirport(AirportBase):
             name = exitpt.getProp(FEATPROP.RUNWAY.value)
             rwy = self.procedures.RWYS[name]
             rwypt = rwy.getPoint()
-            dist = distance(Feature(geometry=Point(rwypt["geometry"]["coordinates"])), Feature(geometry=Point(exitpt["geometry"]["coordinates"])))
+            dist = distance(rwypt, exitpt)
             exitpt.setProp("length", dist)
             # logger.debug(":makeRunwayExits: added exit for %s at %f" % (name, round(dist, 3)))
             if not name in self.runway_exits:

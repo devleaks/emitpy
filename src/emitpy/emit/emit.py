@@ -246,7 +246,7 @@ class Emit:
             return point_on_line(currpos, self.moves[idx+1], dist)
 
         def emit_point(idx, pos, time, reason, waypt=False):
-            e = EmitPoint(geometry=pos["geometry"], properties=pos["properties"])
+            e = EmitPoint.new(pos)
             e.setProp(FEATPROP.EMIT_REL_TIME.value, time)
             e.setProp(FEATPROP.EMIT_INDEX.value, len(self._emit))
             e.setProp(FEATPROP.BROADCAST.value, not waypt)
@@ -574,7 +574,7 @@ class Emit:
             when = moment + timedelta(seconds=(- offset))
             logger.debug(f":schedule: emit_point starts at {when} ({when.timestamp()})")
             for e in self._emit:
-                p = EmitPoint(geometry=e["geometry"], properties=e["properties"])
+                p = EmitPoint.new(e)
                 t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
                 if t is not None:
                     when = moment + timedelta(seconds=(t - offset))

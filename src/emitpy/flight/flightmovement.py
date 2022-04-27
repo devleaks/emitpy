@@ -205,7 +205,7 @@ class FlightMovement(Movement):
                 for idx in range(oi+1, ni+1):
                     i = idx if not reverse else len(self.flight.flightplan_cp) - idx - 1
                     wpt = self.flight.flightplan_cp[i]
-                    p = MovePoint(geometry=wpt["geometry"], properties=wpt["properties"])
+                    p = MovePoint.new(wpt)
                     logger.debug(f":addCurrentpoint:{'(rev)' if reverse else ''} adding {p.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)} {p.getProp(FEATPROP.PLAN_SEGMENT_NAME.value)}")
                     p.setColor(color)
                     p.setProp(FEATPROP.MARK.value, mark)
@@ -224,7 +224,7 @@ class FlightMovement(Movement):
             p, newidx = moveOn(fc, fcidx, currpos, dist)
             # logger.debug(f":moveOnLS:{'(rev)' if reverse else ''} from {fcidx} to {newidx} ({mark}), s={speed}")
             # from currpos after dist we will be at newpos
-            newpos = MovePoint(geometry=p["geometry"], properties=p["properties"])
+            newpos = MovePoint.new(p)
             newpos.setAltitude(alt)
             newpos.setSpeed(speed)
             newpos.setVSpeed(vspeed)
@@ -735,7 +735,7 @@ class FlightMovement(Movement):
                 #     hold_pts.reverse()
                 #     holdidx = len(hold_pts)
                 #     for hp in hold_pts:
-                #         p = MovePoint(geometry=hp["geometry"], properties=hp["properties"])
+                #         p = MovePoint.new(hp)
                 #         p.setAltitude(alt+STAR_ALT)
                 #         p.setSpeed(actype.getSI(ACPERF.approach_speed))
                 #         p.setVSpeed(0)
@@ -1120,7 +1120,7 @@ class TowMovement(Movement):
         else:
             logger.debug(f":tow: tow start: parking {parking.getProp('name')}")
         # This is the first point, we make sure available info is in props
-        parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
+        parkingpos = MovePoint.new(parking)
         parkingpos.setSpeed(0)
         parkingpos.setVSpeed(0)
         parkingpos.setAltitude(self.airport.altitude())
@@ -1141,7 +1141,7 @@ class TowMovement(Movement):
         if pushback_end[0] is None:
             logger.warning(":tow: could not find pushback end")
 
-        pushbackpos = MovePoint(geometry=pushback_end[0]["geometry"], properties=pushback_end[0]["properties"])
+        pushbackpos = MovePoint.new(pushback_end[0])
         pushbackpos.setSpeed(SLOW_SPEED)
         pushbackpos.setColor("#880088")  # parking
         pushbackpos.setProp(FEATPROP.MARK.value, "pushback")
@@ -1177,7 +1177,7 @@ class TowMovement(Movement):
             for vtx in tow_ride.get_vertices():
                 TOW_SPEED = TAXI_SPEED / 2  # hum.
                 # vtx = self.airport.taxiways.get_vertex(vid)
-                towpos = MovePoint(geometry=vtx["geometry"], properties=vtx["properties"])
+                towpos = MovePoint.new(vtx)
                 towpos.setSpeed(TOW_SPEED)
                 towpos.setColor("#888800")  # tow
                 towpos.setProp(FEATPROP.MARK.value, "tow")
@@ -1187,14 +1187,14 @@ class TowMovement(Movement):
         else:
             logger.warning(":tow: no tow route found")
 
-        newparkingentrypos = MovePoint(geometry=parking_entry[0]["geometry"], properties=parking_entry[0]["properties"])
+        newparkingentrypos = MovePoint.new(parking_entry[0])
         newparkingentrypos.setSpeed(SLOW_SPEED)
         newparkingentrypos.setColor("#880088")  # parking entry, is on taxiway network
         newparkingentrypos.setProp(FEATPROP.MARK.value, "tow end")
         fc.append(newparkingentrypos)
 
         # This is the last point, we make sure available info is in props
-        newparkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
+        newparkingpos = MovePoint.new(parking)
         newparkingpos.setSpeed(0)
         newparkingpos.setVSpeed(0)
         newparkingpos.setAltitude(self.airport.altitude())
@@ -1247,7 +1247,7 @@ class ArrivalMove(FlightMovement):
         show_pos = False
         fc = []
 
-        endrolloutpos = MovePoint(geometry=self.end_rollout["geometry"], properties=self.end_rollout["properties"])
+        endrolloutpos = MovePoint.new(self.end_rollout)
         endrolloutpos.setSpeed(TAXI_SPEED)
         endrolloutpos.setColor("#880088")  # parking
         endrolloutpos.setProp(FEATPROP.MARK.value, "end rollout")
@@ -1265,7 +1265,7 @@ class ArrivalMove(FlightMovement):
             logger.debug(f":taxi:in: taxi start: exit runway {rwy.name}")
         if taxi_start[0] is None:
             logger.warning(":taxi:in: could not find taxi start")
-        taxistartpos = MovePoint(geometry=taxi_start[0]["geometry"], properties=taxi_start[0]["properties"])
+        taxistartpos = MovePoint.new(taxi_start[0])
         taxistartpos.setSpeed(TAXI_SPEED)
         taxistartpos.setColor("#880088")  # parking
         taxistartpos.setProp(FEATPROP.MARK.value, "taxi start")
@@ -1276,7 +1276,7 @@ class ArrivalMove(FlightMovement):
             logger.debug(f":taxi:in: taxi start vtx: {taxistart_vtx}")
         if taxistart_vtx[0] is None:
             logger.warning(":taxi:in: could not find taxi start vertex")
-        taxistartpos = MovePoint(geometry=taxistart_vtx[0]["geometry"], properties=taxistart_vtx[0]["properties"])
+        taxistartpos = MovePoint.new(taxistart_vtx[0])
         taxistartpos.setSpeed(TAXI_SPEED)
         taxistartpos.setColor("#880088")  # parking
         taxistartpos.setProp(FEATPROP.MARK.value, "taxi start vertex")
@@ -1303,7 +1303,7 @@ class ArrivalMove(FlightMovement):
         if taxi_ride.found():
             for vtx in taxi_ride.get_vertices():
                 # vtx = self.airport.taxiways.get_vertex(vid)
-                taxipos = MovePoint(geometry=vtx["geometry"], properties=vtx["properties"])
+                taxipos = MovePoint.new(vtx)
                 taxipos.setSpeed(TAXI_SPEED)
                 taxipos.setColor("#880000")  # taxi
                 taxipos.setProp(FEATPROP.MARK.value, "taxi")
@@ -1313,14 +1313,14 @@ class ArrivalMove(FlightMovement):
         else:
             logger.warning(":taxi:in: no taxi route found")
 
-        parkingentrypos = MovePoint(geometry=parking_entry[0]["geometry"], properties=parking_entry[0]["properties"])
+        parkingentrypos = MovePoint.new(parking_entry[0])
         parkingentrypos.setSpeed(SLOW_SPEED)
         parkingentrypos.setColor("#880088")  # parking entry, is on taxiway network
         parkingentrypos.setProp(FEATPROP.MARK.value, "taxi end")
         fc.append(parkingentrypos)
 
         # This is the last point, we make sure available info is in props
-        parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
+        parkingpos = MovePoint.new(parking)
         parkingpos.setSpeed(0)
         parkingpos.setVSpeed(0)
         parkingpos.setAltitude(self.airport.altitude())
@@ -1376,7 +1376,7 @@ class DepartureMove(FlightMovement):
         else:
             logger.debug(f":taxi:out: taxi start: parking {parking.getProp('name')}")
         # This is the first point, we make sure available info is in props
-        parkingpos = MovePoint(geometry=parking["geometry"], properties=parking["properties"])
+        parkingpos = MovePoint.new(parking)
         parkingpos.setSpeed(0)
         parkingpos.setVSpeed(0)
         parkingpos.setAltitude(self.airport.altitude())
@@ -1398,7 +1398,7 @@ class DepartureMove(FlightMovement):
         if pushback_end[0] is None:
             logger.warning(":taxi:out: could not find pushback end")
 
-        pushbackpos = MovePoint(geometry=pushback_end[0]["geometry"], properties=pushback_end[0]["properties"])
+        pushbackpos = MovePoint.new(pushback_end[0])
         pushbackpos.setSpeed(SLOW_SPEED)
         pushbackpos.setColor("#880088")  # parking
         pushbackpos.setProp(FEATPROP.MARK.value, "pushback")
@@ -1433,7 +1433,7 @@ class DepartureMove(FlightMovement):
             taxi_ride = Route(self.airport.taxiways, pushback_vtx[0].id, queuerwy_vtx[0].id)
             if taxi_ride.found():
                 for vtx in taxi_ride.get_vertices():
-                    taxipos = MovePoint(geometry=vtx["geometry"], properties=vtx["properties"])
+                    taxipos = MovePoint.new(vtx)
                     taxipos.setSpeed(TAXI_SPEED)
                     taxipos.setColor("#880000")  # taxi
                     taxipos.setProp(FEATPROP.MARK.value, "taxi")
@@ -1455,7 +1455,7 @@ class DepartureMove(FlightMovement):
                     logger.warning(":taxi:out: could not place queue on taxiway")
                 else:
                     last_queue_on = queuerwy
-                    qspos = MovePoint(geometry=queuerwy[0]["geometry"], properties=queuerwy[0]["properties"])
+                    qspos = MovePoint.new(queuerwy)
                     qspos.setSpeed(TAXI_SPEED)
                     qspos.setColor("#880000")
                     qspos.setProp(FEATPROP.MARK.value, f"queue {i}")
@@ -1490,7 +1490,7 @@ class DepartureMove(FlightMovement):
         taxi_ride = Route(self.airport.taxiways, last_vtx[0].id, taxiend_vtx[0].id)
         if taxi_ride.found():
             for vtx in taxi_ride.get_vertices():
-                taxipos = MovePoint(geometry=vtx["geometry"], properties=vtx["properties"])
+                taxipos = MovePoint.new(vtx)
                 taxipos.setSpeed(TAXI_SPEED)
                 taxipos.setColor("#880000")  # taxi
                 taxipos.setProp(FEATPROP.MARK.value, "taxi")
@@ -1500,13 +1500,13 @@ class DepartureMove(FlightMovement):
         else:
             logger.warning(":taxi:out: no taxi route found to runway hold")
 
-        taxiendpos = MovePoint(geometry=taxi_end[0]["geometry"], properties=taxi_end[0]["properties"])
+        taxiendpos = MovePoint.new(taxi_end[0])
         taxiendpos.setSpeed(TAXI_SPEED)
         taxiendpos.setColor("#880088")  # parking
         taxiendpos.setProp(FEATPROP.MARK.value, "taxi end")
         fc.append(taxiendpos)
 
-        takeoffholdpos = MovePoint(geometry=self.takeoff_hold["geometry"], properties=self.takeoff_hold["properties"])
+        takeoffholdpos = MovePoint.new(self.takeoff_hold)
         takeoffholdpos.setSpeed(0)
         takeoffholdpos.setColor("#880088")  # parking
         takeoffholdpos.setProp(FEATPROP.MARK.value, "takeoff hold")

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from ..airspace import FlightPlan, FlightPlanRoute
 from ..airport import Airport
-from ..business import Airline
+from ..business import Airline, FlightboardMessage
 from ..aircraft import Aircraft
 from ..constants import PAYLOAD, FLIGHT_PHASE, FEATPROP
 from ..utils import FT

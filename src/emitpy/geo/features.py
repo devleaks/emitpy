@@ -39,13 +39,17 @@ class FeatureWithProps(Feature):
     (https://datatracker.ietf.org/doc/rfc7946/?include_text=1)
     """
     def __init__(self, id=None, geometry=None, properties=None, **extra):
-    # before: def __init__(self, geometry: Geometry, properties: dict):
+        # before: def __init__(self, geometry: Geometry, properties: dict):
         self["type"] = "Feature"  # see https://github.com/jazzband/geojson/issues/178
         Feature.__init__(self, id=id, geometry=geometry, properties=copy.deepcopy(properties) if properties is not None else None)
 
+    @classmethod
+    def new(cls, f):
+        return cls(geometry=f["geometry"], properties=f["properties"])
+
     @staticmethod
     def convert(f):
-        return FeatureWithProps(geometry=f["geometry"], properties=f["properties"])
+        return FeatureWithProps.new(f)
 
     @staticmethod
     def betterFeatures(arr):
@@ -294,7 +298,7 @@ class Ramp(FeatureWithProps):
 
         # compute parking end
         parking_end = destination(self, aircraft_length / 1000, antiheading, {"units": "km"})
-        parking_end = FeatureWithProps(geometry=parking_end["geometry"], properties=parking_end["properties"])
+        parking_end = FeatureWithProps.new(parking_end)
         parking_end.setColor("#dd0000")
         self.service_pois["center"] = self
         self.service_pois["end"] = parking_end
@@ -305,7 +309,7 @@ class Ramp(FeatureWithProps):
         for svc in positions:
             poiaxe = destination(self,   positions[svc][0]/1000, antiheading, {"units": "km"})
             poilat = destination(poiaxe, positions[svc][1]/1000, antiheading + 90, {"units": "km"})
-            pos = FeatureWithProps(geometry=poilat["geometry"], properties=poilat["properties"])
+            pos = FeatureWithProps.new(poilat)
             pos.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.RAMP_SERVICE_POINT.value)
             pos.setProp(FEATPROP.SERVICE.value, svc)
             pos.setColor(SERVICE_COLOR[svc.upper()].value)

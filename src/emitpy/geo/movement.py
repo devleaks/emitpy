@@ -12,7 +12,7 @@ from geojson import Point, LineString, FeatureCollection, Feature
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, asLineString
 from ..constants import FLIGHT_DATABASE, FEATPROP
 from ..parameters import AODB_DIR
-
+from ..utils import Messages
 
 logger = logging.getLogger("Movement")
 
@@ -29,7 +29,7 @@ class MovePoint(FeatureWithProps):
         FeatureWithProps.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
 
 
-class Movement:
+class Movement(Messages):
 
     def __init__(self, airport: "AirportBase"):
         self.airport = airport
@@ -85,21 +85,11 @@ class Movement:
     def getMoves(self):
         return self.moves
 
-
-    def addMessage(self, message: "Message"):
-        self.messages.append(message)
-
-
-    def getMessages(self):
-        return self.messages
-
-
     def move(self):
         """
         Perform actual movement
         """
         return (False, "Movement::move done")
-
 
     def interpolate(self):
         """
@@ -108,14 +98,12 @@ class Movement:
         """
         return (True, "Movement::interpolated speed and altitude")
 
-
     def time(self):
         """
         Time 0 is start of roll for takeoff (Departure) or takeoff from origin airport (Arrival).
         Last time is touch down at destination (Departure) or end of roll out (Arrival).
         """
         return (True, "Movement::time computed")
-
 
     def addDelay(self, name: str, seconds: int):
         farr = findFeatures(self.moves, {FEATPROP.MARK.value: name})
@@ -125,4 +113,3 @@ class Movement:
         ## assume at most one...
         f = farr[0]
         f.setProp(FEATPROP.DELAY.value, seconds)
-

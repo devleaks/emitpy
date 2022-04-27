@@ -11,7 +11,7 @@ from geojson import Point, LineString, FeatureCollection, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from ..airport import AirportBase
-from ..geo import MovePoint, Movement, FeatureWithProps
+from ..geo import MovePoint, Movement
 from ..service import Mission, ServiceVehicle
 from ..graph import Route
 from ..utils import compute_time as doTime
@@ -49,7 +49,7 @@ class MissionMove(Movement):
 
         start_pos = self.mission.vehicle.getPosition()
         # logger.debug(":move: start position %s" % (start_pos))
-        pos = FeatureWithProps(geometry=start_pos["geometry"], properties=start_pos["properties"])
+        pos = MovePoint.new(start_pos)
 
         pos.setSpeed(0)  # starts at rest
         pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.START.value)
@@ -106,7 +106,7 @@ class MissionMove(Movement):
             if rt.found():
                 for vtx in rt.get_vertices():
                     # vtx = self.airport.service_roads.get_vertex(vid)
-                    pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                    pos = MovePoint.new(vtx)
                     pos.setProp("_serviceroad", vtx.id)
                     pos.setSpeed(speeds["normal"])
                     pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
@@ -129,7 +129,7 @@ class MissionMove(Movement):
                 self.moves.append(pos)
 
             # finally reaches checkpoint
-            pos = FeatureWithProps(geometry=cp["geometry"], properties=cp["properties"])
+            pos = MovePoint.new(cp)
             pos.setSpeed(0)  # starts moving
             pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.CHECKPOINT.value)
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
@@ -179,7 +179,7 @@ class MissionMove(Movement):
         if rt.found():
             for vtx in rt.get_vertices():
                 # vtx = self.airport.service_roads.get_vertex(vid)
-                pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                pos = MovePoint.new(vtx)
                 pos.setProp("_serviceroad", vtx.id)
                 pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
                 pos.setColor(MISSION_COLOR.EN_ROUTE.value)
@@ -196,7 +196,7 @@ class MissionMove(Movement):
         self.moves.append(pos)
 
         # from closest point on service road network to final_pos, stops there
-        pos = FeatureWithProps(geometry=final_pos["geometry"], properties=final_pos["properties"])
+        pos = MovePoint.new(final_pos)
         pos.setSpeed(0)  # ends at rest
         pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.END.value)
         pos.setColor(MISSION_COLOR.END.value)

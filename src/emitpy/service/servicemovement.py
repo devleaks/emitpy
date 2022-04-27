@@ -11,7 +11,7 @@ from geojson import Point, LineString, FeatureCollection, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from ..airport import AirportBase
-from ..geo import MovePoint, Movement, FeatureWithProps, printFeatures, asLineString
+from ..geo import MovePoint, Movement, printFeatures, asLineString
 from ..service import Service, ServiceVehicle
 from ..graph import Route
 from ..utils import compute_time as doTime
@@ -108,7 +108,7 @@ class ServiceMove(Movement):
         if rt1.found():
             for vtx in rt1.get_vertices():
                 # vtx = self.airport.service_roads.get_vertex(vid)
-                pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                pos = MovePoint.new(vtx)
                 pos.setProp("_serviceroad", vtx.id)
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
@@ -183,7 +183,7 @@ class ServiceMove(Movement):
         r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)
         if r2.found():
             for vtx in r2.get_vertices():
-                pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                pos = MovePoint.new(vtx)
                 pos.setProp("_serviceroad", vtx.id)
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
@@ -284,7 +284,7 @@ class ServiceMove(Movement):
         if rt1.found():
             for vtx in rt1.get_vertices():
                 # vtx = self.airport.service_roads.get_vertex(vid)
-                pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                pos = MovePoint.new(vtx)
                 pos.setProp("_serviceroad", vtx.id)
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
@@ -353,11 +353,11 @@ class ServiceMove(Movement):
 
                 # go to nearest depot
                 # ramp->network edge
-                pos = FeatureWithProps(geometry=ramp_npe[0]["geometry"], properties=ramp_npe[0]["properties"])
+                pos = MovePoint.new(ramp_npe[0])
                 pos.setSpeed(speeds["slow"])
                 self.moves.append(pos)
                 # network edge->network vertex
-                pos = FeatureWithProps(geometry=nd_nv[0]["geometry"], properties=nd_nv[0]["properties"])
+                pos = MovePoint.new(nd_nv[0])
                 pos.setProp("_serviceroad", nd_nv[0].id)
                 pos.setSpeed(speeds["slow"])
                 self.moves.append(pos)
@@ -365,18 +365,18 @@ class ServiceMove(Movement):
                 if go_unload.found():
                     for vtx in go_unload.get_vertices():
                         # vtx = self.airport.service_roads.get_vertex(vid)
-                        pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                        pos = MovePoint.new(vtx)
                         pos.setProp("_serviceroad", vtx.id)
                         pos.setSpeed(speeds["normal"])
                         self.moves.append(pos)
                 else:
                     logger.debug(f":move: no route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id}")
                 # network vertex->network edge (close to depot)
-                pos = FeatureWithProps(geometry=nd_npe[0]["geometry"], properties=nd_npe[0]["properties"])
+                pos = MovePoint.new(nd_npe[0])
                 pos.setSpeed(speeds["slow"])
                 self.moves.append(pos)
                 # network edge-> depot
-                pos = FeatureWithProps(geometry=nearest_depot["geometry"], properties=nearest_depot["properties"])
+                pos = MovePoint.new(nearest_depot)
                 pos.setSpeed(speeds["slow"])
                 self.moves.append(pos)
 
@@ -392,29 +392,29 @@ class ServiceMove(Movement):
 
                 # go back to ramp
                 # depot ->network edge (close to depot)
-                pos = FeatureWithProps(geometry=nd_npe[0]["geometry"], properties=nd_npe[0]["properties"])
+                pos = MovePoint.new(nd_npe[0])
                 pos.setSpeed(speeds["slow"])
                 self.moves.append(pos)
                 # network edge->network vertex (close to depot)
-                pos = FeatureWithProps(geometry=nd_nv[0]["geometry"], properties=nd_nv[0]["properties"])
+                pos = MovePoint.new(nd_nv[0])
                 pos.setSpeed(speeds["slow"])
                 self.moves.append(pos)
                 # network vertex->network vertex
                 if go_load.found():
                     for vtx in go_load.get_vertices():
                         # vtx = self.airport.service_roads.get_vertex(vid)
-                        pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                        pos = MovePoint.new(vtx)
                         pos.setProp("_serviceroad", vtx.id)
                         pos.setSpeed(speeds["normal"])
                         self.moves.append(pos)
                 else:
                     logger.debug(f":move: no route from nearest depot {nd_nv[0].id} to ramp {ramp_nv[0].id}")
                 # ramp->network edge
-                pos = FeatureWithProps(geometry=ramp_npe[0]["geometry"], properties=ramp_npe[0]["properties"])
+                pos = MovePoint.new(ramp_npe[0])
                 pos.setSpeed(speeds["slow"])
                 self.moves.append(pos)
                 # network edge->ramp
-                pos = FeatureWithProps(geometry=ramp_stop["geometry"], properties=ramp_stop["properties"])
+                pos = MovePoint.new(ramp_stop)
                 pos.setSpeed(speeds["slow"])
                 self.moves.append(pos)
 
@@ -457,7 +457,7 @@ class ServiceMove(Movement):
         r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)
         if r2.found():
             for vtx in r2.get_vertices():
-                pos = FeatureWithProps(geometry=vtx["geometry"], properties=vtx["properties"])
+                pos = MovePoint.new(vtx)
                 pos.setProp("_serviceroad", vtx.id)
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)

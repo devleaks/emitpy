@@ -222,7 +222,7 @@ class Graph:  # Graph(FeatureCollection)?
             closest = nearest_point_on_line(point, edge, dist)
 
         if closest is not None and not isinstance(closest, FeatureWithProps):
-            closest = FeatureWithProps(geometry=closest["geometry"], properties=closest["properties"])
+            closest = FeatureWithProps.new(closest)
 
         return [closest, dist, edge, nconn]
 

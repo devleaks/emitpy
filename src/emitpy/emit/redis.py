@@ -44,7 +44,7 @@ class RedisUtils:
     def getSyncsForEmit(self, emit_id: str):
         def toEmitPoint(s: str):
             f = json.loads(s.decode('UTF-8'))
-            return f  # EmitPoint(geometry=f["geometry"], properties=f["properties"])
+            return f  # EmitPoint.new(f)
 
         ident = emit_id + REDIS_TYPE.EMIT.value
         logger.debug(f":loadDB: trying to read {ident}..")

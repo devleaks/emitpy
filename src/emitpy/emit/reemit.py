@@ -31,7 +31,7 @@ class ReEmit(Emit):
     def loadDB(self, redis):
         def toEmitPoint(s: str):
             f = json.loads(s.decode('UTF-8'))
-            return EmitPoint(geometry=f["geometry"], properties=f["properties"])
+            return EmitPoint.new(f)
 
         emit_id = self.mkDBKey(REDIS_TYPE.EMIT.value)  # self.ident + REDIS_TYPE.EMIT.value
         logger.debug(f":loadDB: trying to read {emit_id}..")
