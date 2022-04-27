@@ -18,7 +18,7 @@ from ..geo import moveOn, cleanFeatures, printFeatures, findFeatures, asLineStri
 from ..graph import Route
 from ..utils import FT, NAUTICAL_MILE
 from ..constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
-from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
+from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT
 from ..parameters import AODB_DIR
 from ..business import MESSAGE_TYPE, MovementMessage
 
@@ -133,21 +133,21 @@ class FlightMovement(Movement):
 
         # saveMe(self.flight.flightplan_cp, "1-plan")
         ls = Feature(geometry=asLineString(self.flight.flightplan_cp))
-        saveMe(self.flight.flightplan_cp + [ls], FILE_EXT.FLIGHT_PLAN.value)
+        saveMe(self.flight.flightplan_cp + [ls], FILE_FORMAT.FLIGHT_PLAN.value)
 
         # saveMe(self.moves, "2-flight")
         ls = Feature(geometry=asLineString(self.moves))
-        saveMe(self.moves + [ls], FILE_EXT.FLIGHT.value)
+        saveMe(self.moves + [ls], FILE_FORMAT.FLIGHT.value)
 
         # saveMe(self.moves_st, "3-move")
         ls = Feature(geometry=asLineString(self.moves_st))
-        saveMe(self.moves_st + [ls], FILE_EXT.MOVE.value)
+        saveMe(self.moves_st + [ls], FILE_FORMAT.MOVE.value)
 
         # saveMe(self.taxipos, "4-taxi")
         ls = Feature(geometry=asLineString(self.taxipos))
-        saveMe(self.taxipos + [ls], FILE_EXT.TAXI.value)
+        saveMe(self.taxipos + [ls], FILE_FORMAT.TAXI.value)
 
-        filename = os.path.join(basename + FILE_EXT.MOVE.value + ".kml")
+        filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
         with open(filename, "w") as fp:
             fp.write(self.getKML())
             logger.debug(f":save: saved kml {filename} ({len(self.moves_st)})")
@@ -163,19 +163,19 @@ class FlightMovement(Movement):
         """
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.flight_id)
 
-        filename = os.path.join(basename, FILE_EXT.FLIGHT_PLAN.value)
+        filename = os.path.join(basename, FILE_FORMAT.FLIGHT_PLAN.value)
         with open(filename, "r") as fp:
             self.moves = json.load(fp)
 
-        filename = os.path.join(basename, FILE_EXT.FLIGHT.value)
+        filename = os.path.join(basename, FILE_FORMAT.FLIGHT.value)
         with open(filename, "r") as fp:
             self.moves = json.load(fp)
 
-        filename = os.path.join(basename, FILE_EXT.MOVE.value)
+        filename = os.path.join(basename, FILE_FORMAT.MOVE.value)
         with open(filename, "r") as fp:
             self.moves_st = json.load(fp)
 
-        filename = os.path.join(basename, FILE_EXT.TAXI.value)
+        filename = os.path.join(basename, FILE_FORMAT.TAXI.value)
         with open(filename, "r") as fp:
             self.taxipos = json.load(fp)
 

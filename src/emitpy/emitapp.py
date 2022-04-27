@@ -12,7 +12,7 @@ from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, ServiceFlight, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE, FEATPROP, ARRIVAL, DEPARTURE
+from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, FEATPROP, ARRIVAL, DEPARTURE
 from emitpy.parameters import DEFAULT_QUEUES, REDIS_CONNECT
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
@@ -169,12 +169,12 @@ class EmitApp(ManagedAirport):
         logger.info("SAVED " + ("*" * 84))
 
         logger.debug("..broadcasting positions..")
-        formatted = EnqueueToRedis(emit, self.queues[queue], redis=self.redis)
+        formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(107, f"problem during formatting", ret[1])
         ret = formatted.save()
-        if not ret[0] and ret[1] != "FormatToRedis::save key already exist":
+        if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
             return StatusInfo(108, f"problem during formatted output save", ret[1])
         ret = formatted.enqueue()
         if not ret[0]:
@@ -298,7 +298,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(210, f"problem during service emission save to Redis", ret[1])
 
         logger.debug(".. broadcasting position ..")
-        formatted = EnqueueToRedis(emit, self.queues[queue], redis=self.redis)
+        formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(211, f"problem during service formatting", ret[1])
@@ -367,7 +367,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(307, f"problem during service mission save to Redis", ret[1])
 
         logger.debug(".. broadcasting position ..")
-        formatted = EnqueueToRedis(emit, self.queues[queue], redis=self.redis)
+        formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(308, f"problem during service formatting", ret[1])
@@ -390,7 +390,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(400, f"problem during rescheduling", ret[1])
 
         logger.debug("..broadcasting positions..")
-        formatted = EnqueueToRedis(emit, self.queues[queue], redis=self.redis)
+        formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(401, f"problem during rescheduled formatting", ret[1])
@@ -406,7 +406,7 @@ class EmitApp(ManagedAirport):
 
 
     def do_delete(self, queue, ident):
-        ret = EnqueueToRedis.delete(ident, queue=queue, redis=self.redis)
+        ret = EnqueueToRedis.delete(ident=ident, queue=queue, redis=self.redis)
         if not ret[0]:
             return StatusInfo(500, f"problem during deletion of {ident} ", ret)
         return StatusInfo(0, "deleted successfully", None)

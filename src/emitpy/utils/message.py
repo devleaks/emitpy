@@ -92,7 +92,7 @@ class Message:
     def getId(self):
         return self.ident
 
-    def getKey(self, extension: str):
+    def dbKey(self, extension: str):
         return key_path(MESSAGE_DATABASE, self.getId(), extension)
 
     def getInfo(self):

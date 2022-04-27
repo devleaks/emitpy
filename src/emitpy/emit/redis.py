@@ -5,8 +5,9 @@ from enum import Enum
 
 logger = logging.getLogger("RedisUtils")
 
-from ..constants import REDIS_DATABASE, REDIS_QUEUE, REDIS_TYPE
+from ..constants import REDIS_DATABASE, REDIS_QUEUE, REDIS_TYPE, ID_SEP
 from ..parameters import REDIS_CONNECT
+from ..utils import make_key
 
 
 STATS_PREFIX = "stats$"
@@ -27,18 +28,19 @@ class RedisUtils:
         self.redis = redis.Redis(**REDIS_CONNECT)
         self.stats = []
 
-    def list_emits(self):
-        return self.getKeys(REDIS_TYPE.EMIT.value)
-
-    def list_queues(self):
-        return ("none", "none")
-
     def getKeys(self, suffix):
         keys = self.redis.keys("*"+suffix)
         return [(k.decode("utf-8").replace(suffix, ""), k.decode("utf-8").replace(suffix, "")) for k in sorted(keys)]
 
+    def getQueueCombo():
+        keys = self.redis.keys(REDIS_DATABASE.QUEUES.value + ID_SEP + "*")
+        return [(k.decode("utf-8").replace(Queue.DATABASE, ""), k.decode("utf-8").replace(Queue.DATABASE, "")) for k in sorted(keys)]
+
+    def list_emits(self):
+        return self.getKeys(ID_SEP + REDIS_TYPE.EMIT.value)
+
     def getMovementCombo(self):
-        ret = self.redis.smembers(REDIS_DATABASE.MOVEMENTS.value)
+        ret = [f.replace(ID_SEP + REDIS_TYPE.EMIT.value, "") for f in self.getKeys(ID_SEP + REDIS_TYPE.EMIT.value)]
         return [(f.decode("UTF-8"),f.decode("UTF-8")) for f in ret]
 
     def getSyncsForEmit(self, emit_id: str):
@@ -46,7 +48,7 @@ class RedisUtils:
             f = json.loads(s.decode('UTF-8'))
             return f  # EmitPoint.new(f)
 
-        ident = emit_id + REDIS_TYPE.EMIT.value
+        ident = make_key(emit_id, REDIS_TYPE.EMIT.value)
         logger.debug(f":loadDB: trying to read {ident}..")
         ret = self.redis.zrange(ident, 0, -1)
         logger.debug(f":loadDB: ..got {len(ret)} members")

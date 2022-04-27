@@ -88,7 +88,7 @@ GEOMETRY_DATABASE = "geometries"
 # Redis databases and keys
 #
 # Type of data stored into files
-class FILE_EXT(Enum):
+class FILE_FORMAT(Enum):
     FLIGHT_PLAN = "1-plan"
     FLIGHT = "2-flight"
     SERVICE = "3-service"
@@ -105,21 +105,31 @@ class REDIS_DATABASE(Enum):
     FLIGHTS = "flights"
     MESSAGES = "messages"
     METAR = "metar"
+    MISSIONS = "missions"
     MOVEMENTS = "movements"
     QUEUES = "queues"
+    SERVICES = "services"
+
+REDIS_DATABASES = {
+    "allocation": REDIS_DATABASE.ALLOCATIONS.value,
+    "flight": REDIS_DATABASE.FLIGHTS.value,
+    "message": REDIS_DATABASE.MESSAGES.value,
+    "metar": REDIS_DATABASE.METAR.value,
+    "mission": REDIS_DATABASE.MISSIONS.value,
+    "service": REDIS_DATABASE.SERVICES.value
+}
 
 # Type of data stored into keys
 class REDIS_TYPE(Enum):
-    EMIT = ":e"
-    EMIT_META = ":d"
-    EMIT_MESSAGE = ":m"
-    EMIT_KML = ":k"
-    FORMAT = ":f"
-    QUEUE = ":q"
+    EMIT = "e"
+    EMIT_META = "d"
+    EMIT_MESSAGE = "m"
+    EMIT_KML = "k"
+    FORMAT = "f"
+    QUEUE = "q"
 
-
+# List of Emitpy provided queues
 class REDIS_QUEUE(Enum):
-    ADMIN_QUEUE_PREFIX = "queues"
     ADSB = "adsb"
     LIVETRAFFIC = "lt"
     RAW = "raw"

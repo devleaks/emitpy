@@ -1,14 +1,16 @@
 import json
 import logging
 
-from ..constants import REDIS_DATABASE, REDIS_QUEUE
+from ..constants import REDIS_DATABASE, ID_SEP
 from ..parameters import REDIS_CONNECT
+from ..utils import make_key
 
 logger = logging.getLogger("Queue")
 
-QUEUE_NAME_SEP = ":"
 
 class Queue:
+
+    DATABASE = REDIS_DATABASE.QUEUES.value + ID_SEP
 
     def __init__(self, name: str, formatter_name: str, starttime: str = None, speed: float = 1, redis = None):
         self.name = name
@@ -24,14 +26,13 @@ class Queue:
         Instantiate Queue from characteristics saved in Redis
         """
         queues = {}
-        if redis.exists(REDIS_DATABASE.QUEUES.value):
-            qs = redis.smembers(REDIS_DATABASE.QUEUES.value)
-            for q in qs:
-                qn = Queue.getQueueName(q.decode("UTF-8"))
+        keys = redis.keys(Queue.DATABASE + "*")
+        if keys is not None and len(keys) > 0:
+            for q in keys:
+                qn = q.decode("UTF-8").replace(Queue.DATABASE, "")
                 queues[qn] = Queue.loadFromDB(redis, qn)
             logger.debug(f":loadAllQueuesFromDB: loaded {queues.keys()}")
-        else:
-            logger.debug(f":loadAllQueuesFromDB: no database key")
+        logger.debug(f":loadAllQueuesFromDB: no queues")
         return queues
 
 
@@ -40,7 +41,7 @@ class Queue:
         """
         Instantiate Queue from characteristics saved in Redis
         """
-        ident = Queue.getAdminQueue(name)
+        ident = make_key(REDIS_DATABASE.QUEUES.value, name)
         qstr = redis.get(ident)
         if qstr is not None:
             q = json.loads(qstr.decode("UTF-8"))
@@ -51,7 +52,7 @@ class Queue:
 
     @staticmethod
     def delete(redis, name):
-        ident = Queue.getAdminQueue(name)
+        ident = make_key(REDIS_DATABASE.QUEUES.value, name)
         redis.srem(REDIS_DATABASE.QUEUES.value, ident)
         redis.delete(ident)
         redis.publish(REDIS_DATABASE.QUEUES.value, "del-queue:"+name)
@@ -61,18 +62,8 @@ class Queue:
 
     @staticmethod
     def getCombo(redis):
-        prefix = REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + QUEUE_NAME_SEP
-        keys = redis.keys(prefix + "*")
-        return [(k.decode("utf-8").replace(prefix, ""), k.decode("utf-8").replace(prefix, "")) for k in sorted(keys)]
-
-
-    @staticmethod
-    def getAdminQueue(name):
-        return REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + QUEUE_NAME_SEP + name
-
-    @staticmethod
-    def getQueueName(admin_queue_name):
-        return admin_queue_name.replace(REDIS_QUEUE.ADMIN_QUEUE_PREFIX.value + QUEUE_NAME_SEP, "")
+        keys = redis.keys(Queue.DATABASE + "*")
+        return [(k.decode("utf-8").replace(Queue.DATABASE, ""), k.decode("utf-8").replace(Queue.DATABASE, "")) for k in sorted(keys)]
 
 
     def reset(self, speed: float = 1, starttime: str = None):
@@ -85,14 +76,13 @@ class Queue:
         Saves Queue characteristics in a structure for Broadcaster
         Also saves Queue existence in "list of queues" set ("Queue Database"), to build combo, etc.
         """
-        ident = Queue.getAdminQueue(self.name)
+        ident = make_key(REDIS_DATABASE.QUEUES.value, self.name)
         self.redis.set(ident, json.dumps({
             "name": self.name,
             "formatter_name": self.formatter_name,
             "speed": self.speed,
             "starttime": self.starttime
             }))
-        self.redis.sadd(REDIS_DATABASE.QUEUES.value, ident)
         logger.debug(f"Queue {ident} saved")
 
         self.redis.publish(REDIS_DATABASE.QUEUES.value, "new-queue:"+self.name)

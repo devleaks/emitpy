@@ -14,9 +14,9 @@ from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
 
 from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
-from ..utils import interpolate as doInterpolation, compute_headings
+from ..utils import interpolate as doInterpolation, compute_headings, key_path
 
-from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE, REDIS_TYPE
+from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE, REDIS_TYPE, REDIS_DATABASES
 from ..constants import RATE_LIMIT, EMIT_RANGE
 from ..parameters import AODB_DIR, REDIS_CONNECT
 
@@ -78,8 +78,11 @@ class Emit:
         return a
 
 
-    def mkDBKey(self, extension: str):
-        return self.emit_type + ":" + self.emit_id + extension
+    def dbKey(self, extension: str):
+        db = "unknowndb"
+        if self.emit_type in REDIS_DATABASES:
+            db = REDIS_DATABASES[self.emit_type]
+        return key_path(db, self.emit_id, extension)
 
 
     def parseDBKey(self, emit_id: str, extension: str = None):
@@ -119,29 +122,28 @@ class Emit:
             logger.warning(":saveDB: no emission point")
             return (False, "Movement::saveDB: no emission point")
 
-        emit_id = self.mkDBKey(REDIS_TYPE.EMIT.value)  # ident + REDIS_TYPE.EMIT.value
+        emit_id = self.dbKey(REDIS_TYPE.EMIT.value)
 
         emit = {}
         for f in self._emit:
             emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
         redis.delete(emit_id)
         redis.zadd(emit_id, emit)
-        move_id = self.mkDBKey("")
-        redis.sadd(REDIS_DATABASE.MOVEMENTS.value, move_id)
+        move_id = self.dbKey("")
 
         if self.props is not None and len(self.props) > 0:
-            meta_id = self.mkDBKey(REDIS_TYPE.EMIT_META.value)  # ident + REDIS_TYPE.EMIT_META.value
+            meta_id = self.dbKey(REDIS_TYPE.EMIT_META.value)
             redis.set(meta_id, json.dumps(self.props))
 
         # save kml to redis...
         if callable(getattr(self.moves, "getKML", None)):
-            kml_id = self.mkDBKey(REDIS_TYPE.EMIT_KML.value)  # ident + REDIS_TYPE.EMIT_META.value
+            kml_id = self.dbKey(REDIS_TYPE.EMIT_KML.value)
             redis.set(kml_id, json.dumps(self.moves.getKML()))
             logger.debug(f":saveDB: saved kml")
 
         # save messages for broadcast
         if self.move is not None:
-            mid = self.mkDBKey(REDIS_TYPE.EMIT_MESSAGE.value)
+            mid = self.dbKey(REDIS_TYPE.EMIT_MESSAGE.value)
             for m in self.move.getMessages():
                 redis.sadd(mid, json.dumps(m.getInfo()))
             logger.debug(f":saveDB: saved {redis.scard(mid)} messages")

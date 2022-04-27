@@ -71,7 +71,7 @@ class CreateFlightForm(FlaskForm):
     emit_rate = SelectField(choices=EMIT_RATES, default="30",
                             description="Rate, in seconds, at which position will be emitted",
                             validators=[validators.InputRequired("Please provide movement type")])
-    queue = SelectField(choices=Queue.getCombo())
+    queue = SelectField(choices=Queue.getCombo(r.redis))
     # DANGEROUS
     create_services = BooleanField("Create flight services", description="Note: Services created depends on airline, aircraft type, ramp.")
     submit = SubmitField("Create flight")
@@ -84,7 +84,7 @@ class CreateFlightForm(FlaskForm):
 
         # Update the choices for the agency field
         form.airline.data = "QR"
-        form.queue.choices = Queue.getCombo()
+        form.queue.choices = Queue.getCombo(r.redis)
         return form
 
 @app.route("/create_flight", methods=["GET", "POST"])
@@ -147,7 +147,7 @@ class CreateServiceForm(FlaskForm):
     emit_rate = SelectField(choices=EMIT_RATES, default="30",
                             description="Rate, in seconds, at which position will be emitted",
                             validators=[validators.InputRequired("Please provide movement type")])
-    queue = SelectField(choices=Queue.getCombo())
+    queue = SelectField(choices=Queue.getCombo(r.redis))
     submit = SubmitField("Create service")
 
     @classmethod
@@ -221,7 +221,7 @@ class CreateMissionForm(FlaskForm):
     emit_rate = SelectField(choices=EMIT_RATES, default="30",
                             description="Rate, in seconds, at which position will be emitted",
                             validators=[validators.InputRequired("Please provide movement type")])
-    queue = SelectField(choices=Queue.getCombo())
+    queue = SelectField(choices=Queue.getCombo(r.redis))
     submit = SubmitField("Create service")
 
 @app.route("/create_mission", methods=["GET", "POST"])
@@ -268,7 +268,7 @@ class RescheduleForm(FlaskForm):
     syncname = SelectField(choices=[], description="Synchronization event", id="syncname_id", validate_choice=False)  # Emit.getCombo()
     new_date = DateField(description="Date of synchronized event", validators=[validators.optional()])
     new_time = TimeField(description="Time of synchronized event", validators=[validators.optional()])
-    queue = SelectField(choices=Queue.getCombo())
+    queue = SelectField(choices=Queue.getCombo(r.redis))
     submit = SubmitField("New ETA")
 
     @classmethod
@@ -315,7 +315,7 @@ def emitsyncs(emitid):
 
 class RemoveForm(FlaskForm):
     movement = SelectField(choices=r.list_emits())
-    queue = SelectField(choices=Queue.getCombo())
+    queue = SelectField(choices=Queue.getCombo(r.redis))
     submit = SubmitField("Remove movement from queue")
 
     @classmethod
@@ -392,7 +392,7 @@ def create_queue_form():
 
 
 class ResetQueueForm(FlaskForm):
-    queue_name = SelectField(choices=Queue.getCombo())
+    queue_name = SelectField(choices=Queue.getCombo(r.redis))
     simulation_date = DateField(description="Start date of queue", validators=[validators.optional()])
     simulation_time = TimeField(description="Start time of queue", validators=[validators.optional()])
 #    speed = DecimalRangeField()
@@ -401,7 +401,7 @@ class ResetQueueForm(FlaskForm):
     @classmethod
     def new(cls):
         form = cls()
-        form.queue_name.choices = Queue.getCombo()
+        form.queue_name.choices = Queue.getCombo(r.redis)
         return form
 
 @app.route("/reset_queue", methods=["GET", "POST"])
@@ -440,12 +440,12 @@ def reset_queue_form():
 
 
 class DeleteQueueForm(FlaskForm):
-    queue_name = SelectField(choices=Queue.getCombo())
+    queue_name = SelectField(choices=Queue.getCombo(r.redis))
     submit = SubmitField("Delete queue")
     @classmethod
     def new(cls):
         form = cls()
-        form.queue_name.choices = Queue.getCombo()
+        form.queue_name.choices = Queue.getCombo(r.redis)
         return form
 
 @app.route("/delete_queue", methods=["GET", "POST"])
