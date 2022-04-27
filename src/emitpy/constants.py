@@ -63,23 +63,30 @@ class SERVICE(Enum):
 
 
 ########################################
-# Files and Databases
+# File databases
 #
-AIRPORT_DATABASE = "airports"
-AIRLINE_DATABASE = "airlines"
-GEOMETRY_DATABASE = "geometries"
-XPLANE_DATABASE = "x-plane"
-AIRCRAFT_TYPE_DATABASE = "aircraft_types"
+DATA = "data"  # root data dir
+AODB = "aodb"  # root AODB dir
+
+# Sub-dirs of above "root" dirs
 AIRCRAFT_DATABASE = "aircrafts"
+AIRCRAFT_TYPE_DATABASE = "aircraft_types"
+AIRLINE_DATABASE = "airlines"
+AIRPORT_DATABASE = "airports"
 FLIGHT_DATABASE = "flights"
+FLIGHTROUTE_DATABASE = "flightplans"
+MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation parameters
 METAR_DATABASE = "metar"
 SERVICE_VEHICLE_TYPE_DATABASE = "service_vehicle_types"
+XPLANE_DATABASE = "x-plane"
 
-MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation parameters
-FLIGHTROUTE_DATABASE = "flightplans"
-AODB = "aodb"
+# sub-sub dirs
+GEOMETRY_DATABASE = "geometries"
 
 
+########################################
+# Redis databases and keys
+#
 # Type of data stored into files
 class FILE_EXT(Enum):
     FLIGHT_PLAN = "1-plan"
@@ -89,14 +96,17 @@ class FILE_EXT(Enum):
     TAXI = "3-taxi"
     EMIT = "4-emit"
     BROADCAST = "5-broadcast"
+    KML = "kml"
 
 
 # "Categories" of data stored, used as domain separator
 class REDIS_DATABASE(Enum):
+    ALLOCATIONS = "allocations"
     FLIGHTS = "flights"
+    MESSAGES = "messages"
+    METAR = "metar"
     MOVEMENTS = "movements"
     QUEUES = "queues"
-    METAR = "METAR"
 
 # Type of data stored into keys
 class REDIS_TYPE(Enum):
@@ -173,6 +183,9 @@ TAXIWAY_ACTIVE_ILS = "ils"
 # Movements and Emissions or positions
 #
 # @todo: Should distinguish "points" (top_of_descent) and "phases" ("climb")
+ARRIVAL = "arrival"
+DEPARTURE = "departure"
+
 class FLIGHT_PHASE(Enum):
     OFFBLOCK = "OFFBLOCK"
     PUSHBACK = "PUSHBACK"
@@ -188,6 +201,7 @@ class FLIGHT_PHASE(Enum):
     CRUISE = "CRUISE"
     DESCEND = "DESCEND"
     HOLDING = "HOLDING"
+    TEN_MILE_OUT = "TMO"
     APPROACH = "APPROACH"
     FINAL = "FINAL"
     LANDING = "LANDING"
@@ -277,6 +291,7 @@ class FEATPROP(Enum):
     HEADING = "heading"
     ICAO24 = "icao24"
     MARK = "_mark"
+    MESSAGE_ID = "message-id"
     MISSION = "mission"
     MOVE_INDEX = "move-index"
     MOVEST_INDEX = "move-st-index"  # after standard turns added

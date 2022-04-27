@@ -1,4 +1,3 @@
-import redis
 import json
 
 from .emit import EmitPoint, Emit
@@ -16,12 +15,11 @@ class ReEmit(Emit):
     based on new schedule or added pauses.
     """
 
-    def __init__(self, ident: str):
+    def __init__(self, ident: str, redis):
         Emit.__init__(self, move=None)
+        self.redis = redis
         self.parseDBKey(ident)
         # self.ident = ident
-        self.redis = redis.Redis(**REDIS_CONNECT)
-
         self.loadDB()
         self.loadMove()
 
@@ -30,7 +28,7 @@ class ReEmit(Emit):
         return self.ident
 
 
-    def loadDB(self):
+    def loadDB(self, redis):
         def toEmitPoint(s: str):
             f = json.loads(s.decode('UTF-8'))
             return EmitPoint(geometry=f["geometry"], properties=f["properties"])
@@ -50,6 +48,6 @@ class ReEmit(Emit):
     def loadProps(self):
         emit_id = self.mkDBKey(REDIS_TYPE.EMIT_META.value)  # self.ident + REDIS_TYPE.EMIT_META.value
         if self.redis.exists(emit_id):
-            self.props = json.loads(self.redis.get(emit_id))
+            self.redis = json.loads(redis.get(emit_id))
             logger.debug(f":loadDB: ..got {len(self.props)} props")
 

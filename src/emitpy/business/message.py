@@ -9,10 +9,15 @@ import uuid
 import json
 from datetime import datetime, timedelta
 from enum import Enum, IntEnum, Flag
-from ..constants import MESSAGE_COLOR
+
+from ..utils import key_path
+
+from ..constants import MESSAGE_COLOR, ARRIVAL, DEPARTURE
+
 
 class MESSAGE_TYPE(Enum):
     OOOI = "oooi"
+    FLIGHTINFO = "adsc"
     FLIGHTBOARD = "flightboard"
     SERVICE = "service"
 
@@ -37,13 +42,14 @@ class MESSAGE_ICON(Enum):
 
 class Message:
 
-    def __init__(self, msgtype: str, msgsubtype: str, move: "Movement" = None, feature: "Feature" = None):
+    def __init__(self, msgtype: str, msgsubtype: str, entity = None, subentity = None):
         self.ident = f"{uuid.uuid4()}"
         self.msgtype = msgtype
         self.msgsubtype = msgsubtype
 
-        self.move = move
-        self.feature = feature
+        # Wdb
+        self.entity = entity
+        self.subentity = subentity
 
         # Message display
         self.source = None    # ~ From:
@@ -67,6 +73,9 @@ class Message:
 
 
     def __str__(self):
+        """
+        Structure that is sent to clients ("The Wire")
+        """
         return json.dumps({
             "id": self.ident,
             "subject": self.subject,
@@ -83,17 +92,17 @@ class Message:
     def getId(self):
         return self.ident
 
+    def getKey(self, extension: str):
+        return key_path(MESSAGE_DATABASE, self.getId(), extension)
+
     def getInfo(self):
-        a = {
+        return {
             "ident": self.ident,
             "type": self.msgtype,
-            "subtype": self.msgsubtype
+            "subtype": self.msgsubtype,
+            "entity": self.entity is not None,
+            "subentity": self.subentity is not None
         }
-        if self.move is not None:
-            a["move"] = self.move.getInfo()
-        if self.feature is not None:
-            a["feature"] = self.feature["properties"]
-        return a
 
     def schedule(self, reftime):
         self.absolute_time = reftime + timedelta(seconds=self.relative_time)
@@ -104,8 +113,7 @@ class Messages:
     """
     Message Trait for movements, flights, services, and missions
     """
-    def __init__(self, entity):
-        self.entity = entity
+    def __init__(self):
         self.messages = []
 
     def addMessage(self, message: Message):
@@ -120,13 +128,33 @@ class Messages:
         logger.debug(f":saveDB: saved {redis.smembers(key)} messages")
 
 
-# class MovementMessage(Message):
-#     """
-#     A MovementMessage is a message about a scheduled arrival or departure flight from the ManagedAirport.
-#     """
-#     def __init__(self):
-#         Message.__init__(self, subject="", body="")
+class MovementMessage(Message):
+    """
+    A MovementMessage is a message about a scheduled arrival or departure flight from the ManagedAirport.
+    """
+    def __init__(self, msgtype: str, msgsubtype: str, move: "Movement" = None, feature: "Feature" = None):
+        Message.__init__(self, msgtype=msgtype, msgsubtype=msgsubtype, entity=move, subentity=feature)
 
+    def getInfo(self):
+        a = {
+            "ident": self.ident,
+            "type": self.msgtype,
+            "subtype": self.msgsubtype
+        }
+        if self.entity is not None:  # we know it is a Movement
+            a["entity"] = self.entity.getInfo()
+        if self.subentity is not None:  # we know it is a Feature
+            a["subentity"] = self.subentity["properties"]
+        return a
+
+
+class FlightboardMessage(Message):
+
+    def __init__(self, is_arrival: bool, airport, moment):
+        Message.__init__(self, msgtype=MESSAGE_TYPE.FLIGHTBOARD.value,
+                               msgsubtype=ARRIVAL if is_arrival else DEPARTURE,
+                               entity=airport,
+                               subentity=moment)
 
 # class ETAMessage(Message):
 

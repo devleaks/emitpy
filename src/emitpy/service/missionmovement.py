@@ -16,7 +16,7 @@ from ..service import Mission, ServiceVehicle
 from ..graph import Route
 from ..utils import compute_time as doTime
 from ..constants import FEATPROP, MISSION_PHASE, MISSION_COLOR
-from ..business import Message, MESSAGE_TYPE
+from ..business import MESSAGE_TYPE, MovementMessage
 
 logger = logging.getLogger("ServiceMove")
 
@@ -57,9 +57,9 @@ class MissionMove(Movement):
         self.moves.append(pos)
         logger.debug(f":move: start added")
 
-        self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                msgsubtype=MISSION_PHASE.START.value,
-                                move=self, feature=pos))
+        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                        msgsubtype=MISSION_PHASE.START.value,
+                                        move=self, feature=pos))
 
         # starting position to network
         start_npe = self.airport.service_roads.nearest_point_on_edge(start_pos)
@@ -137,9 +137,9 @@ class MissionMove(Movement):
             self.moves.append(pos)
             logger.debug(f":move: checkpoint added")
 
-            self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                    msgsubtype=MISSION_PHASE.CHECKPOINT.value,
-                                    move=self, feature=pos))
+            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                            msgsubtype=MISSION_PHASE.CHECKPOINT.value,
+                                            move=self, feature=pos))
 
             # goes back on service road network (edge)
             if cp_npe[0] is None:
@@ -202,9 +202,9 @@ class MissionMove(Movement):
         pos.setColor(MISSION_COLOR.END.value)
         self.moves.append(pos)
 
-        self.addMessage(Message(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                msgsubtype=MISSION_PHASE.END.value,
-                                move=self, feature=pos))
+        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
+                                        msgsubtype=MISSION_PHASE.END.value,
+                                        move=self, feature=pos))
 
         logger.debug(f":move: end added")
 

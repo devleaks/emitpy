@@ -12,7 +12,7 @@ from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, ServiceFlight, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE, FEATPROP
+from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, REDIS_TYPE, FEATPROP, ARRIVAL, DEPARTURE
 from emitpy.parameters import DEFAULT_QUEUES, REDIS_CONNECT
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
@@ -49,8 +49,8 @@ class EmitApp(ManagedAirport):
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
         if len(self.queues) == 0:
             for k, v in DEFAULT_QUEUES.items():
-                self.queues[k] = Queue(name=k, formatter_name=v)
-                self.queues[k].saveDB(self.redis)
+                self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
+                self.queues[k].saveDB()
         self.init()
         logger.debug(":init: initialized. listening..")
 
@@ -104,7 +104,7 @@ class EmitApp(ManagedAirport):
 
         logger.debug("creating flight..")
         flight = None
-        if movetype == "arrival":
+        if movetype == ARRIVAL:
             flight = Arrival(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=self.airport, origin=remote_apt, aircraft=aircraft)
         else:
             flight = Departure(operator=airline, number=flightnumber, scheduled=scheduled, managedAirport=self.airport, destination=remote_apt, aircraft=aircraft)
@@ -128,7 +128,7 @@ class EmitApp(ManagedAirport):
 
         logger.debug("..flying..")
         move = None
-        if movetype == "arrival":
+        if movetype == ARRIVAL:
             move = ArrivalMove(flight, self.airport)
             sync = FLIGHT_PHASE.TOUCH_DOWN.value
             svc_sync = FLIGHT_PHASE.ONBLOCK.value
@@ -383,7 +383,7 @@ class EmitApp(ManagedAirport):
 
 
     def do_schedule(self, queue, ident, sync, scheduled):
-        emit = ReEmit(ident)
+        emit = ReEmit(ident, self.redis)
         logger.debug(emit.getMarkList())
         ret = emit.schedule(sync, datetime.fromisoformat(scheduled))
         if not ret[0]:

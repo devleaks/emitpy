@@ -20,7 +20,7 @@ from ..utils import FT, NAUTICAL_MILE
 from ..constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
 from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE
 from ..parameters import AODB_DIR
-from ..business import Message, MESSAGE_TYPE
+from ..business import MESSAGE_TYPE, MovementMessage
 
 from .standardturn import standard_turn_flyby
 from ..utils import interpolate as doInterpolation, compute_time as doTime
@@ -308,9 +308,9 @@ class FlightMovement(Movement):
             groundmv = takeoff_distance
             logger.debug(f":vnav: takeoff at {rwy.name}, {takeoff_distance:f}")
 
-            self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
-                                    msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
-                                    move=self, feature=p))
+            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
+                                            msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
+                                            move=self, feature=p))
 
             # initial climb, commonly accepted to above 1500ft AGL
             logger.debug(":vnav: initialClimb")
@@ -353,9 +353,9 @@ class FlightMovement(Movement):
                                    ix=fcidx)
             logger.debug(":vnav: origin added first point")
 
-            self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
-                                    msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
-                                    move=self, feature=currpos))
+            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
+                                            msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
+                                            move=self, feature=currpos))
 
             # initial climb, commonly accepted to above 1500ft AGL
             logger.debug(":vnav: initialClimb")
@@ -559,9 +559,9 @@ class FlightMovement(Movement):
                              ix=len(fc)-fcidx)
             logger.debug(f":vnav:(rev) touch down at {rwy.name}, {LAND_TOUCH_DOWN:f}, {alt:f}")
 
-            self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
-                                    msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
-                                    move=self, feature=p))
+            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
+                                            msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
+                                            move=self, feature=p))
 
             # we move to the final fix at max FINAL_ALT ft, approach speed, from touchdown
             logger.debug(":vnav:(rev) final")
@@ -622,9 +622,9 @@ class FlightMovement(Movement):
                                    ix=len(fc)-fcidx)
             logger.debug(":vnav:(rev) destination added as last point")
 
-            self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
-                                    msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
-                                    move=self, feature=currpos))
+            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
+                                            msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
+                                            move=self, feature=currpos))
 
             # we move to the final fix at max 3000ft, approach speed either from  airport last point
             logger.debug(":vnav:(rev) final")
@@ -1062,12 +1062,16 @@ class FlightMovement(Movement):
         tmopt = destination(self.moves_st[idx], left, brng, {"units": "km"})
 
         tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
-        tmomp.setProp(FEATPROP.MARK.value, "TMO")
+        tmomp.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TEN_MILE_OUT.value)
 
         d = distance(tmomp, self.moves_st[-2])  # last is end of roll, before last is touch down.
 
         self.moves_st.insert(idx, tmomp)
         logger.debug(f":add_tmo: added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down")
+
+        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.FLIGHTINFO.value,
+                                        msgsubtype=FLIGHT_PHASE.TEN_MILE_OUT.value,
+                                        move=self, feature=tmomp))
 
         return (True, "Movement::add_tmo added")
 
@@ -1126,9 +1130,9 @@ class TowMovement(Movement):
         if show_pos:
             logger.debug(f":tow: tow start: {parkingpos}")
 
-        self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
-                                msgsubtype=FLIGHT_PHASE.OFFBLOCK.value,
-                                move=self, feature=parkingpos))
+        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
+                                        msgsubtype=FLIGHT_PHASE.OFFBLOCK.value,
+                                        move=self, feature=parkingpos))
 
         # we call the move from packing position to taxiway network the "pushback"
         pushback_end = self.airport.taxiways.nearest_point_on_edge(parking)
@@ -1324,9 +1328,9 @@ class ArrivalMove(FlightMovement):
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.ONBLOCK.value)
         fc.append(parkingpos)
 
-        self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
-                                msgsubtype=FLIGHT_PHASE.ONBLOCK.value,
-                                move=self, feature=parkingpos))
+        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
+                                        msgsubtype=FLIGHT_PHASE.ONBLOCK.value,
+                                        move=self, feature=parkingpos))
 
         if show_pos:
             logger.debug(f":taxi:in: taxi end: {parking}")
@@ -1380,9 +1384,9 @@ class DepartureMove(FlightMovement):
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.OFFBLOCK.value)
         fc.append(parkingpos)
 
-        self.addMessage(Message(msgtype=MESSAGE_TYPE.OOOI.value,
-                                msgsubtype=FLIGHT_PHASE.OFFBLOCK.value,
-                                move=self, feature=parkingpos))
+        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
+                                        msgsubtype=FLIGHT_PHASE.OFFBLOCK.value,
+                                        move=self, feature=parkingpos))
 
         if show_pos:
             logger.debug(f":taxi:out: taxi start: {parkingpos}")

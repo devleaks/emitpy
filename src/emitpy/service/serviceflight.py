@@ -12,7 +12,7 @@ from .. import service
 
 from ..flight import Flight
 from ..emit import Emit, EnqueueToRedis
-from ..constants import SERVICE_PHASE
+from ..constants import SERVICE_PHASE, ARRIVAL, DEPARTURE
 
 logger = logging.getLogger("Turnaround")
 
@@ -59,7 +59,7 @@ class ServiceFlight:
             logger.warning(":run: no turnaround profile")
             return (False, "ServiceFlight::run: no turnaround profile")
 
-        move = "arrival" if self.flight.is_arrival() else "departure"
+        move = ARRIVAL if self.flight.is_arrival() else DEPARTURE
         if not move in self.flight.aircraft.actype.tarprofile:
             return (False, f"ServiceFlight::run: no turnaround profile for {move}")
 

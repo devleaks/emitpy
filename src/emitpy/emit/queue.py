@@ -95,7 +95,7 @@ class Queue:
         self.redis.sadd(REDIS_DATABASE.QUEUES.value, ident)
         logger.debug(f"Queue {ident} saved")
 
-        redis.publish(REDIS_DATABASE.QUEUES.value, "new-queue:"+self.name)
+        self.redis.publish(REDIS_DATABASE.QUEUES.value, "new-queue:"+self.name)
         logger.debug(f"Hypercaster notified for {ident}")
 
         return (True, "Queue::save: saved")
