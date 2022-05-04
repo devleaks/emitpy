@@ -16,10 +16,10 @@ import flightplandb as fpdb
 
 # from metar import Metar as MetarLib
 
-from ..constants import METAR_DATABASE, REDIS_DATABASE
-from ..parameters import AODB_DIR, REDIS_CONNECT, USE_REDIS
+from emitpy.constants import METAR_DATABASE, REDIS_DATABASE
+from emitpy.parameters import AODB_DIR, REDIS_CONNECT, USE_REDIS
 
-from ..private import FLIGHT_PLAN_DATABASE_APIKEY
+from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 
 METAR_DIR = os.path.join(AODB_DIR, METAR_DATABASE)
 

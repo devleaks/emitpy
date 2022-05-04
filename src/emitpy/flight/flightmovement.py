@@ -10,20 +10,20 @@ import copy
 from geojson import LineString, FeatureCollection, Feature
 from turfpy.measurement import distance, destination, bearing
 
-from ..flight import Flight
-from ..airport import AirportBase
-from ..aircraft import ACPERF
-from ..geo import MovePoint, Movement
-from ..geo import moveOn, cleanFeatures, printFeatures, findFeatures, asLineString, toKML
-from ..graph import Route
-from ..utils import FT, NAUTICAL_MILE
-from ..constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
-from ..constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT
-from ..parameters import AODB_DIR
-from ..business import MESSAGE_TYPE, MovementMessage
+from emitpy.flight import Flight
+from emitpy.airport import AirportBase
+from emitpy.aircraft import ACPERF
+from emitpy.geo import MovePoint, Movement
+from emitpy.geo import moveOn, cleanFeatures, printFeatures, findFeatures, asLineString, toKML
+from emitpy.graph import Route
+from emitpy.utils import FT, NAUTICAL_MILE
+from emitpy.constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
+from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT
+from emitpy.parameters import AODB_DIR
+from emitpy.business import MESSAGE_TYPE, MovementMessage
 
 from .standardturn import standard_turn_flyby
-from ..utils import interpolate as doInterpolation, compute_time as doTime
+from emitpy.utils import interpolate as doInterpolation, compute_time as doTime
 
 logger = logging.getLogger("FlightMovement")
 

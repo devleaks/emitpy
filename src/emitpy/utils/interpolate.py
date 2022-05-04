@@ -2,7 +2,7 @@ import logging
 from datetime import timedelta
 
 from turfpy.measurement import distance, bearing
-from ..constants import FEATPROP
+from emitpy.constants import FEATPROP
 
 logger = logging.getLogger("utils")
 

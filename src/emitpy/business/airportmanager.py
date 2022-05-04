@@ -12,11 +12,11 @@ import operator
 from datetime import datetime, timedelta
 
 from .airline import Airline
-from ..airport import Airport
-from ..resource import AllocationTable
+from emitpy.airport import Airport
+from emitpy.resource import AllocationTable
 
 
-from ..parameters import DATA_DIR
+from emitpy.parameters import DATA_DIR
 
 MANAGED_AIRPORT_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 
@@ -273,7 +273,7 @@ class AirportManager:
                 return True
 
             DEFAULT_VEHICLE = ":default"
-            return len(model) <= len(DEFAULT_VEHICLE) or model[:-len(DEFAULT_VEHICLE)] != DEFAULT_VEHICLE
+            return len(model) > len(DEFAULT_VEHICLE) and model[:-len(DEFAULT_VEHICLE)] != DEFAULT_VEHICLE
 
         vname = registration
         svc_name = (type(service).__name__).replace("Service", "")
@@ -281,8 +281,9 @@ class AirportManager:
         if vname is not None and vname in self.service_vehicles.keys():
             vehicle = self.service_vehicles[vname]
             if use:
-                logger.debug(f":selectServiceVehicle: reusing {vehicle.registration}")
+                res = self.vehicle_allocator.book(vname, reqtime, reqend, service.getId())
                 service.setVehicle(vehicle)
+                logger.debug(f":selectServiceVehicle: reusing {vehicle.registration}")
             return vehicle
 
         # is there a vehicle of same type available:
@@ -309,6 +310,7 @@ class AirportManager:
         if vcl in self.vehicle_by_type:
             idx = 0
             vehicle = None
+            res = None
             while vehicle is None and idx < len(self.vehicle_by_type[vcl]):
                 v = self.vehicle_by_type[vcl][idx]
                 reqend = reqtime + timedelta(seconds=service.duration())

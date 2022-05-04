@@ -9,10 +9,10 @@ import copy
 
 from geojson import Point, LineString, FeatureCollection, Feature
 
-from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, asLineString
-from ..constants import FLIGHT_DATABASE, FEATPROP
-from ..parameters import AODB_DIR
-from ..utils import Messages
+from emitpy.geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, asLineString
+from emitpy.constants import FLIGHT_DATABASE, FEATPROP
+from emitpy.parameters import AODB_DIR
+from emitpy.utils import Messages
 
 logger = logging.getLogger("Movement")
 

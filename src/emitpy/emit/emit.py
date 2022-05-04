@@ -13,12 +13,12 @@ from geojson import Feature, FeatureCollection, Point, LineString
 from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
 
-from ..geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
-from ..utils import interpolate as doInterpolation, compute_headings, key_path
+from emitpy.geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
+from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path
 
-from ..constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE, REDIS_TYPE, REDIS_DATABASES
-from ..constants import RATE_LIMIT, EMIT_RANGE
-from ..parameters import AODB_DIR, REDIS_CONNECT
+from emitpy.constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE, REDIS_TYPE, REDIS_DATABASES
+from emitpy.constants import RATE_LIMIT, EMIT_RANGE
+from emitpy.parameters import AODB_DIR, REDIS_CONNECT
 
 logger = logging.getLogger("Emit")
 

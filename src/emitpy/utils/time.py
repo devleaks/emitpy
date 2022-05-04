@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import logging
 logger = logging.getLogger("Utils/Time")
 
-from ..constants import FLIGHT_PHASE
+from emitpy.constants import FLIGHT_PHASE
 
 def roundTime(dt: datetime, roundTo: int = 300):
     """Round a datetime object to any time lapse in seconds

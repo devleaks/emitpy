@@ -5,8 +5,8 @@ Origin and destination airport details data is also cached.
 """
 import copy
 from geojson import Feature, FeatureCollection
-from ..airspace import Airspace, FlightPlanBase
-from ..aircraft import AircraftPerformance
+from emitpy.airspace import Airspace, FlightPlanBase
+from emitpy.aircraft import AircraftPerformance
 import logging
 
 

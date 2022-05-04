@@ -5,8 +5,8 @@ import time
 import redis
 import logging
 
-from ..constants import REDIS_DATABASE
-from ..parameters import REDIS_CONNECT
+from emitpy.constants import REDIS_DATABASE
+from emitpy.parameters import REDIS_CONNECT
 from .queue import Queue
 
 logger = logging.getLogger("Broadcaster")

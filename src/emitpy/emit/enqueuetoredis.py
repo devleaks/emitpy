@@ -6,9 +6,9 @@ import datetime
 
 from .format import Format
 from .queue import Queue
-from ..constants import REDIS_QUEUE, REDIS_DATABASE, REDIS_TYPE
-from ..parameters import REDIS_CONNECT
-from ..utils import make_key
+from emitpy.constants import REDIS_QUEUE, REDIS_DATABASE, REDIS_TYPE
+from emitpy.parameters import REDIS_CONNECT
+from emitpy.utils import make_key
 
 logger = logging.getLogger("EnqueueToRedis")
 

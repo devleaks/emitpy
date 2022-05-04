@@ -10,9 +10,9 @@ import json
 from datetime import datetime, timedelta
 from enum import Enum, IntEnum, Flag
 
-from ..utils import key_path
+from emitpy.utils import key_path
 
-from ..constants import MESSAGE_COLOR, ARRIVAL, DEPARTURE
+from emitpy.constants import MESSAGE_COLOR, ARRIVAL, DEPARTURE
 
 
 class MESSAGE_TYPE(Enum):

@@ -10,9 +10,9 @@ from geojson import Point, Feature
 from turfpy.measurement import distance, bearing
 
 from .airport import AirportBase
-from ..parameters import DATA_DIR
-from ..graph import Vertex, Edge
-from ..geo import Runway, Ramp
+from emitpy.parameters import DATA_DIR
+from emitpy.graph import Vertex, Edge
+from emitpy.geo import Runway, Ramp
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 

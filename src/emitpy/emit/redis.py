@@ -5,9 +5,9 @@ from enum import Enum
 
 logger = logging.getLogger("RedisUtils")
 
-from ..constants import REDIS_DATABASE, REDIS_QUEUE, REDIS_TYPE, ID_SEP
-from ..parameters import REDIS_CONNECT
-from ..utils import make_key
+from emitpy.constants import REDIS_DATABASE, REDIS_QUEUE, REDIS_TYPE, ID_SEP
+from emitpy.parameters import REDIS_CONNECT
+from emitpy.utils import make_key
 
 
 STATS_PREFIX = "stats$"

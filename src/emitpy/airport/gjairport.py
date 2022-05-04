@@ -7,7 +7,7 @@ import yaml
 import logging
 
 from .airport import AirportBase
-from ..parameters import DATA_DIR
+from emitpy.parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 

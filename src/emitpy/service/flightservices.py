@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 from .service import Service
 from .servicemovement import ServiceMove
 
-from .. import service
+import emitpy.service
 
-from ..flight import Flight
-from ..emit import Emit, EnqueueToRedis
-from ..constants import SERVICE_PHASE, ARRIVAL, DEPARTURE
+from emitpy.flight import Flight
+from emitpy.emit import Emit, EnqueueToRedis
+from emitpy.constants import SERVICE_PHASE, ARRIVAL, DEPARTURE
 
 logger = logging.getLogger("Turnaround")
 

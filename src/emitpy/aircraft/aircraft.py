@@ -13,10 +13,10 @@ from importlib_resources import files
 import sys
 sys.path.append('/Users/pierre/Developer/oscars/emitpy')
 
-from ..business import Identity, Company
-from ..constants import AIRCRAFT_TYPE_DATABASE
-from ..parameters import DATA_DIR
-from ..utils import machToKmh, NAUTICAL_MILE, FT, toKmh
+from emitpy.business import Identity, Company
+from emitpy.constants import AIRCRAFT_TYPE_DATABASE
+from emitpy.parameters import DATA_DIR
+from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh
 
 
 logger = logging.getLogger("Aircraft")
@@ -414,6 +414,7 @@ class AircraftPerformance(AircraftType):
             data = self.loadFromFile("-tarpro.yaml")
             if data is not None:
                 self.tarprofile = data
+                logger.debug(f":loadTurnaroundProfile: loaded for {self.typeId.upper()}: {data}")
             else:
                 logger.warning(f":loadTurnaroundProfile: no turnaround profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadTurnaroundProfile: not implemented"]

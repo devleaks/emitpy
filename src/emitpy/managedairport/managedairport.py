@@ -1,10 +1,10 @@
 import logging
 
-from ..airspace import XPAirspace, Metar
-from ..business import Airline, Company
-from ..aircraft import AircraftType, AircraftPerformance, Aircraft
-from ..airport import Airport, AirportBase, XPAirport
-from ..business import AirportManager
+from emitpy.airspace import XPAirspace, Metar
+from emitpy.business import Airline, Company
+from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
+from emitpy.airport import Airport, AirportBase, XPAirport
+from emitpy.business import AirportManager
 
 
 logger = logging.getLogger("ManagedAirport")

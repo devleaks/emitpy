@@ -4,8 +4,8 @@ A Turnaround is a collection of Services to be performed on an aircraft during a
 """
 import logging
 
-from ..flight import Flight
-from ..service import FlightServices
+from emitpy.flight import Flight
+from emitpy.service import FlightServices
 
 logger = logging.getLogger("Turnaround")
 

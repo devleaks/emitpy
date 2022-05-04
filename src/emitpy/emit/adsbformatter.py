@@ -4,8 +4,8 @@ import logging
 import datetime
 import json
 
-from ..constants import FEATPROP
-from ..airport import Airport
+from emitpy.constants import FEATPROP
+from emitpy.airport import Airport
 
 from .format import Formatter
 

@@ -11,10 +11,10 @@ from geojson import Point, Polygon, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from .airport import AirportBase
-from ..graph import Vertex, Edge, USAGE_TAG
-from ..geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
-from ..parameters import DATA_DIR
-from ..constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP
+from emitpy.graph import Vertex, Edge, USAGE_TAG
+from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
+from emitpy.parameters import DATA_DIR
+from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 

@@ -10,7 +10,7 @@ from turfpy.measurement import distance
 from .airspace import Airspace, Terminal, Fix, ControlledPoint, AirwaySegment, CPIDENT
 from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 
-from ..parameters import DATA_DIR
+from emitpy.parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 

@@ -1,8 +1,8 @@
 import json
 
 from .emit import EmitPoint, Emit
-from ..constants import FEATPROP, REDIS_DATABASE, REDIS_TYPE
-from ..parameters import REDIS_CONNECT
+from emitpy.constants import FEATPROP, REDIS_DATABASE, REDIS_TYPE
+from emitpy.parameters import REDIS_CONNECT
 
 import logging
 

@@ -4,9 +4,9 @@ import logging
 import datetime
 import json
 
-from ..constants import FEATPROP
-from ..airport import Airport
-from ..utils import FT, NAUTICAL_MILE
+from emitpy.constants import FEATPROP
+from emitpy.airport import Airport
+from emitpy.utils import FT, NAUTICAL_MILE
 
 from .format import Formatter
 

@@ -6,11 +6,10 @@ import logging
 import random
 from datetime import datetime
 
-from ..constants import FEATPROP
+from emitpy.constants import FEATPROP, REDIS_DATABASE
 from .service import GroundSupport
 from .servicevehicle import ServiceVehicle
-from ..geo import FeatureWithProps
-from ..graph import Route
+from emitpy.geo import FeatureWithProps
 
 
 logger = logging.getLogger("Mission")
@@ -51,11 +50,18 @@ class Mission(GroundSupport):
             "icao24": self.vehicle.icao24
         }
 
+
+    def getKey(self):
+        return key_path(REDIS_DATABASE.MISSIONS.value, self.getId())
+
+
     def __str__(self):
         s = type(self).__name__
 
+
     def addCheckpoint(self, checkpoint: str):
         self.checkpoints.append(checkpoint)
+
 
     def duration(self, checkpoint: FeatureWithProps = None):
         """

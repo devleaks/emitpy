@@ -11,7 +11,7 @@ import networkx as nx
 from geojson import Point, LineString, Feature
 from turfpy.measurement import distance, destination, bearing, boolean_point_in_polygon, point_to_line_distance
 
-from ..geo import FeatureWithProps, line_intersect, printFeatures
+from emitpy.geo import FeatureWithProps, line_intersect, printFeatures
 
 
 logger = logging.getLogger("Graph")

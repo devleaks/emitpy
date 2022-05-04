@@ -1,9 +1,9 @@
 import json
 import logging
 
-from ..constants import REDIS_DATABASE, ID_SEP
-from ..parameters import REDIS_CONNECT
-from ..utils import make_key
+from emitpy.constants import REDIS_DATABASE, ID_SEP
+from emitpy.parameters import REDIS_CONNECT
+from emitpy.utils import make_key
 
 logger = logging.getLogger("Queue")
 

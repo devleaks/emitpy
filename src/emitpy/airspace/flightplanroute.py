@@ -5,7 +5,7 @@ The Flight Route is computed from airports, navaids, fixes, and airways.
 import os
 import logging
 
-from ..graph import Route
+from emitpy.graph import Route
 
 
 logger = logging.getLogger("FlightPlanRoute")

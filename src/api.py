@@ -1,4 +1,5 @@
 import json
+import logging
 from fastapi import FastAPI, Body, File
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,6 +12,18 @@ from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES
 
 from web.routers import flights, services, missions, queues, airport
 
+import emitpy
+from emitpy.parameters import MANAGED_AIRPORT
+from emitpy.emitapp import EmitApp
+from emitpy.emit import RedisUtils
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("app")
+
+
+# #########################@@
+# REST API
+#
 description = """
 **Emitpy** is an ADS-B Track Generator. With **Emitpy** you can generate ADS-B tracks for
 
@@ -44,7 +57,6 @@ You will be able to:
 (more blabla to come here soon. Trust me.)
 """
 
-
 tags_metadata = [
     {
         "name": "flights",
@@ -55,6 +67,13 @@ tags_metadata = [
         "description": "Operations with ground services."
     },
 ]
+
+# git describe --tags
+# git log -1 --format=%cd --relative-date
+# + redis_connect info
+emitpyapp = EmitApp(MANAGED_AIRPORT)
+
+logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» starting..")
 
 
 app = FastAPI(
@@ -72,8 +91,7 @@ app.add_middleware(CORSMiddleware,
                    allow_origins=["*"],
                    allow_credentials=True,
                    allow_methods=["*"],
-                   allow_headers=["*"],)
-
+                   allow_headers=["*"])
 
 app.include_router(flights.router)
 app.include_router(services.router)
@@ -87,5 +105,5 @@ async def root():
     return {
         "status": 1,
         "message": "emitpy REST API listening...",
-        "data": None
+        "data": "version 0.5.2"
     }

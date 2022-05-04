@@ -6,9 +6,9 @@ from geojson import Polygon, Point, Feature
 from geojson.geometry import Geometry
 from turfpy.measurement import bearing, destination
 from .utils import printFeatures
-from ..constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
+from emitpy.constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
 
-# from ..business.identity import Identity
+# from emitpy.business.identity import Identity
 
 
 # ################################@

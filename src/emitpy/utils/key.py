@@ -1,4 +1,4 @@
-from ..constants import ID_SEP
+from emitpy.constants import ID_SEP
 
 
 def make_key(database: str, name: str, extension: str = None):

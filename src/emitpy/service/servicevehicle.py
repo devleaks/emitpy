@@ -6,8 +6,8 @@ import logging
 import importlib
 from math import inf
 
-from ..business import Identity, Company
-from ..constants import SERVICE
+from emitpy.business import Identity, Company
+from emitpy.constants import SERVICE
 
 logger = logging.getLogger("ServiceVehicle")
 

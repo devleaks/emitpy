@@ -10,9 +10,9 @@ from enum import Enum
 from geojson import Point, Feature
 from turfpy.measurement import distance, destination
 
-from ..graph import Vertex, Edge, Graph
-from ..parameters import LOAD_AIRWAYS
-from ..geo import FeatureWithProps
+from emitpy.graph import Vertex, Edge, Graph
+from emitpy.parameters import LOAD_AIRWAYS
+from emitpy.geo import FeatureWithProps
 
 
 logger = logging.getLogger("Airspace")

@@ -1,5 +1,5 @@
 from enum import Enum
-from ..constants import ID_SEP
+from emitpy.constants import ID_SEP
 
 class IDENTIFIER(Enum):
     orgId = "orgId"

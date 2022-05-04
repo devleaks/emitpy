@@ -11,10 +11,10 @@ import operator
 from turfpy import measurement
 
 from .company import Company
-from ..airport import Airport
-from ..constants import AIRLINE, AIRLINE_DATABASE
-from ..parameters import DATA_DIR
-from ..utils import toNm
+from emitpy.airport import Airport
+from emitpy.constants import AIRLINE, AIRLINE_DATABASE
+from emitpy.parameters import DATA_DIR
+from emitpy.utils import toNm
 
 logger = logging.getLogger("Airline")
 

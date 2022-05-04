@@ -4,8 +4,8 @@ Entities for aircraft parking on the ground.
 """
 from typing import Union
 
-from ..identity import Identity
-from ..constants import PAX, CARGO
+from emitpy.identity import Identity
+from emitpy.constants import PAX, CARGO
 
 
 class Terminal(Identity):

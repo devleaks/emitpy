@@ -1,3 +1,8 @@
+import traceback
+import json
+import logging
+import re
+
 from flask import Flask, render_template, request, flash, Markup, redirect, url_for, jsonify
 from flask_wtf import FlaskForm, CSRFProtect
 from wtforms.fields import *
@@ -5,13 +10,7 @@ from wtforms import validators
 from flask_bootstrap import Bootstrap5, SwitchField
 from datetime import datetime, timedelta
 
-import traceback
-import json
-import logging
-import re
-
 import emitpy
-
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT
 from emitpy.private import SECRET_KEY

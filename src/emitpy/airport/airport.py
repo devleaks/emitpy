@@ -16,14 +16,14 @@ import operator
 
 import geojson
 
-from ..graph import Graph
-from ..geo import Location
+from emitpy.graph import Graph
+from emitpy.geo import Location
 
-from ..airspace import CIFP
-from ..constants import AIRPORT_DATABASE, FEATPROP
-from ..parameters import DATA_DIR
-from ..geo import Ramp, Runway
-from ..utils import FT
+from emitpy.airspace import CIFP
+from emitpy.constants import AIRPORT_DATABASE, FEATPROP
+from emitpy.parameters import DATA_DIR
+from emitpy.geo import Ramp, Runway
+from emitpy.utils import FT
 
 logger = logging.getLogger("Airport")
 

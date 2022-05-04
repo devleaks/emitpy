@@ -2,8 +2,8 @@ import logging
 import json
 from enum import Enum, IntEnum, Flag
 from datetime import datetime, timedelta
-from ..constants import REDIS_DATABASE
-from ..utils import key_path
+from emitpy.constants import REDIS_DATABASE
+from emitpy.utils import key_path
 
 logger = logging.getLogger("Resource")
 

@@ -13,9 +13,9 @@ from flightplandb.exceptions import BaseErrorHandler
 
 from geojson import Feature, LineString, Point, FeatureCollection
 
-from ..utils import FT
-from ..private import FLIGHT_PLAN_DATABASE_APIKEY
-from ..parameters import DEVELOPMENT, PRODUCTION, DATA_DIR
+from emitpy.utils import FT
+from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
+from emitpy.parameters import DEVELOPMENT, PRODUCTION, DATA_DIR
 
 import logging
 

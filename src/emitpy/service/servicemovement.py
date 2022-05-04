@@ -10,13 +10,13 @@ import copy
 from geojson import Point, LineString, FeatureCollection, Feature
 from turfpy.measurement import distance, destination, bearing
 
-from ..airport import AirportBase
-from ..geo import MovePoint, Movement, printFeatures, asLineString
-from ..service import Service, ServiceVehicle
-from ..graph import Route
-from ..utils import compute_time as doTime
-from ..constants import FEATPROP, SERVICE_PHASE
-from ..business import MESSAGE_TYPE, MovementMessage
+from emitpy.airport import AirportBase
+from emitpy.geo import MovePoint, Movement, printFeatures, asLineString
+from emitpy.service import Service, ServiceVehicle
+from emitpy.graph import Route
+from emitpy.utils import compute_time as doTime
+from emitpy.constants import FEATPROP, SERVICE_PHASE
+from emitpy.business import MESSAGE_TYPE, MovementMessage
 
 logger = logging.getLogger("ServiceMove")
 

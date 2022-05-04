@@ -4,28 +4,30 @@ A Service  is a maintenance operation performed on an aircraft during a turn-aro
 """
 import sys
 import logging
-import random
 from datetime import datetime
 
+from emitpy.constants import SERVICE
+from emitpy.utils import key_path
 from .servicevehicle import ServiceVehicle
-from ..geo import FeatureWithProps, printFeatures, asLineString
-from ..graph import Route
-from ..constants import SERVICE
 
 logger = logging.getLogger("Service")
 
 
 class GroundSupport:
 
-    def __init__(self, operator: "Company"):
+    def __init__(self, operator: "Company", scheduled: datetime = datetime.now()):
         self.operator = operator
-        self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
-        self.vehicle = None
-        self.starttime = None
+
+        self.scheduled = None      # scheduled service date/time in minutes after/before(negative) on-block
+        self.estimated = None
+        self.actual = None
+
         self.pause_before = None  # currently unused
         self.pause_after = None   # currently unused
         self.setup_time = None    # currently unused
         self.close_time = None    # currently unused
+
+        self.vehicle = None
         self.next_position = None
         self.route = []
         self.name = None
@@ -36,6 +38,9 @@ class GroundSupport:
     def getInfo(self):
         return {
             "ground-support": type(self).__name__,
+            "operator": self.operator.getInfo(),
+            "schedule": self.schedule,
+            "name": self.name
         }
 
     def setVehicle(self, vehicle: ServiceVehicle):
@@ -51,6 +56,12 @@ class GroundSupport:
 
     def run(self, moment: datetime):
         return (False, "Service::run not implemented")
+
+    def schedule(self, estimated: datetime):
+        self.estimated = estimated
+
+    def stated(self, actual: datetime):
+        self.actual = actual
 
 
 class Service(GroundSupport):
@@ -88,8 +99,9 @@ class Service(GroundSupport):
 
     def getShortId(self):
         r = self.ramp.getName() if self.ramp is not None else "noramp"
+        s = self.scheduled.isoformat() if self.scheduled is not None else "noschedule"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
-        return r + ":" + v
+        return key_path(r, s, v)
 
 
     def getInfo(self):
@@ -103,6 +115,9 @@ class Service(GroundSupport):
             "registration": self.vehicle.registration
         }
 
+
+    def getKey(self):
+        return key_path(REDIS_DATABASE.SERVICES.value, self.getId())
 
     def __str__(self):
         s = type(self).__name__

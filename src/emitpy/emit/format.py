@@ -4,9 +4,9 @@ import os
 import logging
 from datetime import datetime
 
-from ..geo import printFeatures
-from ..constants import FEATPROP, FLIGHT_DATABASE
-from ..parameters import AODB_DIR
+from emitpy.geo import printFeatures
+from emitpy.constants import FEATPROP, FLIGHT_DATABASE
+from emitpy.parameters import AODB_DIR
 
 # Formatter for constructor
 from .formatter import Formatter

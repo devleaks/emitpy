@@ -11,9 +11,9 @@ from enum import Enum
 from turfpy.measurement import distance, bearing
 
 from .airspace import Airspace, RestrictedControlledPoint
-from ..utils import ConvertDMSToDD, FT
+from emitpy.utils import ConvertDMSToDD, FT
 
-from ..parameters import DATA_DIR
+from emitpy.parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 

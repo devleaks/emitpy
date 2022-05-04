@@ -1,13 +1,13 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from ..airspace import FlightPlan, FlightPlanRoute
-from ..airport import Airport
-from ..business import Airline
-from ..aircraft import Aircraft
-from ..constants import PAYLOAD, FLIGHT_PHASE, FEATPROP
-from ..utils import FT, Messages, FlightboardMessage
-from ..parameters import LOAD_AIRWAYS
+from emitpy.airspace import FlightPlan, FlightPlanRoute
+from emitpy.airport import Airport
+from emitpy.business import Airline
+from emitpy.aircraft import Aircraft
+from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP
+from emitpy.utils import FT, Messages, FlightboardMessage
+from emitpy.parameters import LOAD_AIRWAYS
 
 logger = logging.getLogger("Flight")
 
@@ -171,10 +171,15 @@ class Flight(Messages):
     def setRamp(self, ramp):
         name = ramp.getName()
         if name in self.managedAirport.ramps.keys():
+            am = self.managedAirport.manager
+            reqtime = self.scheduled_dt
+            reqend  = reqtime + timedelta(minutes=120)
+            if am.ramp_allocator.isAvailable(name, reqtime, reqend):
+                res = am.ramp_allocator.book(name, reqtime, reqend, self.getId())
             self.ramp = ramp
-            logger.debug(f":setRamp: flight {self.getName()}: ramp {self.ramp.getProp('name')}")
+            logger.debug(f":setRamp: flight {self.getName()}: ramp {name}")
         else:
-            logger.warning(f":setRamp: {name} not found")
+            logger.warning(f":setRamp: {name} not found, ramp unchanged")
 
 
     def setGate(self, gate):
@@ -191,7 +196,31 @@ class Flight(Messages):
     def setRWY(self, rwy):
         self.rwy = rwy
         self._setRunway()
-        logger.debug(f":setRunway: {self.getName()}: {self.rwy.name}")
+        logger.debug(f":setRWY: {self.getName()}: {self.rwy.name}")
+
+
+    def _setRunway(self, move):
+        if self.rwy is not None:
+            self.runway = move.getRunway(self.rwy)
+            if self.runway is not None:
+                name = self.runway.getProp(FEATPROP.NAME.value)
+                # if name[0:2] != "RW":  # add it
+                #     logger.debug(f":_setRunway: correcting: RW+{name}")
+                #     name = "RW" + name
+                if name in self.managedAirport.runways.keys():
+                    am = self.managedAirport.manager
+                    reqtime = self.scheduled_dt + timedelta(minutes=20)  # time to taxi
+                    reqend  = reqtime + timedelta(minutes=5)  # time to take-off + WTC spacing
+                    if am.runway_allocator.isAvailable(name, reqtime, reqend):
+                        res = am.runway_allocator.book(name, reqtime, reqend, self.getId())
+                    logger.debug(f":_setRunway: flight {self.getName()}: runway {name}")
+                else:
+                    logger.warning(f":_setRunway: {name} not found, runway unchanged")
+                logger.debug(f":_setRunway: {self.getName()}: {name}")
+            else:
+                logger.warning(f":_setRunway: no runway, runway unchanged")
+        else:
+            logger.warning(f":_setRunway: no RWY, runway unchanged")
 
 
     def loadFlightPlan(self):
@@ -392,7 +421,7 @@ class Arrival(Flight):
         self.managedAirport = managedAirport
 
     def _setRunway(self):
-        self.runway = self.arrival.getRunway(self.rwy)
+        super()._setRunway(self.arrival)
 
     def is_arrival(self) -> bool:
         return True
@@ -410,7 +439,7 @@ class Departure(Flight):
         self.managedAirport = managedAirport
 
     def _setRunway(self):
-        self.runway = self.departure.getRunway(self.rwy)
+        super()._setRunway(self.departure)
 
     def is_arrival(self) -> bool:
         return False
