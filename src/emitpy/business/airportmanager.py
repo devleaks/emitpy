@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 from .airline import Airline
 from ..airport import Airport
-from ..time import AllocationTable
+from ..resource import AllocationTable
 
 
 from ..parameters import DATA_DIR
@@ -26,22 +26,29 @@ logger = logging.getLogger("AirportManager")
 
 class AirportManager:
 
-    def __init__(self, icao, operator: "Company"):
+    def __init__(self, icao, operator: "Company", app):
         self.icao = icao
         self.operator = operator
+        self._app = app
+
         self.airlines = {}
-        self.airport_base_path = None
-        self.data = None
-        self.airline_route_frequencies = None
         self.airline_frequencies = None
+        self.airline_routes = None
+        self.airline_route_frequencies = None
+
         self.vehicle_number = 200
-        self.service_vehicles = {}
         self.vehicle_by_type = {}
+        self.service_vehicles = {}
         self.vehicle_allocator = None
+
         self.ramps = {}
         self.ramp_allocator = None
+
         self.runways = {}
         self.runway_allocator = None
+
+        self.airport_base_path = None
+        self.data = None
 
 
     def load(self):
@@ -234,10 +241,8 @@ class AirportManager:
                 else:
                     logger.warning(f":loadServiceVehicles: vehicle type {vcl} not found")
 
-                logger.debug(f":loadServiceVehicles: ..loaded allocating..")
-                self.vehicle_allocator = AllocationTable(self.service_vehicles.values())
-                logger.debug(f":loadServiceVehicles: ..done")
-
+            self.setServiceVehicles(self.service_vehicles)
+            logger.debug(f":loadServiceVehicles: ..done")
             return [True, "AirportManager::loadServiceVehicles: loaded"]
 
 
@@ -375,10 +380,27 @@ class AirportManager:
         return f"{random.getrandbits(24):x}"
 
 
+    def setServiceVehicles(self, vehicles):
+        self.service_vehicles = vehicles
+        logger.debug(f":selectServiceVehicles: allocating..")
+        self.vehicle_allocator = AllocationTable(resources=self.service_vehicles.values(),
+                                                 name="service-vehicles")
+        logger.debug(f":service_vehicles: ..done")
+
+
+    def bookVehicle(self, vehicle: "ServiceVehicle", reqtime: "datetime", reqduration: int, reason: str):
+        reqend = reqtime + timedelta(minutes=reqduration)
+        avail = self.vehicle_allocator.isAvailable(ramp.getId(), reqtime, reqend)
+        if avail:
+            self.vehicle_allocator.book(ramp.getId(), reqtime, reqend, reason)
+        return avail
+
+
     def setRamps(self, ramps):
         self.ramps = ramps
         logger.debug(f":setRamps: allocating..")
-        self.ramp_allocator = AllocationTable(self.ramps.values())
+        self.ramp_allocator = AllocationTable(resources=self.ramps.values(),
+                                              name="ramps")
         logger.debug(f":setRamps: ..done")
 
 
@@ -393,7 +415,7 @@ class AirportManager:
     def setRunways(self, runways):
         self.runways = runways
         logger.debug(f":setRunways: allocating..")
-        self.runway_allocator = AllocationTable(self.runways.values())
+        self.runway_allocator = AllocationTable(resources=self.runways.values(), name="runways")
         logger.debug(f":setRunways: ..done")
 
 
@@ -404,3 +426,7 @@ class AirportManager:
             self.runway_allocator.book(runway.getId(), reqtime, reqend, reason)
         return avail
 
+    def saveAllocators(self, redis):
+        self.vehicle_allocator.save(redis)
+        self.ramp_allocator.save(redis)
+        self.runway_allocator.save(redis)

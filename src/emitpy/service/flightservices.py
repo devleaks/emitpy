@@ -1,6 +1,5 @@
 """
-Creates all services required for a flight, depends on ramp and actype.
-
+Creates all services required for a flight, depends on movement, ramp, and actype.
 """
 import logging
 from datetime import datetime, timedelta
@@ -17,7 +16,7 @@ from ..constants import SERVICE_PHASE, ARRIVAL, DEPARTURE
 logger = logging.getLogger("Turnaround")
 
 
-class ServiceFlight:
+class FlightServices:
 
     def __init__(self, flight: Flight, operator: "Company"):
         self.flight = flight
@@ -39,7 +38,7 @@ class ServiceFlight:
             if not ret[0]:
                 return ret
             logger.debug(f"..done")
-        return (True, "ServiceFlight::save: completed")
+        return (True, "FlightServices::save: completed")
 
 
     def saveDB(self, redis):
@@ -50,18 +49,18 @@ class ServiceFlight:
             if not ret[0]:
                 return ret
             logger.debug(f"..done")
-        return (True, "ServiceFlight::saveDB: completed")
+        return (True, "FlightServices::saveDB: completed")
 
 
     def service(self):
         # From dict, make append appropriate service to list
         if self.actype.tarprofile is None:
             logger.warning(":run: no turnaround profile")
-            return (False, "ServiceFlight::run: no turnaround profile")
+            return (False, "FlightServices::run: no turnaround profile")
 
         move = ARRIVAL if self.flight.is_arrival() else DEPARTURE
         if not move in self.flight.aircraft.actype.tarprofile:
-            return (False, f"ServiceFlight::run: no turnaround profile for {move}")
+            return (False, f"FlightServices::run: no turnaround profile for {move}")
 
         svcs = self.flight.aircraft.actype.tarprofile[move]
 
@@ -80,7 +79,7 @@ class ServiceFlight:
                                                                      reqtime=self.flight.scheduled_dt)
 
             if this_vehicle is None:
-                return (True, f"ServiceFlight::service: vehicle not found")
+                return (True, f"FlightServices::service: vehicle not found")
 
             vehicle_startpos = self.airport.selectRandomServiceDepot(sname)
             this_vehicle.setPosition(vehicle_startpos)
@@ -103,7 +102,7 @@ class ServiceFlight:
             })
             logger.debug(".. done")
 
-        return (True, "ServiceFlight::service: completed")
+        return (True, "FlightServices::service: completed")
 
 
     def move(self):
@@ -116,7 +115,7 @@ class ServiceFlight:
                 return ret
             service["move"] = move
             logger.debug(f"..done")
-        return (True, "ServiceFlight::move: completed")
+        return (True, "FlightServices::move: completed")
 
 
     def emit(self, emit_rate: int):
@@ -128,7 +127,7 @@ class ServiceFlight:
                 return ret
             service["emit"] = emit
             logger.debug(f"..done")
-        return (True, "ServiceFlight::emit: completed")
+        return (True, "FlightServices::emit: completed")
 
 
     def schedule(self, scheduled: datetime):
@@ -141,7 +140,7 @@ class ServiceFlight:
             service["emit"].serviceTime(SERVICE_PHASE.SERVICE_START.value, service["duration"] * 60)  # seconds
             service["emit"].schedule(SERVICE_PHASE.SERVICE_START.value, stime)
             logger.debug(f"..done")
-        return (True, "ServiceFlight::schedule: completed")
+        return (True, "FlightServices::schedule: completed")
 
 
     def enqueuetoredis(self, queue):
@@ -158,7 +157,7 @@ class ServiceFlight:
             if not ret[0]:
                 return ret
             logger.debug(f"..done")
-        return (True, "ServiceFlight::enqueuetoredis: completed")
+        return (True, "FlightServices::enqueuetoredis: completed")
 
 
 

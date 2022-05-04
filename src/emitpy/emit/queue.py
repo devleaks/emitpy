@@ -17,6 +17,7 @@ class Queue:
         self.formatter_name = formatter_name
         self.speed = speed
         self.starttime = starttime
+        self.status = "RUN"  # {RUN|STOP}
         self.redis = redis
 
 

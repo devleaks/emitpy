@@ -81,9 +81,15 @@ class Airport(Location):
         csvdata = csv.DictReader(file)
         for row in csvdata:
             if row["longitude_deg"] != "" and row["elevation_ft"] != "":
-                a = Airport(icao=row["ident"], iata=row["iata_code"], name=row["name"],
-                            city=row["municipality"], country=row["iso_country"], region=row["iso_region"],
-                            lat=float(row["latitude_deg"]), lon=float(row["longitude_deg"]), alt=float(row["elevation_ft"])*FT)
+                a = Airport(icao=row["ident"],
+                            iata=row["iata_code"],
+                            name=row["name"],
+                            city=row["municipality"],
+                            country=row["iso_country"],
+                            region=row["iso_region"],
+                            lat=float(row["latitude_deg"]),
+                            lon=float(row["longitude_deg"]),
+                            alt=float(row["elevation_ft"])*FT)
                 a.display_name = row["name"]
                 Airport._DB[row["ident"]] = a
                 Airport._DB_IATA[row["iata_code"]] = a

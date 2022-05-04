@@ -87,7 +87,11 @@ class AircraftType(Identity):
         csvdata = csv.DictReader(ac.split("\n"))
         for row in csvdata:
             if row["ICAO Code"] != "tbd":
-                AircraftType._DB[row["ICAO Code"]] = AircraftType(orgId=row["Manufacturer"], classId=row["Wake Category"], typeId=row["ICAO Code"], name=row["Model"], data=row)
+                AircraftType._DB[row["ICAO Code"]] = AircraftType(orgId=row["Manufacturer"],
+                                                                  classId=row["Wake Category"],
+                                                                  typeId=row["ICAO Code"],
+                                                                  name=row["Model"],
+                                                                  data=row)
         logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft types")
 
         # Aircraft equivalence patch(!)

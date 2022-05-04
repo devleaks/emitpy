@@ -7,6 +7,7 @@ import random
 from datetime import datetime
 
 from ..constants import FEATPROP
+from .service import GroundSupport
 from .servicevehicle import ServiceVehicle
 from ..geo import FeatureWithProps
 from ..graph import Route
@@ -15,16 +16,12 @@ from ..graph import Route
 logger = logging.getLogger("Mission")
 
 
-class Mission:
+class Mission(GroundSupport):
 
     def __init__(self, operator: "Company", checkpoints: [str], name: str):
-        self.operator = operator
+        GroundSupport.__init__(self, operator=operator)
         self.checkpoints = checkpoints
         self.mission = f"{name}-{datetime.now().strftime('%y%j-%f')}"  # -{round(random.random()*10000):05}
-        self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
-        self.vehicle = None
-        self.starttime = None
-        self.route = []
         self.checkpoint_control_time = 120  # seconds, could be a param
 
     @staticmethod
@@ -57,9 +54,6 @@ class Mission:
     def __str__(self):
         s = type(self).__name__
 
-    def setVehicle(self, vehicle: ServiceVehicle):
-        self.vehicle = vehicle
-
     def addCheckpoint(self, checkpoint: str):
         self.checkpoints.append(checkpoint)
 
@@ -77,7 +71,3 @@ class Mission:
         if control_time is None:
             return self.checkpoint_control_time  # default
         return control_time
-
-    def run(self):
-        return (False, "Mission::run not implemented")
-

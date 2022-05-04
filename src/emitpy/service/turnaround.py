@@ -5,7 +5,7 @@ A Turnaround is a collection of Services to be performed on an aircraft during a
 import logging
 
 from ..flight import Flight
-from ..service import ServiceFlight
+from ..service import FlightServices
 
 logger = logging.getLogger("Turnaround")
 
@@ -14,8 +14,8 @@ class Turnaround:
 
     def __init__(self, arrival: Flight, departure: Flight, operator: "Company"):
         arrival.setLinkedFlight(departure)
-        self.arrival = ServiceFlight(arrival, operator)
-        self.departure = ServiceFlight(departure, operator)
+        self.arrival = FlightServices(arrival, operator)
+        self.departure = FlightServices(departure, operator)
         self.airport = None
 
     def setManagedAirport(self, airport):

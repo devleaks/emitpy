@@ -42,10 +42,11 @@ class MESSAGE_ICON(Enum):
 
 class Message:
 
-    def __init__(self, msgtype: str, msgsubtype: str, entity = None, subentity = None):
+    def __init__(self, msgtype: str, msgsubtype: str, entity = None, subentity = None, **kwargs):
         self.ident = f"{uuid.uuid4()}"
         self.msgtype = msgtype
         self.msgsubtype = msgsubtype
+        self.data = kwargs
 
         # Wdb
         self.entity = entity
@@ -150,11 +151,11 @@ class MovementMessage(Message):
 
 class FlightboardMessage(Message):
 
-    def __init__(self, is_arrival: bool, airport, moment):
+    def __init__(self, flightid, is_arrival: bool, airport):
         Message.__init__(self, msgtype=MESSAGE_TYPE.FLIGHTBOARD.value,
                                msgsubtype=ARRIVAL if is_arrival else DEPARTURE,
-                               entity=airport,
-                               subentity=moment)
+                               entity=flightid,
+                               subentity=airport)
 
 # class ETAMessage(Message):
 

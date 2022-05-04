@@ -15,8 +15,9 @@ class ManagedAirport:
     Wrapper class to load all managed airport parts.
     """
 
-    def __init__(self, airport):
+    def __init__(self, airport, app):
         self._this_airport = airport
+        self._app = app  # context
         self.airport = None
 
     def init(self):
@@ -48,7 +49,7 @@ class ManagedAirport:
                            classId="Airport Operator",
                            typeId="Airport Operator",
                            name=self._this_airport["operator"])
-        manager = AirportManager(icao=self._this_airport["ICAO"], operator=operator)
+        manager = AirportManager(icao=self._this_airport["ICAO"], operator=operator, app=self._app)
         ret = manager.load()
         if not ret[0]:
             logger.warning("Airport manager not loaded")

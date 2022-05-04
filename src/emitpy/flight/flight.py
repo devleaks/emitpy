@@ -3,18 +3,19 @@ from datetime import datetime, timezone
 
 from ..airspace import FlightPlan, FlightPlanRoute
 from ..airport import Airport
-from ..business import Airline, FlightboardMessage
+from ..business import Airline
 from ..aircraft import Aircraft
 from ..constants import PAYLOAD, FLIGHT_PHASE, FEATPROP
-from ..utils import FT
+from ..utils import FT, Messages, FlightboardMessage
 from ..parameters import LOAD_AIRWAYS
 
 logger = logging.getLogger("Flight")
 
 
-class Flight:
+class Flight(Messages):
 
     def __init__(self, operator: Airline, number: str, scheduled: str, departure: Airport, arrival: Airport, aircraft: Aircraft, linked_flight: 'Flight' = None):
+        Messages.__init__(self)
         self.number = number
         self.departure = departure
         self.arrival = arrival
@@ -110,22 +111,35 @@ class Flight:
 
 
     def getId(self) -> str:
+        """
+        Standard ICAO name for flight, based on airline, flight number and scheduled takeoff zulu time (of first leg if multiple legs).
+
+        :returns:   The identifier.
+        :rtype:     str
+        """
         return self.operator.iata + self.number + "-S" + self.scheduled_dt.astimezone(tz=timezone.utc).strftime("%Y%m%d%H%M")
 
 
     def getName(self) -> str:
         return self.operator.iata + " " + self.number
 
+
     def getLongName(self) -> str:
         return self.operator.iata + " " + self.number + " " + self.scheduled_dt.strftime("%H:%M")
 
 
     def is_arrival(self) -> bool:
-        return self.arrival.icao == self.managedAirport.icao
+        if self.managedAirport is not None:
+            return self.arrival.icao == self.managedAirport.icao
+        logger.warning(f":is_arrival: no managedAirport, cannot determine")
+        return None
 
 
     def is_departure(self) -> bool:
-        return self.departure.icao == self.managedAirport.icao
+        if self.managedAirport is not None:
+            return self.departure.icao == self.managedAirport.icao
+        logger.warning(f":is_departure: no managedAirport, cannot determine")
+        return None
 
 
     def setLinkedFlight(self, linked_flight: 'Flight') -> None:
@@ -148,6 +162,9 @@ class Flight:
 
 
     def getCruiseAltitude(self):
+        """
+        Cruise altitude in meters.
+        """
         return self.flight_level * 100 * FT
 
 
@@ -161,6 +178,12 @@ class Flight:
 
 
     def setGate(self, gate):
+        """
+        For information only. Not used.
+
+        :param      gate:  The gate
+        :type       gate:  { type_description }
+        """
         self.gate = gate
         logger.debug(f":setGate: flight {self.getName()}: gate {self.gate}")
 
@@ -229,6 +252,11 @@ class Flight:
 
         normplan = self.toAirspace()
         planpts = []
+
+        remote_apt = self.departure if self.is_arrival() else self.arrival
+        self.addMessage(FlightboardMessage(flightid=self.getId(),
+                                           is_arrival=self.is_arrival(),
+                                           airport=remote_apt.icao))
 
         # ###########################
         # DEPARTURE AND CRUISE
@@ -366,6 +394,13 @@ class Arrival(Flight):
     def _setRunway(self):
         self.runway = self.arrival.getRunway(self.rwy)
 
+    def is_arrival(self) -> bool:
+        return True
+
+    def is_departure(self) -> bool:
+        return False
+
+
 
 
 class Departure(Flight):
@@ -377,3 +412,8 @@ class Departure(Flight):
     def _setRunway(self):
         self.runway = self.departure.getRunway(self.rwy)
 
+    def is_arrival(self) -> bool:
+        return False
+
+    def is_departure(self) -> bool:
+        return True

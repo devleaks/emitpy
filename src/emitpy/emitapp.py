@@ -9,7 +9,7 @@ from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
-from emitpy.service import Service, ServiceMove, ServiceFlight, Mission, MissionMove
+from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, FEATPROP, ARRIVAL, DEPARTURE
@@ -43,7 +43,7 @@ SAVE_TO_FILE = False
 class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
-        ManagedAirport.__init__(self, airport)
+        ManagedAirport.__init__(self, airport, self)
         # Default queue(s)
         self.redis = redis.Redis(**REDIS_CONNECT)
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
@@ -180,6 +180,8 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(109, f"problem during enqueue", ret[1])
 
+        self.airport.manager.saveAllocators(self.redis)
+
         if not do_services:
             logger.debug("..done.")
             return StatusInfo(0, "completed successfully", None)
@@ -192,7 +194,7 @@ class EmitApp(ManagedAirport):
 
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
-        flight_service = ServiceFlight(flight, operator)
+        flight_service = FlightServices(flight, operator)
         flight_service.setManagedAirport(self.airport)
         ret = flight_service.service()
         if not ret[0]:
@@ -226,6 +228,8 @@ class EmitApp(ManagedAirport):
         ret = flight_service.enqueuetoredis(self.queues[queue])
         if not ret[0]:
             return StatusInfo(156, f"problem during enqueue of services", ret[1])
+
+        self.airport.manager.saveAllocators(self.redis)
 
         logger.debug("..done, service included.")
         return StatusInfo(0, "completed successfully", None)

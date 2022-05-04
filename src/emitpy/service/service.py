@@ -15,19 +15,52 @@ from ..constants import SERVICE
 logger = logging.getLogger("Service")
 
 
-class Service:
+class GroundSupport:
+
+    def __init__(self, operator: "Company"):
+        self.operator = operator
+        self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
+        self.vehicle = None
+        self.starttime = None
+        self.pause_before = None  # currently unused
+        self.pause_after = None   # currently unused
+        self.setup_time = None    # currently unused
+        self.close_time = None    # currently unused
+        self.next_position = None
+        self.route = []
+        self.name = None
+
+    def getId(self):
+        return self.name
+
+    def getInfo(self):
+        return {
+            "ground-support": type(self).__name__,
+        }
+
+    def setVehicle(self, vehicle: ServiceVehicle):
+        self.vehicle = vehicle
+
+    def setNextPosition(self, position):
+        self.pos_next = position
+
+    def duration(self, dflt: int = 30 * 60):
+        if self.vehicle is None:
+            return dflt
+        return self.vehicle.service_duration(self.quantity)
+
+    def run(self, moment: datetime):
+        return (False, "Service::run not implemented")
+
+
+class Service(GroundSupport):
 
     def __init__(self, operator: "Company", quantity: float):
-        self.operator = operator
+        GroundSupport.__init__(self, operator=operator)
         self.quantity = quantity
-        self.schedule = None      # scheduled service date/time in minutes after/before(negative) on-block
         self.ramp = None
         self.actype = None
         self.turnaround = None
-        self.vehicle = None
-        self.starttime = None
-        self.next_position = None
-        self.route = []
 
     @staticmethod
     def getService(service: str):
@@ -88,23 +121,6 @@ class Service:
     def setRamp(self, ramp: "Ramp"):
         self.ramp = ramp
 
-
-    def setVehicle(self, vehicle: ServiceVehicle):
-        self.vehicle = vehicle
-
-
-    def setNextPosition(self, position):
-        self.pos_next = position
-
-
-    def duration(self, dflt: int = 30 * 60):
-        if self.vehicle is None:
-            return dflt
-        return self.vehicle.service_duration(self.quantity)
-
-
-    def run(self, moment: datetime):
-        return (False, "Service::run not implemented")
 
 
 class CleaningService(Service):
