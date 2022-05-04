@@ -25,24 +25,21 @@ for r in csvdata:
 
     eid = len(entries) + 1
     entries.append({
-        "id": eid,
         "name": '<div>'+r["AIRLINE CODE_x"]+r["FLIGHT NO_x"]+">"+r["AIRLINE CODE_y"]+r["FLIGHT NO_y"]+'</div>',
-        "start": r['FLIGHT SCHEDULED TIME_x'],
-        "end": r['FLIGHT SCHEDULED TIME_y'],
-        "sectionID": bays[bay]["id"],
-        "classes": random.choice(['item-status-none', 'item-status-one', 'item-status-two', 'item-status-three'])
+        "startDate": r['FLIGHT SCHEDULED TIME_x'],
+        "endDate": r['FLIGHT SCHEDULED TIME_y'],
+        "taskName": r["BAY_x"],
+        "status": random.choice(["none", "one", "two", "three"])
     })
 
 cal["Items"] = entries
-cal["Sections"] = list(sorted(bays.values(), key=lambda x: x["name"]))
+cal["Sections"] = [k["name"] for k in sorted(bays.values(), key=lambda x: x["name"])]
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
-
 templates = Jinja2Templates(directory="web/templates")
-
 
 @app.get("/")
 async def read_item(request: Request):

@@ -6,29 +6,23 @@ fetch("/alloc")
     .then(function(data) {
 
         let taskStatus = {
-            "SUCCEEDED": "bar",
-            "FAILED": "bar-failed",
-            "RUNNING": "bar-running",
-            "KILLED": "bar-killed"
+            "none": "bar",
+            "one": "bar-failed",
+            "two": "bar-running",
+            "three": "bar-killed"
         };
 
         taskStatusValues = Object.keys(taskStatus)
 
-        taskNames = []
-        data.Sections.forEach(function(s) {
-            taskNames[s.id] = s.name
-        })
+        taskNames = data.Sections
 
         data.Items.forEach(function(i) {
-            i.startDate = moment(i.start).toDate()
-            i.endDate = moment(i.end).toDate()
-            i.status = taskStatusValues[Math.floor(Math.random() * taskStatusValues.length)]
-            i.taskName = taskNames[i.sectionID]
+            i.startDate = moment(i.startDate).toDate()
+            i.endDate = moment(i.endDate).toDate()
         })
-
-        taskNames.sort()
-
         tasks = data.Items
+
+        console.log(data)
 
         tasks.sort(function(a, b) {
             return a.endDate - b.endDate;
