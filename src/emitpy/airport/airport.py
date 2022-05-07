@@ -13,6 +13,7 @@ import csv
 import logging
 import random
 import operator
+import json
 
 import geojson
 
@@ -23,7 +24,7 @@ from emitpy.airspace import CIFP
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP
 from emitpy.parameters import DATA_DIR
 from emitpy.geo import Ramp, Runway
-from emitpy.utils import FT
+from emitpy.utils import FT, key_path
 
 logger = logging.getLogger("Airport")
 
@@ -185,11 +186,27 @@ class Airport(Location):
         }
 
 
+    def getKey(self):
+        return self.icao
+
+
+    def save(self, base, redis):
+        """
+        Saves airport data to cache.
+
+        :param      base:   The base
+        :type       base:   { type_description }
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        """
+        redis.set(key_path(base, self.icao[0:2], self.getKey()), json.dumps(self.getInfo()))
+
+
 # ################################@
 # AIRPORT BASE
 #
 #
-class AirportBase(Airport):
+class AirportWithProcedures(Airport):
     """
     An AirportBase is a more complete version of an airport.
     It is used as the basis of a ManagedAirport and can be used for origin and destination airport
@@ -198,99 +215,15 @@ class AirportBase(Airport):
 
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
         Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
-        self.airspace = None
-        self.manager = None
         self.procedures = None
-        self.taxiways = Graph()
-        self.service_roads = Graph()
-        self.runways = {}               # GeoJSON Features
-        self.ramps = {}                 # GeoJSON Features
-        self.service_destinations = {}  # GeoJSON Features
-        self.metar = None
-        self.operational_rwys = {}  # runway(s) in operation if metar provided, runways in here are RWY objects, not GeoJSON Feature.
-
-    def setAirspace(self, airspace):
-        """
-        Set airport airspace definition.
-
-        :param      airspace:  The airspace
-        :type       airspace:  { type_description }
-        """
-        self.airspace = airspace
-
-    def setManager(self, manager):
-        """
-        Set AirportManager instance for commercial services.
-
-        :param      manager:  The manager
-        :type       manager:  { type_description }
-        """
-        self.manager = manager
-
-    def load(self):
-        """
-        Load AirportBase data from files.
-        """
-        status = self.loadFromFile()
-        if not status[0]:
-            return status
-
-        status = self.loadRunways()  # These are the GeoJSON features
-        if not status[0]:
-            return status
-
-        status = self.loadProcedures()  # which includes runways that are RWY objects
-        if not status[0]:
-            return status
-
-        status = self.loadRamps()
-        if not status[0]:
-            return status
-
-        status = self.loadTaxiways()
-        if not status[0]:
-            return status
-
-        status = self.loadServiceRoads()
-        if not status[0]:
-            return status
-
-        status = self.loadPOIS()
-        if not status[0]:
-            return status
-
-        return [True, "Airport::load loaded"]
 
 
-    def loadFromFile(self):
-        """
-        Load file at self.filename and place content in self.data.
+    def getInfo(self):
+        return {
+            "airport": super().getInfo(),
+            "procedures": self.procedures.getInfo()
+        }
 
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        return [True, "no load implemented"]
-
-    def loadGeometries(self, name):
-        """
-        Loads GeoJSON json file. GeoJSON features are immediately converted into FeatureWithProps Features.
-
-        :param      name:  The name
-        :type       name:  { type_description }
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        # Loads GeoJSON file, returned dict has proper GeoJSON types,
-        # ie. not 'dict' but 'FeatureCollection', 'Feature', 'Point', etc.
-        df = os.path.join(self.airport_base, "geometries", name)
-        if os.path.exists(df):
-            with open(df, "r") as fp:
-                self.data = geojson.load(fp)
-        else:
-            logger.warning(f":file: {df} not found")
-            return [False, "GeoJSONAirport::loadGeometries file %s not found", df]
-        return [True, f"GeoJSONAirport::file {name} loaded"]
 
     def loadProcedures(self):
         """
@@ -302,117 +235,6 @@ class AirportBase(Airport):
         self.procedures = CIFP(self.icao)
         return [True, "XPAirport::loadProcedures: loaded"]
 
-    def loadRunways(self):
-        """
-        Loads runways.
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        return [True, "no load implemented"]
-
-    def loadTaxiways(self):
-        """
-        Loads network of taxiways. Should be a topology.
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        return [True, "no load implemented"]
-
-    def loadRamps(self):
-        """
-        Loads ramps at airport. All ramp types (parking, gate, jetways, tie-down...) are loaded.
-        A Ramp() is a GeoJSON Feature<Point> with an orientation and GeoJSON<Polygon> feature attached to it.
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        return [True, "no load implemented"]
-
-    def loadServiceRoads(self):
-        """
-        Loads service roads network. Should be a topology.
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        return [True, "no load implemented"]
-
-    def loadPOIS(self):
-        """
-        Loads a all Points of Interest at airport, including:
-        -
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        return [True, "no load implemented"]
-
-    def getRampCombo(self):
-        """
-        Gets list of (code, description) pairs for all ramps.
-
-        :returns:   The ramp combo.
-        :rtype:     { return_type_description }
-        """
-        l = sorted(self.ramps.values(),key=lambda x: x.getName())
-        a = [(a.getName(), a.getName()) for a in l]
-        return a
-
-    def getRunwayCombo(self):
-        """
-        Gets list of (code, description) pairs for runways.
-
-        :returns:   The runway combo.
-        :rtype:     { return_type_description }
-        """
-        l = sorted(self.runways.values(),key=lambda x: x.getName())
-        a = [(a.getName(), "RW" + a.getName()) for a in l]
-        return a
-
-    def setMETAR(self, metar: "Metar"):
-        """
-        Set METAR at airport. Triggers computation of operational runways depending on wind direction.
-
-        :param      metar:  The metar
-        :type       metar:  { type_description }
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        if metar.metar is not None:
-            self.metar = metar.metar
-            logger.debug(f":setMETAR: {self.metar}")
-            if self.procedures is not None:
-                # set which runways are usable
-                wind_dir = self.metar.wind_dir
-                if wind_dir is None:  # wind dir is variable, any runway is fine
-                    logger.debug(":setMETAR: no wind direction")
-                    self.operational_rwys = self.procedures.getRunways()
-                else:
-                    logger.debug(f":setMETAR: wind direction {wind_dir.value():.1f}")
-                    self.operational_rwys = self.procedures.getOperationalRunways(wind_dir.value())
-        else:
-            logger.debug(":setMETAR: no metar")
-
-    def runwayIsWet(self):
-        """
-        Artificially lengthen the landing distance based on amount of water on the ground.
-        Amount of water is supplied by METAR in cm/hour.
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        landing = 1.1
-        if self.metar is not None:
-            if self.metar.precip_1hr is not None:
-                prec = self.metar.precip_1hr.value(units="CM")
-                if prec > 0.5:
-                    landing = 1.75
-                elif prec > 0 or self.metar.precip_1hr.istrace():
-                    landing = 1.4
-        return landing
 
     def has_procedures(self) -> bool:
         """
@@ -586,6 +408,207 @@ class AirportBase(Airport):
         logger.warning(f":getRWY: RWY {n} not found")
         return None
 
+
+# ################################@
+# AIRPORT BASE
+#
+#
+class AirportBase(AirportWithProcedures):
+    """
+    An AirportBase is a more complete version of an airport.
+    It is used as the basis of a ManagedAirport and can be used for origin and destination airport
+    if we use procedures.
+    """
+
+    def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
+        AirportWithProcedures.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+        self.airspace = None
+        self.manager = None
+        self.taxiways = Graph()
+        self.service_roads = Graph()
+        self.runways = {}               # GeoJSON Features
+        self.ramps = {}                 # GeoJSON Features
+        self.service_destinations = {}  # GeoJSON Features
+        self.metar = None
+        self.operational_rwys = {}  # runway(s) in operation if metar provided, runways in here are RWY objects, not GeoJSON Feature.
+
+    def setAirspace(self, airspace):
+        """
+        Set airport airspace definition.
+
+        :param      airspace:  The airspace
+        :type       airspace:  { type_description }
+        """
+        self.airspace = airspace
+
+    def setManager(self, manager):
+        """
+        Set AirportManager instance for commercial services.
+
+        :param      manager:  The manager
+        :type       manager:  { type_description }
+        """
+        self.manager = manager
+
+    def load(self):
+        """
+        Load AirportBase data from files.
+        """
+        status = self.loadFromFile()
+        if not status[0]:
+            return status
+
+        status = self.loadRunways()  # These are the GeoJSON features
+        if not status[0]:
+            return status
+
+        status = self.loadProcedures()  # which includes runways that are RWY objects
+        if not status[0]:
+            return status
+
+        status = self.loadRamps()
+        if not status[0]:
+            return status
+
+        status = self.loadTaxiways()
+        if not status[0]:
+            return status
+
+        status = self.loadServiceRoads()
+        if not status[0]:
+            return status
+
+        status = self.loadPOIS()
+        if not status[0]:
+            return status
+
+        return [True, "Airport::load loaded"]
+
+
+    def loadFromFile(self):
+        """
+        Load file at self.filename and place content in self.data.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        return [True, "no load implemented"]
+
+    def loadGeometries(self, name):
+        """
+        Loads GeoJSON json file. GeoJSON features are immediately converted into FeatureWithProps Features.
+
+        :param      name:  The name
+        :type       name:  { type_description }
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        # Loads GeoJSON file, returned dict has proper GeoJSON types,
+        # ie. not 'dict' but 'FeatureCollection', 'Feature', 'Point', etc.
+        df = os.path.join(self.airport_base, "geometries", name)
+        if os.path.exists(df):
+            with open(df, "r") as fp:
+                self.data = geojson.load(fp)
+        else:
+            logger.warning(f":file: {df} not found")
+            return [False, "GeoJSONAirport::loadGeometries file %s not found", df]
+        return [True, f"GeoJSONAirport::file {name} loaded"]
+
+    def loadRunways(self):
+        """
+        Loads runways.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        return [True, "no load implemented"]
+
+    def loadTaxiways(self):
+        """
+        Loads network of taxiways. Should be a topology.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        return [True, "no load implemented"]
+
+    def loadRamps(self):
+        """
+        Loads ramps at airport. All ramp types (parking, gate, jetways, tie-down...) are loaded.
+        A Ramp() is a GeoJSON Feature<Point> with an orientation and GeoJSON<Polygon> feature attached to it.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        return [True, "no load implemented"]
+
+    def loadServiceRoads(self):
+        """
+        Loads service roads network. Should be a topology.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        return [True, "no load implemented"]
+
+    def loadPOIS(self):
+        """
+        Loads a all Points of Interest at airport, including:
+        -
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        return [True, "no load implemented"]
+
+    def getRampCombo(self):
+        """
+        Gets list of (code, description) pairs for all ramps.
+
+        :returns:   The ramp combo.
+        :rtype:     { return_type_description }
+        """
+        l = sorted(self.ramps.values(),key=lambda x: x.getName())
+        a = [(a.getName(), a.getName()) for a in l]
+        return a
+
+    def getRunwayCombo(self):
+        """
+        Gets list of (code, description) pairs for runways.
+
+        :returns:   The runway combo.
+        :rtype:     { return_type_description }
+        """
+        l = sorted(self.runways.values(),key=lambda x: x.getName())
+        a = [(a.getName(), "RW" + a.getName()) for a in l]
+        return a
+
+    def setMETAR(self, metar: "Metar"):
+        """
+        Set METAR at airport. Triggers computation of operational runways depending on wind direction.
+
+        :param      metar:  The metar
+        :type       metar:  { type_description }
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        if metar.metar is not None:
+            self.metar = metar.metar
+            logger.debug(f":setMETAR: {self.metar}")
+            if self.procedures is not None:
+                # set which runways are usable
+                wind_dir = self.metar.wind_dir
+                if wind_dir is None:  # wind dir is variable, any runway is fine
+                    logger.debug(":setMETAR: no wind direction")
+                    self.operational_rwys = self.procedures.getRunways()
+                else:
+                    logger.debug(f":setMETAR: wind direction {wind_dir.value():.1f}")
+                    self.operational_rwys = self.procedures.getOperationalRunways(wind_dir.value())
+        else:
+            logger.debug(":setMETAR: no metar")
+
     def selectRWY(self, flight: 'Flight'):
         """
         Selects a valid runway for flight, depending on QFU, flight type (pax, cargo), destination, etc.
@@ -618,9 +641,27 @@ class AirportBase(Airport):
 
         return random.choice(candidates)
 
+    def runwayIsWet(self):
+        """
+        Artificially lengthen the landing distance based on amount of water on the ground.
+        Amount of water is supplied by METAR in cm/hour.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        landing = 1.1
+        if self.metar is not None:
+            if self.metar.precip_1hr is not None:
+                prec = self.metar.precip_1hr.value(units="CM")
+                if prec > 0.5:
+                    landing = 1.75
+                elif prec > 0 or self.metar.precip_1hr.istrace():
+                    landing = 1.4
+        return landing
+
     def getRunway(self, rwy: str) -> Runway:
         """
-        Gets the runway instance for rwy.
+        Gets the Runway GeoJSON instance for a RWY procedure instance.
 
         :param      rwy:  The rwy
         :type       rwy:  { type_description }

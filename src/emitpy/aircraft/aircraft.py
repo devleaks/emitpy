@@ -16,7 +16,7 @@ sys.path.append('/Users/pierre/Developer/oscars/emitpy')
 from emitpy.business import Identity, Company
 from emitpy.constants import AIRCRAFT_TYPE_DATABASE
 from emitpy.parameters import DATA_DIR
-from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh
+from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, key_path
 
 
 logger = logging.getLogger("Aircraft")
@@ -70,7 +70,9 @@ class AircraftType(Identity):
 
     def __init__(self, orgId: str, classId: str, typeId: str, name: str, data = None):
         Identity.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name)
+        self.iata = None
         self.rawdata = data
+
 
     @staticmethod
     def loadAll():
@@ -112,14 +114,25 @@ class AircraftType(Identity):
         return AircraftType._DB[icao] if icao in AircraftType._DB else None
 
 
+    def getKey(self):
+        if self.iata is not None:
+            return key_path(self.typeId, self.iata)
+        return self.typeId
+
+
     def getInfo(self) -> dict:
         """
         Gets the information about an aircraft.
         """
         return {
             "actype-manufacturer": self.orgId,
+            "class": self.classId,
             "actype": self.typeId,
-            "acmodel": self.name
+            "acmodel": self.name,
+            "properties": {
+                "length": self.getProp("length"),
+                "wingspan": self.getProp("wingspan")
+            }
         }
 
     def getProp(self, name):
@@ -133,9 +146,15 @@ class AircraftType(Identity):
         """
         if self.rawdata:
             if name == "wingspan" and "Wingspan- ft" in self.rawdata:
-                return float(self.rawdata["Wingspan- ft"]) / FT
+                try:
+                    return float(self.rawdata["Wingspan- ft"]) / FT
+                except ValueError:
+                    return None
             if name == "length" and "Length- ft" in self.rawdata:
-                return float(self.rawdata["Length- ft"]) / FT
+                try:
+                    return float(self.rawdata["Length- ft"]) / FT
+                except ValueError:
+                    return None
             return self.rawdata[name] if name in self.rawdata else None
         logger.warning(f":getProp: AircraftType {self.typeId} no raw data")
         return None
@@ -149,6 +168,19 @@ class AircraftType(Identity):
         :rtype:     str
         """
         return self.classId
+
+
+    def save(self, base, redis):
+        """
+        Saves aircraft model information and characteristics to cache.
+
+        :param      base:   The base
+        :type       base:   { type_description }
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        """
+        redis.set(key_path(base, self.getKey()), json.dumps(self.getInfo()))
+
 
 
 class AircraftPerformance(AircraftType):
@@ -317,6 +349,23 @@ class AircraftPerformance(AircraftType):
         a = [(a.typeId, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
         return a
 
+
+    def getKey(self):
+        iata = self.getIata()
+        if iata is not None:
+            if len(iata) > 0:
+                return iata[0]
+        return super().getId()
+
+
+    def getInfo(self):
+        return {
+            "type": "aircraft-performances",
+            "base-type": super().getInfo(),
+            "performances": self.perfdata,
+            "profile-tar": self.tarprofile,
+            "profile-gse": self.gseprofile
+        }
 
     def getIata(self):
         """
@@ -763,3 +812,14 @@ class Aircraft:
             "callsign": self.callsign,
             "icao24": self.icao24
         }
+
+    def save(self, base, redis):
+        """
+        Saves aircraft data and model information to cache.
+
+        :param      base:   The base
+        :type       base:   { type_description }
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        """
+        redis.set(key_path(base, self.getId()), self.getInfo())
