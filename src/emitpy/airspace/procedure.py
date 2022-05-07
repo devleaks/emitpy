@@ -76,6 +76,7 @@ class ProcedureData:
         if len(self.params) == 0:
             logger.debug(":__init__: invalid line '%s'", line)
 
+
     def proc(self):
         return self.procedure
 
@@ -297,6 +298,16 @@ class CIFP:
         self.RWYS = {}
         self.loadFromFile()
 
+
+    def getKey(self):
+        return self.icao
+
+    def getInfo(self):
+        return {
+            "type": "CIFP",
+            "name": self.icao,
+            "procedures": {}
+        }
 
     def loadFromFile(self):
         """
