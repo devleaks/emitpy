@@ -35,7 +35,7 @@ class Reservation:
         self.eta(date_from, date_to)
 
     def getId(self):
-        return self.label if self.label is not None else "reservation has no id"
+        return self.label if self.label is not None else self.scheduled[0].isoformat()
 
     def getInfo(self):
         i = {
@@ -72,6 +72,9 @@ class Reservation:
 
     def actual(self, date_from: datetime, date_to: datetime):
         self._actual = (date_from, date_to)
+
+    def save(self, base: str, redis):
+        redis.set(key_path(base, self.getKey()), json.dumps(self.getInfo()))
 
 
 class Resource:
@@ -119,12 +122,17 @@ class Resource:
         return r
 
     def save(self, redis):
-        r = self.reservations()
-        if len(r) > 0:
-            if self.updated():
-                print(">>>", r)
-                redis.set(self.getKey(), json.dumps(r))
-                logger.debug(f":save: {self.getId()} saved {len(self.reservations())} reservations")
+        # r = self.reservations()
+        # if len(r) > 0:
+        #     if self.updated():
+        #         redis.set(self.getKey(), json.dumps(r))
+        #         logger.debug(f":save: {self.getId()} saved {len(self.reservations())} reservations")
+        # self._updated = False
+        if len(self.usage) > 0 and self.updated():
+            k=self.getKey()
+            for u in self.usage:
+                u.save(base=k, redis=redis)
+            logger.debug(f":save: {self.getId()} saved {len(self.reservations())} reservations")
         self._updated = False
 
     def allocations(self, actual: bool = False):
