@@ -21,12 +21,10 @@ from emitpy.parameters import AODB_DIR, REDIS_CONNECT, USE_REDIS
 
 from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 
-METAR_DIR = os.path.join(AODB_DIR, METAR_DATABASE)
-
 logger = logging.getLogger("Metar")
 
-
 METAR_DIR = os.path.join(AODB_DIR, METAR_DATABASE)
+
 
 def round_dt(dt, delta):  # rounds date to delta after date.
     return dt + (datetime.min - dt.replace(tzinfo=None)) % delta
@@ -188,7 +186,11 @@ class MetarFPDB(Metar):
         Metar.__init__(self, icao=icao)
         self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
         # For development
-        requests_cache.install_cache()
+        if USE_REDIS:
+            backend = requests_cache.RedisCache(host=REDIS_CONNECT["host"], port=REDIS_CONNECT["port"])
+            requests_cache.install_cache(backend=backend)
+        else:
+            requests_cache.install_cache()  # defaults to sqlite
         self.init()
 
 
