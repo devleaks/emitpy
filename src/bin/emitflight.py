@@ -12,10 +12,7 @@ from emitpy.utils import actual_time
 
 logging.basicConfig(level=logging.DEBUG)
 
-print(actual_time("2019-04-07T12:55:00+03:00", "arrival", 10))
-
 e = EmitApp(MANAGED_AIRPORT)
-
 
 ret = e.do_flight(queue="raw",
                   emit_rate=30,

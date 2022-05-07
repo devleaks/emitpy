@@ -1,7 +1,7 @@
 import logging
 
 from datetime import datetime, timedelta
-from emitpy.time import Resource
+from emitpy.resource import Resource
 
 logging.basicConfig(level=logging.DEBUG)
 

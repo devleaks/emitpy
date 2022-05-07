@@ -5,26 +5,29 @@ import random
 from datetime import datetime, tzinfo, timedelta
 import logging
 
+import sys
+sys.path.append('/Users/pierre/Developer/oscars/emitpy/src')
+
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT
 from emitpy.service import Service
 from emitpy.utils import Timezone
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("emitalot")
 
 e = EmitApp(MANAGED_AIRPORT)
 
 dohatime = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
 
-filename = os.path.join("..", "data", "managedairport", "OTHH", "flights", "2019_W15_ROTATION_RAW.csv")
+filename = os.path.join("..", "..", "data", "managedairport", "OTHH", "flights", "2019_W15_ROTATION_RAW.csv")
 file = open(filename, "r")
 csvdata = csv.DictReader(file)
 
 icao = {}
 cnt = 0
-cnt_begin = 0
-cnt_end = cnt_begin + 0
+cnt_begin = 50
+cnt_end = cnt_begin + 2
 
 for r in csvdata:
 
@@ -35,10 +38,25 @@ for r in csvdata:
     if r['REGISTRATION NO_x'] not in icao.keys():
         icao[r['REGISTRATION NO_x']] = f"{random.getrandbits(24):x}"
 
+    ret = None
+
     try:
         dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
-        ret = e.do_flight(r['AIRLINE CODE_x'], r['FLIGHT NO_x'], dt.isoformat(), r['AIRPORT_x'],'arrival', (r['AC TYPE_x'], r['AC SUB TYPE_x']),
-                          r['BAY_x'], icao[r['REGISTRATION NO_x']], r['REGISTRATION NO_x'], 'RW16L')
+        movetype = "arrival" if r['IS ARRIVAL_x'] == 'True' else "departure"
+
+        ret = e.do_flight(queue="raw",
+                          emit_rate=30,
+                          airline=r['AIRLINE CODE_x'],
+                          flightnumber=r['FLIGHT NO_x'],
+                          scheduled=dt.isoformat(),
+                          apt=r['AIRPORT_x'],
+                          movetype=movetype,
+                          acarr=(r['AC TYPE_x'], r['AC SUB TYPE_x']),
+                          ramp=r['BAY_x'],
+                          icao24=icao[r['REGISTRATION NO_x']],
+                          acreg=r['REGISTRATION NO_x'],
+                          runway="RW16L",
+                          do_services=True)
 
         if ret.status != 0:
             logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
@@ -80,3 +98,43 @@ for r in csvdata:
 
     if cnt > cnt_end:
         break
+
+
+##
+# {
+#     'AC SUB TYPE_x': '351',
+#     'AC TYPE_x': '351',
+#     'AIRLINE CODE_x': 'QR',
+#     'AIRPORT_x': 'MCT',
+#     'BAY_x': 'E9',
+#     'FLIGHT ACTUAL TIME_x': '2019-04-01 00:43:00',
+#     'FLIGHT ID_x': '1739338',
+#     'FLIGHT NO_x': '1137',
+#     'FLIGHT SCHEDULED TIME_x': '2019-04-01 00:05:00',
+#     'FLIGHT STATUS_x': 'Y',
+#     'FLIGHT TOTAL DELAY_x': '38.0',
+#     'IS ARRIVAL_x': 'True',
+#     'LINK FLIGHT ID_x': '',
+#     'PAIRED_x': '1739432',
+#     'REGISTRATION NO_x': 'A7ANB',
+#     'TOTAL PAX COUNT_x': '138.0',
+#     'TURN AROUND STATUS_x': 'I',
+#     'AC SUB TYPE_y': '351',
+#     'AC TYPE_y': '351',
+#     'AIRLINE CODE_y': 'QR',
+#     'AIRPORT_y': 'HND',
+#     'BAY_y': 'C1',
+#     'FLIGHT ACTUAL TIME_y': '2019-04-01 07:37:00',
+#     'FLIGHT ID_y': '1739432',
+#     'FLIGHT NO_y': '812',
+#     'FLIGHT SCHEDULED TIME_y': '2019-04-01 06:45:00',
+#     'FLIGHT STATUS_y': 'Y',
+#     'FLIGHT TOTAL DELAY_y': '52.0',
+#     'IS ARRIVAL_y': 'False',
+#     'LINK FLIGHT ID_y': '',
+#     'PAIRED_y': '1739338',
+#     'REGISTRATION NO_y': 'A7ANB',
+#     'TOTAL PAX COUNT_y': '',
+#     'TURN AROUND STATUS_y': 'C'
+# }
+##

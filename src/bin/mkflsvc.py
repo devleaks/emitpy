@@ -93,11 +93,11 @@ def main():
     operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
     # logger.debug("creating service..")
-    # service_arr = ServiceFlight(flight=arr, operator=operator)
+    # service_arr = FlightServices(flight=arr, operator=operator)
     # service_arr.setManagedAirport(managed)
     # service_arr.service()
 
-    # service_dep = ServiceFlight(flight=dep, operator=operator)
+    # service_dep = FlightServices(flight=dep, operator=operator)
     # service_dep.setManagedAirport(managed)
     # service_dep.service()
     #

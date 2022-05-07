@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from simple_websocket_server import WebSocketServer, WebSocket
 
-from ..parameters import REDIS_CONNECT
+from emitpy.parameters import REDIS_CONNECT
 
 
 logging.basicConfig(level=logging.INFO)

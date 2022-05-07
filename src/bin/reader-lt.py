@@ -7,7 +7,7 @@ import time
 
 from datetime import datetime
 
-from ..parameters import REDIS_CONNECT
+from emitpy.parameters import REDIS_CONNECT
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("LiveTrafficForwarder")
