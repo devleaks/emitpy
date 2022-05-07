@@ -43,7 +43,7 @@ SAVE_TO_FILE = False
 class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
-        ManagedAirport.__init__(self, airport, self)
+        ManagedAirport.__init__(self, airport, self, True)
         # Default queue(s)
         self.redis = redis.Redis(**REDIS_CONNECT)
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
@@ -77,6 +77,12 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             logger.warning(f"other airport not loaded: {ret}")
             return ret
+
+        prevdb = self.redis.client_info()["db"]
+        self._app.redis.select(1)
+        remote_apt.save("airports", self._app.redis)
+        self._app.redis.select(prevdb)
+        logger.debug(f"other airport saved")
 
         logger.debug("..collecting metar..")
         remote_metar = Metar.new(icao=remote_apt.icao)
@@ -166,7 +172,6 @@ class EmitApp(ManagedAirport):
         ret = emit.saveDB(redis=self.redis)
         if not ret[0]:
             return StatusInfo(110, f"problem during schedule", ret[1])
-        logger.info("SAVED " + ("*" * 84))
 
         logger.debug("..broadcasting positions..")
         formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
@@ -183,6 +188,7 @@ class EmitApp(ManagedAirport):
         self.airport.manager.saveAllocators(self.redis)
 
         if not do_services:
+            logger.info("SAVED " + ("*" * 84))
             logger.debug("..done.")
             return StatusInfo(0, "completed successfully", None)
 
@@ -259,11 +265,11 @@ class EmitApp(ManagedAirport):
         startpos = self.airport.selectServicePOI(vehicle_startpos, service)
         if startpos is None:
             return StatusInfo(203, f"EmitApp:do_service: start position {vehicle_startpos} for {service} not found", None)
-        this_vehicle.setPosition(startpos)
+        this_vehicle.setPosition(startpos)  # this is the start position for the vehicle
         nextpos = self.airport.selectServicePOI(vehicle_endpos, service)
         if nextpos is None:
             return StatusInfo(204, f"EmitApp:do_service: start position {vehicle_endpos} for {service} not found", None)
-        this_vehicle.setNextPosition(nextpos)
+        this_vehicle.setNextPosition(nextpos)  # this is the position the vehicle is going to after service
 
         logger.debug(".. moving ..")
         move = ServiceMove(this_service, self.airport)
