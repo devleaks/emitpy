@@ -91,7 +91,7 @@ class FeatureWithProps(Feature):
         self.setProp(FEATPROP.NAME.value, name)
 
     def getId(self):
-        return self.id
+        return self.id if hasattr(self, "id") else self.getProp("id")
 
     def setId(self, ident: str):
         self.id = ident
@@ -246,12 +246,13 @@ class Ramp(FeatureWithProps):
         FeatureWithProps.__init__(self, geometry=Point(position), properties={
             "name": name,
             "type": "ramp",
-            "sub-type": ramptype,
+            "sub-type": ramptype,  # should be limited to {gate|tie-down}, either gate or else.
             "use": use,
             "orientation": orientation,
             "available": None})
 
         self.service_pois = {}
+        self.ac_nose = None
 
     def getInfo(self):
         a = self.getName()[0]
@@ -278,33 +279,80 @@ class Ramp(FeatureWithProps):
             return self["properties"]["available"]
         return None
 
-    def getServicePOI(self, service):
-        return self.service_pois[service] if service in self.service_pois else None
+    def getServicePOI(self, service, aircraft):
+        if aircraft.iata in self.service_pois:
+            service_pois = self.service_pois[aircraft.iata]
+            return service_pois[service] if service in service_pois else None
+        return None
 
-    def makeServicePOIs(self, aircraft):
+    def getServicePOIs(self, service, aircraft):
+        """
+        Returns all service positions for supplied service name.
+        Example for service fuel, returns [fuel, fuel2, fuel3...] if they exist.
+        Number suffix starts with 2 up to 9.
+        Returns array of service POIs.
+
+        :param      service:   The service
+        :type       service:   { type_description }
+        :param      aircraft:  The aircraft
+        :type       aircraft:  { type_description }
+        """
+        if aircraft.iata in self.service_pois:
+            service_pois = self.service_pois[aircraft.iata]
+            if service in service_pois:
+                pos = [service_pois[service]]
+                c = 2
+                s = f"{service}{c}"
+                while s in service_pois and c < 10:
+                    pos.append(service_pois[s])
+                    c = c + 1
+                    s = f"{service}{c}"
+            return pos
+        return None
+
+    def makeServicePOIs(self, aircraft: "AircraftType"):
         def sign(x):
             return -1 if x < 0 else (0 if x == 0 else 1)
 
-        # Parking position (center) is about aircraft nose tip position.
-        self.setColor("#dddd00")
-        heading = self.getProp(FEATPROP.ORIENTATION.value)
-        antiheading = heading - 180
-        if antiheading < 0:
-            antiheading = antiheading + 360
+        if aircraft.iata in self.service_pois:
+            if len(self.service_pois[aircraft.iata]) > 0:
+                return (True, "Ramp::makeServicePOIs: created")
+            else:
+                return (False, f"Ramp::makeServicePOIs: no POI for {aircraft.iata}")
 
         aircraft_length = aircraft.get("length")
         if aircraft_length is None:
             aircraft_length = 50  # m
 
+        aircraft_width = aircraft.get("width")
+        if aircraft_width is None:
+            aircraft_width = 45  # m
+
+        service_pois = {}
+
+        # Parking position (center)n.
+        self.setColor("#dddd00")
+        heading = self.getProp(FEATPROP.ORIENTATION.value)
+        antiheading = heading - 180
+        if antiheading < 0:
+            antiheading = antiheading + 360
+        service_pois["center"] = self
+
+        # compute parking begin (nose tip of plane)
+        parking_nose = destination(self, aircraft_length / 2000, heading, {"units": "km"})
+        parking_nose = FeatureWithProps.new(parking_nose)
+        parking_nose.setColor("#dd0000")
+        service_pois["nose"] = parking_nose
+
         # compute parking end
         parking_end = destination(self, aircraft_length / 1000, antiheading, {"units": "km"})
         parking_end = FeatureWithProps.new(parking_end)
         parking_end.setColor("#dd0000")
-        self.service_pois["center"] = self
-        self.service_pois["end"] = parking_end
+        service_pois["end"] = parking_end
 
         # for each service
-        # 1=dist along axis, 2=dist away from axis, left or right, 3=heading of vehicle
+        # 1=dist along axis, 2=dist away from axis, left or right, 3=heading of vehicle,
+        # optional 4=height to match ac reference point.
         positions = aircraft.gseprofile["services"]
         for svc in positions:
             poiaxe = destination(self,   positions[svc][0]/1000, antiheading, {"units": "km"})
@@ -312,11 +360,18 @@ class Ramp(FeatureWithProps):
             pos = FeatureWithProps.new(poilat)
             pos.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.RAMP_SERVICE_POINT.value)
             pos.setProp(FEATPROP.SERVICE.value, svc)
-            pos.setColor(SERVICE_COLOR[svc.upper()].value)
+            # May be POI is not a service, but a rest position,
+            # or another position like fuel2, baggage6, etc.
+            values = tuple(item.value for item in SERVICE_COLOR)
+            c = SERVICE_COLOR[svc.upper()].value if svc.upper() in values else "#aaaaaa"
+            pos.setColor(c)
             pos.setProp("vehicle-heading", positions[svc][2])
-            self.service_pois[svc] = pos
+            if len(positions[svc]) > 3:
+                pos.setProp("vehicle-height", positions[svc][3])
+            service_pois[svc] = pos
 
-        # printFeatures(list(self.service_pois.values()), "ramp position")
+        self.service_pois[aircraft.iata] = service_pois
+        # printFeatures(list(self.service_pois[aircraft.iata].values()), f"ramp position for {aircraft.iata}")
         return (True, "Ramp::makeServicePOIs: created")
 
 
