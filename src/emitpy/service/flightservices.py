@@ -63,6 +63,7 @@ class FlightServices:
             return (False, f"FlightServices::run: no turnaround profile for {move}")
 
         svcs = self.flight.aircraft.actype.tarprofile[move]
+        am = self.airport.manager
 
         for svc in svcs:
             sname, sched = list(svc.items())[0]
@@ -73,10 +74,10 @@ class FlightServices:
             this_service.setRamp(self.flight.ramp)
             this_service.setAircraftType(self.flight.aircraft.actype)
             vehicle_model = sched[2] if len(sched) > 2 else None
-            this_vehicle = self.airport.manager.selectServiceVehicle(operator=self.operator,
-                                                                     service=this_service,
-                                                                     model=vehicle_model,
-                                                                     reqtime=self.flight.scheduled_dt)
+            this_vehicle = am.selectServiceVehicle(operator=self.operator,
+                                                   service=this_service,
+                                                   model=vehicle_model,
+                                                   reqtime=self.flight.scheduled_dt)
 
             if this_vehicle is None:
                 return (True, f"FlightServices::service: vehicle not found")
@@ -96,7 +97,6 @@ class FlightServices:
             self.services.append({
                 "type": sname,
                 "service": this_service,
-            #     "move": move,
                 "scheduled": sched[0],
                 "duration": sched[1]
             })

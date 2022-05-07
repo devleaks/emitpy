@@ -15,17 +15,20 @@ logger = logging.getLogger("Service")
 
 class GroundSupport:
 
-    def __init__(self, operator: "Company", scheduled: datetime = datetime.now()):
+    def __init__(self, operator: "Company", scheduled: int = 0, duration: int = 0):
         self.operator = operator
 
-        self.scheduled = None      # scheduled service date/time in minutes after/before(negative) on-block
+        self.pts_scheduled = scheduled  # scheduled service date/time in minutes after/before(negative) on-block
+        self.pts_duration  = duration   # scheduled service duration in minutes, will be refined and *computed*
+
+        self.scheduled = None  # scheduled service date/time
         self.estimated = None
         self.actual = None
 
-        self.pause_before = None  # currently unused
-        self.pause_after = None   # currently unused
-        self.setup_time = None    # currently unused
-        self.close_time = None    # currently unused
+        self.pause_before = 0  # currently unused
+        self.pause_after = 0   # currently unused
+        self.setup_time = 0    # currently unused
+        self.close_time = 0    # currently unused
 
         self.vehicle = None
         self.next_position = None
@@ -39,7 +42,8 @@ class GroundSupport:
         return {
             "ground-support": type(self).__name__,
             "operator": self.operator.getInfo(),
-            "schedule": self.schedule,
+            "schedule": self.pts_schedule,
+            "duration": self.pts_duration,
             "name": self.name
         }
 
@@ -71,7 +75,8 @@ class Service(GroundSupport):
         self.quantity = quantity
         self.ramp = None
         self.actype = None
-        self.turnaround = None
+        self.turnaround = None  # If this particular service is part of a larger coordinated set
+
 
     @staticmethod
     def getService(service: str):
@@ -101,7 +106,7 @@ class Service(GroundSupport):
         r = self.ramp.getName() if self.ramp is not None else "noramp"
         s = self.scheduled.isoformat() if self.scheduled is not None else "noschedule"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
-        return key_path(r, s, v)
+        return key_path(v, r, s)
 
 
     def getInfo(self):
@@ -119,14 +124,11 @@ class Service(GroundSupport):
     def getKey(self):
         return key_path(REDIS_DATABASE.SERVICES.value, self.getId())
 
+
     def __str__(self):
         s = type(self).__name__
         s = s + " at ramp " + self.ramp.getName()
         s = s + " by vehicle " + self.vehicle.getName()  # model, icao24
-
-
-    def setTurnaround(self, turnaround: "Turnaround"):
-        self.turnaround = turnaround
 
 
     def setAircraftType(self, actype: "AircraftType"):
@@ -137,7 +139,13 @@ class Service(GroundSupport):
         self.ramp = ramp
 
 
+    def setTurnaround(self, turnaround: "Turnaround"):
+        self.turnaround = turnaround
 
+# ########################@
+# Specific services
+#
+#
 class CleaningService(Service):
 
     def __init__(self, operator: "Company", quantity: float):

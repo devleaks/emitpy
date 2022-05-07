@@ -78,9 +78,9 @@ class ServiceMove(Movement):
             else:
                 logger.debug(f':move:created ramp service points {list(gseprofile["services"].keys())}')
 
-        ramp_stop = self.service.ramp.getServicePOI(service_type)
+        ramp_stop = self.service.ramp.getServicePOI(service_type, self.service.actype)
         if ramp_stop is None:
-            logger.warning(f":move: failed to find ramp stop for { service_type }, using ramp center")
+            logger.warning(f":move: failed to find ramp stop for { self.service.actype }, { service_type }, using ramp center")
             ramp_stop = self.service.ramp  # use center of ramp
 
         if ramp_stop is None:
@@ -119,6 +119,19 @@ class ServiceMove(Movement):
             ramp_npe[0].setSpeed(speeds["slow"])
             ramp_npe[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
             self.moves.append(ramp_npe[0])
+
+        # ###
+        # If there is a stop poi named "STANDBY" and if the service has pause_before > 0
+        # we first go to the standby position and wait pause_before minutes.
+        #
+        ramp_standby = self.service.ramp.getServicePOI("standby", self.service.actype)
+        if ramp_standby is not None and self.service.pause_before > 0:
+            ramp_standby_pos = MovePoint.new(ramp_standby)
+            ramp_standby_pos.setSpeed(0)
+            ramp_standby_pos.setProp(FEATPROP.MARK.value, "standby-before-service")
+            ramp_standby_pos.setPause(self.service.pause_before)
+            self.moves.append(ramp_standby_pos)
+            logger.debug(f":move: added pause {self.service.pause_after}m before service")
 
         ramp_stop.setSpeed(0)
         ramp_stop.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
@@ -167,6 +180,19 @@ class ServiceMove(Movement):
         self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
                                         msgsubtype=SERVICE_PHASE.SERVICE_END.value,
                                         move=self, feature=svc_end))
+
+        # ###
+        # If there is a stop poi named "REST" and if the service has pause_after > 0
+        # we first go to the rest position and wait pause_after minutes.
+        #
+        ramp_rest = self.service.ramp.getServicePOI("standby", self.service.actype)
+        if ramp_rest is not None and self.service.pause_after > 0:
+            ramp_rest_pos = MovePoint.new(ramp_rest)
+            ramp_rest_pos.setSpeed(0)
+            ramp_rest_pos.setProp(FEATPROP.MARK.value, "rest-after-service")
+            ramp_rest_pos.setPause(self.service.pause_after)
+            self.moves.append(ramp_standby_pos)
+            logger.debug(f":move: added pause {self.service.pause_after}m after service")
 
         # route ramp to end position
         if ramp_npe[0] is not None:
@@ -253,7 +279,7 @@ class ServiceMove(Movement):
             else:
                 logger.debug(f':move:created ramp service points {list(gseprofile["services"].keys())}')
 
-        ramp_stop = self.service.ramp.getServicePOI(service_type)
+        ramp_stop = self.service.ramp.getServicePOI(service_type, self.service.actype)
 
         if ramp_stop is None:
             logger.warning(f":move: failed to find ramp stop for { service_type }, using ramp center")
