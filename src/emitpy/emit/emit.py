@@ -412,7 +412,7 @@ class Emit:
         # transfert common data to each emit point for emission
         # (may be should think about a FeatureCollection-level property to avoid repetition.)
         if len(self.props) > 0:
-            p = flatdict.FlatDict(self.props)
+            p = flatdict.FlatDict(self.props).as_dict()
             for f in self._emit:
                 f.addProps(p)
             logger.debug(f":emit: added { len(p) } properties to { len(self._emit) } features")

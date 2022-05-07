@@ -15,9 +15,10 @@ class ManagedAirport:
     Wrapper class to load all managed airport parts.
     """
 
-    def __init__(self, airport, app):
+    def __init__(self, airport, app, cache: bool=False):
         self._this_airport = airport
         self._app = app  # context
+        self._cache = cache
         self.airport = None
 
     def init(self):
@@ -84,6 +85,12 @@ class ManagedAirport:
         logger.debug("..updating metar..")
         self.update_metar()
         logger.debug("..done")
+
+        if self._cache:
+            logger.debug("..caching..")
+            self.cache()
+            logger.debug("..done")
+
         return (True, "ManagedAirport::init done")
 
 
@@ -108,14 +115,27 @@ class ManagedAirport:
         :param      dbid:  The dbid
         :type       dbid:  int
         """
+        redis = self._app.redis
         # Airports
+        logger.debug(":cache: caching..")
+        redis.select(1)
+        # logger.debug(":cache: ..airports..")
+        # for a in Airport._DB.values():
+        #     a.save("airports", self._app.redis)
         # Airports + procedures
         # Aircraft Types
+        logger.debug(":cache: ..aircrafts..")
+        for a in AircraftType._DB.values():
+            a.save("aircraft-types", self._app.redis)
         # Aircraft types + performances
+        for a in AircraftPerformance._DB_PERF.values():
+            a.save("aircraft-performances", self._app.redis)
         # Airlines
         # Airlines + routes
         # Airspace (terminals, navaids, fixes, airways)
-        pass
+        #
+        redis.select(0)
+        logger.debug(":cache: ..done")
 
 
     def loadFromCache(self, dbid: int = 0):

@@ -101,7 +101,7 @@ class FILE_FORMAT(Enum):
 
 # "Categories" of data stored, used as domain separator
 class REDIS_DATABASE(Enum):
-    ALLOCATIONS = "allocations"
+    ALLOCATIONS = "airport"
     FLIGHTS = "flights"
     MESSAGES = "messages"
     METAR = "metar"

@@ -110,13 +110,15 @@ class Flight(Messages):
         }
 
 
-    def getId(self) -> str:
+    def getId(self, use_localtime: bool = False) -> str:
         """
         Standard ICAO name for flight, based on airline, flight number and scheduled takeoff zulu time (of first leg if multiple legs).
 
         :returns:   The identifier.
         :rtype:     str
         """
+        if use_localtime:
+            return self.operator.iata + self.number + "-S" + self.scheduled_dt.strftime("%Y%m%d%H%M")
         return self.operator.iata + self.number + "-S" + self.scheduled_dt.astimezone(tz=timezone.utc).strftime("%Y%m%d%H%M")
 
 
@@ -211,6 +213,9 @@ class Flight(Messages):
                     am = self.managedAirport.manager
                     reqtime = self.scheduled_dt + timedelta(minutes=20)  # time to taxi
                     reqend  = reqtime + timedelta(minutes=5)  # time to take-off + WTC spacing
+                    #
+                    # @TODO: If not available, should take next availability and "queue"
+                    #
                     if am.runway_allocator.isAvailable(name, reqtime, reqend):
                         res = am.runway_allocator.book(name, reqtime, reqend, self.getId())
                     logger.debug(f":_setRunway: flight {self.getName()}: runway {name}")

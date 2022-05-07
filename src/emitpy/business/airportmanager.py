@@ -47,6 +47,9 @@ class AirportManager:
         self.runways = {}
         self.runway_allocator = None
 
+        self.aircrafts = {}   # container for aircrafts encountered during simulation, key is registration.
+        self.flights = {}     # container for flights created during simalation, can be used to build flight board.
+
         self.airport_base_path = None
         self.data = None
 
@@ -280,7 +283,7 @@ class AirportManager:
 
         if vname is not None and vname in self.service_vehicles.keys():
             vehicle = self.service_vehicles[vname]
-            if use:
+            if use: # there is no check that the vehicle is available
                 res = self.vehicle_allocator.book(vname, reqtime, reqend, service.getId())
                 service.setVehicle(vehicle)
                 logger.debug(f":selectServiceVehicle: reusing {vehicle.registration}")
