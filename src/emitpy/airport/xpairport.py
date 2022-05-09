@@ -494,7 +494,7 @@ class XPAirport(AirportBase):
         :param      name:  The name
         :type       name:  { type_description }
         """
-        return self.check_pois[name] if name in self.check_pois.keys() else self.getPOI(name)
+        return self.check_pois[name] if name in self.check_pois.keys() else self.getPOIFromCombo(name)
 
     def getAerowayPOI(self, name):
         """
@@ -790,7 +790,7 @@ class XPAirport(AirportBase):
             return None
         return dn[0]
 
-    def getPOI(self, combo_name):
+    def getPOIFromCombo(self, combo_name):
         """
         Returns the combo_named point of interest.
         This function is meant to work with poisCombo().

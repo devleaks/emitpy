@@ -1,7 +1,7 @@
 import json
 
 from .emit import EmitPoint, Emit
-from emitpy.constants import FEATPROP, REDIS_DATABASE, REDIS_TYPE
+from emitpy.constants import FEATPROP, REDIS_DATABASES, REDIS_TYPE
 from emitpy.parameters import REDIS_CONNECT
 
 import logging
@@ -18,14 +18,25 @@ class ReEmit(Emit):
     def __init__(self, ident: str, redis):
         Emit.__init__(self, move=None)
         self.redis = redis
-        self.parseDBKey(ident)
-        # self.ident = ident
+        self.parseDBKey(ident, REDIS_TYPE.EMIT.value)
         self.loadDB()
         self.loadMove()
 
 
-    def getId(self):
-        return self.ident
+    def parseDBKey(self, emit_id: str, extension: str = None):
+        arr = emit_id.split(":")
+        revtypes = dict([(v, k) for k, v in REDIS_DATABASES.items()])
+        if arr[0] in revtypes.keys():
+            self.emit_type = revtypes[arr[0]]
+        else:
+            self.emit_type = "unknowndb"
+            logger.warning(f":parseDBKey: database {arr[0]} not found ({emit_id}).")
+
+        if extension is not None:
+            self.emit_id = ":".join(arr[1:-1])  # remove extension
+        else:
+            self.emit_id = ":".join(arr[1:])
+        logger.debug(f":parseDBKey: {arr}: emit_type={self.emit_type} : emit_id={self.emit_id}")
 
 
     def loadDB(self):

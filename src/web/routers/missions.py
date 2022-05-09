@@ -1,13 +1,18 @@
 import json
-from fastapi import APIRouter, Body, File
-from fastapi.middleware.cors import CORSMiddleware
+import traceback
+
+from fastapi import APIRouter, Request, Body
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 
 from datetime import datetime, date, time, timedelta
 from typing import Optional, Literal, List
 
 from pydantic import BaseModel, Field, validator
 
-from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES
+from ..models import CreateMission, ScheduleMission, DeleteMission
+from emitpy.constants import EMIT_RATES
+from emitpy.emitapp import StatusInfo
 
 router = APIRouter(
     prefix="/missions",
@@ -15,61 +20,73 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# ####################
-# MISSIONS
-#
-class CreateMission(BaseModel):
-    operator: str
-    mission: str
-    service_vehicle_type: str
-    service_vehicle_reg: str
-    icao24: str
-    previous_position: str
-    next_position: str
-    mission_date: date
-    mission_time: time
-    emit_rate: int
-    queue: str
-
-    @validator('emit_rate')
-    def validate_emit_rate(cls,emit_rate):
-        vv = [int(e[0]) for e in EMIT_RATES]
-        return LOV_Validator(value=emit_rate,
-                             valid_values=vv,
-                             invalid_message=f"Emit rate value must be in {vv} (seconds)")
-
-
-class ScheduleMission(BaseModel):
-    mission_id: str = Field(..., description="Mission identifier")
-    sync_name: str
-    mission_date: datetime = Field(..., description="New scheduled mission time")
-
 @router.post("/", tags=["missions"])
 async def create_mission(
-    mission_in: CreateMission = Body(..., embed=True)
+    request: Request, mission_in: CreateMission = Body(..., embed=True)
 ):
-    return {
-        "status": 0,
-        "message": "not implemented",
-        "data": mission_in
-    }
+    ret = StatusInfo(status=1, message="exception", data=None)
+    try:
+        input_d = mission_in.mission_date if mission_in.mission_date is not None else datetime.now()
+        input_t = mission_in.mission_time if mission_in.mission_time is not None else datetime.now()
+        dt = datetime(year=input_d.year,
+                      month=input_d.month,
+                      day=input_d.day,
+                      hour=input_t.hour,
+                      minute=input_t.minute)
+        ret = request.app.state.emitpy.do_mission(
+                queue=mission_in.queue,
+                emit_rate=int(mission_in.emit_rate),
+                operator=mission_in.operator,
+                checkpoints=[],
+                mission=mission_in.mission,
+                vehicle_model=mission_in.mission_vehicle_type,
+                vehicle_ident=mission_in.mission_vehicle_reg,
+                vehicle_icao24=mission_in.icao24,
+                vehicle_startpos=mission_in.previous_position,
+                vehicle_endpos=mission_in.next_position,
+                scheduled=dt.isoformat())
+    except Exception as ex:
+        ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
+
+    return JSONResponse(content=jsonable_encoder(ret))
+
 
 @router.put("/", tags=["missions"])
 async def schedule_mission(
-    mission_in: ScheduleMission = Body(..., embed=True)
+    request: Request, mission_in: ScheduleMission = Body(..., embed=True)
 ):
-    return {
-        "status": 0,
-        "message": "not implemented",
-        "data": mission_in
-    }
+    ret = StatusInfo(status=1, message="exception", data=None)
+    try:
+        print(">>>>>", mission_in)
+        input_d = mission_in.mission_date if mission_in.mission_date is not None else datetime.now()
+        input_t = mission_in.mission_time if mission_in.mission_time is not None else datetime.now()
+        dt = datetime(year=input_d.year,
+                      month=input_d.month,
+                      day=input_d.day,
+                      hour=input_t.hour,
+                      minute=input_t.minute)
+        ret = request.app.state.emitpy.do_schedule(
+                queue=mission_in.queue,
+                ident=mission_in.mission_id,
+                sync=mission_in.sync_name,
+                scheduled=dt.isoformat())
+    except Exception as ex:
+        ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
+
+    return JSONResponse(content=jsonable_encoder(ret))
+
 
 @router.delete("/", tags=["missions"])
 async def delete_mission(
-    mission_in: str
+    request: Request, mission_in: DeleteMission = Body(..., embed=True)
 ):
-    return {
-        "status": 0,
-        "message": "not implemented",
-        "data": mission_in
-    }
+    ret = StatusInfo(status=1, message="exception", data=None)
+    try:
+        ret = request.app.state.emitpy.do_delete(
+                queue=mission_in.queue,
+                ident=mission_in.mission_id)
+    except Exception as ex:
+        ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
+
+    return JSONResponse(content=jsonable_encoder(ret))
+

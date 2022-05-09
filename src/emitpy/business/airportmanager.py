@@ -284,6 +284,7 @@ class AirportManager:
         if vname is not None and vname in self.service_vehicles.keys():
             vehicle = self.service_vehicles[vname]
             if use: # there is no check that the vehicle is available
+                reqend = reqtime + timedelta(seconds=service.duration())
                 res = self.vehicle_allocator.book(vname, reqtime, reqend, service.getId())
                 service.setVehicle(vehicle)
                 logger.debug(f":selectServiceVehicle: reusing {vehicle.registration}")
@@ -345,9 +346,10 @@ class AirportManager:
                 if vcl not in self.vehicle_by_type:
                     self.vehicle_by_type[vcl] = []
                 self.vehicle_by_type[vcl].append(vehicle)
-                #
                 #  need to add it to alloc table and book it
-                #
+                self.vehicle_allocator.add(vehicle)
+                reqend = reqtime + timedelta(seconds=service.duration())
+                res = self.vehicle_allocator.book(vehicle.getId(), reqtime, reqend, service.getId())
                 logger.debug(f":selectServiceVehicle: ..added {vname}")
                 if use:
                     logger.debug(f":selectServiceVehicle: using {vname}")

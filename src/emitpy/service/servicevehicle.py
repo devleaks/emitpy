@@ -554,6 +554,16 @@ class MissionVehicle(ServiceVehicle):
         a.append(("security", "Security"))
         return a
 
+class MissionVehiclePolice(ServiceVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        self.icao = "ZZZY"
+        self.model = "Police"
+        self.model_name = "Police vehicle"
+        self.setup_time = 4
+        self.flow = 1
+
 class MissionVehicleSecurity(ServiceVehicle):
 
     def __init__(self, registration: str, operator: Company):

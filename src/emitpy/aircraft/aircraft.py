@@ -85,9 +85,9 @@ class AircraftType(Identity):
             Main Gear Config,ICAO Code,Wake Category,ATCT Weight Class,Years Manufactured,
             Note,Parking Area (WS x Length)- sf
         """
-        ac = files('data.aircraft_types').joinpath('aircraft-types.csv').read_text()
-        csvdata = csv.DictReader(ac.split("\n"))
-        for row in csvdata:
+        ac = files('data.aircraft_types').joinpath('aircraft-types.json').read_text()
+        data = json.loads(ac)
+        for row in data:
             if row["ICAO Code"] != "tbd":
                 AircraftType._DB[row["ICAO Code"]] = AircraftType(orgId=row["Manufacturer"],
                                                                   classId=row["Wake Category"],

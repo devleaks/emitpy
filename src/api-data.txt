@@ -1,0 +1,111 @@
+# Create flight
+{
+  "flight_in": {
+    "airline": "QR",
+    "flight_number": "195",
+    "flight_date": "2022-05-07",
+    "flight_time": "10:50",
+    "movement": "arrival",
+    "airport": "BRU",
+    "ramp": "C9",
+    "aircraft_type": "A35K",
+    "aircraft_reg": "A7PMA",
+    "call_sign": "QTR195",
+    "icao24": "efface",
+    "runway": "RW34L",
+    "emit_rate": 30,
+    "queue": "raw",
+    "create_services": false
+  }
+}
+
+# Flight schedule
+{
+  "flight_in": {
+    "flight_id": "flights:QR515-S201904011010:e",
+    "sync_name": "TOUCH_DOWN",
+    "flight_date": "2022-05-09",
+    "flight_time": "10:50",
+    "queue": "raw"
+  }
+}
+
+# Delete flight
+{
+  "flight_in": {
+    "flight_id": "flights:QR515-S201904011010",
+    "queue": "raw"
+  }
+}
+
+
+
+# Create mission
+{
+  "mission_in": {
+    "operator": "MATAR_SECURITY",
+    "mission": "GoAround",
+    "mission_vehicle_type": "Police",
+    "mission_vehicle_reg": "POL911",
+    "icao24": "effaca",
+    "previous_position": "ramp:C4",
+    "next_position": "ramp:A1",
+    "mission_date": "2022-05-09",
+    "mission_time": "14:00",
+    "emit_rate": 30,
+    "queue": "raw"
+  }
+}
+# Reschedule mission
+{
+  "mission_in": {
+    "mission_id": "missions:GoAround-22129-023518:e",
+    "sync_name": "end",
+    "mission_date": "2022-05-09",
+    "mission_time": "15:00",
+    "queue": "raw"
+  }
+}
+# Delete mission
+{
+  "mission_in": {
+    "mission_id": "missions:GoAround-22129-023518:e",
+    "queue": "raw"
+  }
+}
+
+# Create service
+{
+  "service_in": {
+    "ramp": "C4",
+    "aircraft_type": "A35K",
+    "handler": "MATAR",
+    "service": "fuel",
+    "quantity": 150,
+    "service_vehicle_model": "hydrant",
+    "service_vehicle_reg": "FUELH1",
+    "icao24": "dadada",
+    "service_pos": "depot",
+    "previous_position": "ramp:A7",
+    "next_position": "depot",
+    "service_date": "2022-05-09",
+    "service_time": "16:00",
+    "emit_rate": 30,
+    "queue": "raw"
+  }
+}
+# Reschedule service
+{
+  "fs_in": {
+    "flight_id": "services:FuelService:FUESV000:C4:noschedule:e",
+    "flight_date": "2022-05-09T13:46:28.916Z"
+  }
+}
+# Delete service
+{
+  "service_in": {
+    "service_id": "services:FuelService:FUESV000:C4:noschedule",
+    "queue": "raw"
+  }
+}
+

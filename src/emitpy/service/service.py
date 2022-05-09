@@ -75,8 +75,8 @@ class Service(GroundSupport):
         self.quantity = quantity
         self.ramp = None
         self.actype = None
-        self.turnaround = None  # If this particular service is part of a larger coordinated set
-
+        self.flight = None  # If this particular service is part of a larger coordinated set for a flight
+        self.turnaround = None  # If this particular service is part of a larger coordinated set for a pair of flights
 
     @staticmethod
     def getService(service: str):
@@ -89,7 +89,6 @@ class Service(GroundSupport):
         logger.warning(f":getService: service {cn} not found")
         return None
 
-
     @staticmethod
     def getCombo():
         a = []
@@ -97,17 +96,14 @@ class Service(GroundSupport):
             a.append((s.value, s.value[0].upper()+s.value[1:]))
         return a
 
-
     def getId(self):
         return type(self).__name__ + ":" + self.getShortId()
-
 
     def getShortId(self):
         r = self.ramp.getName() if self.ramp is not None else "noramp"
         s = self.scheduled.isoformat() if self.scheduled is not None else "noschedule"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
         return key_path(v, r, s)
-
 
     def getInfo(self):
         return {
@@ -120,27 +116,26 @@ class Service(GroundSupport):
             "registration": self.vehicle.registration
         }
 
-
     def getKey(self):
         return key_path(REDIS_DATABASE.SERVICES.value, self.getId())
-
 
     def __str__(self):
         s = type(self).__name__
         s = s + " at ramp " + self.ramp.getName()
         s = s + " by vehicle " + self.vehicle.getName()  # model, icao24
 
-
     def setAircraftType(self, actype: "AircraftType"):
         self.actype = actype
-
 
     def setRamp(self, ramp: "Ramp"):
         self.ramp = ramp
 
+    def setFlight(self, flight: "Flight"):
+        self.flight = flight
 
     def setTurnaround(self, turnaround: "Turnaround"):
         self.turnaround = turnaround
+
 
 # ########################@
 # Specific services

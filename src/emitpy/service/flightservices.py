@@ -72,6 +72,7 @@ class FlightServices:
             this_service = Service.getService(sname)(operator=self.operator, quantity=0)
 
             this_service.setRamp(self.flight.ramp)
+            this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             vehicle_model = sched[2] if len(sched) > 2 else None
             this_vehicle = am.selectServiceVehicle(operator=self.operator,
