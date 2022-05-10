@@ -254,7 +254,8 @@ class AirportManager:
 
 
 
-    def selectServiceVehicle(self, operator: "Company", service: "Service", reqtime: "datetime", model: str=None, registration: str = None, use: bool=True):
+    def selectServiceVehicle(self, operator: "Company", service: "Service", reqtime: "datetime", reqend: "datetime" = None,
+                             model: str=None, registration: str = None, use: bool=True):
         """
         Selects a service vehicle for ground support.
         The airport manager keeps a list of all vehicle and their use.
@@ -284,7 +285,8 @@ class AirportManager:
         if vname is not None and vname in self.service_vehicles.keys():
             vehicle = self.service_vehicles[vname]
             if use: # there is no check that the vehicle is available
-                reqend = reqtime + timedelta(seconds=service.duration())
+                if reqend is None:
+                    reqend = reqtime + timedelta(seconds=service.duration())
                 res = self.vehicle_allocator.book(vname, reqtime, reqend, service.getId())
                 service.setVehicle(vehicle)
                 logger.debug(f":selectServiceVehicle: reusing {vehicle.registration}")
@@ -317,15 +319,16 @@ class AirportManager:
             res = None
             while vehicle is None and idx < len(self.vehicle_by_type[vcl]):
                 v = self.vehicle_by_type[vcl][idx]
-                reqend = reqtime + timedelta(seconds=service.duration())
+                if reqend is None:
+                    reqend = reqtime + timedelta(seconds=service.duration())
                 if self.vehicle_allocator.isAvailable(v.getId(), reqtime, reqend):
+                    service.setVehicle(v) # need to set vehicle to get service.getId() that includes vehicle
                     res = self.vehicle_allocator.book(v.getId(), reqtime, reqend, service.getId())
                     vehicle = v
                 idx = idx + 1
 
             if vehicle is not None:
                 logger.debug(f":selectServiceVehicle: found {vcl}, reusing {vehicle.registration}")
-                service.setVehicle(vehicle)
             return vehicle
         else:
             logger.debug(f":selectServiceVehicle: no {vcl} available")
@@ -348,7 +351,8 @@ class AirportManager:
                 self.vehicle_by_type[vcl].append(vehicle)
                 #  need to add it to alloc table and book it
                 self.vehicle_allocator.add(vehicle)
-                reqend = reqtime + timedelta(seconds=service.duration())
+                if reqend is None:
+                    reqend = reqtime + timedelta(seconds=service.duration())
                 res = self.vehicle_allocator.book(vehicle.getId(), reqtime, reqend, service.getId())
                 logger.debug(f":selectServiceVehicle: ..added {vname}")
                 if use:

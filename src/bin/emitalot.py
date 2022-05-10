@@ -2,6 +2,8 @@ import csv
 import os
 import json
 import random
+import traceback
+
 from datetime import datetime, tzinfo, timedelta
 import logging
 
@@ -21,13 +23,17 @@ e = EmitApp(MANAGED_AIRPORT)
 dohatime = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
 
 filename = os.path.join("..", "..", "data", "managedairport", "OTHH", "flights", "2019_W15_ROTATION_RAW.csv")
+
+with open(filename, 'r') as fp:
+    numlines = len(fp.readlines())
+
 file = open(filename, "r")
 csvdata = csv.DictReader(file)
 
 icao = {}
 cnt = 0
-cnt_begin = 50
-cnt_end = cnt_begin + 2
+cnt_begin = random.randint(0, numlines) # random pair of flights
+cnt_end = cnt_begin + 0
 
 for r in csvdata:
 
@@ -59,15 +65,16 @@ for r in csvdata:
                           do_services=True)
 
         if ret.status != 0:
-            logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
+            logger.warning(f"ERROR(arrival) around line {cnt}: {ret.status}" + ">=" * 30)
             logger.warning(ret)
             logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_x']}', '{r['FLIGHT NO_x']}',"
                 + f" '{dt.isoformat()}', '{r['AIRPORT_x']}',"
                 + f" 'arrival', ('{r['AC TYPE_x']}', '{r['AC SUB TYPE_x']}'), '{r['BAY_x']}',"
                 + f" '{icao[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L'))")
     except:
-        logger.error(f"EXCEPTION around line {cnt}: {ret.status}" + ">=" * 30)
+        logger.error(f"EXCEPTION(arrival) around line {cnt}: {ret.status}" + ">=" * 30)
         logger.error(ret)
+        logger.error(traceback.format_exc())
         logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_x']}', '{r['FLIGHT NO_x']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT_x']}',"
             + f" 'arrival', ('{r['AC TYPE_x']}', '{r['AC SUB TYPE_x']}'), '{r['BAY_x']}',"
@@ -76,19 +83,33 @@ for r in csvdata:
 
     try:
         dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
-        ret = e.do_flight(r['AIRLINE CODE_y'], r['FLIGHT NO_y'], dt.isoformat(), r['AIRPORT_y'],'arrival', (r['AC TYPE_y'], r['AC SUB TYPE_y']),
-                          r['BAY_y'], icao[r['REGISTRATION NO_y']], r['REGISTRATION NO_y'], 'RW16L')
+        movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
+
+        ret = e.do_flight(queue="raw",
+                          emit_rate=30,
+                          airline=r['AIRLINE CODE_y'],
+                          flightnumber=r['FLIGHT NO_y'],
+                          scheduled=dt.isoformat(),
+                          apt=r['AIRPORT_y'],
+                          movetype="departure",
+                          acarr=(r['AC TYPE_y'], r['AC SUB TYPE_y']),
+                          ramp=r['BAY_y'],
+                          icao24=icao[r['REGISTRATION NO_y']],
+                          acreg=r['REGISTRATION NO_y'],
+                          runway="RW16L",
+                          do_services=True)
 
         if ret.status != 0:
-            logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
+            logger.warning(f"ERROR(departure) around line {cnt}: {ret.status}" + ">=" * 30)
             logger.warning(ret)
             logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
                 + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
                 + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
                 + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
     except:
-        logger.error(f"EXCEPTION around line around line {cnt}: {ret.status}" + ">=" * 30)
+        logger.error(f"EXCEPTION(departure) around line {cnt}: {ret.status}" + ">=" * 30)
         logger.error(ret)
+        logger.error(traceback.format_exc())
         logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
             + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"

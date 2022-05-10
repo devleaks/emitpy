@@ -98,6 +98,9 @@ class ServiceVehicle(Identity):
     def getId(self):
         return self.name  # registration
 
+    def getKey(self):
+        return self.name  # registration
+
     def getInfo(self):
         return {
             "icao": self.icao,

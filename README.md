@@ -16,3 +16,8 @@ I used their tools and free software numerous time during the development of min
 
 
 Gépès Cidesimal & Ahouiyassa.
+
+Future releases:
+Herald of Free Enterprise
+Titanic
+Costa Concordia

@@ -252,13 +252,16 @@ class EmitApp(ManagedAirport):
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
         logger.debug("creating service..")
-        this_service = Service.getService(service)(operator=operator, quantity=quantity)
         rampval = self.airport.getRamp(ramp)
         if rampval is None:
             return StatusInfo(201, f"EmitApp:do_service: ramp {ramp} not found", None)
-        this_service.setRamp(rampval)
+        scheduled_dt = datetime.fromisoformat(scheduled)
+        this_service = Service.getService(service)(scheduled=scheduled_dt,
+                                                   ramp=rampval,
+                                                   operator=operator,
+                                                   quantity=quantity)
         this_service.setAircraftType(acperf)
-        this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, reqtime=datetime.fromisoformat(scheduled), model=vehicle_model, registration=vehicle_ident, use=True)
+        this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, reqtime=scheduled_dt, model=vehicle_model, registration=vehicle_ident, use=True)
         if this_vehicle is None:
             return StatusInfo(202, f"EmitApp:do_service: vehicle not found", None)
         this_vehicle.setICAO24(vehicle_icao24)

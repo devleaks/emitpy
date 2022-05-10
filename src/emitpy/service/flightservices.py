@@ -67,18 +67,24 @@ class FlightServices:
 
         for svc in svcs:
             sname, sched = list(svc.items())[0]
-
             logger.debug(f"creating service {sname}..")
-            this_service = Service.getService(sname)(operator=self.operator, quantity=0)
 
-            this_service.setRamp(self.flight.ramp)
+            service_scheduled_dt = self.flight.scheduled_dt + timedelta(minutes=sched[0])
+            service_scheduled_end_dt = self.flight.scheduled_dt + timedelta(minutes=(sched[0]+sched[1]))
+            this_service = Service.getService(sname)(scheduled=service_scheduled_dt,
+                                                       ramp=self.flight.ramp,
+                                                       operator=self.operator)
+            this_service.setPTS(scheduled=sched[0], duration=sched[1])
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             vehicle_model = sched[2] if len(sched) > 2 else None
+            # should book vehicle a few minutes before and after...
             this_vehicle = am.selectServiceVehicle(operator=self.operator,
                                                    service=this_service,
                                                    model=vehicle_model,
-                                                   reqtime=self.flight.scheduled_dt)
+                                                   reqtime=service_scheduled_dt,
+                                                   reqend=service_scheduled_end_dt,
+                                                   use=True)
 
             if this_vehicle is None:
                 return (True, f"FlightServices::service: vehicle not found")
