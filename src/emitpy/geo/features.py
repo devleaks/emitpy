@@ -324,7 +324,7 @@ class Ramp(FeatureWithProps):
         if aircraft_length is None:
             aircraft_length = 50  # m
 
-        aircraft_width = aircraft.get("width")
+        aircraft_width = aircraft.get("wingspan")
         if aircraft_width is None:
             aircraft_width = 45  # m
 

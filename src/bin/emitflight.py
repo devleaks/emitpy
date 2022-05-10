@@ -10,7 +10,7 @@ from emitpy.aircraft import AircraftPerformance
 from emitpy.parameters import MANAGED_AIRPORT
 from emitpy.utils import actual_time
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 e = EmitApp(MANAGED_AIRPORT)
 

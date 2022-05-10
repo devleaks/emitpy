@@ -445,7 +445,8 @@ class Emit:
             if x is not None:  # first element has value set
                 status = doInterpolation(to_interp, name)
             else:
-                logger.warning(f":interpolate: {self.getId()}: first value has no property {name}, do not interpolate")
+                if self.emit_type not in ["service", "mission"] or name == "speed":
+                    logger.warning(f":interpolate: {self.getId()}: first value has no property {name}, do not interpolate")
                 continue
             if not status[0]:
                 logger.warning(status[1])
@@ -460,11 +461,12 @@ class Emit:
                     if a is not None:
                         f["geometry"]["coordinates"].append(float(a))
                     else:
-                        logger.warning(f":interpolate: no altitude? {f['properties']['emit-index']}. Grounded?")
+                        logger.warning(f":interpolate: no altitude? {f['properties']['emit-index']}.")
             logger.debug(f":interpolate: {self.getId()}: .. done.")
         else:
             # may be we should then set altitude to the airport
-            logger.warning(f":interpolate: {self.getId()}: first value has no altitude, do not interpolate altitude")
+            if self.emit_type not in ["service", "mission"]:
+                logger.warning(f":interpolate: {self.getId()}: first value has no altitude, do not interpolate")
 
         logger.debug(f":interpolate: {self.getId()}: computing headings..")
         res = compute_headings(self._emit)

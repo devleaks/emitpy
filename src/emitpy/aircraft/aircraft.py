@@ -22,6 +22,9 @@ from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, key_path
 logger = logging.getLogger("Aircraft")
 
 
+_STD_CLASS = "C"
+
+
 class ACPERF:
     """
     List of aircraft performances. (Enum-like.)
@@ -72,6 +75,7 @@ class AircraftType(Identity):
         Identity.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name)
         self.iata = None
         self.rawdata = data
+        self._ac_class = None
 
 
     @staticmethod
@@ -159,15 +163,49 @@ class AircraftType(Identity):
         logger.warning(f":getProp: AircraftType {self.typeId} no raw data")
         return None
 
-    def getClass(self) -> str:
+
+    def setClass(self, ac_class: str = None):
         """
-        Returns an aircraft type class for alternative or similar characteristic lookup.
+        Set an aircraft type class for alternative or similar characteristic lookup.
         Current implementation returns letter A-F depending on aircraft size and weight.
 
         :returns:   The class.
         :rtype:     str
         """
-        return self.classId
+        ws = self.getProp("wingspan")
+        ln = self.getProp("length")
+        if ac_class is None and ws is not None:
+            try_class = "A"
+            if ws > 78:
+                try_class = "F"
+            elif ws > 65:
+                try_class = "E"
+            elif ws > 50:
+                try_class = "D"
+            elif ws > 40:
+                try_class = "C"
+            elif ws > 32:
+                try_class = "B"
+            logger.warning(f":setClass: guessed class {try_class} for {self.typeId} (wingspan={ws})")
+            ac_class = try_class
+
+        if ac_class is not None and ac_class in "ABCDEF":
+            self._ac_class = ac_class
+        logger.warning(f":setClass: invalid class {ac_class}")
+
+
+    def getClass(self) -> str:
+        """
+        Returns an aircraft type class for alternative or similar characteristic lookup.
+        If valid_only, returns letter A-F depending on aircraft size and weight otherwise None.
+
+        :returns:   The class.
+        :rtype:     str
+        """
+        if self._ac_class is not None:
+            return self._ac_class
+        logger.warning(f":getClass: no class for {self.typeId}")
+        return _STD_CLASS
 
 
     def save(self, base, redis):
@@ -246,6 +284,7 @@ class AircraftPerformance(AircraftType):
                 acperf.perfraw = jsondata[ac]
                 if acperf.check_availability():  # sets but also returns availability
                     acperf.toSI()
+                    acperf.setClass()
                 AircraftPerformance._DB_PERF[ac] = acperf
             else:
                 logger.warning(f":loadAll: AircraftType {ac} not found")
@@ -397,6 +436,7 @@ class AircraftPerformance(AircraftType):
 
         return (True, f"AircraftPerformance loaded ({self.typeId})")
 
+
     def loadFromFile(self, extension: str):
         """
         Loads the file self.filename and store its content in self.data.
@@ -416,17 +456,17 @@ class AircraftPerformance(AircraftType):
             logger.debug(f":loadFromFile: loaded {filename} for aircraft type {self.typeId.upper()}")
         else:  # fall back on aircraft performance category (A-F)
             logger.warning(f":loadFromFile: file not found {filename}")
-            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.classId.upper()+extension)
+            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.getClass()+extension)
             if os.path.exists(filename):
                 with open(filename, "r") as file:
                     if filename[-5:] == ".yaml":
                         data = yaml.safe_load(file)
                     else:  # JSON or GeoJSON
                         data = json.load(file)
-                logger.debug(f":loadFromFile: loaded class {filename} data for aircraft class {self.classId.upper()}")
+                logger.debug(f":loadFromFile: loaded class {filename} data for aircraft class {self.getClass()}")
             else:
                 logger.warning(f":loadFromFile: file not found {filename}")
-                filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, "STD" + extension)
+                filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, _STD_CLASS + extension)
                 if os.path.exists(filename):
                     with open(filename, "r") as file:
                         if filename[-5:] == ".yaml":
@@ -509,6 +549,38 @@ class AircraftPerformance(AircraftType):
         self.available = True
         # logger.warning(f":check_availability: {self.typeId} is ok")
         return True
+
+
+    def setClass(self, ac_class: str = None):
+        """
+        Set an aircraft type class for alternative or similar characteristic lookup.
+        Current implementation returns letter A-F depending on aircraft size and weight.
+
+        :returns:   The class.
+        :rtype:     str
+        """
+        ws = self.get("wingspan")
+        ln = self.get("length")
+        if self._ac_class is None and ac_class is None and ws is not None:
+            try_class = "A"  # ICAO Aerodrome Reference Code Code Element 2, mainly used for taxiway design
+            if ws > 65:
+                try_class = "F"
+            elif ws > 52:
+                try_class = "E"
+            elif ws > 36:
+                try_class = "D"
+            elif ws > 24:
+                try_class = "C"
+            elif ws > 15:
+                try_class = "B"
+            logger.debug(f":setClass: guessed class {try_class} for {self.typeId}")
+            # logger.debug(f":setClass: {self.typeId}: wingspan={ws}, length={ln}")
+            ac_class = try_class
+
+        if ac_class is not None and ac_class in "ABCDEF":
+            self._ac_class = ac_class
+        else:
+            logger.warning(f":setClass: invalid class {ac_class}")
 
 
     def toSI(self):
@@ -766,6 +838,55 @@ class AircraftPerformance(AircraftType):
     # Landing helper functions
     #
 
+
+class AircraftClass(AircraftPerformance):
+    """
+    An aircraft class is one particular aircraft type from A-F taxiway aicraft class type.
+    It is an aircraft of typical class dimension, hence typical range, and capacity.
+    It is used as a fallback in case of missing data for a given aircraft type.
+    The ultimate fallback is non-existant class Z which is a typical everage size class C aircraft.
+    All performance data MUST be present for an AicraftClass otherwise a error is reported.
+    """
+    _DB_AC_CLASS = {}
+
+
+    def __init__(self, orgId: str, classId: str, typeId: str, name: str, data):
+        AircraftPerformance.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name, data=data)
+
+
+    @staticmethod
+    def loadAll():
+        """
+        Loads the file self.filename and store its content in self.data.
+        Based on the file extention, a proper loader is selected (text, json, yaml, or csv).
+
+        :param      extension:  The extension
+        :type       extension:  str
+        """
+        data = None
+        for ac_class in "ABCDEF":
+            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, ac_class+".json")
+            if os.path.exists(filename):
+                with open(filename, "r") as file:
+                    data = json.load(file)
+                    ac = data["icao"]
+                    actype = AircraftType.find(ac)
+                    if actype is not None:
+                        acperf = AircraftClass(actype.orgId, actype.classId, actype.typeId, actype.name, data)
+                        acperf.display_name = acperf.orgId + " " + acperf.name + " CLASS " + ac_class
+                        acperf.perfraw = data
+                        if acperf.check_availability():  # sets but also returns availability
+                            acperf.toSI()
+                        AircraftClass._DB_AC_CLASS[ac_class] = acperf
+                    else:
+                        logger.warning(f":loadFromFile: AircraftClass {ac_class} not found")
+
+        logger.debug(f":loadAll: loaded {len(AircraftClass._DB_AC_CLASS)} aircraft classes with their performances")
+
+
+    @staticmethod
+    def getClass(ac_class: str = _STD_CLASS):
+        return AircraftClass._DB_AC_CLASS[ac_class] if ac_class in "ABCDEF" else AircraftClass._DB_AC_CLASS[_STD_CLASS]
 
 
 class Aircraft:
