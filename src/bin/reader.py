@@ -1,5 +1,9 @@
+import sys
+sys.path.append('/Users/pierre/Developer/oscars/emitpy/src')
+
 import redis
 import logging
+import json
 
 from emitpy.parameters import REDIS_CONNECT
 
@@ -7,12 +11,19 @@ from emitpy.parameters import REDIS_CONNECT
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("Reader")
 
+format_json = True
 
 class Reader:
 
     def __init__(self, name: str):
         self.name = name
-        self.redis = redis.Redis(**REDIS_CONNECT)
+        try:
+            self.redis = redis.Redis(**REDIS_CONNECT)
+            self.redis.ping()
+        except:
+            logger.error(":init: no redis")
+            return
+
         self.pubsub = self.redis.pubsub()
         self.pubsub.subscribe(self.name)
 
@@ -27,7 +38,12 @@ class Reader:
 
     def forward(self, msg):
         # shoud do some check to not forward redis internal messages
-        logger.debug(f":forward: {msg}")
+        try:
+            obj = json.loads(msg)
+            logger.debug(f":forward: {json.dumps(obj, indent=2)}")
+        except ValueError as e:
+            logger.debug(f":forward: {msg}")
+
 
 r = Reader("raw")
 r.run()

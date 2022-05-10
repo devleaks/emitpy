@@ -44,10 +44,18 @@ class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
         ManagedAirport.__init__(self, airport, self, True)
+        self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
+        self.redis = redis.Redis(connection_pool=self.redis_pool)
         # Default queue(s)
-        self.redis = redis.Redis(**REDIS_CONNECT)
+        try:
+            pong = self.redis.ping()
+        except redis.RedisError:
+            logger.error(":init: no redis")
+            return
+
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
         if len(self.queues) == 0:
+            logger.debug(":init: no queue found, create default queues..")
             for k, v in DEFAULT_QUEUES.items():
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                 self.queues[k].saveDB()

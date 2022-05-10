@@ -12,6 +12,7 @@ from web.routers import flights, services, missions, queues, airport
 import emitpy
 from emitpy.parameters import MANAGED_AIRPORT
 from emitpy.emitapp import EmitApp
+from emitpy.emit import Hypercaster
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("app")
@@ -131,6 +132,7 @@ async def root():
         '/docs',
         status_code=status.HTTP_302_FOUND)
 
+
 @app.on_event("startup")
 async def startup():
     logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» starting..")
@@ -139,3 +141,11 @@ async def startup():
     # git log -1 --format=%cd --relative-date
     # + redis_connect info
     app.state.emitpy = EmitApp(MANAGED_AIRPORT)
+    app.state.hypercaster = Hypercaster()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» ..stopping..")
+    app.state.hypercaster.terminate_all_queues()
+    logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» ..stopped")

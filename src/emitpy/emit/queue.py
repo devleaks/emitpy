@@ -33,7 +33,8 @@ class Queue:
                 qn = q.decode("UTF-8").replace(Queue.DATABASE, "")
                 queues[qn] = Queue.loadFromDB(redis, qn)
             logger.debug(f":loadAllQueuesFromDB: loaded {queues.keys()}")
-        logger.debug(f":loadAllQueuesFromDB: no queues")
+        else:
+            logger.debug(f":loadAllQueuesFromDB: no queues")
         return queues
 
 
@@ -46,7 +47,7 @@ class Queue:
         qstr = redis.get(ident)
         if qstr is not None:
             q = json.loads(qstr.decode("UTF-8"))
-            logger.debug(f":create: created {name}")
+            logger.debug(f":loadFromDB: loaded {name}")
             return Queue(name=name, formatter_name=q["formatter_name"], starttime=q["starttime"], speed=q["speed"], redis=redis)
         return None
 

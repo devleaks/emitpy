@@ -4,10 +4,12 @@ import signal
 import time
 import redis
 import logging
+import json
 
 from emitpy.constants import REDIS_DATABASE
-from emitpy.parameters import REDIS_CONNECT
+from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTHBEAT
 from .queue import Queue
+
 
 logger = logging.getLogger("Broadcaster")
 
@@ -19,15 +21,17 @@ def df(ts):
 def td(ts):
     return f"{timedelta(seconds=round(ts))} ({round(ts, 1)})"
 
-ZPOPMIN_TIMEOUT = 10  # secs
 
+# Delicate parameters, too dangerous to externalize
+ZPOPMIN_TIMEOUT = 10  # secs
+PING_FREQUENCY  = 6   # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
 
 # ##############################@@
 # B R O A D C A S T E R
 #
 class Broadcaster:
 
-    def __init__(self, name: str, speed: float = 1, starttime: datetime = None):
+    def __init__(self, redis, name: str, speed: float = 1, starttime: datetime = None):
         self.name = name
         self.speed = speed
         if starttime is None:
@@ -38,8 +42,13 @@ class Broadcaster:
             self._starttime = starttime
         # logger.debug(f":__init__: {self.name}: start_time: {self._starttime}, speed: {self.speed}")
         self.timeshift = None
-        self.redis = redis.Redis(**REDIS_CONNECT)
+
+        self.ping = PING_FREQUENCY
+        self.heartbeat = BROADCASTER_HEARTHBEAT
+
+        self.redis = redis
         self.pubsub = self.redis.pubsub()
+
         self.setTimeshift()
 
     def setTimeshift(self):
@@ -54,6 +63,20 @@ class Broadcaster:
             return datetime.now()  # should never happen...
         return self._starttime
 
+    def getInfo(self):
+        realnow = datetime.now()
+        elapsed = realnow - (self.starttime() + self.timeshift)
+        return {
+            "now": realnow.isoformat(),
+            "queue": self.name,
+            "heartbeat": self.heartbeat,
+            "starttime": self.starttime().isoformat(),
+            "speed": self.speed,
+            "timeshift": str(self.timeshift),
+            "elapsed": str(elapsed),
+            "queue-time": self.now(format_output=True)
+        }
+
     def reset(self, speed: float = 1, starttime: datetime = None):
         self.speed = speed
         if starttime is not None:
@@ -63,24 +86,29 @@ class Broadcaster:
                 self._starttime = starttime
             self.setTimeshift()
 
-    def now(self, format_output: bool = False):
+    def now(self, format_output: bool = False, verbose: bool = False):
         realnow = datetime.now()
         if self.speed == 1 and self.timeshift.total_seconds() == 0:
             newnow = realnow
-            logger.debug(f":now: {self.name}: no time speed, no time shift: new now: {df(newnow.timestamp())}")
-            return newnow.timestamp()
+            if verbose:
+                logger.debug(f":now: {self.name}: no time speed, no time shift: new now: {df(newnow.timestamp())}")
+            return newnow.timestamp() if not format_output else newnow.isoformat(timespec='seconds')
 
-        logger.debug(f":now: {self.name}: asked at {df(realnow.timestamp())})")
+        if verbose:
+            logger.debug(f":now: {self.name}: asked at {df(realnow.timestamp())})")
         elapsed = realnow - (self.starttime() + self.timeshift)  # time elapsed since setTimeshift().
-        logger.debug(f":now: {self.name}: real elapsed since start of queue: {elapsed})")
+        if verbose:
+            logger.debug(f":now: {self.name}: real elapsed since start of queue: {elapsed})")
         if self.speed == 1:
             newnow = self.starttime() + elapsed
-            logger.debug(f":now: {self.name}: no time speed: new now: {df(newnow.timestamp())}")
+            if verbose:
+                logger.debug(f":now: {self.name}: no time speed: new now: {df(newnow.timestamp())}")
         else:
             newdeltasec = elapsed.total_seconds() * self.speed
             newdelta = timedelta(seconds=newdeltasec)
             newnow = self.starttime() + newdelta
-            logger.debug(f":now: {self.name}: time speed {self.speed}: new elapsed: {newdelta}, new now={df(newnow.timestamp())}")
+            if verbose:
+                logger.debug(f":now: {self.name}: time speed {self.speed}: new elapsed: {newdelta}, new now={df(newnow.timestamp())}")
         return newnow.timestamp() if not format_output else datetime.fromtimestamp(newnow).isoformat(timespec='seconds')
 
     def _do_trim(self):
@@ -132,12 +160,23 @@ class Broadcaster:
         logger.debug(f":run: {self.name}: ..done")
 
         nv = None
+        ping = 0
         try:
             while not self.shutdown_flag.is_set():
-                logger.debug(f":run: {self.name}: listening..")
-                dummy = self.now()
+                if self.heartbeat:
+                    logger.debug(f":run: {self.name}: listening..")
+                dummy = self.now(format_output=True)
                 nv = self.redis.bzpopmin(self.name, timeout=ZPOPMIN_TIMEOUT)
                 if nv is None:
+                    if self.ping > 0 and ping < 0:
+                        logger.debug(f":run: {self.name}: pinging..")
+                        self.redis.publish(self.name, json.dumps({
+                            "ping": datetime.now().isoformat(),
+                            "broadcaster": self.getInfo()
+                        }))
+                        ping = self.ping
+                    elif self.ping > 0:
+                        ping = ping - 1
                     # logger.debug(f":run: {self.name}: bzpopmin timed out..")
                     continue
                 numval = self.redis.zcard(self.name)
@@ -186,12 +225,13 @@ class Broadcaster:
 # ##############################@@
 # H Y P E R C A S T E R
 #
-class HyperCaster:
+class Hypercaster:
     """
     Starts a Broadcaster for each queue
     """
     def __init__(self):
-        self.redis = redis.Redis(**REDIS_CONNECT)
+        self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
+        self.redis = redis.Redis(connection_pool=self.redis_pool)
         self.queues = {}
         self.pubsub = self.redis.pubsub()
         self.admin_queue_thread = None
@@ -199,21 +239,42 @@ class HyperCaster:
         self.init()
 
     def init(self):
-        self.queues = Queue.loadAllQueuesFromDB()
+        self.queues = Queue.loadAllQueuesFromDB(self.redis)
         for k in self.queues.values():
             self.start_queue(k)
-        logger.debug(f":get_queues: {self.queues.keys()}")
+        logger.debug(f"Hypercaster:init: {self.queues.keys()}")
         self.admin_queue_thread = threading.Thread(target=self.admin_queue)
-        self.admin_queue_thread.start()
+
+    def start_queue(self, queue):
+        b = Broadcaster(redis.Redis(connection_pool=self.redis_pool), queue.name, queue.speed, queue.starttime)
+        self.queues[queue.name].broadcaster = b
+        self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
+        self.queues[queue.name].thread.start()
+        logger.debug(f"Hypercaster:start_queue: {queue.name} started")
+
+    def terminate_queue(self, queue):
+        if hasattr(self.queues[queue], "broadcaster"):
+            if hasattr(self.queues[queue].broadcaster, "shutdown_flag"):
+                self.queues[queue].broadcaster.shutdown_flag.set()
+                logger.debug(f"Hypercaster:terminate_queue: {queue} notified")
+            else:
+                logger.warning(f"Hypercaster:terminate_queue: {queue} has no shutdown_flag")
+        else:
+            logger.warning(f"Hypercaster:terminate_queue: {queue} has no broadcaster")
+
+    def terminate_all_queues(self):
+        self.redis.publish(REDIS_DATABASE.QUEUES.value, "quit")
+        for k in self.queues.keys():
+            self.terminate_queue(k)
 
     def admin_queue(self):
         self.pubsub.subscribe(REDIS_DATABASE.QUEUES.value)
-        logger.debug(":admin_queue: listening..")
+        logger.debug("Hypercaster:admin_queue: listening..")
         for message in self.pubsub.listen():
             msg = message["data"]
             if type(msg) == bytes:
                 msg = msg.decode('UTF-8')
-            logger.debug(f":admin_queue: received {msg}")
+            logger.debug(f"Hypercaster:admin_queue: received {msg}")
             if type(msg).__name__ == "str" and msg.startswith("new-queue:"):
                 arr = msg.split(":")
                 qn  = arr[1]
@@ -228,8 +289,8 @@ class HyperCaster:
                     self.queues[qn] = Queue.loadFromDB(redis=self.redis, name=qn)
                     self.queues[qn].broadcaster = oldbr
                     oldbr.reset(redis=self.redis, speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
-                    logger.debug(f":admin_queue: queue {qn} speed {self.queues[qn].speed} (was {oldsp})")
-                    logger.debug(f":admin_queue: queue {qn} starttime {self.queues[qn].starttime} (was {oldst})")
+                    logger.debug(f"Hypercaster:admin_queue: queue {qn} speed {self.queues[qn].speed} (was {oldsp})")
+                    logger.debug(f"Hypercaster:admin_queue: queue {qn} starttime {self.queues[qn].starttime} (was {oldst})")
 
             elif type(msg).__name__ == "str" and msg.startswith("del-queue:"):
                 arr = msg.split(":")
@@ -238,36 +299,14 @@ class HyperCaster:
                     if not hasattr(self.queues[qn], "deleted"):  # queue already exists, parameter changed, stop it first
                         self.terminate_queue(qn)
                         self.queues[qn].deleted = True
-                        logger.debug(f":admin_queue: queue {qn} terminated")
+                        logger.debug(f"Hypercaster:admin_queue: queue {qn} terminated")
                     else:
-                        logger.debug(f":admin_queue: queue {qn} already deleted")
+                        logger.debug(f"Hypercaster:admin_queue: queue {qn} already deleted")
             elif msg == "quit":
-                logger.debug(":admin_queue: quitting..")
+                logger.debug("Hypercaster:admin_queue: quitting..")
                 return
             else:
-                logger.debug(f":admin_queue: ignoring '{msg}'")
-
-    def start_queue(self, queue):
-        b = Broadcaster(queue.name, queue.speed, queue.starttime)
-        self.queues[queue.name].broadcaster = b
-        self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
-        self.queues[queue.name].thread.start()
-        logger.debug(f":start_queue: {queue.name} started")
-
-    def terminate_queue(self, queue):
-        if hasattr(self.queues[queue], "broadcaster"):
-            if hasattr(self.queues[queue].broadcaster, "shutdown_flag"):
-                self.queues[queue].broadcaster.shutdown_flag.set()
-                logger.debug(f":terminate_queue: {queue} notified")
-            else:
-                logger.warning(f":terminate_queue: {queue} has no shutdown_flag")
-        else:
-            logger.warning(f":terminate_queue: {queue} has no broadcaster")
-
-    def terminate_all_queues(self):
-        self.redis.publish(REDIS_DATABASE.QUEUES.value, "quit")
-        for k in self.queues.keys():
-            self.terminate_queue(k)
+                logger.debug(f"Hypercaster:admin_queue: ignoring '{msg}'")
 
     def run(self):
         # rdv = threading.Event()
@@ -275,15 +314,16 @@ class HyperCaster:
         # self.terminate_all_queues()
 
         try:
-            logger.debug(f":run: running..")
+            logger.debug(f"Hypercaster:run: running..")
+            self.admin_queue_thread.start()
         except KeyboardInterrupt:
-            logger.debug(f":run: terminate all queues..")
+            logger.debug(f"Hypercaster:run: terminate all queues..")
             self.terminate_all_queues()
             logger.debug(f":run: ..done")
         finally:
-            logger.debug(f":run: waiting all threads..")
+            logger.debug(f"Hypercaster:run: waiting all threads..")
             self.admin_queue_thread.join()
-            logger.debug(f":run: ..bye")
+            logger.debug(f"Hypercaster:run: ..bye")
 
 
 

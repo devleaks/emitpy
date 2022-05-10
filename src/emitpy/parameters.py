@@ -60,6 +60,8 @@ DEFAULT_QUEUES = {
     "raw": "raw"
 }
 
+BROADCASTER_HEARTHBEAT = True
+
 # Sources of some data
 METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"  # on window, don't you have to change / to \?
 METAR_HISTORICAL = "https://www.ogimet.com"

@@ -8,6 +8,6 @@ from .adsbformatter import ADSBFormatter
 from .livetrafficformatter import LiveTrafficFormatter
 from .viewerformatter import ViewerFormatter
 #
-from .broadcaster import Broadcaster, HyperCaster
+from .broadcaster import Broadcaster, Hypercaster
 #
 from .redis import RedisUtils
