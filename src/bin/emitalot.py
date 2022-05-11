@@ -31,9 +31,13 @@ file = open(filename, "r")
 csvdata = csv.DictReader(file)
 
 icao = {}
+
+NUM_TURNAROUNDS = 2
+DO_SERVICE = True
+
 cnt = 0
 cnt_begin = random.randint(0, numlines) # random pair of flights
-cnt_end = cnt_begin + 0
+cnt_end = cnt_begin + NUM_TURNAROUNDS
 
 for r in csvdata:
 
@@ -62,7 +66,7 @@ for r in csvdata:
                           icao24=icao[r['REGISTRATION NO_x']],
                           acreg=r['REGISTRATION NO_x'],
                           runway="RW16L",
-                          do_services=True)
+                          do_services=DO_SERVICE)
 
         if ret.status != 0:
             logger.warning(f"ERROR(arrival) around line {cnt}: {ret.status}" + ">=" * 30)
@@ -97,7 +101,7 @@ for r in csvdata:
                           icao24=icao[r['REGISTRATION NO_y']],
                           acreg=r['REGISTRATION NO_y'],
                           runway="RW16L",
-                          do_services=True)
+                          do_services=DO_SERVICE)
 
         if ret.status != 0:
             logger.warning(f"ERROR(departure) around line {cnt}: {ret.status}" + ">=" * 30)
