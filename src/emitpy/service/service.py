@@ -132,6 +132,14 @@ class Service(GroundSupport):
             a.append((s.value, s.value[0].upper()+s.value[1:]))
         return a
 
+    @staticmethod
+    def getHandlers():
+        return [
+            ("QAS", "Qatar Airport Services"),
+            ("BRU", "Bru Partners"),
+            ("SWI", "Swissport")
+        ]
+
     def getId(self):
         """
         A service is identified by its type, at a given ramp, at a give time.

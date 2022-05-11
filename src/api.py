@@ -44,12 +44,12 @@ and precise its start date time, its speed of emission, and the data format of t
 - Create a new flight
 - Re-schedule a flight
 - Suppress a flight
-- Create its service operations
+- Create its handling services during flight creation
 
 ## Ground Services
 
 - Create a single service
-- Create all services for a given flight (single movement)
+- Create all services for a given flight (single movement) —— Not implemented yet
 - Reschedule an existing service
 - Suppress a service
 
@@ -73,7 +73,8 @@ and precise its start date time, its speed of emission, and the data format of t
 - List all services, service vehicles
 - List all missions
 - Show allocations for runways, ramps, and service vehicles
-- Numerous helper functions to ease use interface building and selection
+- Helper functions to ease use interface building and selection by returning
+lists of pairs (internal_name, display_name) for combo boxes and form validation.
 
 
 """
@@ -104,7 +105,7 @@ tags_metadata = [
 app = FastAPI(
     title="Emitpy REST API",
     description=description,
-    version=emitpy.__version__,
+    version=emitpy.__version__ + " «" + emitpy.__version_name__ + "»",
     license_info={
         "name": emitpy.__LICENSE__,
         "url": emitpy.__LICENSEURL__
@@ -121,6 +122,7 @@ app.add_middleware(CORSMiddleware,
 app.include_router(flights.router)
 app.include_router(services.router)
 app.include_router(missions.router)
+app.include_router(queues.router2)
 app.include_router(queues.router)
 app.include_router(airport.router)
 

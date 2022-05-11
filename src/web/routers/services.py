@@ -25,7 +25,7 @@ router = APIRouter(
 
 @router.post("/", tags=["services"])
 async def create_service(
-    request: Request, service_in: CreateService = Body(..., embed=True)
+    request: Request, service_in: CreateService
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
@@ -59,7 +59,7 @@ async def create_service(
 
 @router.put("/", tags=["services"])
 async def schedule_service(
-    request: Request, service_in: ScheduleService = Body(..., embed=True)
+    request: Request, service_in: ScheduleService
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
@@ -83,7 +83,7 @@ async def schedule_service(
 
 @router.delete("/", tags=["services"])
 async def delete_service(
-    request: Request, service_in: DeleteService = Body(..., embed=True)
+    request: Request, service_in: DeleteService
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
@@ -106,7 +106,7 @@ class CreateFlightServices(BaseModel):
 # will be /services/flight/...
 @router.post("/flight", tags=["flights", "services"])
 async def create_fight_services(
-    request: Request, fs_in: CreateFlightServices = Body(..., embed=True)
+    request: Request, fs_in: CreateFlightServices
 ):
     # ret = StatusInfo(status=1, message="exception", data=None)
     # try:
@@ -130,6 +130,6 @@ async def create_fight_services(
 
 @router.put("/flight", tags=["flights", "services"])
 async def schedule_fight_services(
-    request: Request, fs_in: ScheduleFlightServices = Body(..., embed=True)
+    request: Request, fs_in: ScheduleFlightServices
 ):
     return JSONResponse(content=jsonable_encoder(NotAvailable()))

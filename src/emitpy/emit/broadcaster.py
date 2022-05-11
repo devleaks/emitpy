@@ -109,7 +109,7 @@ class Broadcaster:
             newnow = self.starttime() + newdelta
             if verbose:
                 logger.debug(f":now: {self.name}: time speed {self.speed}: new elapsed: {newdelta}, new now={df(newnow.timestamp())}")
-        return newnow.timestamp() if not format_output else datetime.fromtimestamp(newnow).isoformat(timespec='seconds')
+        return newnow.timestamp() if not format_output else newnow.isoformat(timespec='seconds')
 
     def _do_trim(self):
         now = self.now()
@@ -242,20 +242,26 @@ class Hypercaster:
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
         for k in self.queues.values():
             self.start_queue(k)
-        logger.debug(f"Hypercaster:init: {self.queues.keys()}")
         self.admin_queue_thread = threading.Thread(target=self.admin_queue)
+        self.admin_queue_thread.start()
+        logger.debug(f"Hypercaster:init: {self.queues.keys()}")
 
     def start_queue(self, queue):
-        b = Broadcaster(redis.Redis(connection_pool=self.redis_pool), queue.name, queue.speed, queue.starttime)
-        self.queues[queue.name].broadcaster = b
-        self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
-        self.queues[queue.name].thread.start()
-        logger.debug(f"Hypercaster:start_queue: {queue.name} started")
+        if self.queues[queue.name].status == "RUN":
+            b = Broadcaster(redis.Redis(connection_pool=self.redis_pool), queue.name, queue.speed, queue.starttime)
+            self.queues[queue.name].broadcaster = b
+            self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
+            self.queues[queue.name].thread.start()
+            logger.debug(f"Hypercaster:start_queue: {queue.name} started")
+        else:
+            logger.warning(f"Hypercaster:start_queue: {queue.name} is stopped")
 
     def terminate_queue(self, queue):
         if hasattr(self.queues[queue], "broadcaster"):
             if hasattr(self.queues[queue].broadcaster, "shutdown_flag"):
                 self.queues[queue].broadcaster.shutdown_flag.set()
+                # now that we have notified the broadcaster, we don't need it anymore
+                self.queues[queue].broadcaster = None
                 logger.debug(f"Hypercaster:terminate_queue: {queue} notified")
             else:
                 logger.warning(f"Hypercaster:terminate_queue: {queue} has no shutdown_flag")
@@ -278,19 +284,33 @@ class Hypercaster:
             if type(msg).__name__ == "str" and msg.startswith("new-queue:"):
                 arr = msg.split(":")
                 qn  = arr[1]
-                if qn not in self.queues.keys():  # queue already exists, parameter changed, stop it first
-                    self.queues[qn] = Queue.loadFromDB(qn)
+                if qn not in self.queues.keys():
+                    self.queues[qn] = Queue.loadFromDB(name=qn, redis=self.redis)
                     self.start_queue(self.queues[qn])
-                else:
-                    logger.debug(f":admin_queue: queue {qn} already running, reseting")
+                else:   # queue already exists, parameter changed, stop it first
+                    logger.debug(f":admin_queue: queue {qn} already running, reseting..")
                     oldsp = self.queues[qn].speed
                     oldst = self.queues[qn].starttime
-                    oldbr = self.queues[qn].broadcaster
+                    # there is no broadcaster if queue was not started
+                    oldbr = self.queues[qn].broadcaster if hasattr(self.queues[qn], "broadcaster") else None
                     self.queues[qn] = Queue.loadFromDB(redis=self.redis, name=qn)
-                    self.queues[qn].broadcaster = oldbr
-                    oldbr.reset(redis=self.redis, speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
-                    logger.debug(f"Hypercaster:admin_queue: queue {qn} speed {self.queues[qn].speed} (was {oldsp})")
-                    logger.debug(f"Hypercaster:admin_queue: queue {qn} starttime {self.queues[qn].starttime} (was {oldst})")
+                    if oldbr is not None and self.queues[qn].status == "STOP":
+                        # queue was working beofre and is now stopped: replaces broadcaster and terminates it
+                        self.queues[qn].broadcaster = oldbr
+                        self.terminate_queue(qn)
+                        logger.debug(f"Hypercaster:admin_queue: ..queue {qn} stopped")
+                    elif oldbr is None and self.queues[qn].status == "RUN":
+                        # queue was not working before and is now started
+                        self.start_queue(self.queues[qn])
+                        logger.debug(f"Hypercaster:admin_queue: ..queue {qn} started")
+                    elif oldbr is None and self.queues[qn].status == "STOP":
+                        # queue was not working before and is now started
+                        logger.debug(f"Hypercaster:admin_queue: ..queue {qn} added but stopped")
+                    else:
+                        # queue was working before, will continue to work bbut some parameters are reset
+                        oldbr.reset(speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
+                        logger.debug(f"Hypercaster:admin_queue: .. queue {qn} speed {self.queues[qn].speed} (was {oldsp}) " +
+                                     f"starttime {self.queues[qn].starttime} (was {oldst}) reset")
 
             elif type(msg).__name__ == "str" and msg.startswith("del-queue:"):
                 arr = msg.split(":")
@@ -309,13 +329,9 @@ class Hypercaster:
                 logger.debug(f"Hypercaster:admin_queue: ignoring '{msg}'")
 
     def run(self):
-        # rdv = threading.Event()
-        # rdv.wait(timeout=180)
-        # self.terminate_all_queues()
-
         try:
-            logger.debug(f"Hypercaster:run: running..")
             self.admin_queue_thread.start()
+            logger.debug(f"Hypercaster:run: running..")
         except KeyboardInterrupt:
             logger.debug(f"Hypercaster:run: terminate all queues..")
             self.terminate_all_queues()

@@ -50,8 +50,8 @@ class EmitApp(ManagedAirport):
         try:
             pong = self.redis.ping()
         except redis.RedisError:
-            logger.error(":init: no redis")
-            return
+            logger.error(":init: cannot connect to redis")
+            return (False, "EmitApp::init: cannot connect to redis")
 
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
         if len(self.queues) == 0:
@@ -62,6 +62,10 @@ class EmitApp(ManagedAirport):
         self.init()
         logger.debug(":init: initialized. listening..")
 
+    def getRedis(self, from_pool: bool = False):
+        if from_pool:
+            return redis.Redis(connection_pool=self.redis_pool)
+        return self.redis
 
     def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
         logger.debug("Airline, airport..")
@@ -501,25 +505,25 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "deleted successfully", None)
 
 
-    def do_create_queue(self, name, formatting, starttime, speed):
+    def do_create_queue(self, name, formatter, starttime, speed, start: bool):
         """
         Creates or "register" a Queue for (direct) use
         """
-        q = Queue(name=name, formatter_name=formatting, starttime=starttime, speed=speed, redis=self.redis)
+        q = Queue(name=name, formatter_name=formatter, starttime=starttime, speed=speed, start=start, redis=self.redis)
 
-        ret = q.save()
+        ret = q.saveDB()
         if not ret[0]:
             return StatusInfo(600, f"problem during creation of queue {name} ", ret)
         self.queues[name] = q
         return StatusInfo(0, "queue created successfully", None)
 
 
-    def do_reset_queue(self, name, starttime, speed):
+    def do_reset_queue(self, name, starttime, speed, start):
         """
         Reset a queue'start time
         """
         q = self.queues[name]
-        ret = q.reset(speed=speed, starttime=starttime)
+        ret = q.reset(speed=speed, starttime=starttime, start=start)
         if not ret[0]:
             return StatusInfo(700, f"problem during restart of queue {name} ", ret)
         return StatusInfo(0, "queue started successfully", None)

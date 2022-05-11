@@ -13,6 +13,13 @@ from pydantic import BaseModel, Field, validator
 
 from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES
 
+# from emitpy.constants import EMIT_RATES
+# from emitpy.utils import Timezone
+from emitpy.aircraft import AircraftPerformance as Aircraft
+from emitpy.airport import Airport
+from emitpy.business import Airline
+from emitpy.service import Service, ServiceVehicle, Mission, MissionVehicle
+
 
 router = APIRouter(
     prefix="/airport",
@@ -25,9 +32,82 @@ templates = Jinja2Templates(directory="web/templates")
 
 
 # ###############################@
+# Special lists for UI
+#
+@router.get("/airlines")
+async def list_airlines():
+    return JSONResponse(content=Airline.getCombo())
+
+
+@router.get("/airports")
+async def list_airports():
+    return JSONResponse(content=Airport.getCombo())
+
+
+@router.get("/ramps")
+async def list_ramps(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.airport.getRampCombo())
+
+
+@router.get("/runways")
+async def list_runways(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.airport.getRunwayCombo())
+
+
+@router.get("/pois")
+async def list_runways(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.airport.getPOICombo())
+
+
+@router.get("/aircraft-types")
+async def list_aircraft_types():
+    return JSONResponse(content=Aircraft.getCombo())
+
+
+@router.get("/service-types")
+async def list_services():
+    return JSONResponse(content=Service.getCombo())
+
+
+@router.get("/service-vehicle-models/{service}")
+async def list_service_vehicle_models(service: str):
+    return JSONResponse(content=ServiceVehicle.getModels(service))
+
+
+@router.get("/service-handlers")
+async def list_service_handlers():
+    return JSONResponse(content=Service.getHandlers())
+
+
+# @router.get("/service-depots")
+# async def list_services():
+#     return JSONResponse(content=Service.getCombo())
+
+
+# @router.get("/service-rest-areas")
+# async def list_services():
+#     return JSONResponse(content=Service.getCombo())
+
+
+@router.get("/mission-types")
+async def list_services():
+    return JSONResponse(content=Mission.getCombo())
+
+
+@router.get("/mission-vehicle-models/")
+async def list_service_vehicle_models():
+    return JSONResponse(content=MissionVehicle.getCombo())
+
+
+@router.get("/mission-handlers")
+async def list_mission_handlers():
+    return JSONResponse(content=Mission.getHandlers())
+
+
+# ###############################@
 # Display allocations
 #
-@router.get("/runways")
+@router.get("/allocation/runways-data")
 async def list_runways():
     return JSONResponse(content=list(runways.values()))
 
@@ -36,7 +116,7 @@ async def allocation_ramps(request: Request):
     return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "runways"})
 
 
-@router.get("/ramps")
+@router.get("/allocation/ramps-data")
 async def list_ramps():
     filename = os.path.join("..", "data", "managedairport", "OTHH", "flights", "2019_W15_ROTATION_RAW.csv")
     file = open(filename, "r")
@@ -70,7 +150,7 @@ async def allocation_ramps(request: Request):
     return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "ramps"})
 
 
-@router.get("/vehicles")
+@router.get("/allocation/vehicles-data")
 async def list_ramps():
     return JSONResponse(content=list(vehicles.values()))
 
@@ -79,37 +159,15 @@ async def allocation_ramps(request: Request):
     return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "vehicles"})
 
 
-
-
-# ###############################@
-# Special lists for UI
-#
-
-
-
 # ###############################@
 # Other general lists
 #
-@router.get("/runways")
-
 @router.get("/flights")
 async def list_flights():
     return {
         "status": 0,
         "message": "not implemented",
         "data": {}
-    }
-
-@router.get("/services")
-async def list_services(limit: int = 0):
-    return {
-        "status": 0,
-        "message": "not implemented",
-        "data": {
-            "flight_id": flight_id,
-            "service_type": service_type,
-            "limit": limit
-        }
     }
 
 @router.get("/services/flight/{flight_id}")
@@ -149,13 +207,3 @@ async def list_missions():
         "message": "not implemented",
         "data": {}
     }
-
-@router.get("/queues")
-async def list_queues():
-    return {
-        "status": 0,
-        "message": "not implemented",
-        "data": {}
-    }
-
-

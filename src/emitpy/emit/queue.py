@@ -12,12 +12,12 @@ class Queue:
 
     DATABASE = REDIS_DATABASE.QUEUES.value + ID_SEP
 
-    def __init__(self, name: str, formatter_name: str, starttime: str = None, speed: float = 1, redis = None):
+    def __init__(self, name: str, formatter_name: str, starttime: str = None, speed: float = 1, start: bool=True, redis = None):
         self.name = name
         self.formatter_name = formatter_name
         self.speed = speed
         self.starttime = starttime
-        self.status = "RUN"  # {RUN|STOP}
+        self.status = "RUN" if start else "STOP"
         self.redis = redis
 
 
@@ -48,7 +48,10 @@ class Queue:
         if qstr is not None:
             q = json.loads(qstr.decode("UTF-8"))
             logger.debug(f":loadFromDB: loaded {name}")
-            return Queue(name=name, formatter_name=q["formatter_name"], starttime=q["starttime"], speed=q["speed"], redis=redis)
+            start = True
+            if "status" in q and q["status"] == "STOP":
+                start = False
+            return Queue(name=name, formatter_name=q["formatter_name"], starttime=q["starttime"], speed=q["speed"], start=start, redis=redis)
         return None
 
 
@@ -57,8 +60,9 @@ class Queue:
         ident = make_key(REDIS_DATABASE.QUEUES.value, name)
         redis.srem(REDIS_DATABASE.QUEUES.value, ident)
         redis.delete(ident)
-        redis.publish(REDIS_DATABASE.QUEUES.value, "del-queue:"+name)
         logger.debug(f":delete: deleted {name}")
+        redis.publish(REDIS_DATABASE.QUEUES.value, "del-queue:"+name)
+        logger.debug(f"Hypercaster notified for deletion of {ident}")
         return (True, "Queue::delete: deleted")
 
 
@@ -68,10 +72,11 @@ class Queue:
         return [(k.decode("utf-8").replace(Queue.DATABASE, ""), k.decode("utf-8").replace(Queue.DATABASE, "")) for k in sorted(keys)]
 
 
-    def reset(self, speed: float = 1, starttime: str = None):
+    def reset(self, speed: float = 1, starttime: str = None, start: bool = True):
         self.speed = speed
         self.starttime = starttime
-        return self.save()
+        self.status = "RUN" if start else "STOP"
+        return self.saveDB()
 
     def saveDB(self):
         """
@@ -83,11 +88,12 @@ class Queue:
             "name": self.name,
             "formatter_name": self.formatter_name,
             "speed": self.speed,
-            "starttime": self.starttime
+            "starttime": self.starttime,
+            "status": self.status
             }))
-        logger.debug(f"Queue {ident} saved")
+        logger.debug(f":saveDB: {ident} saved")
 
         self.redis.publish(REDIS_DATABASE.QUEUES.value, "new-queue:"+self.name)
-        logger.debug(f"Hypercaster notified for {ident}")
+        logger.debug(f"Hypercaster notified for creation of {ident}")
 
         return (True, "Queue::save: saved")

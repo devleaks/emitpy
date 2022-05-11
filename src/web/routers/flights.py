@@ -27,7 +27,7 @@ async def all_flights():
 
 @router.post("/", tags=["flights"])
 async def create_flight(
-    request: Request, flight_in: CreateFlight = Body(..., embed=True)
+    request: Request, flight_in: CreateFlight
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
@@ -60,7 +60,7 @@ async def create_flight(
 
 @router.put("/", tags=["flights"])
 async def schedule_flight(
-    request: Request, flight_in: ScheduleFlight = Body(..., embed=True)
+    request: Request, flight_in: ScheduleFlight
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
@@ -84,7 +84,7 @@ async def schedule_flight(
 
 @router.delete("/", tags=["flights"])
 async def delete_flight(
-    request: Request, flight_in: DeleteFlight = Body(..., embed=True)
+    request: Request, flight_in: DeleteFlight
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:

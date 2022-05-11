@@ -108,4 +108,22 @@
     "queue": "raw"
   }
 }
+# Create queue
+{
+  "name": "test",
+  "formatter": "lt",
+  "queue_date": "2022-05-11",
+  "queue_time": "10:50",
+  "speed": 1,
+  "start": true
+}
+# Schedule queue
+{
+  "name": "test",
+  "queue_date": "2022-05-11",
+  "queue_time": "11:50",
+  "speed": 1,
+  "start": false
+}
+# Delete queue
 

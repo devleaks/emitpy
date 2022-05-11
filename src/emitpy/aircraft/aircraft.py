@@ -10,8 +10,11 @@ import operator
 from math import inf
 
 from importlib_resources import files
+
+from emitpy.parameters import HOME_DIR
+
 import sys
-sys.path.append('/Users/pierre/Developer/oscars/emitpy')
+sys.path.append(HOME_DIR)
 
 from emitpy.business import Identity, Company
 from emitpy.constants import AIRCRAFT_TYPE_DATABASE
@@ -57,6 +60,8 @@ class ACPERF:
     landing_speed = "landing_speed"
     landing_distance = "landing_distance"
     landing_apc = "landing_apc"
+    length = "length"
+    wingspan = "wingspan"
 
 
 class AircraftType(Identity):
@@ -151,12 +156,12 @@ class AircraftType(Identity):
         if self.rawdata:
             if name == "wingspan" and "Wingspan- ft" in self.rawdata:
                 try:
-                    return float(self.rawdata["Wingspan- ft"]) / FT
+                    return float(self.rawdata["Wingspan- ft"]) * FT / 100
                 except ValueError:
                     return None
             if name == "length" and "Length- ft" in self.rawdata:
                 try:
-                    return float(self.rawdata["Length- ft"]) / FT
+                    return float(self.rawdata["Length- ft"]) * FT / 100
                 except ValueError:
                     return None
             return self.rawdata[name] if name in self.rawdata else None
@@ -532,7 +537,9 @@ class AircraftPerformance(AircraftType):
             return False
 
         param_list = ["takeoff_distance", "takeoff_speed", "initial_climb_speed", "initial_climb_vspeed"]
-        param_list = param_list + ["cruise_speed", "cruise_range", "approach_speed", "approach_vspeed", "landing_speed", "landing_distance"]
+        param_list = param_list + ["cruise_speed", "cruise_range"]
+        param_list = param_list + ["approach_speed", "approach_vspeed", "landing_speed", "landing_distance"]
+        param_list = param_list + ["length", "wingspan"]
 
         param_list = param_list + ["climbFL150_speed", "climbFL150_vspeed"]
         if max_ceiling > 150:

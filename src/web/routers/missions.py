@@ -15,14 +15,14 @@ from emitpy.constants import EMIT_RATES
 from emitpy.emitapp import StatusInfo
 
 router = APIRouter(
-    prefix="/missions",
+    prefix="/mission",
     tags=["missions"],
     responses={404: {"description": "Not found"}},
 )
 
 @router.post("/", tags=["missions"])
 async def create_mission(
-    request: Request, mission_in: CreateMission = Body(..., embed=True)
+    request: Request, mission_in: CreateMission
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
@@ -53,7 +53,7 @@ async def create_mission(
 
 @router.put("/", tags=["missions"])
 async def schedule_mission(
-    request: Request, mission_in: ScheduleMission = Body(..., embed=True)
+    request: Request, mission_in: ScheduleMission
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
@@ -78,7 +78,7 @@ async def schedule_mission(
 
 @router.delete("/", tags=["missions"])
 async def delete_mission(
-    request: Request, mission_in: DeleteMission = Body(..., embed=True)
+    request: Request, mission_in: DeleteMission
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
