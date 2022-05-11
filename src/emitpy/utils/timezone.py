@@ -9,3 +9,5 @@ class Timezone(tzinfo):
         return timedelta(hours=self.offset)
     def tzname(self, dt):
         return self.name
+    def dst(self, dt):
+        return timedelta(hours=0)

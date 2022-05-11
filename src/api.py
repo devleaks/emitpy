@@ -122,13 +122,14 @@ app.add_middleware(CORSMiddleware,
 app.include_router(flights.router)
 app.include_router(services.router)
 app.include_router(missions.router)
+app.include_router(airport.router)
+
 app.include_router(queues.router2)
 app.include_router(queues.router)
-app.include_router(airport.router)
 
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
-@app.get("/")
+@app.get("/", tags=["emitpy"])
 async def root():
     return fastapi.responses.RedirectResponse(
         '/docs',

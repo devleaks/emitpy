@@ -89,7 +89,7 @@ class Resource:
     def __init__(self, name: str, table: str):
         self.table = table
         self.name = name
-        self.usage = []
+        self.reservations = []
         self._updated = True
 
     def getId(self):
@@ -117,7 +117,7 @@ class Resource:
 
     def reservations(self):
         r = []
-        for u in self.usage:
+        for u in self.reservations:
             r.append(u.getInfo())
         return r
 
@@ -128,24 +128,24 @@ class Resource:
         #         redis.set(self.getKey(), json.dumps(r))
         #         logger.debug(f":save: {self.getId()} saved {len(self.reservations())} reservations")
         # self._updated = False
-        if len(self.usage) > 0 and self.updated():
+        if len(self.reservations) > 0 and self.updated():
             k=self.getKey()
-            for u in self.usage:
+            for u in self.reservations:
                 u.save(base=k, redis=redis)
-            logger.debug(f":save: {self.getId()} saved {len(self.reservations())} reservations")
+            logger.debug(f":save: {self.getId()} saved {len(self.reservations)} reservations")
         self._updated = False
 
     def allocations(self, actual: bool = False):
         if actual:
-            return [r._actual for r in sorted(self.usage,key= lambda x:x.estimated[0])]
-        return [(r.getId(), list(map(dt, r.estimated))) for r in sorted(self.usage,key= lambda x:x.estimated[0])]
+            return [r._actual for r in sorted(self.reservations,key= lambda x:x.estimated[0])]
+        return [(r.getId(), list(map(dt, r.estimated))) for r in sorted(self.reservations,key= lambda x:x.estimated[0])]
 
     def add(self, reservation: Reservation):
-        self.usage.append(reservation)
+        self.reservations.append(reservation)
         self.update()
 
     def remove(self, reservation: Reservation):
-        self.usage.remove(reservation)
+        self.reservations.remove(reservation)
         self.update()
 
     def clean(self, limit: datetime = datetime.now()):
@@ -155,7 +155,7 @@ class Resource:
         :param      limit:  The limit
         :type       limit:  datetime
         """
-        for r in list(filter(lambda x: x.estimated[1]<limit, self.usage)):
+        for r in list(filter(lambda x: x.estimated[1]<limit, self.reservations)):
             self.remove(r)
 
     def book(self, req_from: datetime, req_to: datetime, label: str = None):
@@ -166,18 +166,18 @@ class Resource:
 
     def isAvailable(self, req_from: datetime, req_to: datetime):
         # logger.debug(f":isAvailable: checking for {req_from} -> {req_to} ")
-        if len(self.usage) == 0:  # no reservation yet
+        if len(self.reservations) == 0:  # no reservation yet
             logger.debug(f":isAvailable: first one ok")
             return True
-        if len(self.usage) == 1:  # if after or before only reservation, it's OK
-            ok = req_to < self.usage[0].estimated[0] or req_from > self.usage[0].estimated[1]
+        if len(self.reservations) == 1:  # if after or before only reservation, it's OK
+            ok = req_to < self.reservations[0].estimated[0] or req_from > self.reservations[0].estimated[1]
             if ok:
                 logger.debug(f":isAvailable: second one, no overlap")
                 return True
             logger.debug(f":isAvailable: second one, overlaps")
             return False
         # we have more than one reservation, sort them by start time
-        busy = sorted(self.usage, key=lambda x: x.estimated[0])
+        busy = sorted(self.reservations, key=lambda x: x.estimated[0])
         idx = 0
         # logger.debug(f":isAvailable: busy: {len(busy)-1}")
         while idx < len(busy) - 1:
@@ -212,7 +212,7 @@ class Resource:
 
         duration = req_to - req_from
 
-        reservations = list(filter(lambda x: x.estimated[1]>req_from, self.usage))
+        reservations = list(filter(lambda x: x.estimated[1]>req_from, self.reservations))
         logger.debug(f":firstAvailable: {len(reservations)} reservations ends after {dt(req_from)}")
         if len(reservations) == 0:
             logger.debug(":firstAvailable: available as requested")
@@ -302,10 +302,11 @@ class AllocationTable:
         """
         ret = {}
         for r, v in self.resources.items():
-            if actual:
-                ret[r.getId()] = [rz.actual+[rz.label] for rz in v]
-            else:
-                ret[r.getId()] = [rz.estimated+[rz.label] for rz in v]
+            if len(v.reservations) > 0:
+                if actual:
+                    ret[v.getId()] = [rz.actual+[rz.label] for rz in v.reservations]
+                else:
+                    ret[v.getId()] = [rz.estimated+[rz.label] for rz in v.reservations]
         return ret
 
     def save(self, redis):
@@ -313,5 +314,10 @@ class AllocationTable:
             if r.updated():
                 r.save(redis=redis)
         logger.debug(f":save: {self.getId()} saved allocations")
+        return (True, "AllocationTable::save completed")
+
+
+    def load(self, redis):
+        return (False, "AllocationTable::load completed")
 
 

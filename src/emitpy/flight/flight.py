@@ -11,6 +11,7 @@ from emitpy.parameters import LOAD_AIRWAYS
 
 logger = logging.getLogger("Flight")
 
+FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
 
 class Flight(Messages):
 
@@ -118,8 +119,8 @@ class Flight(Messages):
         :rtype:     str
         """
         if use_localtime:
-            return self.operator.iata + self.number + "-S" + self.scheduled_dt.strftime("%Y%m%d%H%M")
-        return self.operator.iata + self.number + "-S" + self.scheduled_dt.astimezone(tz=timezone.utc).strftime("%Y%m%d%H%M")
+            return self.operator.iata + self.number + "-S" + self.scheduled_dt.strftime(FLIGHT_TIME_FORMAT)
+        return self.operator.iata + self.number + "-S" + self.scheduled_dt.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
 
 
     def getName(self) -> str:

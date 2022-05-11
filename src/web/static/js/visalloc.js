@@ -1,6 +1,6 @@
 function show_allocations(resource) {
     console.log("show_allocations", resource)
-    fetch("/airport/allocation/"+resource+"-data")
+    fetch("/airport/allocation/"+resource)
         .then(response => response.json())
         .then(function(dataset) {
 

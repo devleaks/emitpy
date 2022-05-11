@@ -3,20 +3,24 @@ Airport Manager is a container for business and operations.
 """
 import os
 import yaml
+import json
 import csv
 import logging
 import random
 import importlib
 import operator
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+from jsonpath import JSONPath
 
 from .airline import Airline
 from emitpy.airport import Airport
 from emitpy.resource import AllocationTable
 
-
-from emitpy.parameters import DATA_DIR
+from emitpy.constants import ARRIVAL, DEPARTURE, REDIS_DATABASE, REDIS_TYPE, ID_SEP
+from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT
+from emitpy.utils import key_path, Timezone
 
 MANAGED_AIRPORT_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 
@@ -441,3 +445,103 @@ class AirportManager:
         self.vehicle_allocator.save(redis)
         self.ramp_allocator.save(redis)
         self.runway_allocator.save(redis)
+
+
+    def allFlights(self, redis):
+        keys = redis.keys(REDIS_DATABASE.FLIGHTS.value + "*")
+        items = []
+        if items is not None and len(keys) > 0:
+            for f in keys:
+                items.append(ID_SEP.join(f.decode("UTF-8").split(ID_SEP)[:-1]))
+            return set(items)
+        return items
+
+
+    def allMissions(self, redis):
+        keys = redis.keys(REDIS_DATABASE.MISSIONS.value + "*")
+        items = []
+        if keys is not None and len(keys) > 0:
+            for f in keys:
+                items.append(ID_SEP.join(f.decode("UTF-8").split(ID_SEP)[:-1]))
+            return set(items)
+        return items
+
+
+    def allServiceForFlight(self, redis, flight_id: str):
+        FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
+        items = []
+        # 1 collect flight info, specially its ramp and scheduled/estimated time.
+        flight_key = key_path(REDIS_DATABASE.FLIGHTS.value, flight_id, REDIS_TYPE.EMIT_META.value)
+        flight_meta_str = redis.get(flight_key)
+        if flight_meta_str is None:
+            logger.debug(f":allServiceForFlight: flight {flight_id} not found ({flight_key})")
+            return items
+
+        flight_meta = json.loads(flight_meta_str.decode("UTF-8"))
+        ramp_arr = JSONPath("$.flight.ramp.name").parse(flight_meta)
+        if len(ramp_arr) == 0:
+            logger.debug(f":allServiceForFlight: flight {flight_id} cannot find ramp")
+            return items
+
+        ramp_id = ramp_arr[0]
+        ks = key_path(REDIS_DATABASE.SERVICES.value, "*", ramp_id, "*")
+        logger.debug(f":allServiceForFlight: all services at ramp: {ks}")
+        keys = redis.keys(ks)
+
+        # keys are like services:BaggageService:C12:2019-04-04T23.55.00+03.00:BAGBE004:q
+        dest = JSONPath("$.flight.arrival.airport.icao").parse(flight_meta)
+        if len(dest) == 0:
+            logger.debug(f":allServiceForFlight: flight {flight_id} has no destination")
+            return items
+
+        is_arrival = dest[0] == MANAGED_AIRPORT["ICAO"]
+        localtz = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
+        et_move_str = flight_id.split("-")[1][1:]  # QR639-S201904030255, removes S.
+        et_move = datetime.strptime(et_move_str, FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
+        et_move = et_move.astimezone(tz=localtz)
+        if is_arrival:  # in minutes:
+            before = 60
+            after = 180
+        else:
+            before = 180
+            after = 60
+        et_min = et_move - timedelta(minutes=before)
+        et_max = et_move + timedelta(minutes=after)
+        logger.debug(f":allServiceForFlight: {ARRIVAL if is_arrival else DEPARTURE} at {et_move}")
+        logger.debug(f":allServiceForFlight: trying services between {et_min} and {et_max}")
+
+        # 2 search for all services at that ramp, "around" supplied ETA/ETD.
+        for k in keys:
+            k = k.decode("UTF-8")
+            karr = k.split(ID_SEP)
+            dt = datetime.fromisoformat(karr[3].replace(".", ":"))
+            logger.debug(f":allServiceForFlight: testing {dt}...")
+            if dt > et_min and dt < et_max:
+                items.append(ID_SEP.join(k.split(ID_SEP)[:-1]))
+        return set(items)
+
+
+    def allServiceOfType(self, redis, service_type: str):
+        service_class = service_type[0].upper() + service_type[1:].lower() + "Service"  # @todo: Hum.
+        ks = key_path(REDIS_DATABASE.SERVICES.value, service_class, "*")
+        # logger.debug(f":allServiceOfType: trying {ks}")
+        keys = redis.keys(ks)
+        items = []
+        if keys is not None and len(keys) > 0:
+            for f in keys:
+                items.append(ID_SEP.join(f.decode("UTF-8").split(ID_SEP)[:-1]))
+            return set(items)
+        return items
+
+
+    def allServiceForRamp(self, redis, ramp_id: str):
+        ks = key_path(REDIS_DATABASE.SERVICES.value, "*", ramp_id, "*")
+        logger.debug(f":allServiceForRamp: trying {ks}")
+        keys = redis.keys(ks)
+        items = []
+        if keys is not None and len(keys) > 0:
+            for f in keys:
+                items.append(ID_SEP.join(f.decode("UTF-8").split(ID_SEP)[:-1]))
+            return set(items)
+        return items
+

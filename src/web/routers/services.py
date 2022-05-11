@@ -96,13 +96,6 @@ async def delete_service(
     return JSONResponse(content=jsonable_encoder(ret))
 
 
-class CreateFlightServices(BaseModel):
-    flight_id: str = Field(..., description="Flight IATA identifier")
-    scheduled: datetime = Field(..., description="Scheduled new date and time for flight")
-    emit_rate: int
-    queue: str
-
-
 # will be /services/flight/...
 @router.post("/flight", tags=["flights", "services"])
 async def create_fight_services(
@@ -125,11 +118,11 @@ async def create_fight_services(
     # except Exception as ex:
     #     ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
 
-    return JSONResponse(content=jsonable_encoder(NotAvailable()))
+    return JSONResponse(content=jsonable_encoder(NotAvailable(CreateFlightServices)))
 
 
 @router.put("/flight", tags=["flights", "services"])
 async def schedule_fight_services(
     request: Request, fs_in: ScheduleFlightServices
 ):
-    return JSONResponse(content=jsonable_encoder(NotAvailable()))
+    return JSONResponse(content=jsonable_encoder(NotAvailable(ScheduleFlightServices)))
