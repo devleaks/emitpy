@@ -71,7 +71,7 @@ class FlightPlanBase:
         # For development
         if DEVELOPMENT or not PRODUCTION:
             if USE_REDIS:
-                backend = requests_cache.RedisCache(host=REDIS_CONNECT["host"], port=REDIS_CONNECT["port"])
+                backend = requests_cache.RedisCache(host=REDIS_CONNECT["host"], port=REDIS_CONNECT["port"], db=2)
                 requests_cache.install_cache(backend=backend)
             else:
                 requests_cache.install_cache()  # defaults to sqlite

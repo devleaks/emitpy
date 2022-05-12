@@ -26,7 +26,14 @@ def td(ts):
 ZPOPMIN_TIMEOUT = 10  # secs
 PING_FREQUENCY  = 6   # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
 
-# ##############################@@
+
+QUIT = "quit"
+RUN  = "run"
+STOP = "stop"
+NEW_DATA = "new-data"
+
+
+# ##############################
 # B R O A D C A S T E R
 #
 class Broadcaster:
@@ -129,7 +136,7 @@ class Broadcaster:
             if type(msg) == bytes:
                 msg = msg.decode('UTF-8')
             logger.debug(f":trim: {self.name}: received {msg}")
-            if msg == "new-data":
+            if msg == NEW_DATA:
                 logger.debug(f":trim: {self.name}: ask sender to stop..")
                 # ask run() to stop sending:
                 self.oktotrim = threading.Event()
@@ -141,7 +148,7 @@ class Broadcaster:
                 self.trimmingcompleted.set()
                 self.rdv = threading.Event()
                 logger.debug(f":trim: {self.name}: listening again..")
-            elif msg == "quit":
+            elif msg == QUIT:
                 logger.debug(f":trim: {self.name}: quitting..")
                 return
             else:
@@ -216,7 +223,7 @@ class Broadcaster:
                 logger.debug(f":run: {self.name}: keyboard interrupt, nothing to push back on queue")
         finally:
             logger.debug(f":run: {self.name}: quitting..")
-            self.redis.publish("Q"+self.name, "quit")
+            self.redis.publish("Q"+self.name, QUIT)
             logger.debug(f":run: {self.name}: ..waiting for trimmer..")
             self.trim_thread.join()
             logger.debug(f":run: {self.name}: ..bye")
@@ -247,7 +254,7 @@ class Hypercaster:
         logger.debug(f"Hypercaster:init: {self.queues.keys()}")
 
     def start_queue(self, queue):
-        if self.queues[queue.name].status == "RUN":
+        if self.queues[queue.name].status == RUN:
             b = Broadcaster(redis.Redis(connection_pool=self.redis_pool), queue.name, queue.speed, queue.starttime)
             self.queues[queue.name].broadcaster = b
             self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
@@ -269,7 +276,7 @@ class Hypercaster:
             logger.warning(f"Hypercaster:terminate_queue: {queue} has no broadcaster")
 
     def terminate_all_queues(self):
-        self.redis.publish(REDIS_DATABASE.QUEUES.value, "quit")
+        self.redis.publish(REDIS_DATABASE.QUEUES.value, QUIT)
         for k in self.queues.keys():
             self.terminate_queue(k)
 
@@ -279,7 +286,7 @@ class Hypercaster:
         for message in self.pubsub.listen():
             msg = message["data"]
             if type(msg) == bytes:
-                msg = msg.decode('UTF-8')
+                msg = msg.decode("UTF-8")
             logger.debug(f"Hypercaster:admin_queue: received {msg}")
             if type(msg).__name__ == "str" and msg.startswith("new-queue:"):
                 arr = msg.split(":")
@@ -294,16 +301,16 @@ class Hypercaster:
                     # there is no broadcaster if queue was not started
                     oldbr = self.queues[qn].broadcaster if hasattr(self.queues[qn], "broadcaster") else None
                     self.queues[qn] = Queue.loadFromDB(redis=self.redis, name=qn)
-                    if oldbr is not None and self.queues[qn].status == "STOP":
+                    if oldbr is not None and self.queues[qn].status == STOP:
                         # queue was working beofre and is now stopped: replaces broadcaster and terminates it
                         self.queues[qn].broadcaster = oldbr
                         self.terminate_queue(qn)
                         logger.debug(f"Hypercaster:admin_queue: ..queue {qn} stopped")
-                    elif oldbr is None and self.queues[qn].status == "RUN":
+                    elif oldbr is None and self.queues[qn].status == RUN:
                         # queue was not working before and is now started
                         self.start_queue(self.queues[qn])
                         logger.debug(f"Hypercaster:admin_queue: ..queue {qn} started")
-                    elif oldbr is None and self.queues[qn].status == "STOP":
+                    elif oldbr is None and self.queues[qn].status == STOP:
                         # queue was not working before and is now started
                         logger.debug(f"Hypercaster:admin_queue: ..queue {qn} added but stopped")
                     else:
@@ -322,7 +329,7 @@ class Hypercaster:
                         logger.debug(f"Hypercaster:admin_queue: queue {qn} terminated")
                     else:
                         logger.debug(f"Hypercaster:admin_queue: queue {qn} already deleted")
-            elif msg == "quit":
+            elif msg == QUIT:
                 logger.debug("Hypercaster:admin_queue: quitting..")
                 return
             else:

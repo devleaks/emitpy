@@ -5,13 +5,12 @@ from emitpy.airspace import FlightPlan, FlightPlanRoute
 from emitpy.airport import Airport
 from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
-from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP
+from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT
 from emitpy.utils import FT, Messages, FlightboardMessage
 from emitpy.parameters import LOAD_AIRWAYS
 
 logger = logging.getLogger("Flight")
 
-FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
 
 class Flight(Messages):
 
@@ -206,12 +205,13 @@ class Flight(Messages):
         if self.rwy is not None:
             self.runway = move.getRunway(self.rwy)
             if self.runway is not None:
-                name = self.runway.getProp(FEATPROP.NAME.value)
+                name = self.runway.getResourceId()
                 # if name[0:2] != "RW":  # add it
                 #     logger.debug(f":_setRunway: correcting: RW+{name}")
                 #     name = "RW" + name
-                if name in self.managedAirport.runways.keys():
-                    am = self.managedAirport.manager
+                am = self.managedAirport.manager
+                print(">>>", name, am.runway_allocator.resources.keys())
+                if name in am.runway_allocator.resources.keys():
                     reqtime = self.scheduled_dt + timedelta(minutes=20)  # time to taxi
                     reqend  = reqtime + timedelta(minutes=5)  # time to take-off + WTC spacing
                     #
@@ -219,9 +219,9 @@ class Flight(Messages):
                     #
                     if am.runway_allocator.isAvailable(name, reqtime, reqend):
                         res = am.runway_allocator.book(name, reqtime, reqend, self.getId())
-                    logger.debug(f":_setRunway: flight {self.getName()}: runway {name}")
+                    logger.debug(f":_setRunway: flight {self.getName()}: runway {name} ({self.rwy.name})")
                 else:
-                    logger.warning(f":_setRunway: {name} not found, runway unchanged")
+                    logger.warning(f":_setRunway: resource {name} not found, runway unchanged")
                 logger.debug(f":_setRunway: {self.getName()}: {name}")
             else:
                 logger.warning(f":_setRunway: no runway, runway unchanged")

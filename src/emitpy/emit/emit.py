@@ -12,11 +12,13 @@ from typing import Mapping
 from geojson import Feature, FeatureCollection, Point, LineString
 from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
+from jsonpath import JSONPath
 
 from emitpy.geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path
 
-from emitpy.constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, REDIS_DATABASE, FLIGHT_PHASE, SERVICE_PHASE, REDIS_TYPE, REDIS_DATABASES
+from emitpy.constants import MANAGED_AIRPORT, FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE
+from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
 from emitpy.constants import RATE_LIMIT, EMIT_RANGE
 from emitpy.parameters import AODB_DIR, REDIS_CONNECT
 
@@ -38,6 +40,55 @@ class EmitPoint(FeatureWithProps):
     def getAbsoluteEmissionTime(self):
         t = self.getProp(FEATPROP.EMIT_ABS_TIME.value)
         return t if t is not None else 0
+
+
+class EmitMeta:
+
+    def __init__(self, redis, flight_id: str):
+        """
+        Special Emit structure built from flight/emit meta data saved in Redis.
+
+        :param      redis:      The redis
+        :type       redis:      { type_description }
+        :param      flight_id:  The flight identifier
+        :type       flight_id:  str
+        """
+        self.flight_id = flight_id
+        self.metadata = None
+
+        # Collects flight meta, specially its ramp and scheduled/estimated time.
+        flight_key = key_path(REDIS_DATABASE.FLIGHTS.value, flight_id, REDIS_TYPE.EMIT_META.value)
+        flight_meta_str = redis.get(flight_key)
+        if flight_meta_str is None:
+            logger.debug(f":__init__: flight {flight_id} not found ({flight_key})")
+            return items
+        self.metadata = json.loads(flight_meta_str.decode("UTF-8"))
+
+        # Ramp
+        ramp_arr = self.get("$.flight.ramp.name")
+        if len(ramp_arr) == 0:
+            logger.debug(f":__init__: flight {flight_id} cannot find ramp")
+            return items
+        self.ramp_id = ramp_arr[0]
+
+        # Movement
+        dest = self.get("$.flight.arrival.airport.icao")
+        if len(dest) == 0:
+            logger.debug(f":__init__: flight {flight_id} has no destination")
+            return items
+        self.is_arrival = dest[0] == MANAGED_AIRPORT["ICAO"]
+
+        # Scheduled time
+        localtz = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
+        et_move_str = flight_id.split("-")[1][1:]  # QR639-S201904030255, removes S.
+        et_move = datetime.strptime(et_move_str, FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
+        self.scheduled = et_move.astimezone(tz=localtz)
+
+
+    def get(self, path: str):
+        if self.metadata is not None:
+            return JSONPath(path).parse(self.metadata)
+        return None
 
 
 class Emit:
@@ -63,7 +114,7 @@ class Emit:
             self.emit_type = m["type"]
             self.moves = self.move.getMoves()
             self.props = self.move.getInfo()  # collect common props from movement
-            logger.debug(f":__init__: {len(self.moves)} points to emit with props {self.props}")
+            logger.debug(f":__init__: {len(self.moves)} points to emit with props {json.dumps(self.props, indent=2)}")
 
 
     @staticmethod
@@ -123,12 +174,14 @@ class Emit:
 
         if self.props is not None and len(self.props) > 0:
             meta_id = self.dbKey(REDIS_TYPE.EMIT_META.value)
-            redis.set(meta_id, json.dumps(self.props))
+            meta_data = self.props
+            meta_data["emit"] = self.getInfo()
+            redis.set(meta_id, json.dumps(meta_data))
 
         # save kml to redis...
-        if callable(getattr(self.moves, "getKML", None)):
+        if callable(getattr(self.move, "getKML", None)):
             kml_id = self.dbKey(REDIS_TYPE.EMIT_KML.value)
-            redis.set(kml_id, json.dumps(self.moves.getKML()))
+            redis.set(kml_id, self.move.getKML())
             logger.debug(f":saveDB: saved kml")
 
         # save messages for broadcast
@@ -172,11 +225,11 @@ class Emit:
         """
         ty = "unknown"
         m = self.move.getInfo()
-        if m is not None:
-            ty = m.type
+        if m is not None and "type" in m:
+            ty = m["type"]
         return {
             "type": "emit",
-            "subtype": ty,
+            "subtype": self.emit_type if self.emit_type is not None else ty,
             "ident": self.emit_id,
             "frequency": self.frequency,
             "version": self.version

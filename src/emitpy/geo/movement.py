@@ -80,7 +80,9 @@ class Movement(Messages):
 
     def getInfo(self):
         # Drill down on original object to get info
-        return {}
+        return {
+            "type": "abstract"
+        }
 
     def getMoves(self):
         return self.moves

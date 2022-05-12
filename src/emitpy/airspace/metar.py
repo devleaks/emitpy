@@ -187,7 +187,7 @@ class MetarFPDB(Metar):
         self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
         # For development
         if USE_REDIS:
-            backend = requests_cache.RedisCache(host=REDIS_CONNECT["host"], port=REDIS_CONNECT["port"])
+            backend = requests_cache.RedisCache(host=REDIS_CONNECT["host"], port=REDIS_CONNECT["port"], db=2)
             requests_cache.install_cache(backend=backend)
         else:
             requests_cache.install_cache()  # defaults to sqlite

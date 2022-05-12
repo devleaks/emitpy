@@ -708,3 +708,42 @@ class AirportBase(AirportWithProcedures):
         """
         return random.choice(list(self.ramps.values()))
 
+
+    def pairRunways(self):
+        """
+        { function_description }
+        """
+        if len(self.runways) == 2:
+            rwk = list(self.runways.keys())
+            self.runways[rwk[0]].end, self.runways[rwk[1]].end = self.runways[rwk[1]], self.runways[rwk[0]]
+            logger.debug(f":pairRunways: {self.icao}: {self.runways[rwk[0]].name} and {self.runways[rwk[1]].name} paired")
+        else:
+            logger.debug(f":pairRunways: {self.icao}: pairing {self.runways.keys()}")
+            for k, r in self.runways.items():
+                if r.end is None:
+                    rh = int(k[0:2])
+                    ri = rh + 18
+                    if ri > 36:
+                        ri = ri - 36
+                    rl = k[-1]  # {L|R|C|<SPC>}
+                    rw = "%02d" % ri
+                    if rl == "L":
+                        rw = rw + "R"
+                    elif rl == "R":
+                        rw = rw + "L"
+                    elif rl == "C":
+                        rw = rw + "C"
+                    # elif rl == " ":
+                    #     rw = rw
+                    # else:
+                    #     rw = rw
+                    if rw in self.runways.keys():
+                        r.end = self.runways[rw]
+                        self.runways[rw].end = r
+                        uuid = k+"-"+rw if k < rw else rw+"-"+k
+                        r.uuid = uuid
+                        r.end.uuid = uuid
+                        logger.debug(f":pairRunways: {self.icao}: {r.getProp(FEATPROP.NAME.value)} and {rw} paired as {uuid}")
+                    else:
+                        logger.warning(f":pairRunways: {self.icao}: {rw} ont found to pair {r.getProp(FEATPROP.NAME.value)}")
+

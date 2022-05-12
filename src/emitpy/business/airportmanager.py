@@ -12,15 +12,14 @@ import operator
 
 from datetime import datetime, timedelta, timezone
 
-from jsonpath import JSONPath
-
 from .airline import Airline
 from emitpy.airport import Airport
 from emitpy.resource import AllocationTable
 
-from emitpy.constants import ARRIVAL, DEPARTURE, REDIS_DATABASE, REDIS_TYPE, ID_SEP
+from emitpy.constants import ARRIVAL, DEPARTURE, REDIS_DATABASE, REDIS_TYPE, ID_SEP, FLIGHT_TIME_FORMAT
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT
 from emitpy.utils import key_path, Timezone
+from emitpy.emit import EmitMeta
 
 MANAGED_AIRPORT_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 
@@ -430,15 +429,20 @@ class AirportManager:
     def setRunways(self, runways):
         self.runways = runways
         logger.debug(f":setRunways: allocating..")
-        self.runway_allocator = AllocationTable(resources=self.runways.values(), name="runways")
+        self.runway_allocator = AllocationTable(resources=[], name="runways")
+        for rwy in self.runways.values():
+            rwy_id = rwy.getResourceId()
+            if rwy_id not in self.runway_allocator.resources.keys():
+                self.runway_allocator.addNamedResource(rwy, rwy_id)
+        logger.debug(f":setRunways: resources added: {self.runway_allocator.resources.keys()}")
         logger.debug(f":setRunways: ..done")
 
 
     def bookRunway(self, runway: "Runway", reqtime: "datetime", reqduration: int, reason: str):
         reqend = reqtime + timedelta(minutes=reqduration)
-        avail = self.runway_allocator.isAvailable(ramp.getId(), reqtime, reqend)
+        avail = self.runway_allocator.isAvailable(runway.getResourceId(), reqtime, reqend)
         if avail:
-            self.runway_allocator.book(runway.getId(), reqtime, reqend, reason)
+            self.runway_allocator.book(runway.getResourceId(), reqtime, reqend, reason)
         return avail
 
     def saveAllocators(self, redis):
@@ -468,46 +472,18 @@ class AirportManager:
 
 
     def allServiceForFlight(self, redis, flight_id: str):
-        FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
         items = []
-        # 1 collect flight info, specially its ramp and scheduled/estimated time.
-        flight_key = key_path(REDIS_DATABASE.FLIGHTS.value, flight_id, REDIS_TYPE.EMIT_META.value)
-        flight_meta_str = redis.get(flight_key)
-        if flight_meta_str is None:
-            logger.debug(f":allServiceForFlight: flight {flight_id} not found ({flight_key})")
-            return items
+        flight_meta = EmitMeta(redis=redis, flight_id=flight_id)
 
-        flight_meta = json.loads(flight_meta_str.decode("UTF-8"))
-        ramp_arr = JSONPath("$.flight.ramp.name").parse(flight_meta)
-        if len(ramp_arr) == 0:
-            logger.debug(f":allServiceForFlight: flight {flight_id} cannot find ramp")
-            return items
-
-        ramp_id = ramp_arr[0]
-        ks = key_path(REDIS_DATABASE.SERVICES.value, "*", ramp_id, "*")
-        logger.debug(f":allServiceForFlight: all services at ramp: {ks}")
-        keys = redis.keys(ks)
-
-        # keys are like services:BaggageService:C12:2019-04-04T23.55.00+03.00:BAGBE004:q
-        dest = JSONPath("$.flight.arrival.airport.icao").parse(flight_meta)
-        if len(dest) == 0:
-            logger.debug(f":allServiceForFlight: flight {flight_id} has no destination")
-            return items
-
-        is_arrival = dest[0] == MANAGED_AIRPORT["ICAO"]
-        localtz = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
-        et_move_str = flight_id.split("-")[1][1:]  # QR639-S201904030255, removes S.
-        et_move = datetime.strptime(et_move_str, FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
-        et_move = et_move.astimezone(tz=localtz)
-        if is_arrival:  # in minutes:
+        if flight_meta.is_arrival:  # in minutes:
             before = 60
             after = 180
         else:
             before = 180
             after = 60
-        et_min = et_move - timedelta(minutes=before)
-        et_max = et_move + timedelta(minutes=after)
-        logger.debug(f":allServiceForFlight: {ARRIVAL if is_arrival else DEPARTURE} at {et_move}")
+        et_min = flight_meta.scheduled - timedelta(minutes=before)
+        et_max = flight_meta.scheduled + timedelta(minutes=after)
+        logger.debug(f":allServiceForFlight: {ARRIVAL if flight_meta.is_arrival else DEPARTURE} at {et_move}")
         logger.debug(f":allServiceForFlight: trying services between {et_min} and {et_max}")
 
         # 2 search for all services at that ramp, "around" supplied ETA/ETD.
@@ -544,4 +520,3 @@ class AirportManager:
                 items.append(ID_SEP.join(f.decode("UTF-8").split(ID_SEP)[:-1]))
             return set(items)
         return items
-

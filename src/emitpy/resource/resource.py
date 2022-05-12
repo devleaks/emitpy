@@ -257,9 +257,12 @@ class AllocationTable:
     def getKey(self):
         return key_path(REDIS_DATABASE.ALLOCATIONS.value, self.getId())
 
+    def addNamedResource(self, resource, name):
+        resource._resource = Resource(name=name, table=self)  # attach it to the resource
+        self.resources[name] = resource._resource
+
     def add(self, resource):
-            resource._resource = Resource(name=resource.getId(), table=self)  # attach it to the resource
-            self.resources[resource.getId()] = resource._resource
+        self.addNamedResource(resource, resource.getId())
 
     def isAvailable(self, name, req_from: datetime, req_to: datetime):
         """

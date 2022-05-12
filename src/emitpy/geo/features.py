@@ -385,6 +385,8 @@ class Runway(FeatureWithProps):
         p1 = Feature(geometry=Point((lon1, lat1)))
         p2 = Feature(geometry=Point((lon2, lat2)))
         brng = bearing(p1, p2)
+        self.uuid = name
+        self.end = None  # opposite runway
         FeatureWithProps.__init__(self, geometry=surface, properties={
             "type": "runway",
             "name": name,
@@ -398,6 +400,10 @@ class Runway(FeatureWithProps):
 
     def getId(self):
         return self.getName()
+
+
+    def getResourceId(self):
+        return self.uuid
 
 
 # ################################@

@@ -6,6 +6,7 @@ import datetime
 
 from .format import Format
 from .queue import Queue
+from .broadcaster import NEW_DATA
 from emitpy.constants import REDIS_QUEUE, REDIS_DATABASE, REDIS_TYPE
 from emitpy.parameters import REDIS_CONNECT
 from emitpy.utils import make_key
@@ -116,6 +117,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         self.redis.zadd(self.queue.name, emit)
         self.redis.sadd(emit_id, *list(emit.keys()))
         logger.debug(f":enqueue: added {len(emit)} new entries")
-        self.redis.publish("Q"+self.queue.name, "new-data")
+        self.redis.publish("Q"+self.queue.name, NEW_DATA)
 
         return (True, "EnqueueToRedis::enqueue completed")

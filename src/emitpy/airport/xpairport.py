@@ -163,6 +163,9 @@ class XPAirport(AirportBase):
 
         self.runways = runways
         logger.debug(f":loadRunways: added {len(runways.keys())} runways: {runways.keys()}")
+        logger.debug(f":loadRunways: pairing..")
+        self.pairRunways()
+        logger.debug(f":loadRunways: ..paired")
         return [True, "XPAirport::loadRunways loaded"]
 
     def loadRamps(self):

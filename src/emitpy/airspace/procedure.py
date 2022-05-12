@@ -237,6 +237,8 @@ class RWY(Procedure):
         self.runway = name
         self.point = None
         self.end = None
+        self.uuid = name  # not correct, but acceptable default value, set unique for both "sides" of runway
+                          # some rare runways are one way only... (EDDF)
 
     def add(self, line: ProcedureData):
         if self.point is not None:
@@ -418,7 +420,10 @@ class CIFP:
                     if rw in self.RWYS.keys():
                         r.end = self.RWYS[rw]
                         self.RWYS[rw].end = r
-                        logger.debug(f":pairRunways: {self.icao}: {r.name} and {rw} paired")
+                        uuid = k.replace("RW", "")+"-"+rw.replace("RW", "") if k < rw else rw.replace("RW", "")+"-"+k.replace("RW", "")
+                        r.uuid = uuid
+                        r.end.uuid = uuid
+                        logger.debug(f":pairRunways: {self.icao}: {r.name} and {rw} paired as {uuid}")
                     else:
                         logger.warning(f":pairRunways: {self.icao}: {rw} ont found to pair {r.name}")
         # bearing and length

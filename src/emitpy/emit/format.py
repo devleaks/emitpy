@@ -13,6 +13,7 @@ from .formatter import Formatter
 from .livetrafficformatter import LiveTrafficFormatter
 from .adsbformatter import ADSBFormatter
 from .viewerformatter import ViewerFormatter
+from .formatterflat import FormatterFlat
 
 logger = logging.getLogger("Formatter")
 
@@ -31,7 +32,8 @@ class Format:
             # ("adsb", "ADS-B"),
             # ("view", "Viewer"),
             # ("lt", "X-Plane LiveTraffic"),
-            ("raw", "Raw")
+            ("raw", "Raw"),
+            ("flat", "Flatten JSON")
         ]
 
     @staticmethod
@@ -42,6 +44,8 @@ class Format:
             return LiveTrafficFormatter
         elif name == "viewapp":
             return ViewerFormatter
+        elif name == "flat":
+            return FormatterFlat
         # default is raw, i.e. leave as it is
         return Formatter
 

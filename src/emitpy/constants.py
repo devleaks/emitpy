@@ -138,6 +138,7 @@ class REDIS_QUEUE(Enum):
 
 TAG_SEP = "|"
 ID_SEP = ":"
+FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
 
 
 ########################################
