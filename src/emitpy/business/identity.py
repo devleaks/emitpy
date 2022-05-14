@@ -1,5 +1,7 @@
+import json
 from enum import Enum
 from emitpy.constants import ID_SEP
+import emitpy
 
 class IDENTIFIER(Enum):
     orgId = "orgId"
@@ -16,6 +18,7 @@ class Identity:
     Example: Class = "aircraft", Type = "A321"
     """
     def __init__(self, orgId: str, classId: str, typeId: str, name: str):
+        self.version = emitpy.__version__
         self.orgId = orgId
         self.classId = classId
         self.typeId = typeId
@@ -24,6 +27,9 @@ class Identity:
     def getId(self):
         return self.orgId + ID_SEP + self.classId + ID_SEP + self.typeId + ID_SEP + self.name
 
+    def getKey(self):
+        return self.getId()
+
     def getInfo(self):
         return {
             "orgId": self.orgId,
@@ -31,3 +37,13 @@ class Identity:
             "typeId": self.typeId,
             "name": self.name
         }
+
+    def save(self, redis):
+        """
+        Saves model to cache.
+
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        """
+        redis.set(key_path(REDIS_DATABASE.AIRCRAFTS.value, self.getKey()), json.dumps(self.getInfo()))
+        return (True, f"{type(self).__name__}::saveDB: saved")

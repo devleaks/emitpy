@@ -7,6 +7,7 @@ from geojson.geometry import Geometry
 from turfpy.measurement import bearing, destination
 from .utils import printFeatures
 from emitpy.constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
+import emitpy
 
 # from emitpy.business.identity import Identity
 
@@ -42,6 +43,7 @@ class FeatureWithProps(Feature):
         # before: def __init__(self, geometry: Geometry, properties: dict):
         self["type"] = "Feature"  # see https://github.com/jazzband/geojson/issues/178
         Feature.__init__(self, id=id, geometry=geometry, properties=copy.deepcopy(properties) if properties is not None else None)
+        self.setProp(FEATPROP.VERSION.value, emitpy.__version__)
 
     @classmethod
     def new(cls, f):
@@ -55,6 +57,8 @@ class FeatureWithProps(Feature):
     def betterFeatures(arr):
         return [ FeatureWithProps.convert(f) for f in arr ]
 
+    def version(self):
+        return self.getProp(FEATPROP.VERSION.value)
 
     def geometry(self):
         return self["geometry"] if "geometry" in self else None

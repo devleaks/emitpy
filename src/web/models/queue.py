@@ -15,6 +15,13 @@ class CreateQueue(BaseModel):
     speed: float
     start: bool
 
+    # @validator('formatter')
+    # def validate_formatter(cls,formatter):
+    #     return RLOV_Validator(value=formatter,
+    #                          valid_url="queues/formats",
+    #                          invalid_message=f"Invalid formatter code {formatter}")
+
+
 
 class ScheduleQueue(BaseModel):
     name: str = Field(..., description="Queue identifier")

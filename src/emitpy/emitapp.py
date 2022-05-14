@@ -12,7 +12,7 @@ from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, REDIS_QUEUE, FEATPROP, ARRIVAL, DEPARTURE
+from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE, ID_SEP
 from emitpy.parameters import DEFAULT_QUEUES, REDIS_CONNECT
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
@@ -62,10 +62,29 @@ class EmitApp(ManagedAirport):
         self.init()
         logger.debug(":init: initialized. listening..")
 
+
+    def getId(self):
+        return emitpy.__NAME__ + ID_SEP + emitpy.__version__
+
+
+    def getInfo(self):
+        return {
+            "name": emitpy.__NAME__,
+            "description": emitpy.__DESCRIPTION__,
+            "copyright": emitpy.__COPYRIGHT__,
+            "version": emitpy.__version__,
+            "version-name": emitpy.__version_name__
+        }
+
     def getRedis(self, from_pool: bool = False):
         if from_pool:
             return redis.Redis(connection_pool=self.redis_pool)
         return self.redis
+
+
+    def cache_static_lovs(self):
+        pass
+
 
     def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
         logger.debug("Airline, airport..")
@@ -97,7 +116,7 @@ class EmitApp(ManagedAirport):
         logger.debug(f"other airport saved")
 
         logger.debug("..collecting metar..")
-        remote_metar = Metar.new(icao=remote_apt.icao)
+        remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
         remote_apt.setMETAR(metar=remote_metar)  # calls prepareRunways()
         logger.debug("..done")
 
@@ -112,6 +131,7 @@ class EmitApp(ManagedAirport):
         acperf.load()
         reqfl = acperf.FLFor(aptrange)
         aircraft = Aircraft(registration=acreg, icao24= icao24, actype=acperf, operator=airline)
+        aircraft.save(self.redis)
         logger.debug("..done")
 
         logger.info("*" * 90)
@@ -536,5 +556,6 @@ class EmitApp(ManagedAirport):
         ret = Queue.delete(redis=self.redis, name=name)
         if not ret[0]:
             return StatusInfo(800, f"problem during deletion of queue {name} ", ret)
-        del self.queues[name]
+        if name in self.queues.keys():
+            del self.queues[name]
         return StatusInfo(0, "queue delete successfully", None)

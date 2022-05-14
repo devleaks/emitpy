@@ -102,13 +102,18 @@ class FILE_FORMAT(Enum):
 # "Categories" of data stored, used as domain separator
 class REDIS_DATABASE(Enum):
     ALLOCATIONS = "airport"
+    AIRCRAFTS = "aircrafts"
     FLIGHTS = "flights"
     MESSAGES = "messages"
     METAR = "metar"
     MISSIONS = "missions"
     MOVEMENTS = "movements"
-    QUEUES = "queues"
+    QUEUES = "queues"   # Note: Used both as a key and as a pubsub queue name for internal queue management
     SERVICES = "services"
+    COMPAGNIES = "company-directory"
+    PEOPLE = "directory"
+    LOVS = "lovs"
+
 
 REDIS_DATABASES = {
     "allocation": REDIS_DATABASE.ALLOCATIONS.value,
@@ -128,12 +133,13 @@ class REDIS_TYPE(Enum):
     FORMAT = "f"
     QUEUE = "q"
 
-# List of Emitpy provided queues
-class REDIS_QUEUE(Enum):
-    ADSB = "adsb"
-    LIVETRAFFIC = "lt"
-    RAW = "raw"
-    DEFAULT = "raw"
+
+# Type of data stored into keys
+class REDIS_LOVS(Enum):
+    AIRCRAFT_TYPES = "aircraft-types"
+    AIRPORTS = "airports"
+    MANAGED_AIRPORTS = "managed-airports"
+    AIRCRAFT_TYPES_WITH_PERFS = "aircraft-performances"
 
 
 TAG_SEP = "|"
@@ -325,6 +331,7 @@ class FEATPROP(Enum):
     ORG_ID = "orgId"
     CLASS_ID = "classId"
     TYPE_ID = "typeId"
+    VERSION = "emitpy-version"
 
 
 ########################################

@@ -55,7 +55,6 @@ MANAGED_AIRPORT = {
 
 
 # Default queues are created in emitpy if they do not exists.
-# Must be in constants REDIS_QUEUE
 DEFAULT_QUEUES = {
     "raw": "raw"
 }

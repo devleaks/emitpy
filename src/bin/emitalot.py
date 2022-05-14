@@ -32,8 +32,9 @@ csvdata = csv.DictReader(file)
 
 icao = {}
 
-NUM_TURNAROUNDS = 2
-DO_SERVICE = True
+NUM_TURNAROUNDS = 0
+DO_SERVICE = False
+USE_TURNAROUND = False
 
 cnt = 0
 cnt_begin = random.randint(0, numlines) # random pair of flights
@@ -66,7 +67,7 @@ for r in csvdata:
                           icao24=icao[r['REGISTRATION NO_x']],
                           acreg=r['REGISTRATION NO_x'],
                           runway="RW16L",
-                          do_services=DO_SERVICE)
+                          do_services=DO_SERVICE and not USE_TURNAROUND)
 
         if ret.status != 0:
             logger.warning(f"ERROR(arrival) around line {cnt}: {ret.status}" + ">=" * 30)
@@ -101,7 +102,7 @@ for r in csvdata:
                           icao24=icao[r['REGISTRATION NO_y']],
                           acreg=r['REGISTRATION NO_y'],
                           runway="RW16L",
-                          do_services=DO_SERVICE)
+                          do_services=DO_SERVICE and not USE_TURNAROUND)
 
         if ret.status != 0:
             logger.warning(f"ERROR(departure) around line {cnt}: {ret.status}" + ">=" * 30)
@@ -118,6 +119,33 @@ for r in csvdata:
             + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
             + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
             + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
+
+
+    if USE_TURNAROUND:
+        try:
+            dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
+            movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
+
+            ret = e.do_flight_services(queue="raw",
+                              emit_rate=30)
+
+            if ret.status != 0:
+                logger.warning(f"ERROR(departure) around line {cnt}: {ret.status}" + ">=" * 30)
+                logger.warning(ret)
+                logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
+                    + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
+                    + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
+                    + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
+        except:
+            logger.error(f"EXCEPTION(departure) around line {cnt}: {ret.status}" + ">=" * 30)
+            logger.error(ret)
+            logger.error(traceback.format_exc())
+            logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
+                + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
+                + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
+                + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
+
+
 
     cnt = cnt + 1
 

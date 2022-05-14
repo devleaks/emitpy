@@ -13,6 +13,7 @@ import operator
 from datetime import datetime, timedelta, timezone
 
 from .airline import Airline
+from .company import Company
 from emitpy.airport import Airport
 from emitpy.resource import AllocationTable
 
@@ -33,6 +34,9 @@ class AirportManager:
         self.icao = icao
         self.operator = operator
         self._app = app
+
+        self.companies = {}
+        self.people = {}
 
         self.airlines = {}
         self.airline_frequencies = None
@@ -62,6 +66,10 @@ class AirportManager:
         Loads airport manager data from files.
         """
         status = self.loadFromFile()
+        if not status[0]:
+            return status
+
+        status = self.loadCompanies()
         if not status[0]:
             return status
 
@@ -212,6 +220,49 @@ class AirportManager:
         """
         airport.addHub(airline)
         airline.addHub(airport)
+
+
+    def loadCompanies(self):
+        """
+        Loads companies.
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
+        companies = os.path.join(self.airport_base_path, "services", "companies.yaml")
+        if os.path.exists(companies):
+            with open(companies, "r") as fp:
+                self.data = yaml.safe_load(fp)
+            logger.warning(f":file: {companies} loaded")
+            for k, c in self.data.items():
+                self.companies[k] = Company(orgId=c["orgId"],
+                                            classId=c["classId"],
+                                            typeId=c["typeId"],
+                                            name=c["name"])
+            return [True, f"AirportManager::loadCompanies loaded {self.companies.keys()}"]
+        return [False, f"AirportManager::loadCompanies file {companies} not found"]
+
+
+    def getCompaniesCombo(self, classId: str = None, typeId: str = None):
+        """
+        Builds (key, display name) pairs for companies, filtered by classId
+        and/or typeId if supplied.
+
+        :param      classId:  The class identifier
+        :type       classId:  str
+        :param      typeId:   The type identifier
+        :type       typeId:   str
+
+        :returns:   The companies combo.
+        :rtype:     { return_type_description }
+        """
+        companies = self.companies.values()
+        if classId is not None:
+            companies = filter(lambda c: c.classId == classId , companies)
+        if typeId is not None:
+            companies = filter(lambda c: c.typeId == typeId , companies)
+        return list([(c.getId(), c.name) for c in companies])
 
 
     def loadServiceVehicles(self):

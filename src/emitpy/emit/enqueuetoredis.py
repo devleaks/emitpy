@@ -6,8 +6,8 @@ import datetime
 
 from .format import Format
 from .queue import Queue
-from .broadcaster import NEW_DATA
-from emitpy.constants import REDIS_QUEUE, REDIS_DATABASE, REDIS_TYPE
+from .broadcaster import NEW_DATA, ADM_QUEUE_PREFIX
+from emitpy.constants import REDIS_DATABASE, REDIS_TYPE
 from emitpy.parameters import REDIS_CONNECT
 from emitpy.utils import make_key
 
@@ -79,7 +79,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             logger.warning(":save: no emission point")
             return (False, "EnqueueToRedis::save: no emission point")
 
-        emit_id = self.emit.dbKey(REDIS_TYPE.FORMAT.value)  # ident + REDIS_TYPE.EMIT.value
+        emit_id = self.emit.getKey(REDIS_TYPE.FORMAT.value)  # ident + REDIS_TYPE.EMIT.value
 
         n = self.redis.scard(emit_id)
         if n > 0 and not overwrite:
@@ -104,7 +104,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             logger.warning(":enqueue: no emission point")
             return (False, "FormatToRedis::enqueue: no emission point")
 
-        emit_id = self.emit.dbKey(REDIS_TYPE.QUEUE.value)
+        emit_id = self.emit.getKey(REDIS_TYPE.QUEUE.value)
         oldvalues = self.redis.smembers(emit_id)
         if oldvalues and len(oldvalues) > 0:
             self.redis.zrem(self.queue.name, *oldvalues)
@@ -117,6 +117,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         self.redis.zadd(self.queue.name, emit)
         self.redis.sadd(emit_id, *list(emit.keys()))
         logger.debug(f":enqueue: added {len(emit)} new entries")
-        self.redis.publish("Q"+self.queue.name, NEW_DATA)
+        self.redis.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)
 
         return (True, "EnqueueToRedis::enqueue completed")

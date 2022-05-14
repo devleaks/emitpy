@@ -1,6 +1,8 @@
 import os
 import csv
 import json
+import traceback
+
 from fastapi import APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
@@ -78,8 +80,8 @@ async def list_service_vehicle_models(service: str):
 
 
 @router.get("/service-handlers", tags=["reference", "services"])
-async def list_service_handlers():
-    return JSONResponse(content=Service.getHandlers())
+async def list_service_handlers(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.airport.manager.getCompaniesCombo(classId="Service"))
 
 
 # @router.get("/service-depots")
@@ -103,8 +105,8 @@ async def list_service_vehicle_models():
 
 
 @router.get("/mission-handlers", tags=["reference", "missions"])
-async def list_mission_handlers():
-    return JSONResponse(content=Mission.getHandlers())
+async def list_mission_handlers(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.airport.manager.getCompaniesCombo(classId="Mission"))
 
 
 # ###############################@

@@ -17,7 +17,7 @@ import sys
 sys.path.append(HOME_DIR)
 
 from emitpy.business import Identity, Company
-from emitpy.constants import AIRCRAFT_TYPE_DATABASE
+from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE
 from emitpy.parameters import DATA_DIR
 from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, key_path
 
@@ -156,12 +156,12 @@ class AircraftType(Identity):
         if self.rawdata:
             if name == "wingspan" and "Wingspan- ft" in self.rawdata:
                 try:
-                    return float(self.rawdata["Wingspan- ft"]) * FT / 100
+                    return float(self.rawdata["Wingspan- ft"]) * FT
                 except ValueError:
                     return None
             if name == "length" and "Length- ft" in self.rawdata:
                 try:
-                    return float(self.rawdata["Length- ft"]) * FT / 100
+                    return float(self.rawdata["Length- ft"]) * FT
                 except ValueError:
                     return None
             return self.rawdata[name] if name in self.rawdata else None
@@ -929,6 +929,9 @@ class Aircraft:
         """
         self.icao24 = icao24
 
+    def getId(self):
+        return self.registration
+
     def getInfo(self) -> dict:
         """
         Gets information about this aircraft. Recurse to aircraft details (aircraft type, operator, etc).
@@ -937,17 +940,15 @@ class Aircraft:
             "actype": self.actype.getInfo(),
             "operator": self.operator.getInfo(),
             "acreg": self.registration,
-            "callsign": self.callsign,
             "icao24": self.icao24
         }
 
-    def save(self, base, redis):
+    def save(self, redis):
         """
         Saves aircraft data and model information to cache.
 
-        :param      base:   The base
-        :type       base:   { type_description }
         :param      redis:  The redis
         :type       redis:  { type_description }
         """
-        redis.set(key_path(base, self.getId()), self.getInfo())
+        redis.set(key_path(REDIS_DATABASE.AIRCRAFTS.value, self.getId()), json.dumps(self.getInfo()))
+        return (True, "Aircraft::saveDB: saved")

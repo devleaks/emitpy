@@ -120,6 +120,7 @@ src/entity/private.py
 
 data/
 db/
+docs-md/
 
 src/http_cache.sqlite
 *.sqlite

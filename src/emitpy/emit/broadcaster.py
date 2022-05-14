@@ -6,10 +6,13 @@ import redis
 import logging
 import json
 
-from emitpy.constants import REDIS_DATABASE
+from emitpy.constants import REDIS_DATABASE, ID_SEP
 from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTHBEAT
-from .queue import Queue
+from .queue import Queue, RUN, STOP, NEW_QUEUE, DELETE_QUEUE
 
+# Queue name prefix
+ADM_QUEUE_PREFIX = "adm:"
+OUT_QUEUE_PREFIX = "emitpy:"  # could be ""
 
 logger = logging.getLogger("Broadcaster")
 
@@ -28,8 +31,6 @@ PING_FREQUENCY  = 6   # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
 
 
 QUIT = "quit"
-RUN  = "run"
-STOP = "stop"
 NEW_DATA = "new-data"
 
 
@@ -129,7 +130,7 @@ class Broadcaster:
             logger.debug(f":_do_trim: {self.name}: nothing to remove ..done")
 
     def trim(self):
-        self.pubsub.subscribe("Q"+self.name)
+        self.pubsub.subscribe(ADM_QUEUE_PREFIX+self.name)
         logger.debug(f":trim: {self.name}: listening..")
         for message in self.pubsub.listen():
             msg = message["data"]
@@ -177,7 +178,7 @@ class Broadcaster:
                 if nv is None:
                     if self.ping > 0 and ping < 0:
                         logger.debug(f":run: {self.name}: pinging..")
-                        self.redis.publish(self.name, json.dumps({
+                        self.redis.publish(OUT_QUEUE_PREFIX+self.name, json.dumps({
                             "ping": datetime.now().isoformat(),
                             "broadcaster": self.getInfo()
                         }))
@@ -196,7 +197,7 @@ class Broadcaster:
                     logger.debug(f":run: {self.name}: need to send at {df(nv[2])}, waiting {td(wt)}, speed={self.speed}, waiting={round(rwt, 1)}")
                     if not self.rdv.wait(timeout=rwt):  # we timed out
                         logger.debug(f":run: {self.name}: sending..")
-                        self.redis.publish(self.name, nv[1].decode('UTF-8'))
+                        self.redis.publish(OUT_QUEUE_PREFIX+self.name, nv[1].decode('UTF-8'))
                         logger.debug(f":run: {self.name}: ..done")
                     else:  # we were instructed to not send
                         # put item back in queue
@@ -223,7 +224,7 @@ class Broadcaster:
                 logger.debug(f":run: {self.name}: keyboard interrupt, nothing to push back on queue")
         finally:
             logger.debug(f":run: {self.name}: quitting..")
-            self.redis.publish("Q"+self.name, QUIT)
+            self.redis.publish(ADM_QUEUE_PREFIX+self.name, QUIT)
             logger.debug(f":run: {self.name}: ..waiting for trimmer..")
             self.trim_thread.join()
             logger.debug(f":run: {self.name}: ..bye")
@@ -236,6 +237,23 @@ class Hypercaster:
     """
     Starts a Broadcaster for each queue
     """
+
+    _instance = None
+    _lock = threading.Lock()
+
+    @classmethod
+    def __new__(cls, *args, **kwargs):
+        # https://medium.com/analytics-vidhya/how-to-create-a-thread-safe-singleton-class-in-python-822e1170a7f6
+        if not cls._instance:
+            with cls._lock:
+                # another thread could have created the instance
+                # before we acquired the lock. So check that the
+                # instance is still nonexistent.
+                if not cls._instance:
+                    cls._instance = super(Hypercaster, cls).__new__(cls)
+        return cls._instance
+
+
     def __init__(self):
         self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
         self.redis = redis.Redis(connection_pool=self.redis_pool)
@@ -281,6 +299,11 @@ class Hypercaster:
             self.terminate_queue(k)
 
     def admin_queue(self):
+        # redis events:
+        # :run: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'sadd'}
+        # :run: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'srem'}
+        # :run: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'del'}
+        # :run: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues:test', 'data': b'del'}
         self.pubsub.subscribe(REDIS_DATABASE.QUEUES.value)
         logger.debug("Hypercaster:admin_queue: listening..")
         for message in self.pubsub.listen():
@@ -288,7 +311,7 @@ class Hypercaster:
             if type(msg) == bytes:
                 msg = msg.decode("UTF-8")
             logger.debug(f"Hypercaster:admin_queue: received {msg}")
-            if type(msg).__name__ == "str" and msg.startswith("new-queue:"):
+            if type(msg).__name__ == "str" and msg.startswith(NEW_QUEUE+ID_SEP):
                 arr = msg.split(":")
                 qn  = arr[1]
                 if qn not in self.queues.keys():
@@ -319,7 +342,7 @@ class Hypercaster:
                         logger.debug(f"Hypercaster:admin_queue: .. queue {qn} speed {self.queues[qn].speed} (was {oldsp}) " +
                                      f"starttime {self.queues[qn].starttime} (was {oldst}) reset")
 
-            elif type(msg).__name__ == "str" and msg.startswith("del-queue:"):
+            elif type(msg).__name__ == "str" and msg.startswith(DELETE_QUEUE+ID_SEP):
                 arr = msg.split(":")
                 qn  = arr[1]
                 if qn in self.queues.keys():
@@ -347,6 +370,3 @@ class Hypercaster:
             logger.debug(f"Hypercaster:run: waiting all threads..")
             self.admin_queue_thread.join()
             logger.debug(f"Hypercaster:run: ..bye")
-
-
-

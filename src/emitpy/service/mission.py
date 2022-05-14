@@ -35,15 +35,6 @@ class Mission(GroundSupport):
         return a
 
 
-    @staticmethod
-    def getHandlers():
-        return [
-            ("QAS", "Qatar Airport Security"),
-            ("QAFD", "Qatar Airport Fire Department"),
-            ("QAPD", "Qatar Airport Police Department")
-        ]
-
-
     def getId(self):
         """
         Return a mission identifier built from a user-supplied string constant and date-based numbers,

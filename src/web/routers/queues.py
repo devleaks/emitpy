@@ -1,4 +1,6 @@
 import json
+import traceback
+
 from fastapi import APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder

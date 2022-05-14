@@ -93,7 +93,7 @@ class GroundSupport:
     def run(self, moment: datetime):
         return (False, "Service::run not implemented")
 
-    def planned(self, estimated: datetime):
+    def setEstimatedTime(self, estimated: datetime):
         self.estimated = estimated
 
     def started(self, actual: datetime):
@@ -131,14 +131,6 @@ class Service(GroundSupport):
         for s in SERVICE:
             a.append((s.value, s.value[0].upper()+s.value[1:]))
         return a
-
-    @staticmethod
-    def getHandlers():
-        return [
-            ("QAS", "Qatar Airport Services"),
-            ("BRU", "Bru Partners"),
-            ("SWI", "Swissport")
-        ]
 
     def getId(self):
         """

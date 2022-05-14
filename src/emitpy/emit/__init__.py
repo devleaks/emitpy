@@ -10,5 +10,3 @@ from .viewerformatter import ViewerFormatter
 from .formatterflat import FormatterFlat
 #
 from .broadcaster import Broadcaster, Hypercaster
-#
-from .redis import RedisUtils

@@ -48,21 +48,24 @@ class Metar:
         self.raw = None     # metar string
         self.redis = redis
 
+
     @staticmethod
-    def new(icao: str, method: str = "MetarFPDB"):
+    def new(icao: str, redis=None, method: str = "MetarFPDB"):
         metarclasses = importlib.import_module(name=".airspace.metar", package="emitpy")
         if hasattr(metarclasses, method):
             doit = getattr(metarclasses, method)
-            return doit(icao)
+            return doit(icao, redis)
         else:
             logger.warning(f":__init__: could not get Metar implementation {method}")
         return None
+
 
     def init(self):
         self.load()
         if self.raw is None:
             self.fetch()
             self.save()
+
 
     def setDatetime(self, moment: datetime = datetime.now()):
         self.moment = moment
@@ -92,7 +95,7 @@ class Metar:
 
 
     def save(self):
-        if USE_REDIS:
+        if self.redis is not None:
             return self.saveDB()
         metid = "*ERROR*"
         fn = "*ERROR*"
@@ -109,7 +112,7 @@ class Metar:
 
 
     def load(self):
-        if USE_REDIS:
+        if self.redis is not None:
             return self.loadDB()
         nowstr = self.moment_norm.strftime('%d%H%MZ')
         fn = os.path.join(METAR_DIR, self.icao + "-" + nowstr + ".json")
@@ -126,14 +129,19 @@ class Metar:
 
 
     def saveDB(self):
-        if self.redis is not None and self.raw is not None:
-            nowstr = self.getFullDT()
-            metid = REDIS_DATABASE.METAR.value + ":" + self.raw[0:4] + ':' + nowstr
-            if not self.redis.exists(metid):
-                self.redis.set(metid, self.raw)
-                return (True, "Metar::saveDB: saved")
+        if self.redis is not None:
+            if self.raw is not None:
+                nowstr = self.getFullDT()
+                metid = REDIS_DATABASE.METAR.value + ":" + self.raw[0:4] + ':' + nowstr
+                if not self.redis.exists(metid):
+                    self.redis.set(metid, self.raw)
+                    return (True, "Metar::saveDB: saved")
+                else:
+                    logger.warning(f":saveDB: already exist {metid}")
             else:
-                logger.warning(f":saveDB: alresaady exist {metid}")
+                logger.warning(f":saveDB: no metar to save")
+        else:
+            logger.warning(f":saveDB: no redis")
         return (False, "Metar::saveDB: not saved")
 
 
@@ -171,8 +179,7 @@ class Metar:
                 self.metar = parsed
             return (True, "Metar::parse: parsed")
         except MetarLib.ParserError as e:
-            logger.debug(f":load: METAR failed to parse '{self.raw}': {e.message}")
-            parsed = None
+            logger.debug(f":load: METAR failed to parse '{self.raw}': {e}")
         return (False, "Metar::parse: failed to parse")
 
 
@@ -182,8 +189,8 @@ class MetarFPDB(Metar):
     Loads cached METAR for ICAO or fetch **current** from flightplandatabase.
     """
 
-    def __init__(self, icao: str):
-        Metar.__init__(self, icao=icao)
+    def __init__(self, icao: str, redis = None):
+        Metar.__init__(self, icao=icao, redis=redis)
         self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
         # For development
         if USE_REDIS:
@@ -215,8 +222,8 @@ class MetarHistorical(Metar):
     """
     Wrapper to maintain symmetry with current metar
     """
-    def __init__(self, icao: str):
-        Metar.__init__(self, icao=icao)
+    def __init__(self, icao: str, redis = None):
+        Metar.__init__(self, icao=icao, redis=redis)
 
 
     def fetch(self):

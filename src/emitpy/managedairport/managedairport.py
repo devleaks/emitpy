@@ -103,12 +103,12 @@ class ManagedAirport:
         """
         logger.debug(":update_metar: collecting METAR..")
         # Prepare airport for each movement
-        metar = Metar.new(icao=self._this_airport["ICAO"])
+        metar = Metar.new(icao=self._this_airport["ICAO"], redis=self._app.redis)
         self.airport.setMETAR(metar=metar)  # calls prepareRunways()
         logger.debug(":update_metar: ..done")
 
 
-    def cache(self, dbid: int = 0):
+    def cache(self, dbid: int = 1):
         """
         Saves Managed Airport and Airport Manager static data into Redis datastore.
 
@@ -118,7 +118,8 @@ class ManagedAirport:
         redis = self._app.redis
         # Airports
         logger.debug(":cache: caching..")
-        redis.select(1)
+        prevdb = redis.client_info()["db"]
+        redis.select(dbid)
         # logger.debug(":cache: ..airports..")
         # for a in Airport._DB.values():
         #     a.save("airports", self._app.redis)
@@ -134,8 +135,17 @@ class ManagedAirport:
         # Airlines + routes
         # Airspace (terminals, navaids, fixes, airways)
         #
-        redis.select(0)
+        redis.select(prevdb)
         logger.debug(":cache: ..done")
+
+
+    def cache_static_lovs(self, dbid: int = 0):
+        logger.debug(":cache_static_lovs: caching..")
+        prevdb = redis.client_info()["db"]
+        redis.select(dbid)
+
+        redis.select(prevdb)
+        logger.debug(":cache_static_lovs: ..done")
 
 
     def loadFromCache(self, dbid: int = 0):

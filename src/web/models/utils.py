@@ -1,5 +1,7 @@
 import re
 from typing import List
+import requests
+
 from emitpy.emitapp import StatusInfo
 
 
@@ -10,6 +12,27 @@ def LOV_Validator(
     if value not in valid_values:
         raise ValueError(invalid_message)
     return value
+
+
+def RESTLOV_Validator(
+    value: str,
+    valid_url: str,
+    invalid_message: str) -> str:
+    response = requests.get("http://127.0.0.1:8000/"+valid_url)
+    valid_values = dict(response.json())
+    return LOV_Validator(value, valid_values, invalid_message)
+
+
+def REDISLOV_Validator(
+    redis,
+    value: str,
+    valid_key: str,
+    invalid_message: str) -> str:
+    s = redis.get(valid_key)
+    if s is not None:
+        valid_values = dict(json.loads(s.convert("UTF-8")))
+        return LOV_Validator(value, valid_values, invalid_message)
+    raise ValueError(f"no key {valid_key} value for validation")
 
 
 def ICAO24_Validator(value):

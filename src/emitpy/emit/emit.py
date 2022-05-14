@@ -114,6 +114,7 @@ class Emit:
             self.emit_type = m["type"]
             self.moves = self.move.getMoves()
             self.props = self.move.getInfo()  # collect common props from movement
+            self.props["emit"] = self.getInfo() # add meta data about this emission
             logger.debug(f":__init__: {len(self.moves)} points to emit with props {json.dumps(self.props, indent=2)}")
 
 
@@ -129,9 +130,9 @@ class Emit:
         return a
 
 
-    def dbKey(self, extension: str):
+    def getKey(self, extension: str):
         db = "unknowndb"
-        if self.emit_type in REDIS_DATABASES:
+        if self.emit_type in REDIS_DATABASES.keys():
             db = REDIS_DATABASES[self.emit_type]
         return key_path(db, self.emit_id, extension)
 
@@ -163,30 +164,30 @@ class Emit:
             logger.warning(":saveDB: no emission point")
             return (False, "Movement::saveDB: no emission point")
 
-        emit_id = self.dbKey(REDIS_TYPE.EMIT.value)
+        emit_id = self.getKey(REDIS_TYPE.EMIT.value)
 
         emit = {}
         for f in self._emit:
             emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
         redis.delete(emit_id)
         redis.zadd(emit_id, emit)
-        move_id = self.dbKey("")
+        move_id = self.getKey("")
 
         if self.props is not None and len(self.props) > 0:
-            meta_id = self.dbKey(REDIS_TYPE.EMIT_META.value)
+            meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
             meta_data = self.props
             meta_data["emit"] = self.getInfo()
             redis.set(meta_id, json.dumps(meta_data))
 
         # save kml to redis...
         if callable(getattr(self.move, "getKML", None)):
-            kml_id = self.dbKey(REDIS_TYPE.EMIT_KML.value)
+            kml_id = self.getKey(REDIS_TYPE.EMIT_KML.value)
             redis.set(kml_id, self.move.getKML())
             logger.debug(f":saveDB: saved kml")
 
         # save messages for broadcast
         if self.move is not None:
-            mid = self.dbKey(REDIS_TYPE.EMIT_MESSAGE.value)
+            mid = self.getKey(REDIS_TYPE.EMIT_MESSAGE.value)
             for m in self.move.getMessages():
                 redis.sadd(mid, json.dumps(m.getInfo()))
             logger.debug(f":saveDB: saved {redis.scard(mid)} messages")

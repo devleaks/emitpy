@@ -5,8 +5,14 @@ from emitpy.constants import REDIS_DATABASE, ID_SEP
 from emitpy.parameters import REDIS_CONNECT
 from emitpy.utils import make_key
 
+
 logger = logging.getLogger("Queue")
 
+
+RUN  = "run"
+STOP = "stop"
+NEW_QUEUE = "new-queue"
+DELETE_QUEUE = "del-queue"
 
 class Queue:
 
@@ -17,7 +23,7 @@ class Queue:
         self.formatter_name = formatter_name
         self.speed = speed
         self.starttime = starttime
-        self.status = "RUN" if start else "STOP"
+        self.status = RUN if start else STOP
         self.redis = redis
 
 
@@ -49,7 +55,7 @@ class Queue:
             q = json.loads(qstr.decode("UTF-8"))
             logger.debug(f":loadFromDB: loaded {name}")
             start = True
-            if "status" in q and q["status"] == "STOP":
+            if "status" in q and q["status"] == STOP:
                 start = False
             return Queue(name=name, formatter_name=q["formatter_name"], starttime=q["starttime"], speed=q["speed"], start=start, redis=redis)
         return None
@@ -61,7 +67,7 @@ class Queue:
         redis.srem(REDIS_DATABASE.QUEUES.value, ident)
         redis.delete(ident)
         logger.debug(f":delete: deleted {name}")
-        redis.publish(REDIS_DATABASE.QUEUES.value, "del-queue:"+name)
+        redis.publish(REDIS_DATABASE.QUEUES.value, DELETE_QUEUE+ID_SEP+name)
         logger.debug(f"Hypercaster notified for deletion of {ident}")
         return (True, "Queue::delete: deleted")
 
@@ -75,7 +81,7 @@ class Queue:
     def reset(self, speed: float = 1, starttime: str = None, start: bool = True):
         self.speed = speed
         self.starttime = starttime
-        self.status = "RUN" if start else "STOP"
+        self.status = RUN if start else STOP
         return self.saveDB()
 
     def saveDB(self):
@@ -91,9 +97,10 @@ class Queue:
             "starttime": self.starttime,
             "status": self.status
             }))
+        self.redis.sadd(REDIS_DATABASE.QUEUES.value, ident)
         logger.debug(f":saveDB: {ident} saved")
 
-        self.redis.publish(REDIS_DATABASE.QUEUES.value, "new-queue:"+self.name)
+        self.redis.publish(REDIS_DATABASE.QUEUES.value, NEW_QUEUE+ID_SEP+self.name)
         logger.debug(f"Hypercaster notified for creation of {ident}")
 
         return (True, "Queue::save: saved")
