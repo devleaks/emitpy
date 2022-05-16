@@ -6,6 +6,7 @@ A couple of helper classes help deal with CIFP file parsing.
 import os
 import logging
 import random
+import json
 from enum import Enum
 
 from turfpy.measurement import distance, bearing
@@ -294,22 +295,30 @@ class CIFP:
     def __init__(self, icao: str):
         self.icao = icao
         self.available = False
+
         self.SIDS = {}
         self.STARS = {}
         self.APPCHS = {}
         self.RWYS = {}
+
         self.loadFromFile()
 
 
     def getKey(self):
         return self.icao
 
+
     def getInfo(self):
         return {
             "type": "CIFP",
-            "name": self.icao,
-            "procedures": {}
+            "terminal": self.icao,
+            "sids": list(self.SIDS.keys()),
+            "stars": list(self.STARS.keys()),
+            "sids": list(self.SIDS.keys()),
+            "approaches": list(self.APPCHS.keys()),
+            "runways": list(self.RWYS.keys())
         }
+
 
     def loadFromFile(self):
         """

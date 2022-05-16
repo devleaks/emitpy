@@ -222,7 +222,9 @@ class AircraftType(Identity):
         :param      redis:  The redis
         :type       redis:  { type_description }
         """
-        redis.set(key_path(base, self.getKey()), json.dumps(self.getInfo()))
+        # redis.set(key_path(base, self.getKey()), json.dumps(self.getInfo()))
+        redis.delete(key_path(base, self.getKey()))
+        redis.json().set(key_path(base, self.getKey()), "$", self.getInfo())
 
 
 
@@ -595,20 +597,21 @@ class AircraftPerformance(AircraftType):
         Converts numeric performance data to Système International.
         Uses meters, seconds, meter per second, hecto-pascal, etc.
         """
+        ROUND = 3
         if self.perfdata is None:
             self.perfdata = {}
             err = 0
 
             for name in ["initial_climb_vspeed", "climbFL150_vspeed", "climbFL240_vspeed", "climbmach_vspeed", "descentFL240_vspeed", "descentFL100_vspeed", "approach_vspeed"]:  # vspeed: ft/m -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
-                    self.perfdata[name] = self.perfraw[name] * FT / 60
+                    self.perfdata[name] = round(self.perfraw[name] * FT / 60, ROUND)
                 else:
                     logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
 
             for name in ["takeoff_speed", "initial_climb_speed", "climbFL150_speed", "climbFL240_speed", "cruise_speed", "descentFL100_speed", "approach_speed", "landing_speed"]:  # speed: kn -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
-                    self.perfdata[name] = self.perfraw[name] * NAUTICAL_MILE / 3.600
+                    self.perfdata[name] = round(self.perfraw[name] * NAUTICAL_MILE / 3.600, ROUND)
                 else:
                     logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
@@ -616,7 +619,7 @@ class AircraftPerformance(AircraftType):
             for name in ["climbmach_mach", "descentFL240_mach"]:  # speed: mach -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     kmh = machToKmh(self.perfraw[name], 24000)
-                    self.perfdata[name] = kmh / 3.6
+                    self.perfdata[name] = round(kmh / 3.6, ROUND)
                 else:
                     logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
@@ -624,7 +627,7 @@ class AircraftPerformance(AircraftType):
             for name in ["cruise_mach"]:  # speed: mach -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     kmh = machToKmh(self.perfraw[name], 30000)
-                    self.perfdata[name] = kmh / 3.6
+                    self.perfdata[name] = round(kmh / 3.6, ROUND)
                 else:
                     logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1

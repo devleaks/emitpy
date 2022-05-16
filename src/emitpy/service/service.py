@@ -49,6 +49,7 @@ class GroundSupport:
         self.estimated = None
         self.actual = None
         self.actual_end = None
+        self.schedule_history = []
 
         self.pause_before = 0  # currently unused
         self.pause_after = 0   # currently unused
@@ -93,14 +94,20 @@ class GroundSupport:
     def run(self, moment: datetime):
         return (False, "Service::run not implemented")
 
-    def setEstimatedTime(self, estimated: datetime):
-        self.estimated = estimated
+    def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now()):
+        self.estimated = dt
+        self.schedule_history.append((info_time, "ET", dt))
 
-    def started(self, actual: datetime):
-        self.actual = actual
+    def setActualTime(self, dt: datetime, info_time: datetime = datetime.now()):
+        self.actual = dt
+        self.schedule_history.append((info_time, "AT", dt))
 
-    def terminated(self, actual: datetime):
-        self.actual_end = actual
+    def started(self, dt: datetime, info_time: datetime = datetime.now()):
+        self.setActualTime(dt, info_time)
+
+    def terminated(self, dt: datetime, info_time: datetime = datetime.now()):
+        self.actual_end = dt
+        self.schedule_history.append((info_time, "TT", dt))  # Terminated Time
 
 
 class Service(GroundSupport):

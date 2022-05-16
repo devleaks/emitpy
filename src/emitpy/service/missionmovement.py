@@ -44,6 +44,11 @@ class MissionMove(Movement):
         }
 
 
+    def getSource(self):
+        # Abstract class
+        return self.mission
+
+
     def move(self):
         speeds = self.mission.vehicle.speed
 

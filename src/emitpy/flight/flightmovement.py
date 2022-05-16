@@ -39,7 +39,7 @@ class FlightMovement(Movement):
         self.flight_id = self.flight.getId()
         self.is_arrival = self.flight.is_arrival()
         self.pauses = {}  # Dict of "variable" pauses that can be added to point: "pause-name": {Feature-properties-select}
-        self.moves_st = []  # Array of Features<Point>
+        self._premoves = []  # Array of Features<Point>, pre-move is before standard turn applied
         self.takeoff_hold = None
         self.end_rollout = None
         self.holdingpoint = None
@@ -67,6 +67,11 @@ class FlightMovement(Movement):
             "icao24": self.flight.getInfo()["icao24"]
         }
         return
+
+
+    def getSource(self):
+        # Abstract class
+        return self.flight
 
 
     def move(self):
@@ -109,7 +114,7 @@ class FlightMovement(Movement):
             return status
         # printFeatures(self.taxipos, "after taxi")
 
-        logger.debug(f":move: flight {len(self.moves_st)} points, taxi {len(self.taxipos)} points")
+        logger.debug(f":move: flight {len(self.moves)} points, taxi {len(self.taxipos)} points")
         return (True, "Movement::make completed")
 
 
@@ -135,13 +140,13 @@ class FlightMovement(Movement):
         ls = Feature(geometry=asLineString(self.flight.flightplan_cp))
         saveMe(self.flight.flightplan_cp + [ls], FILE_FORMAT.FLIGHT_PLAN.value)
 
-        # saveMe(self.moves, "2-flight")
-        ls = Feature(geometry=asLineString(self.moves))
-        saveMe(self.moves + [ls], FILE_FORMAT.FLIGHT.value)
+        # saveMe(self._premoves, "2-flight")
+        ls = Feature(geometry=asLineString(self._premoves))
+        saveMe(self._premoves + [ls], FILE_FORMAT.FLIGHT.value)
 
-        # saveMe(self.moves_st, "3-move")
-        ls = Feature(geometry=asLineString(self.moves_st))
-        saveMe(self.moves_st + [ls], FILE_FORMAT.MOVE.value)
+        # saveMe(self.moves, "3-move")
+        ls = Feature(geometry=asLineString(self.moves))
+        saveMe(self.moves + [ls], FILE_FORMAT.MOVE.value)
 
         # saveMe(self.taxipos, "4-taxi")
         ls = Feature(geometry=asLineString(self.taxipos))
@@ -150,7 +155,7 @@ class FlightMovement(Movement):
         filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
         with open(filename, "w") as fp:
             fp.write(self.getKML())
-            logger.debug(f":save: saved kml {filename} ({len(self.moves_st)})")
+            logger.debug(f":save: saved kml {filename} ({len(self.moves)})")
 
         logger.debug(f":save: saved {self.flight_id}")
         return (True, "Movement::save saved")
@@ -165,15 +170,15 @@ class FlightMovement(Movement):
 
         filename = os.path.join(basename, FILE_FORMAT.FLIGHT_PLAN.value)
         with open(filename, "r") as fp:
-            self.moves = json.load(fp)
+            self._premoves = json.load(fp)
 
         filename = os.path.join(basename, FILE_FORMAT.FLIGHT.value)
         with open(filename, "r") as fp:
-            self.moves = json.load(fp)
+            self._premoves = json.load(fp)
 
         filename = os.path.join(basename, FILE_FORMAT.MOVE.value)
         with open(filename, "r") as fp:
-            self.moves_st = json.load(fp)
+            self.moves = json.load(fp)
 
         filename = os.path.join(basename, FILE_FORMAT.TAXI.value)
         with open(filename, "r") as fp:
@@ -184,12 +189,12 @@ class FlightMovement(Movement):
 
 
     def getKML(self):
-        return toKML(cleanFeatures(self.moves_st))
+        return toKML(cleanFeatures(self.moves))
 
 
     def getMoves(self):
         # Your choice... moves? (default from super()) moves_st? includes standard turns
-        return self.moves_st
+        return self.moves
 
 
     def vnav(self):
@@ -283,7 +288,7 @@ class FlightMovement(Movement):
             takeoff_hold = destination(rwy_threshold, TOH_BLASTOFF, brg, {"units": "km"})
             logger.debug(f":vnav: departure from {rwy.name}, {brg:f}")
 
-            p = addMovepoint(arr=self.moves,
+            p = addMovepoint(arr=self._premoves,
                              src=takeoff_hold,
                              alt=alt,
                              speed=0,
@@ -297,7 +302,7 @@ class FlightMovement(Movement):
             takeoff_distance = actype.getSI(ACPERF.takeoff_distance) * self.airport.runwayIsWet() / 1000  # must be km for destination()
             takeoff = destination(takeoff_hold, takeoff_distance, brg, {"units": "km"})
 
-            p = addMovepoint(arr=self.moves,
+            p = addMovepoint(arr=self._premoves,
                              src=takeoff,
                              alt=alt,
                              speed=actype.getSI(ACPERF.takeoff_speed),
@@ -323,7 +328,7 @@ class FlightMovement(Movement):
             # we ignore currpos for now, we will climb straight, we ignore points
             # between fcidx and newidx during initial climb...
             initial_climb = destination(takeoff, initial_climb_distance, brg, {"units": "km"})
-            currpos = addMovepoint(arr=self.moves,
+            currpos = addMovepoint(arr=self._premoves,
                                    src=initial_climb,
                                    alt=alt,
                                    speed=actype.getSI(ACPERF.initial_climb_speed),
@@ -334,7 +339,7 @@ class FlightMovement(Movement):
             logger.debug(":vnav: initial climb end at %d, %f" % (newidx, initial_climb_distance))
             groundmv = groundmv + initial_climb_distance
             # we ignore vertices between takeoff and initial_climb
-            # we go in straight line and ignore self.moves, skipping eventual points
+            # we go in straight line and ignore self._premoves, skipping eventual points
             fcidx = newidx
 
         else:  # no runway, simpler departure
@@ -343,7 +348,7 @@ class FlightMovement(Movement):
             if alt is None:
                 logger.warning(f":vnav: departure airport has no altitude: {deptapt}")
                 alt = 0
-            currpos = addMovepoint(arr=self.moves,
+            currpos = addMovepoint(arr=self._premoves,
                                    src=deptapt,
                                    alt=alt,
                                    speed=actype.getSI(ACPERF.takeoff_speed),
@@ -363,7 +368,7 @@ class FlightMovement(Movement):
             # find initial climb point
             groundmv = step[1]
 
-            currpos, fcidx = moveOnLS(coll=self.moves, reverse=False,
+            currpos, fcidx = moveOnLS(coll=self._premoves, reverse=False,
                                       fc=fc,
                                       fcidx=fcidx,
                                       currpos=currpos,
@@ -382,7 +387,7 @@ class FlightMovement(Movement):
         logger.debug(":vnav: climbToFL100")
         step = actype.climbToFL100(currpos.altitude())  # (t, d, altend)
         groundmv = groundmv + step[1]
-        currpos, fcidx = moveOnLS(coll=self.moves, reverse=False,
+        currpos, fcidx = moveOnLS(coll=self._premoves, reverse=False,
                                   fc=fc,
                                   fcidx=fcidx,
                                   currpos=currpos,
@@ -401,7 +406,7 @@ class FlightMovement(Movement):
             logger.debug(":vnav: climbToFL150")
             step = actype.climbToFL240(currpos.altitude())  # (t, d, altend)
             groundmv = groundmv + step[1]
-            currpos, fcidx = moveOnLS(coll=self.moves, reverse=False,
+            currpos, fcidx = moveOnLS(coll=self._premoves, reverse=False,
                                       fc=fc,
                                       fcidx=fcidx,
                                       currpos=currpos,
@@ -417,7 +422,7 @@ class FlightMovement(Movement):
                 logger.debug(":vnav: climbToFL240")
                 step = actype.climbToFL240(currpos.altitude())  # (t, d, altend)
                 groundmv = groundmv + step[1]
-                currpos, fcidx = moveOnLS(coll=self.moves, reverse=False,
+                currpos, fcidx = moveOnLS(coll=self._premoves, reverse=False,
                                           fc=fc,
                                           fcidx=fcidx,
                                           currpos=currpos,
@@ -433,7 +438,7 @@ class FlightMovement(Movement):
                     logger.debug(":vnav: climbToCruise")
                     step = actype.climbToCruise(currpos.altitude(), self.flight.getCruiseAltitude())  # (t, d, altend)
                     groundmv = groundmv + step[1]
-                    currpos, fcidx = moveOnLS(coll=self.moves, reverse=False,
+                    currpos, fcidx = moveOnLS(coll=self._premoves, reverse=False,
                                               fc=fc,
                                               fcidx=fcidx,
                                               currpos=currpos,
@@ -449,7 +454,7 @@ class FlightMovement(Movement):
                 logger.debug(":vnav: climbToCruise below FL240")
                 step = actype.climbToCruise(currpos.altitude(), self.flight.getCruiseAltitude())  # (t, d, altend)
                 groundmv = groundmv + step[1]
-                currpos, fcidx = moveOnLS(coll=self.moves, reverse=False,
+                currpos, fcidx = moveOnLS(coll=self._premoves, reverse=False,
                                           fc=fc,
                                           fcidx=fcidx,
                                           currpos=currpos,
@@ -466,7 +471,7 @@ class FlightMovement(Movement):
             logger.debug(":vnav: climbToCruise below FL150")
             step = actype.climbToCruise(currpos.altitude(), self.flight.getCruiseAltitude())  # (t, d, altend)
             groundmv = groundmv + step[1]
-            currpos, fcidx = moveOnLS(coll=self.moves, reverse=False,
+            currpos, fcidx = moveOnLS(coll=self._premoves, reverse=False,
                                       fc=fc,
                                       fcidx=fcidx,
                                       currpos=currpos,
@@ -483,7 +488,7 @@ class FlightMovement(Movement):
         # accelerate to cruise speed smoothly
         ACCELERATION_DISTANCE = 5000  # we reach cruise speed after 5km horizontal flight
         logger.debug(":vnav: accelerate to cruise speed")
-        currpos, fcidx = moveOnLS(coll=self.moves, reverse=False,
+        currpos, fcidx = moveOnLS(coll=self._premoves, reverse=False,
                                   fc=fc,
                                   fcidx=fcidx,
                                   currpos=currpos,
@@ -497,7 +502,7 @@ class FlightMovement(Movement):
 
         top_of_ascent_idx = fcidx + 1 # we reach top of ascent between idx and idx+1, so we cruise from idx+1 on.
         logger.debug(":vnav: cruise at %d after %f" % (top_of_ascent_idx, groundmv))
-        logger.debug(f":vnav: ascent added (+{len(self.moves)} {len(self.moves)})")
+        logger.debug(f":vnav: ascent added (+{len(self._premoves)} {len(self._premoves)})")
         # cruise until top of descent
 
         # PART 2: REVERSE: From brake on runway (end of roll out) to top of descent
@@ -587,7 +592,7 @@ class FlightMovement(Movement):
             logger.debug(":vnav:(rev) final at new=%d(old=%d), %f" % (newidx, fcidx, final_distance))
             groundmv = groundmv + final_distance
             # we ignore vertices between takeoff and initial_climb
-            # we go in straight line and ignore self.moves, skipping eventual points
+            # we go in straight line and ignore self._premoves, skipping eventual points
             fcidx = newidx
 
 
@@ -867,7 +872,7 @@ class FlightMovement(Movement):
                 wpt = self.flight.flightplan_cp[i]
                 # logger.debug(":vnav: adding cruise: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
 
-                p = addMovepoint(arr=self.moves,
+                p = addMovepoint(arr=self._premoves,
                                  src=wpt,
                                  alt=self.flight.getCruiseAltitude(),
                                  speed=cruise_speed,
@@ -875,7 +880,7 @@ class FlightMovement(Movement):
                                  color=POSITION_COLOR.CRUISE.value,
                                  mark=FLIGHT_PHASE.CRUISE.value,
                                  ix=i)
-            logger.debug(":vnav: cruise added (+%d %d)" % (top_of_decent_idx - top_of_ascent_idx, len(self.moves)))
+            logger.debug(":vnav: cruise added (+%d %d)" % (top_of_decent_idx - top_of_ascent_idx, len(self._premoves)))
         else:
             logger.warning(":vnav: cruise too short (%d -> %d)" % (top_of_ascent_idx, top_of_decent_idx))
 
@@ -883,15 +888,15 @@ class FlightMovement(Movement):
         #
         #
         revmoves.reverse()
-        self.moves = self.moves + revmoves
+        self._premoves = self._premoves + revmoves
 
         idx = 0
-        for f in self.moves:
-            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
+        for f in self._premoves:
+            f.setProp(FEATPROP.PREMOVE_INDEX.value, idx)
             idx = idx + 1
 
-        logger.debug(f":vnav: descent added (+{len(revmoves)} {len(self.moves)})")
-        # printFeatures(self.moves, "holding")
+        logger.debug(f":vnav: descent added (+{len(revmoves)} {len(self._premoves)})")
+        # printFeatures(self._premoves, "holding")
         return (True, "Movement::vnav completed without restriction")
 
 
@@ -908,18 +913,18 @@ class FlightMovement(Movement):
                                 FLIGHT_PHASE.TOUCH_DOWN.value,
                                 FLIGHT_PHASE.END_ROLLOUT.value]
 
-        self.moves_st = []
+        self.moves = []
         last_speed = 100  # @todo: should fetch another reasonable value from aircraft performance.
         # Add first point
-        self.moves_st.append(self.moves[0])
+        self.moves.append(self._premoves[0])
 
-        for i in range(1, len(self.moves) - 1):
-            if not should_do_st(self.moves, i):
+        for i in range(1, len(self._premoves) - 1):
+            if not should_do_st(self._premoves, i):
                 logger.debug(":standard_turns: skipping %d (special mark)" % (i))
-                self.moves_st.append(self.moves[i])
+                self.moves.append(self._premoves[i])
             else:
-                li = LineString([self.moves[i-1]["geometry"]["coordinates"], self.moves[i]["geometry"]["coordinates"]])
-                lo = LineString([self.moves[i]["geometry"]["coordinates"], self.moves[i+1]["geometry"]["coordinates"]])
+                li = LineString([self._premoves[i-1]["geometry"]["coordinates"], self._premoves[i]["geometry"]["coordinates"]])
+                lo = LineString([self._premoves[i]["geometry"]["coordinates"], self._premoves[i+1]["geometry"]["coordinates"]])
                 s = last_speed  # arrin[i].speed()
                 if s is None:
                     s = last_speed
@@ -928,21 +933,21 @@ class FlightMovement(Movement):
 
                 if arc is not None:
                     mid = arc[int(len(arc) / 2)]
-                    mid["properties"] = self.moves[i]["properties"]
+                    mid["properties"] = self._premoves[i]["properties"]
                     for p in arc:
-                        self.moves_st.append(MovePoint(geometry=p["geometry"], properties=mid["properties"]))
+                        self.moves.append(MovePoint(geometry=p["geometry"], properties=mid["properties"]))
                 else:
-                    self.moves_st.append(self.moves[i])
+                    self.moves.append(self._premoves[i])
 
         # Add last point too
-        self.moves_st.append(self.moves[-1])
+        self.moves.append(self._premoves[-1])
 
         idx = 0
-        for f in self.moves_st:
-            f.setProp(FEATPROP.MOVEST_INDEX.value, idx)
+        for f in self.moves:
+            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
             idx = idx + 1
 
-        logger.debug(f":standard_turns: completed {len(self.moves)}, {len(self.moves_st)} with standard turns")
+        logger.debug(f":standard_turns: completed {len(self._premoves)}, {len(self.moves)} with standard turns")
         return (True, "Movement::standard_turns added")
 
 
@@ -952,7 +957,7 @@ class FlightMovement(Movement):
         This is a simple linear interpolation based on distance between points.
         Runs for flight portion of flight.
         """
-        to_interp = self.moves_st
+        to_interp = self.moves
         # before = []
         check = "altitude"
         logger.debug(":interpolate: interpolating ..")
@@ -981,9 +986,9 @@ class FlightMovement(Movement):
         #     logger.debug(":interpolate: %d: %s -> %s." % (i, before[i] if before[i] is not None else -1, v))
 
 
-        # logger.debug(":interpolate: last point %d: %f, %f" % (len(self.moves_st), self.moves_st[-1].speed(), self.moves_st[-1].altitude()))
+        # logger.debug(":interpolate: last point %d: %f, %f" % (len(self.moves), self.moves[-1].speed(), self.moves[-1].altitude()))
         # i = 0
-        # for f in self.moves:
+        # for f in self._premoves:
         #     s = f.speed()
         #     a = f.altitude()
         #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
@@ -997,15 +1002,15 @@ class FlightMovement(Movement):
         Time 0 is start of roll for takeoff (Departure) or takeoff from origin airport (Arrival).
         Last time is touch down at destination (Departure) or end of roll out (Arrival).
         """
-        if self.moves_st is None:
+        if self.moves is None:
             return (False, "Movement::time no move")
 
-        status = doTime(self.moves_st)
+        status = doTime(self.moves)
         if not status[0]:
             logger.warning(status[1])
             return status
 
-        for f in self.moves_st:
+        for f in self.moves:
             f.setProp(FEATPROP.SAVED_TIME.value, f.time())
 
         return (True, "Movement::time computed")
@@ -1046,27 +1051,27 @@ class FlightMovement(Movement):
     def add_tmo(self):
         # We add a TMO point (Ten (nautical) Miles Out). Should be set before we interpolate.
         TMO = 10 * NAUTICAL_MILE  # km
-        idx = len(self.moves_st) - 1  # last is end of roll, before last is touch down.
+        idx = len(self.moves) - 1  # last is end of roll, before last is touch down.
         totald = 0
         prev = 0
         while totald < TMO and idx > 1:
             idx = idx - 1
-            d = distance(self.moves_st[idx], self.moves_st[idx-1])
+            d = distance(self.moves[idx], self.moves[idx-1])
             prev = totald
             totald = totald + d
             # logger.debug("add_tmo: %d: d=%f, t=%f" % (idx, d, totald))
         # idx points at
         left = TMO - prev
         # logger.debug("add_tmo: %d: left=%f, TMO=%f" % (idx, left, TMO))
-        brng = bearing(self.moves_st[idx], self.moves_st[idx - 1])
-        tmopt = destination(self.moves_st[idx], left, brng, {"units": "km"})
+        brng = bearing(self.moves[idx], self.moves[idx - 1])
+        tmopt = destination(self.moves[idx], left, brng, {"units": "km"})
 
         tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
         tmomp.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TEN_MILE_OUT.value)
 
-        d = distance(tmomp, self.moves_st[-2])  # last is end of roll, before last is touch down.
+        d = distance(tmomp, self.moves[-2])  # last is end of roll, before last is touch down.
 
-        self.moves_st.insert(idx, tmomp)
+        self.moves.insert(idx, tmomp)
         logger.debug(f":add_tmo: added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down")
 
         self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.FLIGHTINFO.value,
@@ -1077,7 +1082,7 @@ class FlightMovement(Movement):
 
 
     def addDelay(self, name: str, seconds: int):
-        farr = findFeatures(self.moves_st, {FEATPROP.MARK.value: name})
+        farr = findFeatures(self.moves, {FEATPROP.MARK.value: name})
         if len(farr) == 0:
             logger.warning(f":addDelay: feature mark {name} not found")
             return

@@ -44,6 +44,11 @@ class ServiceMove(Movement):
         }
 
 
+    def getSource(self):
+        # Abstract class
+        return self.service
+
+
     def move(self):
         speeds = self.service.vehicle.speed
 

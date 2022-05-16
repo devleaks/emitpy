@@ -25,7 +25,7 @@ class Flight(Messages):
         self.scheduled_dt = datetime.fromisoformat(scheduled)
         self.estimated = None
         self.actual = None
-        self.schedule_history = None  # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
+        self.schedule_history = []  # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
         self.operator = operator
         self.aircraft = aircraft
         self.ramp = None              # GeoJSON Feature
@@ -267,14 +267,14 @@ class Flight(Messages):
         return fpcp[0]
 
 
-    def setEstimatedTime(self, dt: datetime):
+    def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now()):
         self.estimated = dt
-        self.schedule_history.append((datetime.now(), "ET", dt))
+        self.schedule_history.append((info_time, "ET", dt))
 
 
-    def setActualTime(self, dt: datetime):
+    def setActualTime(self, dt: datetime, info_time: datetime = datetime.now()):
         self.actual = dt
-        self.schedule_history.append((datetime.now(), "AT", dt))
+        self.schedule_history.append((info_time, "AT", dt))
 
 
     def plan(self):

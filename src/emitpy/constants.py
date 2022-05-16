@@ -239,6 +239,9 @@ class FLIGHT_PHASE(Enum):
     TOP_OF_ASCENT = "TOP_OF_ASCENT"
     TOP_OF_DESCENT = "TOP_OF_DESCENT"
 
+ARRIVAL_TIME = FLIGHT_PHASE.TOUCH_DOWN.value  # {TOUCH_DOWN|ONBLOCK}
+DEPARTURE_TIME = FLIGHT_PHASE.TAKE_OFF.value  # {OFFBLOCK|TAKE_OFF_HOLD|TAKE_OFF}
+
 
 class MISSION_PHASE(Enum):
     START = "start"
@@ -310,8 +313,8 @@ class FEATPROP(Enum):
     MARK = "_mark"
     MESSAGE_ID = "message-id"
     MISSION = "mission"
-    MOVE_INDEX = "move-index"
-    MOVEST_INDEX = "move-st-index"  # after standard turns added
+    PREMOVE_INDEX = "move-pre-index"
+    MOVE_INDEX = "move-index"  # after standard turns added
     NAME = "name"
     ORIENTATION = "orientation"
     PAUSE = "pause"

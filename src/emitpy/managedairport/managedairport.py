@@ -1,11 +1,15 @@
 import logging
+import json
+from redis.commands.json.path import Path
+from fastapi.encoders import jsonable_encoder
 
 from emitpy.airspace import XPAirspace, Metar
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.airport import Airport, AirportBase, XPAirport
 from emitpy.business import AirportManager
-
+from emitpy.constants import REDIS_DATABASE, ID_SEP
+from emitpy.utils import key_path
 
 logger = logging.getLogger("ManagedAirport")
 
@@ -115,7 +119,16 @@ class ManagedAirport:
         :param      dbid:  The dbid
         :type       dbid:  int
         """
+        def saveComboAsJson(k, arr):
+            # redis.set(key_path(REDIS_DATABASE.LOVS.value,k),json.dumps(dict(arr)))
+            k2 = key_path(REDIS_DATABASE.LOVS.value,k)
+            d2 = dict(arr)
+            redis.json().set(k2, Path.root_path(), jsonable_encoder(d2))
+
         redis = self._app.redis
+        # #############################@
+        # D A T A
+        #
         # Airports
         logger.debug(":cache: caching..")
         prevdb = redis.client_info()["db"]
@@ -135,6 +148,29 @@ class ManagedAirport:
         # Airlines + routes
         # Airspace (terminals, navaids, fixes, airways)
         #
+        # #############################@
+        # L I S T S   O F   V A L U E S
+        #
+        # Airports operating at managed airport
+        saveComboAsJson("airports", Airport.getCombo())
+        # Airlines operating at managed airport
+        saveComboAsJson("airlines", Airline.getCombo())
+        # Airport ramps
+        saveComboAsJson("airport:ramps", self.airport.getRampCombo())
+        # Airport runways
+        saveComboAsJson("airport:runways", self.airport.getRunwayCombo())
+        # Airport point of interest
+        saveComboAsJson("airport:pois", self.airport.getPOICombo())
+        # Aircraft types
+        saveComboAsJson("aircrafts", AircraftPerformance.getCombo())
+        # # Services
+        # redis.set(LOVS+"services", Service.getCombo())
+        # # Service handlers
+        # redis.set(LOVS+"service-handlers", self.airport.manager.getCompaniesCombo(classId="Service"))
+        # # Missions
+        # redis.set(LOVS+"service-handlers", Mission.getCombo())
+        # # Mission handlers
+        # redis.set(LOVS+"service-handlers", self.airport.manager.getCompaniesCombo(classId="Mission"))
         redis.select(prevdb)
         logger.debug(":cache: ..done")
 

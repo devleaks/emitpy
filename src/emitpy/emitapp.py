@@ -82,10 +82,6 @@ class EmitApp(ManagedAirport):
         return self.redis
 
 
-    def cache_static_lovs(self):
-        pass
-
-
     def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
         logger.debug("Airline, airport..")
         # Add pure commercial stuff
