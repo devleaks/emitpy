@@ -12,17 +12,24 @@ from typing import Mapping
 from geojson import Feature, FeatureCollection, Point, LineString
 from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
-from jsonpath import JSONPath
+
+from redis.commands.json.path import Path
+from redis_om import HashModel
 
 from emitpy.geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path
+from emitpy.utils import FT, Messages, EstimatedTimeMessage
 
-from emitpy.constants import MANAGED_AIRPORT, FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE
+from emitpy.constants import MANAGED_AIRPORT, FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
 from emitpy.constants import RATE_LIMIT, EMIT_RANGE
 from emitpy.parameters import AODB_DIR, REDIS_CONNECT
 
+from .emitmeta import EmitMeta
+
+
 logger = logging.getLogger("Emit")
+
 
 
 class EmitPoint(FeatureWithProps):
@@ -42,89 +49,18 @@ class EmitPoint(FeatureWithProps):
         return t if t is not None else 0
 
 
-class EmitMeta:
-
-    def __init__(self, redis, emit_id: str):
-        """
-        Special Emit structure built from flight/emit meta data saved in Redis.
-
-        :param      redis:      The redis
-        :type       redis:      { type_description }
-        :param      emit_id:  The flight identifier
-        :type       emit_id:  str
-        """
-        self.source = None
-        self.emit_id = emit_id
-
-        self.metadata = None
-
-        self.scheduled = None
-        self.estimated = None
-        self.schedule_history = []
-
-        self.loadDB()
-
-
-    def loadDB(self):
-        # Collects flight meta, specially its ramp and scheduled/estimated time.
-        meta_key = key_path(self.emit_id, REDIS_TYPE.EMIT_META.value)
-        meta_str = redis.get(meta_key)
-        if meta_str is None:
-            logger.debug(f":loadDB:  {emit_id} not found ({meta_key})")
-            return
-        self.metadata = json.loads(meta_str.decode("UTF-8"))
-        self.parseMeta()
-
-
-    def parseMeta(self):
-        if self.metadata["type"] == "flight":
-            meta_key = key_path(REDIS_DATABASE.FLIGHTS.value, self.emit_id, REDIS_TYPE.EMIT_META.value)
-            meta_str = redis.get(meta_key)
-            # Ramp
-            ramp_arr = self.get("$.flight.ramp.name")
-            if len(ramp_arr) == 0:
-                logger.debug(f":__init__: flight {emit_id} cannot find ramp")
-                return items
-            self.ramp_id = ramp_arr[0]
-
-            # Movement
-            dest = self.get("$.flight.arrival.airport.icao")
-            if len(dest) == 0:
-                logger.debug(f":__init__: flight {meta_str} has no destination")
-                return items
-            self.is_arrival = dest[0] == MANAGED_AIRPORT["ICAO"]
-
-        # Scheduled time
-        localtz = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
-        et_move_str = flight_id.split("-")[1][1:]  # QR639-S201904030255, removes S.
-        et_move = datetime.strptime(et_move_str, FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
-        self.scheduled = et_move.astimezone(tz=localtz)
-
-
-    def get(self, path: str):
-        if self.metadata is not None:
-            return JSONPath(path).parse(self.metadata)
-        return None
-
-
-    def getSource(self):
-        return None
-
-
-    def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now()):
-        self.estimated = dt
-        self.schedule_history.append((info_time, "ET", dt))
-
-
-class Emit:
+class Emit(Messages):
     """
     Emit takes an array of MovePoints to produce a FeatureCollection of decorated features ready for emission.
     """
-    def __init__(self, move: Movement = None):
+    def __init__(self, move: Movement):
+        Messages.__init__(self)
         self.move = move
+
         self.moves = None
         self.emit_id = None
         self.emit_type = None
+        self.emit_meta = None
         self.frequency = 30  # seconds
         self._emit = []  # [ EmitPoint ], time-relative emission of messages
         self.scheduled_emit = []  # [ EmitPoint ], a copy of self._emit but with actual emission time (absolute time)
@@ -134,13 +70,20 @@ class Emit:
         self.offset = None
 
         if move is not None:
+            # We create an emit from a movement
             self.emit_id = self.move.getId()
             m = self.move.getInfo()
             self.emit_type = m["type"]
+            # self.emit_meta = EmitMeta()
             self.moves = self.move.getMoves()
             self.props = self.move.getInfo()  # collect common props from movement
             self.props["emit"] = self.getInfo() # add meta data about this emission
-            logger.debug(f":__init__: {len(self.moves)} points to emit with props {json.dumps(self.props, indent=2)}")
+            # logger.debug(f":__init__: {len(self.moves)} move points to emit with props {json.dumps(self.props, indent=2)}")
+            logger.debug(f":__init__: {len(self.moves)} move points to emit with {len(self.props)} props")
+        # else:
+            # We reconstruct an emit from cache/database
+        #     self.emit_meta = EmitMeta.find({"emit_id": self.emit_id})
+        #     logger.debug(f":__init__: loaded {len(self.moves)} emit points from cache")
 
 
     @staticmethod
@@ -153,95 +96,6 @@ class Emit:
             n = f.value[0].upper() + f.value[1:] + " (service)"
             a.append((f.value, n))
         return a
-
-
-    def getSource(self):
-        # Abstract class
-        if self.move is not None:
-            return self.move.getSource()
-        return None
-
-
-    def getKey(self, extension: str):
-        db = "unknowndb"
-        if self.emit_type in REDIS_DATABASES.keys():
-            db = REDIS_DATABASES[self.emit_type]
-        return key_path(db, self.emit_id, extension)
-
-
-    def save(self):
-        """
-        Save flight paths to file for emitted positions.
-        """
-        ident = self.getId()
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, ident)
-
-        # filename = os.path.join(basename + "-5-emit.json")
-        # with open(filename, "w") as fp:
-        #     json.dump(self._emit, fp, indent=4)
-        ls = Feature(geometry=asLineString(self._emit))
-        filename = os.path.join(basename + "-5-emit_ls.geojson")
-        with open(filename, "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self._emit)+ [ls]), fp, indent=4)
-
-        logger.debug(f":save: saved {ident}")
-        return (True, "Movement::save saved")
-
-
-    def saveDB(self, redis):
-        """
-        Save flight paths to file for emitted positions.
-        """
-        if self._emit is None or len(self._emit) == 0:
-            logger.warning(":saveDB: no emission point")
-            return (False, "Movement::saveDB: no emission point")
-
-        emit_id = self.getKey(REDIS_TYPE.EMIT.value)
-
-        # 1. Save emission points
-        emit = {}
-        for f in self._emit:
-            emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
-        redis.delete(emit_id)
-        redis.zadd(emit_id, emit)
-        move_id = self.getKey("")
-
-        # 1b. Save KML for flights
-        if callable(getattr(self.move, "getKML", None)):
-            kml_id = self.getKey(REDIS_TYPE.EMIT_KML.value)
-            redis.set(kml_id, self.move.getKML())
-            logger.debug(f":saveDB: saved kml")
-
-        # 2. Save emission meta data
-        if self.props is not None and len(self.props) > 0:
-            meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
-            redis.set(meta_id, json.dumps(self.getMeta()))
-
-        # 3. Save messages for broadcast
-        if self.move is not None:
-            mid = self.getKey(REDIS_TYPE.EMIT_MESSAGE.value)
-            for m in self.move.getMessages():
-                redis.sadd(mid, json.dumps(m.getInfo()))
-            logger.debug(f":saveDB: saved {redis.scard(mid)} messages")
-
-        logger.debug(f":saveDB: saved {move_id}")
-        return (True, "Movement::saveDB saved")
-
-
-    def load(self, emit_id):
-        # load output of Movement file.
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, emit_id)
-
-        filename = os.path.join(basename, "-4-move.json")
-        if os.path.exists(filename):
-            with open(filename, "r") as fp:
-                self.moves = json.load(fp)
-            self.emit_id = emit_id
-            logger.debug(":loadAll: loaded %d " % self.emit_id)
-            return (True, "Movement::load loaded")
-
-        logger.debug(f":loadAll: cannot find {filename}")
-        return (False, "Movement::load not loaded")
 
 
     def getId(self):
@@ -279,6 +133,92 @@ class Emit:
         if source is not None:
             meta_data["move"] = source.getInfo()
         return meta_data
+
+
+    def getSource(self):
+        # Abstract class
+        if self.move is not None:
+            return self.move.getSource()
+        return None
+
+
+    def getKey(self, extension: str):
+        db = "unknowndb"
+        if self.emit_type in REDIS_DATABASES.keys():
+            db = REDIS_DATABASES[self.emit_type]
+        return key_path(db, self.emit_id, extension)
+
+
+    def loadMeta(self):
+        emit_id = self.getKey(REDIS_TYPE.EMIT_META.value)
+        if self.redis.exists(emit_id):
+            self.redis = json.loads(redis.get(emit_id))
+            logger.debug(f":loadFromCache: ..got {len(self.props)} props")
+        else:
+            logger.debug(f":loadFromCache: ..no meta for {emit_id}")
+
+
+    def save(self, redis):
+        """
+        Save flight paths to file for emitted positions.
+        """
+        if self._emit is None or len(self._emit) == 0:
+            logger.warning(":save: no emission point")
+            return (False, "Movement::save: no emission point")
+
+        emit_id = self.getKey(REDIS_TYPE.EMIT.value)
+
+        # 1. Save emission points
+        emit = {}
+        for f in self._emit:
+            emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
+        redis.delete(emit_id)
+        redis.zadd(emit_id, emit)
+        move_id = self.getKey("")
+
+        # 1b. Save KML for flights
+        if callable(getattr(self.move, "getKML", None)):
+            kml_id = self.getKey(REDIS_TYPE.EMIT_KML.value)
+            redis.set(kml_id, self.move.getKML())
+            logger.debug(f":save: saved kml")
+
+        # 2. Save emission meta data
+        meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
+        redis.delete(meta_id)
+        redis.json().set(meta_id, Path.root_path(), self.getMeta())
+
+        # 2. Save emission meta data structure
+        if self.emit_meta is not None:
+            self.emit_meta.save(redis)
+
+        # 3. Save messages for broadcast
+        if self.move is not None:
+            mid = self.getKey(REDIS_TYPE.EMIT_MESSAGE.value)
+            for m in self.move.getMessages():
+                redis.sadd(mid, json.dumps(m.getInfo()))
+            logger.debug(f":save: saved {redis.scard(mid)} messages")
+
+        logger.debug(f":save: saved {move_id}")
+        return (True, "Movement::saveDB saved")
+
+
+    def saveFile(self):
+        """
+        Save flight paths to file for emitted positions.
+        """
+        ident = self.getId()
+        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, ident)
+
+        # filename = os.path.join(basename + "-5-emit.json")
+        # with open(filename, "w") as fp:
+        #     json.dump(self._emit, fp, indent=4)
+        ls = Feature(geometry=asLineString(self._emit))
+        filename = os.path.join(basename + "-5-emit_ls.geojson")
+        with open(filename, "w") as fp:
+            json.dump(FeatureCollection(features=cleanFeatures(self._emit)+ [ls]), fp, indent=4)
+
+        logger.debug(f":save: saved {ident}")
+        return (True, "Movement::save saved")
 
 
     def emit(self, frequency: int = 30):
@@ -351,12 +291,12 @@ class Emit:
             self._emit.append(e)
             # logger.debug(f":emit:emit_point: dist2nvtx={round(distance(e, self.moves[idx+1])*1000,1)} i={idx} e={len(self._emit)}")
 
-        def pause_at_vertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason, waypt=False):
-            logger.debug(f":pause_at_vertex: pause  i={idx} p={pause}, e={len(self._emit)}")
+        def pause_at_vertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason):
+            logger.debug(f":pause_at_vertex: pause i={idx} p={pause}, e={len(self._emit)}")
             if pause < self.frequency:  # may be emit before reaching next vertex:
                 if pause > time_to_next_emit:  # neet to emit before we reach next vertex
                     emit_time = curr_time + time_to_next_emit
-                    emit_point(idx, pos, emit_time, reason, False) # to emit
+                    emit_point(idx, pos, emit_time, reason, False) # waypt=False to emit
                     end_time = curr_time + pause
                     time_left = self.frequency - pause - time_to_next_emit
                     # logger.debug(f":pause_at_vertex: pause before next emit: emit at vertex i={idx} p={pause}, e={len(self._emit)}")
@@ -438,7 +378,7 @@ class Emit:
                 time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
                 pause = currpos.getProp(FEATPROP.PAUSE.value)
                 if pause is not None and pause > 0:
-                    total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }", True)
+                    total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }")
                     logger.debug(f":emit: .. done pausing at vertex. {time_to_next_emit} sec left before next emit")
                 # logger.debug(f"..done moving to next vertex with time remaining before next emit. {time_to_next_emit} sec left before next emit, moving to next vertex")
 
@@ -472,7 +412,7 @@ class Emit:
                     time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
                     pause = currpos.getProp(FEATPROP.PAUSE.value)
                     if pause is not None and pause > 0:
-                        total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self._emit)}", True)
+                        total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self._emit)}")
                         logger.debug(f":emit: .. done pausing at vertex. {time_to_next_emit} sec left before next emit")
                     # logger.debug(f".. done jumping to next vertex. {time_to_next_emit} sec left before next emit")
 
@@ -660,17 +600,21 @@ class Emit:
     def updateEstimatedTime(self):
         """
         Based on this "absolute" time of emission, update "parent" movement ETA/ETD for flights
-        and estimated time of service for GSE.
+        and estimated time of service for GSE. In other words, getAbsoluteEmissionTime for estimated
+        time events for each type of move.
         """
         ff = None
         source = self.getSource()
+        is_arrival = False
         if source is not None:
             if type(source).__name__ in ["Flight", "Arrival", "Departure"]:
                 ff = FLIGHT_PHASE.TOUCH_DOWN.value if source.is_arrival() else FLIGHT_PHASE.TAKE_OFF.value
+                is_arrival = source.is_arrival()
             elif type(source).__name__.startswith("Service"):
-                ff = FLIGHT_PHASE.TOUCH_DOWN.value if source.is_arrival() else SERVICE_PHASE.SERVICE_START.value
+                ff = SERVICE_PHASE.SERVICE_START.value
+                is_arrival = source.is_arrival()
             elif type(source).__name__.startswith("Mission"):
-                ff = FLIGHT_PHASE.TOUCH_DOWN.value if source.is_arrival() else MISSION_PHASE.START.value
+                ff = MISSION_PHASE.START.value
 
             if ff is not None:
                 f = self.getAbsoluteEmissionTime(ff)
@@ -678,6 +622,9 @@ class Emit:
                     esti = f.getAbsoluteEmissionTime()
                     if esti is not None:
                         source.setEstimatedTime(dt=esti)
+                        self.addMessage(EstimatedTimeMessage(flight_id=source.getId(),
+                                                             is_arrival=is_arrival,
+                                                             et=esti))
                     else:
                         logger.warning(":updateEstimatedTime: feature has no absolute emission time")
                 else:

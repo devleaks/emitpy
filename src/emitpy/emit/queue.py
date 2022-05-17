@@ -82,9 +82,9 @@ class Queue:
         self.speed = speed
         self.starttime = starttime
         self.status = RUN if start else STOP
-        return self.saveDB()
+        return self.save()
 
-    def saveDB(self):
+    def save(self):
         """
         Saves Queue characteristics in a structure for Broadcaster
         Also saves Queue existence in "list of queues" set ("Queue Database"), to build combo, etc.
@@ -98,7 +98,7 @@ class Queue:
             "status": self.status
             }))
         self.redis.sadd(REDIS_DATABASE.QUEUES.value, ident)
-        logger.debug(f":saveDB: {ident} saved")
+        logger.debug(f":save: {ident} saved")
 
         self.redis.publish(REDIS_DATABASE.QUEUES.value, NEW_QUEUE+ID_SEP+self.name)
         logger.debug(f"Hypercaster notified for creation of {ident}")

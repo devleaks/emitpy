@@ -94,26 +94,9 @@ class Metar:
         return (False, "Metar::fetch: abstract class")
 
 
-    def save(self):
-        if self.redis is not None:
-            return self.saveDB()
-        metid = "*ERROR*"
-        fn = "*ERROR*"
-        if self.raw is not None:
-            metid = self.raw.METAR[0:4] + '-' + self.raw.METAR[5:12]
-            fn = os.path.join(METAR_DIR, metid + ".json")
-            if not os.path.exists(fn):
-                with open(fn, "w") as outfile:
-                    print(self.raw, outfile)
-            else:
-                logger.warning(f":save: already exist {fn}")
-            return (True, "Metar::save: saved")
-        return (False, "Metar::save: not saved")
-
-
     def load(self):
         if self.redis is not None:
-            return self.loadDB()
+            return self.loadFromCache()
         nowstr = self.moment_norm.strftime('%d%H%MZ')
         fn = os.path.join(METAR_DIR, self.icao + "-" + nowstr + ".json")
         logger.debug(f":load: trying {fn}")
@@ -128,37 +111,52 @@ class Metar:
             logger.debug(f":load: not found {fn}")
 
 
-    def saveDB(self):
+    def save(self):
         if self.redis is not None:
             if self.raw is not None:
                 nowstr = self.getFullDT()
                 metid = REDIS_DATABASE.METAR.value + ":" + self.raw[0:4] + ':' + nowstr
                 if not self.redis.exists(metid):
                     self.redis.set(metid, self.raw)
-                    return (True, "Metar::saveDB: saved")
+                    return (True, "Metar::save: saved")
                 else:
-                    logger.warning(f":saveDB: already exist {metid}")
+                    logger.warning(f":save: already exist {metid}")
             else:
-                logger.warning(f":saveDB: no metar to save")
+                logger.warning(f":save: no metar to save")
         else:
-            logger.warning(f":saveDB: no redis")
-        return (False, "Metar::saveDB: not saved")
+            return self.saveFile()
+        return (False, "Metar::save: not saved")
 
 
-    def loadDB(self):
+    def saveFile(self):
+        metid = "*ERROR*"
+        fn = "*ERROR*"
+        if self.raw is not None:
+            metid = self.raw.METAR[0:4] + '-' + self.raw.METAR[5:12]
+            fn = os.path.join(METAR_DIR, metid + ".json")
+            if not os.path.exists(fn):
+                with open(fn, "w") as outfile:
+                    print(self.raw, outfile)
+            else:
+                logger.warning(f":save: already exist {fn}")
+            return (True, "Metar::save: saved")
+        return (False, "Metar::save: not saved")
+
+
+    def loadFromCache(self):
         if self.redis is not None:
             nowstr = self.getFullDT()
             metid = REDIS_DATABASE.METAR.value + ":" + self.icao + ":" + nowstr
-            logger.debug(f":loadDB: trying {metid}")
+            logger.debug(f":loadFromCache: trying {metid}")
             if self.redis.exists(metid):
                 raw = self.redis.get(metid)
                 self.raw = raw.decode("UTF-8")
                 if self.raw is not None:
                     return self.parse()
-                return (False, "Metar::loadDB: failed to get")
+                return (False, "Metar::loadFromCache: failed to get")
             else:
-                logger.debug(f":loadDB: not found {metid}")
-        return (False, "Metar::loadDB: failed to load")
+                logger.debug(f":loadFromCache: not found {metid}")
+        return (False, "Metar::loadFromCache: failed to load")
 
 
     def getFullDT(self):

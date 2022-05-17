@@ -289,7 +289,7 @@ class Flight(Messages):
         planpts = []
 
         remote_apt = self.departure if self.is_arrival() else self.arrival
-        self.addMessage(FlightboardMessage(flightid=self.getId(),
+        self.addMessage(FlightboardMessage(flight_id=self.getId(),
                                            is_arrival=self.is_arrival(),
                                            airport=remote_apt.icao))
 

@@ -113,6 +113,7 @@ class REDIS_DATABASE(Enum):
     COMPAGNIES = "company-directory"
     PEOPLE = "directory"
     LOVS = "lovs"
+    EMIT_METAS = "emit-meta"
 
 
 REDIS_DATABASES = {

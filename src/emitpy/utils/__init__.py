@@ -3,4 +3,5 @@ from .unitconversion import toNm, toKmh, ConvertDMSToDD, machToKmh, NAUTICAL_MIL
 from .interpolate import compute_headings, compute_time, interpolate
 from .timezone import Timezone
 from .key import key_path, make_key
-from .message import MESSAGE_TYPE, Messages, MovementMessage, FlightboardMessage
+from .message import MESSAGE_TYPE, Messages
+from .message import MovementMessage, FlightboardMessage, EstimatedTimeMessage

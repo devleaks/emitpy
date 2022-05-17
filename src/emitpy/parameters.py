@@ -5,24 +5,27 @@ Used for file location, connection details, etc.
 import os
 
 
-
 DEVELOPMENT = False  # produces additional debug if True
 PRODUCTION = True  # removed caches and short circuits
 
+
+# ######################@
+# File system-based Data
+#
 # Should not be specified, should be deduced from Emitpy.__FILE__
 HOME_DIR = os.path.join("/Users", "pierre", "Developer", "oscars", "emitpy")  # should work even on windows... python guys are genius.
 
-
 # DATA is a database of *static* data, definitions, etc. (read-only)
 DATA_DIR = os.path.join(HOME_DIR, "data")
-
 LOAD_AIRWAYS=False  # to speedup developments
-
 
 # AODB is a database of working data (read-write). Mostly replaced by Redis
 AODB_DIR = os.path.join(HOME_DIR, "db")
 
 
+# ######################@
+# Database system-based Data
+#
 # REDIS
 USE_REDIS = True
 
@@ -36,7 +39,10 @@ REDIS_COMMANDER_URL = "http://127.0.0.1:8081/"
 
 
 
-# Mnaged Airport we are working on
+# ######################@
+# Application options and parameters
+#
+# Managed Airport we are working on
 MANAGED_AIRPORT = {
     "ICAO": "OTHH",
     "IATA": "DOH",
@@ -52,7 +58,6 @@ MANAGED_AIRPORT = {
     "tzname": "Doha",
     "operator": "MATAR"
 }
-
 
 # Default queues are created in emitpy if they do not exists.
 DEFAULT_QUEUES = {

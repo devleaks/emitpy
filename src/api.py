@@ -7,7 +7,7 @@ import starlette.status as status
 from fastapi import FastAPI, Body, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from web.routers import flights, services, missions, queues, airport
+from .web.routers import flights, services, missions, queues, airport
 
 import emitpy
 from emitpy.parameters import MANAGED_AIRPORT

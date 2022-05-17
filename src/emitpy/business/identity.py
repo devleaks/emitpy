@@ -46,4 +46,4 @@ class Identity:
         :type       redis:  { type_description }
         """
         redis.set(key_path(REDIS_DATABASE.AIRCRAFTS.value, self.getKey()), json.dumps(self.getInfo()))
-        return (True, f"{type(self).__name__}::saveDB: saved")
+        return (True, f"{type(self).__name__}::save: saved")

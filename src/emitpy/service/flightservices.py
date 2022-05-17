@@ -41,15 +41,15 @@ class FlightServices:
         return (True, "FlightServices::save: completed")
 
 
-    def saveDB(self, redis):
+    def save(self, redis):
         for service in self.services:
             logger.debug(f"saving to redis {service['type']}..")
             emit = service["emit"]
-            ret = emit.saveDB(redis)
+            ret = emit.save(redis)
             if not ret[0]:
                 return ret
             logger.debug(f"..done")
-        return (True, "FlightServices::saveDB: completed")
+        return (True, "FlightServices::save: completed")
 
 
     def service(self):

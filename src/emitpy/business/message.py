@@ -125,7 +125,7 @@ class Messages:
     def saveMessages(self, redis, key: str):
         for m in self.messages:
             self.redis.sadd(key, json.dumps(m.getInfo()))
-        logger.debug(f":saveDB: saved {redis.smembers(key)} messages")
+        logger.debug(f":save: saved {redis.smembers(key)} messages")
 
 
 class MovementMessage(Message):

@@ -126,7 +126,7 @@ class Messages:
     def saveMessages(self, redis, key: str):
         for m in self.messages:
             self.redis.sadd(key, json.dumps(m.getInfo()))
-        logger.debug(f":saveDB: saved {redis.smembers(key)} messages")
+        logger.debug(f":save: saved {redis.smembers(key)} messages")
 
 
 class MovementMessage(Message):
@@ -151,16 +151,19 @@ class MovementMessage(Message):
 
 class FlightboardMessage(Message):
 
-    def __init__(self, flightid, is_arrival: bool, airport):
+    def __init__(self, flight_id, is_arrival: bool, airport):
         Message.__init__(self, msgtype=MESSAGE_TYPE.FLIGHTBOARD.value,
                                msgsubtype=ARRIVAL if is_arrival else DEPARTURE,
-                               entity=flightid,
+                               entity=flight_id,
                                subentity=airport)
 
-# class ETAMessage(Message):
+class EstimatedTimeMessage(Message):
 
-#     def __init__(self):
-#         Message.__init__(self, subject="", body="")
+    def __init__(self, flight_id: str, is_arrival: bool, et: datetime):
+        Message.__init__(self, msgtype=MESSAGE_TYPE.FLIGHTINFO.value,
+                               msgsubtype=ARRIVAL if is_arrival else DEPARTURE,
+                               entity=flight_id,
+                               subentity=et)
 
 
 # class ETDMessage(Message):

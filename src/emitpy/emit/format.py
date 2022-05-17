@@ -63,7 +63,7 @@ class Format:
         return (True, "Format::format completed")
 
 
-    def save(self, overwrite: bool = False):
+    def saveFile(self, overwrite: bool = False):
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE)
         fileformat = self.formatter.FILE_EXTENTION
         ident = self.emit.getId()

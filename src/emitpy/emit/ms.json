@@ -1,0 +1,74 @@
+{
+  "type": "service",
+  "ident": "FuelService:504:2019-04-04T08.20.00+03.00:FUEPU000",
+  "service": {
+    "service-type": "FuelService",
+    "service-identifier": "FuelService:504:2019-04-04T08.20.00+03.00:FUEPU000",
+    "operator": {
+      "orgId": "Airport Operator",
+      "classId": "Airport Operator",
+      "typeId": "Airport Operator",
+      "name": "MATAR"
+    },
+    "ramp": {
+      "name": "504",
+      "apron": "J"
+    },
+    "vehicle": {
+      "icao": "ZZZF",
+      "registration": "FUEPU000",
+      "callsign": "FUEPU000",
+      "icao24": "fef33d",
+      "operator": {
+        "orgId": "Airport Operator",
+        "classId": "Airport Operator",
+        "typeId": "Airport Operator",
+        "name": "MATAR"
+      },
+      "service": "fuelpump",
+      "model": "pump",
+      "model_name": "Fuel hydrant vehicle"
+    },
+    "icao24": "fef33d",
+    "registration": "FUEPU000"
+  },
+  "icao24": "fef33d",
+  "emit": {
+    "type": "emit",
+    "subtype": "service",
+    "ident": "FuelService:504:2019-04-04T08.20.00+03.00:FUEPU000",
+    "frequency": 30,
+    "version": 2
+  },
+  "move": {
+    "service-type": "FuelService",
+    "service-identifier": "FuelService:504:2019-04-04T08.20.00+03.00:FUEPU000",
+    "operator": {
+      "orgId": "Airport Operator",
+      "classId": "Airport Operator",
+      "typeId": "Airport Operator",
+      "name": "MATAR"
+    },
+    "ramp": {
+      "name": "504",
+      "apron": "J"
+    },
+    "vehicle": {
+      "icao": "ZZZF",
+      "registration": "FUEPU000",
+      "callsign": "FUEPU000",
+      "icao24": "fef33d",
+      "operator": {
+        "orgId": "Airport Operator",
+        "classId": "Airport Operator",
+        "typeId": "Airport Operator",
+        "name": "MATAR"
+      },
+      "service": "fuelpump",
+      "model": "pump",
+      "model_name": "Fuel hydrant vehicle"
+    },
+    "icao24": "fef33d",
+    "registration": "FUEPU000"
+  }
+}

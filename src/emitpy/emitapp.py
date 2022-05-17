@@ -58,7 +58,7 @@ class EmitApp(ManagedAirport):
             logger.debug(":init: no queue found, create default queues..")
             for k, v in DEFAULT_QUEUES.items():
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
-                self.queues[k].saveDB()
+                self.queues[k].save()
         self.init()
         logger.debug(":init: initialized. listening..")
 
@@ -194,10 +194,10 @@ class EmitApp(ManagedAirport):
 
         logger.debug("..saving..")
         if SAVE_TO_FILE:
-            ret = emit.save()
+            ret = emit.saveFile()
             if not ret[0]:
                 return StatusInfo(106, f"problem during schedule", ret[1])
-        ret = emit.saveDB(redis=self.redis)
+        ret = emit.save(redis=self.redis)
         if not ret[0]:
             return StatusInfo(110, f"problem during schedule", ret[1])
 
@@ -251,10 +251,10 @@ class EmitApp(ManagedAirport):
 
         logger.debug("..saving service vehicle..")
         if SAVE_TO_FILE:
-            ret = flight_service.save()
+            ret = flight_service.saveFile()
             if not ret[0]:
                 return StatusInfo(154, f"problem during flight service scheduling", ret[1])
-        ret = flight_service.saveDB(redis=self.redis)
+        ret = flight_service.save(redis=self.redis)
         if not ret[0]:
             return StatusInfo(155, f"problem during flight service save in Redis", ret[1])
 
@@ -308,7 +308,7 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(205, f"problem during service move", ret[1])
         if SAVE_TO_FILE:
-            ret = move.save()
+            ret = move.saveFile()
             if not ret[0]:
                 return StatusInfo(206, f"problem during service move save", ret[1])
         logger.debug(".. emission positions ..")
@@ -331,10 +331,10 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(208, f"problem during service scheduling", ret[1])
         if SAVE_TO_FILE:
-            ret = emit.save()
+            ret = emit.saveFile()
             if not ret[0]:
                 return StatusInfo(209, f"problem during service emission save", ret[1])
-        ret = emit.saveDB(redis=self.redis)
+        ret = emit.save(redis=self.redis)
         if not ret[0]:
             return StatusInfo(210, f"problem during service emission save to Redis", ret[1])
 
@@ -404,10 +404,10 @@ class EmitApp(ManagedAirport):
 
         logger.debug("..saving service vehicle..")
         if SAVE_TO_FILE:
-            ret = flight_service.save()
+            ret = flight_service.saveFile()
             if not ret[0]:
                 return StatusInfo(154, f"problem during flight service scheduling", ret[1])
-        ret = flight_service.saveDB(redis=self.redis)
+        ret = flight_service.save(redis=self.redis)
         if not ret[0]:
             return StatusInfo(155, f"problem during flight service save in Redis", ret[1])
 
@@ -452,7 +452,7 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(302, f"problem during mission move", ret[1])
         if SAVE_TO_FILE:
-            ret = move.save()
+            ret = move.saveFile()
             if not ret[0]:
                 return StatusInfo(303, f"problem during mission move save", ret[1])
 
@@ -468,10 +468,10 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(305, f"problem during mission scheduling", ret[1])
         if SAVE_TO_FILE:
-            ret = emit.save()
+            ret = emit.saveFile()
             if not ret[0]:
                 return StatusInfo(306, f"problem during mission emission save", ret[1])
-        ret = emit.saveDB(redis=self.redis)
+        ret = emit.save(redis=self.redis)
         if not ret[0]:
             return StatusInfo(307, f"problem during service mission save to Redis", ret[1])
 
@@ -527,7 +527,7 @@ class EmitApp(ManagedAirport):
         """
         q = Queue(name=name, formatter_name=formatter, starttime=starttime, speed=speed, start=start, redis=self.redis)
 
-        ret = q.saveDB()
+        ret = q.save()
         if not ret[0]:
             return StatusInfo(600, f"problem during creation of queue {name} ", ret)
         self.queues[name] = q

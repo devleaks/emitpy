@@ -223,7 +223,6 @@ class AircraftType(Identity):
         :type       redis:  { type_description }
         """
         # redis.set(key_path(base, self.getKey()), json.dumps(self.getInfo()))
-        redis.delete(key_path(base, self.getKey()))
         redis.json().set(key_path(base, self.getKey()), "$", self.getInfo())
 
 
@@ -295,6 +294,10 @@ class AircraftPerformance(AircraftType):
                 AircraftPerformance._DB_PERF[ac] = acperf
             else:
                 logger.warning(f":loadAll: AircraftType {ac} not found")
+            print(ac)
+            if ac == "A320":
+                print(json.dumps(acperf.perfraw, indent=2), json.dumps(acperf.perfdata, indent=2))
+
         cnt = len(list(filter(lambda a: a.available, AircraftPerformance._DB_PERF.values())))
         logger.debug(f":loadAll: loaded {len(AircraftPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
         logger.debug(f":loadAll: {list(map(lambda f: (f.typeId, f.getIata()), AircraftPerformance._DB_PERF.values()))}")
@@ -597,6 +600,7 @@ class AircraftPerformance(AircraftType):
         Converts numeric performance data to Système International.
         Uses meters, seconds, meter per second, hecto-pascal, etc.
         """
+        SHOW_CONVERT = False
         ROUND = 3
         if self.perfdata is None:
             self.perfdata = {}
@@ -605,6 +609,8 @@ class AircraftPerformance(AircraftType):
             for name in ["initial_climb_vspeed", "climbFL150_vspeed", "climbFL240_vspeed", "climbmach_vspeed", "descentFL240_vspeed", "descentFL100_vspeed", "approach_vspeed"]:  # vspeed: ft/m -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     self.perfdata[name] = round(self.perfraw[name] * FT / 60, ROUND)
+                    if SHOW_CONVERT:
+                        logger.debug(f":toSI: {self.name}: {name}: {self.perfraw[name]} ft/min -> {self.perfdata[name]} m/s")
                 else:
                     logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
@@ -612,6 +618,8 @@ class AircraftPerformance(AircraftType):
             for name in ["takeoff_speed", "initial_climb_speed", "climbFL150_speed", "climbFL240_speed", "cruise_speed", "descentFL100_speed", "approach_speed", "landing_speed"]:  # speed: kn -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     self.perfdata[name] = round(self.perfraw[name] * NAUTICAL_MILE / 3.600, ROUND)
+                    if SHOW_CONVERT:
+                        logger.debug(f":toSI: {self.name}: {name}: {self.perfraw[name]} kn -> {self.perfdata[name]} m/s, {self.perfdata[name] * 3.6} km/h")
                 else:
                     logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
@@ -620,6 +628,8 @@ class AircraftPerformance(AircraftType):
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     kmh = machToKmh(self.perfraw[name], 24000)
                     self.perfdata[name] = round(kmh / 3.6, ROUND)
+                    if SHOW_CONVERT:
+                        logger.debug(f":toSI: {self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL240)")
                 else:
                     logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
@@ -628,6 +638,8 @@ class AircraftPerformance(AircraftType):
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     kmh = machToKmh(self.perfraw[name], 30000)
                     self.perfdata[name] = round(kmh / 3.6, ROUND)
+                    if SHOW_CONVERT:
+                        logger.debug(f":toSI: {self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL300)")
                 else:
                     logger.warning(f":toSI: {self.name} no value for: {name}")
                     err = err + 1
@@ -954,4 +966,4 @@ class Aircraft:
         :type       redis:  { type_description }
         """
         redis.set(key_path(REDIS_DATABASE.AIRCRAFTS.value, self.getId()), json.dumps(self.getInfo()))
-        return (True, "Aircraft::saveDB: saved")
+        return (True, "Aircraft::save: saved")

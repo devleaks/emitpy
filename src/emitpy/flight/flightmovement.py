@@ -118,7 +118,7 @@ class FlightMovement(Movement):
         return (True, "Movement::make completed")
 
 
-    def save(self):
+    def saveFile(self):
         """
         Save flight paths to 3 files for flight plan, detailed movement, and taxi path.
         Save a technical json file which can be loaded later, and GeoJSON files for display.
@@ -164,7 +164,7 @@ class FlightMovement(Movement):
     def load(self):
         """
         Load flight paths from 3 files for flight plan, detailed movement, and taxi path.
-        File must be saved by above save() function.
+        File must be saved by above saveFile() function.
         """
         basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.flight_id)
 

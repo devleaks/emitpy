@@ -45,6 +45,6 @@ class Turnaround:
         self.arrival.emit(emit_rate)
         self.departure.emit(emit_rate)
 
-    def saveDB(self, redis):
-        self.arrival.saveDB(redis)
-        self.departure.saveDB(redis)
+    def save(self, redis):
+        self.arrival.save(redis)
+        self.departure.save(redis)
