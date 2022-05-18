@@ -16,7 +16,6 @@ from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
 
 from redis.commands.json.path import Path
-from redis_om import HashModel
 
 from emitpy.geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path
