@@ -20,7 +20,6 @@ from emitpy.resource import AllocationTable
 from emitpy.constants import ARRIVAL, DEPARTURE, REDIS_DATABASE, REDIS_TYPE, ID_SEP, FLIGHT_TIME_FORMAT
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT
 from emitpy.utils import key_path, Timezone
-from emitpy.emit import EmitMeta
 
 MANAGED_AIRPORT_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 

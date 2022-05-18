@@ -1,5 +1,5 @@
 from .reemit import ReEmit
-from .emit import Emit, EmitMeta
+from .emit import Emit
 from .format import Formatter, Format
 from .enqueuetoredis import EnqueueToRedis
 from .queue import Queue
