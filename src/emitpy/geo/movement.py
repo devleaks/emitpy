@@ -87,6 +87,10 @@ class Movement(Messages):
     def getMoves(self):
         return self.moves
 
+    def getSource(self):
+        # Abstract
+        return None
+
     def move(self):
         """
         Perform actual movement

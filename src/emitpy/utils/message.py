@@ -20,6 +20,7 @@ class MESSAGE_TYPE(Enum):
     FLIGHTINFO = "adsc"
     FLIGHTBOARD = "flightboard"
     SERVICE = "service"
+    SCHEDULE = "schedule"
 
 
 class MESSAGE_STATUS(Enum):
@@ -58,7 +59,7 @@ class Message:
         self.body = None
 
         self.link = None
-        self.payload = None
+        self.payload = kwargs
 
         # Message meta-data
         self.priority = 3
@@ -165,6 +166,13 @@ class EstimatedTimeMessage(Message):
                                entity=flight_id,
                                subentity=et)
 
+class NewScheduling(Message):
+
+    def __init__(self, move_type: str, move_id: str, sync: str, scheduled: datetime, update_time: datetime):
+        Message.__init__(self, msgtype=MESSAGE_TYPE.SCHEDULE.value,
+                               msgsubtype=move_type,
+                               entity=move_id,
+                               subentity=sync)
 
 # class ETDMessage(Message):
 
@@ -182,6 +190,5 @@ class EstimatedTimeMessage(Message):
 
 #     def __init__(self):
 #         Message.__init__(self, subject="", body="")
-
 
 

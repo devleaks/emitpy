@@ -114,6 +114,7 @@ class REDIS_DATABASE(Enum):
     PEOPLE = "directory"
     LOVS = "lovs"
     EMIT_METAS = "emit-meta"
+    UNKNOWN = "unknowndb"
 
 
 REDIS_DATABASES = {
@@ -122,7 +123,8 @@ REDIS_DATABASES = {
     "message": REDIS_DATABASE.MESSAGES.value,
     "metar": REDIS_DATABASE.METAR.value,
     "mission": REDIS_DATABASE.MISSIONS.value,
-    "service": REDIS_DATABASE.SERVICES.value
+    "service": REDIS_DATABASE.SERVICES.value,
+    "unknowndb": REDIS_DATABASE.UNKNOWN.value  # should be symmetric to avoid issues
 }
 
 # Type of data stored into keys

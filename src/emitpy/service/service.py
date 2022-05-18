@@ -73,6 +73,9 @@ class GroundSupport:
             "name": self.name
         }
 
+    def getScheduleHistory(self):
+        return self.schedule_history
+
     def setPTS(self, scheduled: int, duration: int):
         self.pts_scheduled = scheduled
         self.pts_duration  = duration
@@ -96,18 +99,18 @@ class GroundSupport:
 
     def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now()):
         self.estimated = dt
-        self.schedule_history.append((info_time, "ET", dt))
+        self.schedule_history.append((info_time.isoformat(), "ET", dt.isoformat()))
 
     def setActualTime(self, dt: datetime, info_time: datetime = datetime.now()):
         self.actual = dt
-        self.schedule_history.append((info_time, "AT", dt))
+        self.schedule_history.append((info_time.isoformat(), "AT", dtv))
 
     def started(self, dt: datetime, info_time: datetime = datetime.now()):
         self.setActualTime(dt, info_time)
 
     def terminated(self, dt: datetime, info_time: datetime = datetime.now()):
         self.actual_end = dt
-        self.schedule_history.append((info_time, "TT", dt))  # Terminated Time
+        self.schedule_history.append((info_time.isoformat(), "TT", dt.isoformat()))  # Terminated Time
 
 
 class Service(GroundSupport):

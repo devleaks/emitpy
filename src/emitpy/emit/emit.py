@@ -1,5 +1,7 @@
 """
-Emit
+Emit instance is a list of EmitPoints to broadcast along the Movement path.
+The instance is partially passivated in a cache and can be recovered with sufficient
+information.
 """
 import os
 import json
@@ -73,7 +75,7 @@ class Emit(Messages):
             # We create an emit from a movement
             self.emit_id = self.move.getId()
             m = self.move.getInfo()
-            self.emit_type = m["type"]
+            self.emit_type = m["type"] if "type" in m else REDIS_DATABASE.UNKNOWN.value
             # self.emit_meta = EmitMeta()
             self.moves = self.move.getMoves()
             self.props = self.move.getInfo()  # collect common props from movement
@@ -110,10 +112,11 @@ class Emit(Messages):
         """
         Emit's own identifier based on the underlying movement identifier.
         """
-        ty = "unknown"
-        m = self.move.getInfo()
-        if m is not None and "type" in m:
-            ty = m["type"]
+        ty = REDIS_DATABASE.UNKNOWN.value
+        if self.move is not None:
+            m = self.move.getInfo()
+            if m is not None and "type" in m:
+                ty = m["type"]
         return {
             "type": "emit",
             "subtype": self.emit_type if self.emit_type is not None else ty,
@@ -125,13 +128,15 @@ class Emit(Messages):
 
     def getMeta(self):
         """
-        Emit's own identifier based on the underlying movement identifier.
+        Emit identifier augmented with data from the movement.
         """
-        meta_data = self.props
-        meta_data["emit"] = self.getInfo()
+        meta_data = self.getInfo()
+        meta_data["props"] = self.props
         source = self.getSource()
         if source is not None:
             meta_data["move"] = source.getInfo()
+            meta_data["time"] = source.getScheduleHistory()
+        logger.debug(f":getMeta: {meta_data}")
         return meta_data
 
 
@@ -143,7 +148,7 @@ class Emit(Messages):
 
 
     def getKey(self, extension: str):
-        db = "unknowndb"
+        db = REDIS_DATABASE.UNKNOWN.value
         if self.emit_type in REDIS_DATABASES.keys():
             db = REDIS_DATABASES[self.emit_type]
         return key_path(db, self.emit_id, extension)
@@ -156,6 +161,14 @@ class Emit(Messages):
             logger.debug(f":loadFromCache: ..got {len(self.props)} props")
         else:
             logger.debug(f":loadFromCache: ..no meta for {emit_id}")
+        return (True, "Emit::saveMeta saved")
+
+
+    def saveMeta(self, redis):
+        meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
+        redis.delete(meta_id)
+        redis.json().set(meta_id, Path.root_path(), self.getMeta())
+        return (True, "Emit::loadMeta saved")
 
 
     def save(self, redis):
@@ -164,7 +177,7 @@ class Emit(Messages):
         """
         if self._emit is None or len(self._emit) == 0:
             logger.warning(":save: no emission point")
-            return (False, "Movement::save: no emission point")
+            return (False, "Emit::save: no emission point")
 
         emit_id = self.getKey(REDIS_TYPE.EMIT.value)
 
@@ -176,20 +189,11 @@ class Emit(Messages):
         redis.zadd(emit_id, emit)
         move_id = self.getKey("")
 
-        # 1b. Save KML for flights
+        # 2. Save KML (for flights only)
         if callable(getattr(self.move, "getKML", None)):
             kml_id = self.getKey(REDIS_TYPE.EMIT_KML.value)
             redis.set(kml_id, self.move.getKML())
             logger.debug(f":save: saved kml")
-
-        # 2. Save emission meta data
-        meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
-        redis.delete(meta_id)
-        redis.json().set(meta_id, Path.root_path(), self.getMeta())
-
-        # 2. Save emission meta data structure
-        if self.emit_meta is not None:
-            self.emit_meta.save(redis)
 
         # 3. Save messages for broadcast
         if self.move is not None:
@@ -199,8 +203,7 @@ class Emit(Messages):
             logger.debug(f":save: saved {redis.scard(mid)} messages")
 
         logger.debug(f":save: saved {move_id}")
-        return (True, "Movement::saveDB saved")
-
+        return self.saveMeta(redis)
 
     def saveFile(self):
         """
@@ -218,7 +221,7 @@ class Emit(Messages):
             json.dump(FeatureCollection(features=cleanFeatures(self._emit)+ [ls]), fp, indent=4)
 
         logger.debug(f":save: saved {ident}")
-        return (True, "Movement::save saved")
+        return (True, "Emit::save saved")
 
 
     def emit(self, frequency: int = 30):
@@ -528,7 +531,7 @@ class Emit(Messages):
         #     logger.debug(":vnav: alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
         #     i = i + 1
 
-        return (True, "Movement::interpolated speed and altitude")
+        return (True, "Emit::interpolated speed and altitude")
 
 
     def getMarkList(self):
@@ -619,7 +622,7 @@ class Emit(Messages):
             if ff is not None:
                 f = self.getAbsoluteEmissionTime(ff)
                 if f is not None:
-                    esti = f.getAbsoluteEmissionTime()
+                    esti = datetime.fromtimestamp(f.getAbsoluteEmissionTime())
                     if esti is not None:
                         source.setEstimatedTime(dt=esti)
                         self.addMessage(EstimatedTimeMessage(flight_id=source.getId(),

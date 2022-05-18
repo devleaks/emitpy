@@ -105,6 +105,7 @@ class Flight(Messages):
             "codeshare": self.codeshare,
             "ramp": self.ramp.getInfo() if self.ramp is not None else {},
             "runway": self.runway.getInfo() if self.runway is not None else {},  # note: this is the GeoJSON feature, not the RWY procedure
+            "is_arrival": self.is_arrival()  # simply useful denormalisation...
             # "metar": self.metar,
             # "meta": self.meta
         }
@@ -122,11 +123,24 @@ class Flight(Messages):
         return self.operator.iata + self.number + "-S" + self.scheduled_dt.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
 
 
+    def getScheduleHistory(self):
+        """
+        Gets the schedule history.
+        """
+        return self.schedule_history
+
+
     def getName(self) -> str:
+        """
+        Gets the name.
+
+        :returns:   The name.
+        :rtype:     str
+        """
         return self.operator.iata + " " + self.number
 
 
-    def getLongName(self) -> str:
+    def getDisplayName(self) -> str:
         return self.operator.iata + " " + self.number + " " + self.scheduled_dt.strftime("%H:%M")
 
 
@@ -269,12 +283,12 @@ class Flight(Messages):
 
     def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now()):
         self.estimated = dt
-        self.schedule_history.append((info_time, "ET", dt))
+        self.schedule_history.append((info_time.isoformat(), "ET", dt.isoformat()))
 
 
     def setActualTime(self, dt: datetime, info_time: datetime = datetime.now()):
         self.actual = dt
-        self.schedule_history.append((info_time, "AT", dt))
+        self.schedule_history.append((info_time.isoformat(), "AT", dt.isoformat()))
 
 
     def plan(self):
