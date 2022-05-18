@@ -13,7 +13,7 @@ from emitpy.service import Service, ServiceMove, FlightServices, Mission, Missio
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE, ID_SEP
-from emitpy.parameters import DEFAULT_QUEUES, REDIS_CONNECT
+from emitpy.parameters import DEFAULT_QUEUES, REDIS_CONNECT, METAR_HISTORICAL
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
@@ -114,11 +114,12 @@ class EmitApp(ManagedAirport):
         logger.debug("..collecting metar..")
         dt = datetime.fromisoformat(scheduled)
         dt2 = datetime.now().replace(tzinfo=self.timezone) - timedelta(days=1)
-        print(">>>", dt, dt2)
-        if dt < dt2:
+        if METAR_HISTORICAL and dt < dt2:  # issues with web site to fetch historical metar.
             logger.debug(f"..historical.. ({scheduled})")
             remote_metar = Metar.new(icao="OTHH", redis=self.redis, method="MetarHistorical")
             remote_metar.setDatetime(moment=dt)
+            if not remote_metar.hasMetar():  # couldn't fetch histoorical, use current
+                remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
         else:
             remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
         remote_apt.setMETAR(metar=remote_metar)  # calls prepareRunways()
