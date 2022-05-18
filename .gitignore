@@ -116,17 +116,21 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+
+.DS_Store
+
 src/entity/private.py
 
 data/
 db/
 docs-md/
 
+src/bin/
+
 src/http_cache.sqlite
 *.sqlite
 *.rdb
 data/aircraft-types/aircraft-types.csv
-.DS_Store
 src/data-docker.tar
 src/emitpy/private.py
 src/emitpy/parameters.py
