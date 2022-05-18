@@ -27,8 +27,6 @@ from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
 from emitpy.constants import RATE_LIMIT, EMIT_RANGE
 from emitpy.parameters import AODB_DIR, REDIS_CONNECT
 
-from .emitmeta import EmitMeta
-
 
 logger = logging.getLogger("Emit")
 

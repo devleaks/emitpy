@@ -294,9 +294,6 @@ class AircraftPerformance(AircraftType):
                 AircraftPerformance._DB_PERF[ac] = acperf
             else:
                 logger.warning(f":loadAll: AircraftType {ac} not found")
-            print(ac)
-            if ac == "A320":
-                print(json.dumps(acperf.perfraw, indent=2), json.dumps(acperf.perfdata, indent=2))
 
         cnt = len(list(filter(lambda a: a.available, AircraftPerformance._DB_PERF.values())))
         logger.debug(f":loadAll: loaded {len(AircraftPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")

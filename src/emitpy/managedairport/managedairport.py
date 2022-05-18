@@ -9,7 +9,7 @@ from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.airport import Airport, AirportBase, XPAirport
 from emitpy.business import AirportManager
 from emitpy.constants import REDIS_DATABASE, ID_SEP
-from emitpy.utils import key_path
+from emitpy.utils import Timezone, key_path
 
 logger = logging.getLogger("ManagedAirport")
 
@@ -24,6 +24,7 @@ class ManagedAirport:
         self._app = app  # context
         self._cache = cache
         self.airport = None
+        self.timezone = Timezone(offset=self._this_airport["tzoffset"], name=self._this_airport["tzname"])
 
     def init(self):
         """

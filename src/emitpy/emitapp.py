@@ -112,7 +112,15 @@ class EmitApp(ManagedAirport):
         logger.debug(f"other airport saved")
 
         logger.debug("..collecting metar..")
-        remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
+        dt = datetime.fromisoformat(scheduled)
+        dt2 = datetime.now().replace(tzinfo=self.timezone) - timedelta(days=1)
+        print(">>>", dt, dt2)
+        if dt < dt2:
+            logger.debug(f"..historical.. ({scheduled})")
+            remote_metar = Metar.new(icao="OTHH", redis=self.redis, method="MetarHistorical")
+            remote_metar.setDatetime(moment=dt)
+        else:
+            remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
         remote_apt.setMETAR(metar=remote_metar)  # calls prepareRunways()
         logger.debug("..done")
 
