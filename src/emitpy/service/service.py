@@ -160,7 +160,9 @@ class Service(GroundSupport):
             "ramp": self.ramp.getInfo(),
             "vehicle": self.vehicle.getInfo(),
             "icao24": self.vehicle.icao24,
-            "registration": self.vehicle.registration
+            "registration": self.vehicle.registration,
+            "scheduled": self.scheduled.isoformat(),
+            "quantity": self.quantity
         }
 
     def getKey(self):

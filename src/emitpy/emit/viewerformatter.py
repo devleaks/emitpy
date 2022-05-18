@@ -95,6 +95,7 @@ class ViewerFormatter(Formatter):
     def __init__(self, feature: "FeatureWithProps"):
         Formatter.__init__(self, feature=feature)
         # rename a few properties for viewer:
+        self.name = "js-viewer"
         f = self.feature
 
         # Identity
@@ -136,7 +137,8 @@ class ViewerFormatter(Formatter):
             "movement": f.getProp("flightnumber").replace(" ",""),
             "handler": "nohandler",
             "operator": f.getProp("airline:name"),
-            "alt": f.altitude()
+            "alt": f.altitude(),
+            "emitpy-format" = self.name
         })
 
     def __str__(self):
