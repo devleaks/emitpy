@@ -132,7 +132,7 @@ class Metar:
         metid = "*ERROR*"
         fn = "*ERROR*"
         if self.raw is not None:
-            metid = self.raw.METAR[0:4] + '-' + self.raw.METAR[5:12]
+            metid = self.raw[0:4] + '-' + self.raw[5:12]
             fn = os.path.join(METAR_DIR, metid + ".json")
             if not os.path.exists(fn):
                 with open(fn, "w") as outfile:
@@ -239,11 +239,11 @@ class MetarHistorical(Metar):
         url = f"https://www.ogimet.com/display_metars2.php?lang=en&lugar={self.icao}&tipo=SA&ord=REV&nil=SI&fmt=txt"
         url = url + f"&ano={yr}&mes={mo}&day={dy}&hora={hr}&anof={yr}&mesf={mo}&dayf={dy}&horaf={hr}&minf=59&send=send"
 
-        #logger.debug(f":fetch: url={url}")
+        logger.debug(f":fetch: url={url}")
         #with open("/Users/pierre/Developer/oscars/emitpy/src/emitpy/airspace/result.txt", "r") as response:  # urllib.request.urlopen(url) as response:
         with urllib.request.urlopen(url) as response:
             txt = response.read().decode("UTF-8")
-            # logger.debug(f":fetch: {txt}")
+            logger.debug(f":fetch: {txt}")
             # 201903312300 METAR OTHH 312300Z
             start = f"{nowstr2} METAR {self.icao} {nowstr}"
             logger.debug(f":fetch: start '{start}'")
@@ -256,4 +256,5 @@ class MetarHistorical(Metar):
             return (False, "MetarHistorical::fetch: failed to get historical metar")
 
         self.raw = metar[len(nowstr2)+7:-1]
+        logger.debug(f":fetch: metar '{self.raw}'")
         return self.parse()

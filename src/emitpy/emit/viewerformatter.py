@@ -138,7 +138,7 @@ class ViewerFormatter(Formatter):
             "handler": "nohandler",
             "operator": f.getProp("airline:name"),
             "alt": f.altitude(),
-            "emitpy-format" = self.name
+            "emitpy-format": self.name
         })
 
     def __str__(self):
