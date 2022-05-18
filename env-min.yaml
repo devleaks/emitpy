@@ -4,21 +4,21 @@ channels:
   - conda-forge
 dependencies:
   - numpy=1.22.3
-  - flask=2.1.1
+  - fastapi=0.75.2
   - flatdict=4.0.1
   - geojson=2.5.0
+  - importlib_resources=5.7.1
+  - jinja2=3.1.1 
   - metar=1.9.0
   - networkx=2.8
   - python=3.10.4
   - pyyaml=6.0
   - redis-py=4.2.2
-  - requests_cache=0.9.4
   - turfpy=0.0.7
-  - gunicorn=20.1.0
   - uvicorn=0.17.6
   - pip:
-    - bootstrap-flask==2.0.2
-    - flask-wtf==1.0.1
     - flightplandb==0.5.0
     - python-dateutil==2.8.1
-    - wtforms==3.0.1
+    - jsonpath-python==1.0.6
+    - requests_cache==0.9.4
+    - redis_om==0.0.27
