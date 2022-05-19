@@ -117,6 +117,8 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         self.redis.zadd(self.queue.name, emit)
         self.redis.sadd(emit_id, *list(emit.keys()))
         logger.debug(f":enqueue: added {len(emit)} new entries")
+
+        logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})")
         self.redis.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)
 
         return (True, "EnqueueToRedis::enqueue completed")
