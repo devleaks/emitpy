@@ -20,6 +20,7 @@ from emitpy.resource import AllocationTable
 from emitpy.constants import ARRIVAL, DEPARTURE, REDIS_DATABASE, REDIS_TYPE, ID_SEP, FLIGHT_TIME_FORMAT
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT
 from emitpy.utils import key_path, Timezone
+from emitpy.emit import ReEmit
 
 MANAGED_AIRPORT_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 
@@ -523,9 +524,10 @@ class AirportManager:
 
     def allServiceForFlight(self, redis, flight_id: str):
         items = []
-        flight_meta = EmitMeta(redis=redis, flight_id=flight_id)
+        emit = ReEmit(flight_id, redis)
+        flight_meta = emit.getMeta()
 
-        if flight_meta.is_arrival:  # in minutes:
+        if flight_meta is not None and flight_meta["is_arrival"]:  # in minutes:
             before = 60
             after = 180
         else:
