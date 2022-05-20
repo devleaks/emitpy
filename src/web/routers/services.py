@@ -117,11 +117,11 @@ async def create_fight_services(
     # except Exception as ex:
     #     ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
 
-    return JSONResponse(content=jsonable_encoder(NotAvailable(CreateFlightServices)))
+    return JSONResponse(content=jsonable_encoder(NotAvailable("CreateFlightServices")))
 
 
 @router.put("/flight", tags=["flights", "services"])
 async def schedule_fight_services(
     request: Request, fs_in: ScheduleFlightServices
 ):
-    return JSONResponse(content=jsonable_encoder(NotAvailable(ScheduleFlightServices)))
+    return JSONResponse(content=jsonable_encoder(NotAvailable("ScheduleFlightServices")))
