@@ -116,6 +116,10 @@ class REDIS_DATABASE(Enum):
     EMIT_METAS = "emit-meta"
     UNKNOWN = "unknowndb"
 
+class REDIS_DB(IntEnum):
+    APP = 0
+    REF = 1
+    CACHE = 2
 
 REDIS_DATABASES = {
     "allocation": REDIS_DATABASE.ALLOCATIONS.value,
