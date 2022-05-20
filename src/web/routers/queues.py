@@ -90,11 +90,11 @@ async def schedule_queue(
 
 @router.delete("/", tags=["queues"])
 async def delete_queue(
-    request: Request, queue_name: str
+    request: Request, name: str
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
-        ret = request.app.state.emitpy.do_delete_queue(name=queue_name)
+        ret = request.app.state.emitpy.do_delete_queue(name=name)
     except Exception as ex:
         ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
     return JSONResponse(content=jsonable_encoder(ret))
