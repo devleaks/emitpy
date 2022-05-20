@@ -224,7 +224,6 @@ class Flight(Messages):
                 #     logger.debug(f":_setRunway: correcting: RW+{name}")
                 #     name = "RW" + name
                 am = self.managedAirport.manager
-                print(">>>", name, am.runway_allocator.resources.keys())
                 if name in am.runway_allocator.resources.keys():
                     reqtime = self.scheduled_dt + timedelta(minutes=20)  # time to taxi
                     reqend  = reqtime + timedelta(minutes=5)  # time to take-off + WTC spacing
