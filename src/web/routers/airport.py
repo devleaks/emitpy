@@ -125,7 +125,7 @@ async def list_mission_handlers(request: Request):
 @router.get("/allocation/runways", tags=["allocations"])
 async def list_runways(request: Request):
     t = request.app.state.emitpy.airport.manager.runway_allocator.table()
-    return JSONResponse(content=list(t))
+    return JSONResponse(content=t)
 
 @router.get("/allocation/runways-viewer", tags=["allocations"], include_in_schema=False)
 async def allocation_ramps(request: Request):
@@ -164,7 +164,7 @@ async def allocation_ramps(request: Request):
 @router.get("/allocation/ramps", tags=["allocations"])
 async def list_ramps(request: Request):
     t = request.app.state.emitpy.airport.manager.ramp_allocator.table()
-    return JSONResponse(content=list(t))
+    return JSONResponse(content=t)
 
 @router.get("/allocation/ramps-viewer", tags=["allocations"], include_in_schema=False)
 async def allocation_ramps(request: Request):
@@ -174,7 +174,7 @@ async def allocation_ramps(request: Request):
 @router.get("/allocation/vehicles", tags=["allocations"])
 async def list_vehicles(request: Request):
     t = request.app.state.emitpy.airport.manager.vehicle_allocator.table()
-    return JSONResponse(content=list(t))
+    return JSONResponse(content=t)
 
 @router.get("/allocation/vehicles-viewer", tags=["allocations"], include_in_schema=False)
 async def allocation_vehicles(request: Request):
