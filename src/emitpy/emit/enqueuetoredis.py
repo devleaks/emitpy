@@ -107,6 +107,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         emit_id = self.emit.getKey(REDIS_TYPE.QUEUE.value)
         oldvalues = self.redis.smembers(emit_id)
         if oldvalues and len(oldvalues) > 0:
+            # dequeue old values
             self.redis.zrem(self.queue.name, *oldvalues)
             self.redis.delete(emit_id)
             logger.debug(f":enqueue: removed {len(oldvalues)} old entries")
@@ -114,11 +115,15 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         emit = {}
         for f in self.output:
             emit[str(f)] = f.ts
-        self.redis.zadd(self.queue.name, emit)
         self.redis.sadd(emit_id, *list(emit.keys()))
-        logger.debug(f":enqueue: added {len(emit)} new entries")
+        logger.debug(f":enqueue: saved {len(emit)} new entries to {emit_id}")
 
-        logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})")
+        # enqueue new values
+        self.redis.zadd(self.queue.name, emit)
+        logger.debug(f":enqueue: added {len(emit)} new entries to sorted set {self.queue.name}")
+
+        logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})..")
         self.redis.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)
+        logger.debug(f":enqueue: ..done")
 
         return (True, "EnqueueToRedis::enqueue completed")
