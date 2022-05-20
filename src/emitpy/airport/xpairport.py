@@ -441,11 +441,13 @@ class XPAirport(AirportBase):
         logger.debug(f":loadServicePOIS: added {len(self.service_pois)} points of interest: {self.service_pois.keys()}")
         return [True, "XPAirport::loadServicePOIS loaded"]
 
-    def getServicePoisCombo(self):
+    def getServicePoisCombo(self, service: str = None):
         """
         Returns a list of (code, description) pairs for all service points of interest.
         """
-        l = sorted(self.service_pois.values(),key=lambda x: x.getName())
+        l = sorted(self.service_pois.values(), key=lambda x: x.getName())
+        if service is not None:
+            l = list(filter(lambda f: f.getProp(FEATPROP.SERVICE.value) == service, l))
         a = [(a.getName(), a.getName()) for a in l]
         return a
 
