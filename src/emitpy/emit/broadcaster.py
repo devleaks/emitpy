@@ -60,9 +60,10 @@ class Broadcaster:
         self.redis = redis
         self.pubsub = self.redis.pubsub()
 
-        self.should_quit = False  # Emergency, dead-lock preventive shutdown.
+        self.oktotrim = None
 
         self.setTimeshift()
+        self.shutdown_flag = threading.Event()
 
 
     def setTimeshift(self):
@@ -150,9 +151,13 @@ class Broadcaster:
         """
         self.pubsub.subscribe(ADM_QUEUE_PREFIX+self.name)
         logger.debug(f":trim: {self.name}: listening..")
-        while not self.should_quit:
+        while not self.shutdown_flag.is_set():
+            if self.heartbeat:
+                logger.debug(f":trim: {self.name}: listening..")
+            # logger.debug(f":trim: {self.name}: waiting for message (with timeout {LISTEN_TIMEOUT} secs.)..")
             message = self.pubsub.get_message(timeout=LISTEN_TIMEOUT)
-            logger.debug(f":trim: got {message}, of type {type(message)}, processing..")
+            if message is not None:
+                logger.debug(f":trim: got raw {message}, of type {type(message)}, processing..")
             if message is not None and type(message) != str and "data" in message:
                 msg = message["data"]
                 if type(msg) == bytes:
@@ -165,51 +170,55 @@ class Broadcaster:
                     self.rdv.set()
                     logger.debug(f":trim: {self.name}: wait sender has stopped..")
                     self.oktotrim.wait()
+                    self.oktotrim = None
                     self._do_trim()
                     logger.debug(f":trim: {self.name}: tell sender to restart, provide new blocking event..")
                     self.rdv = threading.Event()
                     self.trimmingcompleted.set()
                     logger.debug(f":trim: {self.name}: listening again..")
                 elif msg == QUIT:
-                    self.should_quit = True
+                    self.shutdown_flag.set()
                     logger.debug(f":trim: {self.name}: quitting..")
+                    logger.debug(f":trim: {self.name}: ..bye")
                     return
                 else:
                     logger.debug(f":trim: {self.name}: ignoring '{msg}'")
-            else: # timed out
-                logger.debug(f":trim: {self.name}: trim timeout, should quit? {self.should_quit}")
+            # else: # timed out
+            #     logger.debug(f":trim: {self.name}: trim timeout, should quit? {self.shutdown_flag.is_set()}")
 
         logger.debug(f":trim: {self.name}: quitting..")
+        logger.debug(f":trim: {self.name}: ..bye")
 
     def broadcast(self):
         """
         Pop elements from the sortedset at requested time and publish them on pubsub queue.
         """
-        logger.debug(f":run: {self.name}: pre-start trimming..")
+        logger.debug(f":broadcast: {self.name}: pre-start trimming..")
         self._do_trim()
-        logger.debug(f":run: {self.name}: ..done")
-        logger.debug(f":run: {self.name}: starting trimming thread..")
+        logger.debug(f":broadcast: {self.name}: ..done")
+        logger.debug(f":broadcast: {self.name}: starting trimming thread..")
         self.rdv = threading.Event()
+        self.shutdown_flag = threading.Event()
         self.trim_thread = threading.Thread(target=self.trim)
         self.trim_thread.start()
-        self.shutdown_flag = threading.Event()
-        logger.debug(f":run: {self.name}: ..done")
+        logger.debug(f":broadcast: {self.name}: ..done")
 
-        nv = None
+        currval = None
         ping = 0
+        last_sent = datetime.now() - timedelta(seconds=1)
         # Wrapped in a big try:/except: to catch errors and keyboard interrupts.
         try:
             while not self.shutdown_flag.is_set():
                 dummy = self.now(format_output=True)
 
-                if self.heartbeat:
-                    logger.debug(f":run: {self.name}: listening..")
+                if self.heartbeat: # and last_sent < datetime.now()
+                    logger.debug(f":broadcast: {self.name}: listening..")
 
-                nv = self.redis.bzpopmin(self.name, timeout=ZPOPMIN_TIMEOUT)
-                if nv is None:
+                currval = self.redis.bzpopmin(self.name, timeout=ZPOPMIN_TIMEOUT)
+                if currval is None:
                     # @todo: Ping in another thread
                     # if self.ping > 0 and ping < 0:
-                    #     logger.debug(f":run: {self.name}: pinging..")
+                    #     logger.debug(f":broadcast: {self.name}: pinging..")
                     #     self.redis.publish(OUT_QUEUE_PREFIX+self.name, json.dumps({
                     #         "ping": datetime.now().isoformat(),
                     #         "broadcaster": self.getInfo()
@@ -217,77 +226,95 @@ class Broadcaster:
                     #     ping = self.ping
                     # elif self.ping > 0:
                     #     ping = ping - 1
-
-                    # logger.debug(f":run: {self.name}: bzpopmin timed out..")
+                    # logger.debug(f":broadcast: {self.name}: bzpopmin timed out..")
                     continue
 
                 numval = self.redis.zcard(self.name)
-                logger.debug(f":run: {self.name}: {numval} items left in queue")
+                # logger.debug(f":broadcast: {self.name}: {numval} items left in queue")
                 now = self.now()
-                logger.debug(f":run: {self.name}: it is now {df(now)}")
-                wt = nv[2] - now       # wait time independant of time warp
-                rwt = wt / self.speed  # real wait time, taking warp time into account
-                if wt > 0:
-                    logger.debug(f":run: {self.name}: need to send at {df(nv[2])}, waiting {td(wt)}, speed={self.speed}, waiting={round(rwt, 1)}")
-                    if not self.rdv.wait(timeout=rwt):
+                # logger.debug(f":broadcast: {self.name}: it is now {df(now)}")
+                # logger.debug(f":broadcast: {self.name}: at {df(now)}: {numval} in queue")
+                timetowait = currval[2] - now       # wait time independant of time warp
+                realtimetowait = timetowait / self.speed  # real wait time, taking warp time into account
+                if timetowait < 0:  # there are things on the queue that don't need to be sent, let's trim:
+                    # the item we poped out is older than the queue time, we do not send it
+                    logger.debug(f":broadcast: {self.name}: awake by old event. Trim other old events..")
+
+                    if self.shutdown_flag.is_set():
+                        logger.debug(f":broadcast: {self.name}: awake to quit, quitting..")
+                        return
+
+                    # wait trimming of old events completes
+                    self.trimmingcompleted = threading.Event()
+                    logger.debug(f":broadcast: {self.name}: waiting for trimmer..")
+                    self.rdv.wait()
+                    self.oktotrim.set()
+                    logger.debug(f":broadcast: {self.name}: ..waiting trim completes..")
+                    self.trimmingcompleted.wait()
+                    logger.debug(f":broadcast: {self.name}: ..trim older events completed, restarted listening")
+
+                else:  # we need to send later, let's wait
+                    logger.debug(f":broadcast: {self.name}: need to send at {df(currval[2])}, waiting {td(timetowait)}, speed={self.speed}, waiting={round(realtimetowait, 1)}")
+
+                    if not self.rdv.wait(timeout=realtimetowait):
                         # we timed out, we need to send
-                        logger.debug(f":run: {self.name}: sending..")
-                        self.redis.publish(OUT_QUEUE_PREFIX+self.name, nv[1].decode('UTF-8'))
-                        nv = None  # nv was sent, we don't need to push it back or anything like that
-                        logger.debug(f":run: {self.name}: ..done")
+                        logger.debug(f":broadcast: {self.name}: sending..")
+                        self.redis.publish(OUT_QUEUE_PREFIX+self.name, currval[1].decode('UTF-8'))
+                        currval = None  # currval was sent, we don't need to push it back or anything like that
+                        logger.debug(f":broadcast: {self.name}: ..done")
                     else:
                         # we were instructed to not send
-                        # put item back in queue
-                        logger.debug(f":run: {self.name}: awake to not send, push back on queue..")
-                        self.redis.zadd(self.name, {nv[1]: nv[2]})
-                        logger.debug(f":run: {self.name}: ..done")
+                        # put current event back in queue
+                        if currval is not None:
+                            logger.debug(f":broadcast: {self.name}: awake to not send, push current event back on queue..")
+                            self.redis.zadd(self.name, {currval[1]: currval[2]})
+                            logger.debug(f":broadcast: {self.name}: ..done")
 
-                        if self.should_quit:
-                            logger.debug(f":run: {self.name}: awake to quit, quitting..")
+                        if self.shutdown_flag.is_set():
+                            logger.debug(f":broadcast: {self.name}: awake to quit, quitting..")
                             return
 
                         # this is not 100% correct: Some event of nextval array may have already be sent
-                        logger.debug(f":run: {self.name}: awake to trim, ok to trim..")
+                        logger.debug(f":broadcast: {self.name}: awake to trim, ok to trim..")
                         # wait trimming completed
                         self.trimmingcompleted = threading.Event()
                         self.oktotrim.set()
-                        logger.debug(f":run: {self.name}: ..waiting trim completes..")
+                        logger.debug(f":broadcast: {self.name}: ..waiting trim completes..")
                         self.trimmingcompleted.wait()
-                        logger.debug(f":run: {self.name}: ..trim completed, restarted listening")
-                else:
-                    logger.debug(f":run: {self.name}: should have sent at {df(nv[2])} ({td(wt)} sec. ago, rwt={rwt} sec. ago")
-                    # logger.debug(f":run: {self.name}: did not send {nv[1].decode('UTF-8')}")
-                    logger.debug(f":run: {self.name}: did not send 1 item")
+                        logger.debug(f":broadcast: {self.name}: ..trim completed, restarted listening")
+
         except KeyboardInterrupt:
-            if nv is not None:
-                logger.debug(f":run: {self.name}: keyboard interrupt, trying to push poped item back on queue..")
-                self.redis.zadd(self.name, {nv[1]: nv[2]})
-                logger.debug(f":run: {self.name}: ..done")
+            if currval is not None:
+                logger.debug(f":broadcast: {self.name}: keyboard interrupt, trying to push poped item back on queue..")
+                self.redis.zadd(self.name, {currval[1]: currval[2]})
+                logger.debug(f":broadcast: {self.name}: ..done")
             else:
-                logger.debug(f":run: {self.name}: keyboard interrupt, nothing to push back on queue")
+                logger.debug(f":broadcast: {self.name}: keyboard interrupt, nothing to push back on queue")
         finally:
-            logger.debug(f":run: {self.name}: quitting..")
+            logger.debug(f":broadcast: {self.name}: quitting..")
             self.redis.publish(ADM_QUEUE_PREFIX+self.name, QUIT)
             quitted = False
             tries = 3
             while not quitted:
                 if self.trim_thread.is_alive() and tries > 0:
-                    logger.debug(f":run: {self.name}: sending quit instruction..")
+                    logger.debug(f":broadcast: {self.name}: sending quit instruction..")
                     self.redis.publish(ADM_QUEUE_PREFIX+self.name, QUIT)
-                    logger.debug(f":run: {self.name}: ..waiting for trimmer..")
+                    logger.debug(f":broadcast: {self.name}: ..waiting for trimmer..")
                     self.trim_thread.join(timeout=2 * LISTEN_TIMEOUT)
-                    logger.debug(f":run: {self.name}: join timed out")
+                    logger.debug(f":broadcast: {self.name}: join timed out")
                     tries = tries - 1
                 else:
                     if self.trim_thread.is_alive() and tries < 0:
-                        logger.warning(f":run: {self.name}: fed up waiting, trim_thread still alive, force quit..")
+                        logger.warning(f":broadcast: {self.name}: fed up waiting, trim_thread still alive, force quit..")
                     quitted = True
-            logger.debug(f":run: {self.name}: ..bye")
+            logger.debug(f":broadcast: {self.name}: ..bye")
 
 
 # ##############################@@
 # H Y P E R C A S T E R
 #
+hyperlogger = logging.getLogger("Hypercaster")
+
 class Hypercaster:
     """
     Starts a Broadcaster for each queue
@@ -315,7 +342,8 @@ class Hypercaster:
         self.queues = {}
         self.pubsub = self.redis.pubsub()
         self.admin_queue_thread = None
-        self.should_quit = False
+        self.shutdown_flag = threading.Event()
+        self.heartbeat = BROADCASTER_HEARTHBEAT
 
         self.init()
 
@@ -325,33 +353,31 @@ class Hypercaster:
             self.start_queue(k)
         self.admin_queue_thread = threading.Thread(target=self.admin_queue)
         self.admin_queue_thread.start()
-        logger.debug(f"Hypercaster:init: {self.queues.keys()}")
+        hyperlogger.debug(f":init: {self.queues.keys()}")
 
     def start_queue(self, queue):
         if self.queues[queue.name].status == RUN:
             b = Broadcaster(redis.Redis(connection_pool=self.redis_pool), queue.name, queue.speed, queue.starttime)
             self.queues[queue.name].broadcaster = b
-            self.queues[queue.name].broadcaster.should_quit = False
             self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
             self.queues[queue.name].thread.start()
-            logger.debug(f"Hypercaster:start_queue: {queue.name} started")
+            hyperlogger.debug(f":start_queue: {queue.name} started")
         else:
-            logger.warning(f"Hypercaster:start_queue: {queue.name} is stopped")
+            hyperlogger.warning(f":start_queue: {queue.name} is stopped")
 
     def terminate_queue(self, queue):
         if hasattr(self.queues[queue], "broadcaster"):
             if hasattr(self.queues[queue].broadcaster, "shutdown_flag"):
-                self.queues[queue].broadcaster.should_quit = True
                 self.queues[queue].broadcaster.shutdown_flag.set()
-                logger.debug(f"Hypercaster:terminate_queue: {queue} awakening wait() on send..")
+                hyperlogger.debug(f":terminate_queue: {queue} awakening wait() on send..")
                 self.queues[queue].broadcaster.rdv.set()
                 # now that we have notified the broadcaster, we don't need it anymore
                 self.queues[queue].broadcaster = None
-                logger.debug(f"Hypercaster:terminate_queue: {queue} notified")
+                hyperlogger.debug(f":terminate_queue: {queue} notified")
             else:
-                logger.warning(f"Hypercaster:terminate_queue: {queue} has no shutdown_flag")
+                hyperlogger.warning(f":terminate_queue: {queue} has no shutdown_flag")
         else:
-            logger.warning(f"Hypercaster:terminate_queue: {queue} has no broadcaster")
+            hyperlogger.warning(f":terminate_queue: {queue} has no broadcaster")
 
     def terminate_all_queues(self):
         self.redis.publish(REDIS_DATABASE.QUEUES.value, QUIT)
@@ -360,21 +386,22 @@ class Hypercaster:
 
     def admin_queue(self):
         # redis events:
-        # :run: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'sadd'}
-        # :run: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'srem'}
-        # :run: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'del'}
-        # :run: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues:test', 'data': b'del'}
-        self.should_quit = False
+        # :admin_queue: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'sadd'}
+        # :admin_queue: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'srem'}
+        # :admin_queue: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'del'}
+        # :admin_queue: received {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues:test', 'data': b'del'}
         self.pubsub.subscribe(REDIS_DATABASE.QUEUES.value)
-        logger.debug("Hypercaster:admin_queue: listening..")
+        hyperlogger.debug(":admin_queue: listening..")
 
-        while True:
+        while not self.shutdown_flag.is_set():
+            if self.heartbeat: # and last_sent < datetime.now()
+                logger.debug(f":admin_queue: listening..")
             message = self.pubsub.get_message(timeout=LISTEN_TIMEOUT)
             if message is not None and type(message) != str and "data" in message:
                 msg = message["data"]
                 if type(msg) == bytes:
                     msg = msg.decode("UTF-8")
-                logger.debug(f"Hypercaster:admin_queue: received {msg}")
+                hyperlogger.debug(f":admin_queue: received {msg}")
                 if type(msg).__name__ == "str" and msg.startswith(NEW_QUEUE+ID_SEP):
                     arr = msg.split(ID_SEP)
                     qn  = arr[1]
@@ -382,7 +409,7 @@ class Hypercaster:
                         self.queues[qn] = Queue.loadFromDB(name=qn, redis=self.redis)
                         self.start_queue(self.queues[qn])
                     else:   # queue already exists, parameter changed, stop it first
-                        logger.debug(f":admin_queue: queue {qn} already running, reseting..")
+                        hyperlogger.debug(f":admin_queue: queue {qn} already running, reseting..")
                         oldsp = self.queues[qn].speed
                         oldst = self.queues[qn].starttime
                         # there is no broadcaster if queue was not started
@@ -392,18 +419,18 @@ class Hypercaster:
                             # queue was working beofre and is now stopped: replaces broadcaster and terminates it
                             self.queues[qn].broadcaster = oldbr
                             self.terminate_queue(qn)
-                            logger.debug(f"Hypercaster:admin_queue: ..queue {qn} stopped")
+                            hyperlogger.debug(f":admin_queue: ..queue {qn} stopped")
                         elif oldbr is None and self.queues[qn].status == RUN:
                             # queue was not working before and is now started
                             self.start_queue(self.queues[qn])
-                            logger.debug(f"Hypercaster:admin_queue: ..queue {qn} started")
+                            hyperlogger.debug(f":admin_queue: ..queue {qn} started")
                         elif oldbr is None and self.queues[qn].status == STOP:
                             # queue was not working before and is now started
-                            logger.debug(f"Hypercaster:admin_queue: ..queue {qn} added but stopped")
+                            hyperlogger.debug(f":admin_queue: ..queue {qn} added but stopped")
                         else:
                             # queue was working before, will continue to work bbut some parameters are reset
                             oldbr.reset(speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
-                            logger.debug(f"Hypercaster:admin_queue: .. queue {qn} speed {self.queues[qn].speed} (was {oldsp}) " +
+                            hyperlogger.debug(f":admin_queue: .. queue {qn} speed {self.queues[qn].speed} (was {oldsp}) " +
                                          f"starttime {self.queues[qn].starttime} (was {oldst}) reset")
 
                 elif type(msg).__name__ == "str" and msg.startswith(DELETE_QUEUE+ID_SEP):
@@ -413,31 +440,30 @@ class Hypercaster:
                         if not hasattr(self.queues[qn], "deleted"):  # queue already exists, parameter changed, stop it first
                             self.terminate_queue(qn)
                             self.queues[qn].deleted = True
-                            logger.debug(f"Hypercaster:admin_queue: queue {qn} terminated")
+                            hyperlogger.debug(f":admin_queue: queue {qn} terminated")
                         else:
-                            logger.debug(f"Hypercaster:admin_queue: queue {qn} already deleted")
+                            hyperlogger.debug(f":admin_queue: queue {qn} already deleted")
                 elif msg == QUIT:
-                    logger.debug("Hypercaster:admin_queue: quitting..")
+                    hyperlogger.debug(":admin_queue: quitting..")
                     return
                 else:
-                    logger.debug(f"Hypercaster:admin_queue: ignoring '{msg}'")
+                    hyperlogger.debug(f":admin_queue: ignoring '{msg}'")
             else:  # timed out
-                logger.debug(f"Hypercaster:admin_queue: timed out, should quit? {self.should_quit}")
-                if self.should_quit:
-                    logger.debug(f"Hypercaster:admin_queue: should quit, quitting..")
-                    logger.debug(f"Hypercaster:admin_queue: ..done. Bye")
+                # hyperlogger.debug(f":admin_queue: timed out, should quit? {self.shutdown_flag.is_set()}")
+                if self.shutdown_flag.is_set():
+                    hyperlogger.debug(f":admin_queue: should quit, quitting..")
                     return
 
     def run(self):
         try:
             self.admin_queue_thread.start()
-            logger.debug(f"Hypercaster:run: running..")
+            hyperlogger.debug(f":run: running..")
         except KeyboardInterrupt:
-            logger.debug(f"Hypercaster:run: terminate all queues..")
+            hyperlogger.debug(f":run: terminate all queues..")
             self.terminate_all_queues()
-            self.should_quit = True  # reminder to self!
-            logger.debug(f"Hypercaster:run: ..done")
+            self.shutdown_flag.set()  # reminder to self!
+            hyperlogger.debug(f":run: ..done")
         finally:
-            logger.debug(f"Hypercaster:run: waiting all threads to finish..")
+            hyperlogger.debug(f":run: waiting all threads to finish..")
             self.admin_queue_thread.join()
-            logger.debug(f"Hypercaster:run: ..done. Bye")
+            hyperlogger.debug(f":run: ..done. Bye")
