@@ -60,8 +60,13 @@ async def list_runways(request: Request):
 
 
 @router.get("/pois", tags=["reference"])
-async def list_runways(request: Request):
+async def list_points_of_interest(request: Request):
     return JSONResponse(content=request.app.state.emitpy.airport.getPOICombo())
+
+
+@router.get("/checkpoints", tags=["reference"])
+async def list_checkpoints(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.airport.getCheckpointCombo())
 
 
 @router.get("/aircraft-types", tags=["reference"])
@@ -72,6 +77,11 @@ async def list_aircraft_types():
 @router.get("/service-types", tags=["reference", "services"])
 async def list_services():
     return JSONResponse(content=Service.getCombo())
+
+
+@router.get("/service-type-pois/{service_type}", tags=["reference", "services"])
+async def list_service_type_pois(request: Request, service_type: str):
+    return JSONResponse(content=request.app.state.emitpy.airport.getServicePoisCombo(service_type))
 
 
 @router.get("/service-vehicle-models/{service}", tags=["reference", "services"])

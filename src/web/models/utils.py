@@ -1,8 +1,9 @@
 import re
 from typing import List
-import requests
 
 from emitpy.emitapp import StatusInfo
+
+dbid = 1
 
 
 def LOV_Validator(
@@ -28,17 +29,20 @@ def REDISLOV_Validator(
     value: str,
     valid_key: str,
     invalid_message: str) -> str:
-    s = redis.get(valid_key)
-    if s is not None:
-        valid_values = dict(json.loads(s.convert("UTF-8")))
-        return LOV_Validator(value, valid_values, invalid_message)
+    prevdb = redis.client_info()["db"]
+    redis.select(dbid)
+    valid_values = redis.json().get(valid_key)
+    redis.select(prevdb)
+    if valid_values is not None:
+        return LOV_Validator(value, valid_values.keys(), invalid_message)
     raise ValueError(f"no key {valid_key} value for validation")
 
 
 def ICAO24_Validator(value):
-    re.compile('[0-9A-F]{6}', re.IGNORECASE)
-    if re.match(value) is None:
-        raise ValidationError('Must be a 6-digit hexadecimal number [0-9A-F]{6}')
+    p = re.compile('[0-9A-F]{6}', re.IGNORECASE)
+    if p.match(value) is None:
+        raise ValueError("Must be a 6-digit hexadecimal number [0-9A-F]{6}")
+    return value
 
 
 class NotAvailable(StatusInfo):

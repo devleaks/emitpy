@@ -29,7 +29,6 @@ async def create_service(
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
-        print(">>>>", service_in)
         input_d = service_in.service_date if service_in.service_date is not None else datetime.now()
         input_t = service_in.service_time if service_in.service_time is not None else datetime.now()
         dt = datetime(year=input_d.year,
@@ -38,10 +37,10 @@ async def create_service(
                       hour=input_t.hour,
                       minute=input_t.minute)
         ret = request.app.state.emitpy.do_service(
-                queue=service_in.queue,
-                emit_rate=int(service_in.emit_rate),
+               queue=service_in.queue,
+               emit_rate=int(service_in.emit_rate),
                operator=service_in.handler,
-               service=service_in.service,
+               service=service_in.service_type,
                quantity=service_in.quantity,
                ramp=service_in.ramp,
                aircraft=service_in.aircraft_type,

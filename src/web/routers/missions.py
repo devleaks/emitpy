@@ -57,7 +57,6 @@ async def schedule_mission(
 ):
     ret = StatusInfo(status=1, message="exception", data=None)
     try:
-        print(">>>>>", mission_in)
         input_d = mission_in.mission_date if mission_in.mission_date is not None else datetime.now()
         input_t = mission_in.mission_time if mission_in.mission_time is not None else datetime.now()
         dt = datetime(year=input_d.year,

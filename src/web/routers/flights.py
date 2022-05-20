@@ -20,9 +20,9 @@ router = APIRouter(
 )
 
 
-@router.get("/", tags=["flights"])
-async def all_flights():
-    return JSONResponse(content=jsonable_encoder(NotAvailable()))
+# @router.get("/", tags=["flights"])
+# async def all_flights():
+#     return JSONResponse(content=jsonable_encoder(NotAvailable()))
 
 
 @router.post("/", tags=["flights"])
