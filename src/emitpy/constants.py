@@ -117,9 +117,10 @@ class REDIS_DATABASE(Enum):
     UNKNOWN = "unknowndb"
 
 class REDIS_DB(IntEnum):
-    APP = 0
-    REF = 1
-    CACHE = 2
+    APP = 0    # App data, dynamic
+    REF = 1    # App data, static
+    CACHE = 2  # Real temp cache
+    PERM = 3   # Permanent (METAR, etc.)
 
 REDIS_DATABASES = {
     "allocation": REDIS_DATABASE.ALLOCATIONS.value,
