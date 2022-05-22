@@ -204,15 +204,18 @@ class Resource:
         idx = 0
         # logger.debug(f":isAvailable: busy: {len(busy)-1}")
         while idx < len(busy) - 1:
-            if idx == 0 and req_to < busy[idx].estimated[0]:  # ends before first one starts is OK
-                logger.debug(f":isAvailable: before first one {dt(req_to)} < {dt(busy[idx].estimated[0])} ")
-                return True
-            if req_from > busy[idx].estimated[1] and req_to < busy[idx+1].estimated[0]:
-                logger.debug(f":isAvailable: between {idx} and {idx+1}: {dt(req_from)} > {dt(busy[idx].estimated[1])} and {dt(req_to)} < {dt(busy[idx+1].estimated[0])}")
-                return True
-            if (idx+1 == len(busy)-1) and req_from > busy[idx+1].estimated[1]:
-                logger.debug(f":isAvailable: after last one {dt(req_from)} > {dt(busy[idx+1].estimated[1])}")
-                return True
+            try:
+                if idx == 0 and req_to < busy[idx].estimated[0]:  # ends before first one starts is OK
+                    logger.debug(f":isAvailable: before first one {dt(req_to)} < {dt(busy[idx].estimated[0])} ")
+                    return True
+                if req_from > busy[idx].estimated[1] and req_to < busy[idx+1].estimated[0]:
+                    logger.debug(f":isAvailable: between {idx} and {idx+1}: {dt(req_from)} > {dt(busy[idx].estimated[1])} and {dt(req_to)} < {dt(busy[idx+1].estimated[0])}")
+                    return True
+                if (idx+1 == len(busy)-1) and req_from > busy[idx+1].estimated[1]:
+                    logger.debug(f":isAvailable: after last one {dt(req_from)} > {dt(busy[idx+1].estimated[1])}")
+                    return True
+            except:
+                logger.warning(f":is_available: issue at {busy[idx].label}")
             idx = idx + 1
         return False
 
