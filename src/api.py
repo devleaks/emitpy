@@ -144,11 +144,14 @@ async def startup():
     # git log -1 --format=%cd --relative-date
     # + redis_connect info
     app.state.emitpy = EmitApp(MANAGED_AIRPORT)
+    app.state.emitpy.loadFromCache()
     app.state.hypercaster = Hypercaster()
+    logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» ..started")
 
 
 @app.on_event("shutdown")
 async def shutdown():
     logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» ..stopping..")
+    app.state.emitpy.saveToCache()
     app.state.hypercaster.terminate_all_queues()
     logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» ..stopped")
