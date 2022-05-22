@@ -84,6 +84,13 @@ XPLANE_DATABASE = "x-plane"
 GEOMETRY_DATABASE = "geometries"
 
 
+# Misc Keywords
+SCHEDULED = "scheduled"
+ESTIMATED = "estimated"
+ACTUAL = "actual"
+TERMINATED = "terminated"
+
+
 ########################################
 # Redis databases and keys
 #

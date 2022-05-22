@@ -226,7 +226,6 @@ class AircraftType(Identity):
         redis.json().set(key_path(base, self.getKey()), "$", self.getInfo())
 
 
-
 class AircraftPerformance(AircraftType):
     """
     The AircraftPerformance class augments the information available from the global aircraft database (AircraftType)
