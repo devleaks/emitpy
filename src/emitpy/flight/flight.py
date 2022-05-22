@@ -14,15 +14,15 @@ logger = logging.getLogger("Flight")
 
 class Flight(Messages):
 
-    def __init__(self, operator: Airline, number: str, scheduled: str, departure: Airport, arrival: Airport, aircraft: Aircraft, linked_flight: 'Flight' = None):
+    def __init__(self, operator: Airline, number: str, scheduled: datetime, departure: Airport, arrival: Airport, aircraft: Aircraft, linked_flight: 'Flight' = None):
         Messages.__init__(self)
         self.number = number
         self.departure = departure
         self.arrival = arrival
         self.linked_flight = linked_flight
         self.managedAirport = None
-        self.scheduled = scheduled
-        self.scheduled_dt = datetime.fromisoformat(scheduled)
+        self.scheduled_dt = scheduled
+        self.scheduled = scheduled.isoformat()
         self.estimated = None
         self.actual = None
         self.schedule_history = []  # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
@@ -43,8 +43,8 @@ class Flight(Messages):
             "departure": {},
             "arrival": {}
         }
-
         self.flight_type = PAYLOAD.PAX
+
         try:
             if int(number) > 5000:
                 if int(number) > 9900:
@@ -435,7 +435,7 @@ class Flight(Messages):
 
 class Arrival(Flight):
 
-    def __init__(self, number: str, scheduled: str, managedAirport: Airport, origin: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
+    def __init__(self, number: str, scheduled: datetime, managedAirport: Airport, origin: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
         Flight.__init__(self, number=number, scheduled=scheduled, departure=origin, arrival=managedAirport, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
         self.managedAirport = managedAirport
 
@@ -453,7 +453,7 @@ class Arrival(Flight):
 
 class Departure(Flight):
 
-    def __init__(self, number: str, scheduled: str, managedAirport: Airport, destination: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
+    def __init__(self, number: str, scheduled: datetime, managedAirport: Airport, destination: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
         Flight.__init__(self, number=number, scheduled=scheduled, departure=managedAirport, arrival=destination, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
         self.managedAirport = managedAirport
 
