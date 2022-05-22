@@ -502,6 +502,12 @@ class AirportManager:
         self.runway_allocator.save(redis)
 
 
+    def loadAllocators(self, redis):
+        self.runway_allocator.load(redis)
+        self.ramp_allocator.load(redis)
+        self.vehicle_allocator.load(redis)
+
+
     def allFlights(self, redis):
         keys = redis.keys(REDIS_DATABASE.FLIGHTS.value + "*")
         items = []
