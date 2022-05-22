@@ -2,7 +2,8 @@ import logging
 import json
 from enum import Enum, IntEnum, Flag
 from datetime import datetime, timedelta
-from emitpy.constants import REDIS_DATABASE
+from emitpy.constants import REDIS_DATABASE, ID_SEP
+from emitpy.constants import SCHEDULED, ESTIMATED, ACTUAL, TERMINATED
 from emitpy.utils import key_path
 
 logger = logging.getLogger("Resource")
@@ -18,6 +19,8 @@ class RESERVATION_STATUS(Enum):
     COMPLETED = "d"
     CANCELLED = "e"
 
+START = "start"
+END = "end"
 
 
 class Reservation:
@@ -41,21 +44,22 @@ class Reservation:
         i = {
             "type": "reservation",
             "name": self.resource.getInfo(),
-            "scheduled": {
-                "start": self.scheduled[0].isoformat(),
-                "end": self.scheduled[1].isoformat()
+            SCHEDULED: {
+                START: self.scheduled[0].isoformat(),
+                END: self.scheduled[1].isoformat()
             },
+            "label": self.label,
             "status": self.status
         }
         if self.estimated is not None:
-            i["estimated"] = {
-                "start": self.estimated[0].isoformat(),
-                "end": self.estimated[1].isoformat()
+            i[ESTIMATED] = {
+                START: self.estimated[0].isoformat(),
+                END: self.estimated[1].isoformat()
             }
         if self._actual is not None:
-            i["actual"] = {
-                "start": self._actual[0].isoformat(),
-                "end": self._actual[1].isoformat()
+            i[ACTUAL] = {
+                START: self._actual[0].isoformat(),
+                END: self._actual[1].isoformat()
             }
         return i
 
@@ -134,6 +138,25 @@ class Resource:
                 u.save(base=k, redis=redis)
             logger.debug(f":save: {self.getId()} saved {len(self.reservations)} reservations")
         self._updated = False
+
+    def load(self, base: str, redis):
+        k=self.getKey()
+        rsvs = redis.keys(k + "*")
+        for r in rsvs:
+            rsc = redis.get(r)
+            rsc = json.loads(rsc.decode("UTF-8"))
+            lbl = None
+            if "label" in rsc:
+                lbl = rsc["label"]
+            else:
+                lbl = r.decode("UTF-8").split(ID_SEP)[2]
+            res = Reservation(self, datetime.fromisoformat(rsc[SCHEDULED][START]), datetime.fromisoformat(rsc[SCHEDULED][END]), label=lbl)
+            if ESTIMATED in rsc:
+                res.eta(datetime.fromisoformat(rsc[ESTIMATED][START]), datetime.fromisoformat(rsc[ESTIMATED][END]))
+            if ACTUAL in rsc:
+                res.eta(datetime.fromisoformat(rsc[ACTUAL][START]), datetime.fromisoformat(rsc[ACTUAL][END]))
+            self.reservations.append(res)
+        # logger.debug(f":load: {self.getId()} loaded {len(self.reservations)} reservations")
 
     def allocations(self, actual: bool = False):
         if actual:
@@ -321,6 +344,15 @@ class AllocationTable:
 
 
     def load(self, redis):
-        return (False, "AllocationTable::load completed")
+        k=self.getKey()
+        keys = redis.keys(k + "*")
+        rscs = set([a.decode("UTF-8").split(ID_SEP)[2] for a in keys])
+        # logger.debug(f":load: {rscs}")
+        for r in rscs:
+            if r in self.resources:
+                rsc = self.resources[r]
+                rsc.load(base=k, redis=redis)
+        logger.debug(f":load: {self.getId()} loaded allocations")
+        return (True, "AllocationTable::load loaded")
 
 
