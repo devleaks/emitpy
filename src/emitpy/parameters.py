@@ -6,7 +6,7 @@ import os
 
 
 DEVELOPMENT = False  # produces additional debug if True
-PRODUCTION = True  # removed caches and short circuits
+PRODUCTION  = True  # removed caches and short circuits
 
 
 # ######################@
@@ -68,4 +68,9 @@ BROADCASTER_HEARTHBEAT = True
 
 # Sources of some data
 METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"  # on window, don't you have to change / to \?
-METAR_HISTORICAL = "https://www.ogimet.com"
+METAR_HISTORICAL = False
+
+# X-Plane location
+XPLANE_HOSTNAME = "Mac-mini-de-Pierre.local"
+XPLANE_POST = 49003
+XPLANE_DIRECTORY = os.path.join("/Users", "pierre", "X-Plane 11")
