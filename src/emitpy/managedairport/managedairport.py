@@ -89,10 +89,12 @@ class ManagedAirport:
 
         logger.debug("..updating metar..")
         self.update_metar()
-        logger.debug("..done")
+
+        logger.debug("..loading past allocations..")
+        self.airport.manager.loadAllocators(self._app.redis)
 
         if self._cache:
-            logger.debug("..caching..")
+            logger.debug("..caching static data..")
             self.cache()
             logger.debug("..done")
 
