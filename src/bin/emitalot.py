@@ -33,7 +33,7 @@ csvdata = csv.DictReader(file)
 icao = {}
 
 NUM_TURNAROUNDS = 0
-DO_SERVICE = False
+DO_SERVICE = True
 USE_TURNAROUND = False
 
 cnt = 0
@@ -77,13 +77,15 @@ for r in csvdata:
                 + f" 'arrival', ('{r['AC TYPE_x']}', '{r['AC SUB TYPE_x']}'), '{r['BAY_x']}',"
                 + f" '{icao[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L'))")
     except:
-        logger.error(f"EXCEPTION(arrival) around line {cnt}: {ret.status}" + ">=" * 30)
-        logger.error(ret)
-        logger.error(traceback.format_exc())
+        if ret is not None:
+            logger.error(f"EXCEPTION(arrival) around line {cnt}: {ret.status}" + ">=" * 30)
+            logger.error(ret)
+
         logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_x']}', '{r['FLIGHT NO_x']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT_x']}',"
             + f" 'arrival', ('{r['AC TYPE_x']}', '{r['AC SUB TYPE_x']}'), '{r['BAY_x']}',"
             + f" '{icao[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L'))")
+        logger.error(traceback.format_exc())
 
 
     try:
@@ -112,8 +114,9 @@ for r in csvdata:
                 + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
                 + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
     except:
-        logger.error(f"EXCEPTION(departure) around line {cnt}: {ret.status}" + ">=" * 30)
-        logger.error(ret)
+        if ret is not None:
+            logger.error(f"EXCEPTION(departure) around line {cnt}: {ret.status}" + ">=" * 30)
+            logger.error(ret)
         logger.error(traceback.format_exc())
         logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
@@ -137,8 +140,9 @@ for r in csvdata:
                     + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
                     + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
         except:
-            logger.error(f"EXCEPTION(departure) around line {cnt}: {ret.status}" + ">=" * 30)
-            logger.error(ret)
+            if ret is not None:
+                logger.error(f"EXCEPTION(departure) around line {cnt}: {ret.status}" + ">=" * 30)
+                logger.error(ret)
             logger.error(traceback.format_exc())
             logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
                 + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
@@ -146,12 +150,10 @@ for r in csvdata:
                 + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
 
 
-
     cnt = cnt + 1
 
     if cnt > cnt_end:
         break
-
 
 ##
 # {
