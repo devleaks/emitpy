@@ -177,6 +177,7 @@ class Broadcaster:
                     self.trimmingcompleted.set()
                     logger.debug(f":trim: {self.name}: listening again..")
                 elif msg == QUIT:
+                    self.pubsub.unsubscribe(ADM_QUEUE_PREFIX+self.name)
                     self.shutdown_flag.set()
                     logger.debug(f":trim: {self.name}: quitting..")
                     logger.debug(f":trim: {self.name}: ..bye")
@@ -188,6 +189,12 @@ class Broadcaster:
 
         logger.debug(f":trim: {self.name}: quitting..")
         logger.debug(f":trim: {self.name}: ..bye")
+
+
+    def send_data(self, data: str) -> int:
+        self.redis.publish(OUT_QUEUE_PREFIX+self.name, data)
+        return 0
+
 
     def broadcast(self):
         """
@@ -259,7 +266,9 @@ class Broadcaster:
                     if not self.rdv.wait(timeout=realtimetowait):
                         # we timed out, we need to send
                         logger.debug(f":broadcast: {self.name}: sending..")
-                        self.redis.publish(OUT_QUEUE_PREFIX+self.name, currval[1].decode('UTF-8'))
+                        if self.send_data(currval[1].decode('UTF-8')) != 0:
+                            logger.warning(f":send_data: did not complete successfully")
+                        # self.redis.publish(OUT_QUEUE_PREFIX+self.name, currval[1].decode('UTF-8'))
                         currval = None  # currval was sent, we don't need to push it back or anything like that
                         logger.debug(f":broadcast: {self.name}: ..done")
                     else:
@@ -445,6 +454,7 @@ class Hypercaster:
                             hyperlogger.debug(f":admin_queue: queue {qn} already deleted")
                 elif msg == QUIT:
                     hyperlogger.debug(":admin_queue: quitting..")
+                    self.pubsub.unsubscribe(REDIS_DATABASE.QUEUES.value)
                     return
                 else:
                     hyperlogger.debug(f":admin_queue: ignoring '{msg}'")
@@ -452,6 +462,7 @@ class Hypercaster:
                 # hyperlogger.debug(f":admin_queue: timed out, should quit? {self.shutdown_flag.is_set()}")
                 if self.shutdown_flag.is_set():
                     hyperlogger.debug(f":admin_queue: should quit, quitting..")
+                    self.pubsub.unsubscribe(REDIS_DATABASE.QUEUES.value)
                     return
 
     def run(self):
