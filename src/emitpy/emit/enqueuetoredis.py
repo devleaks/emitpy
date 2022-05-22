@@ -8,7 +8,6 @@ from .format import Format
 from .queue import Queue
 from .broadcaster import NEW_DATA, ADM_QUEUE_PREFIX
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE
-from emitpy.parameters import REDIS_CONNECT
 from emitpy.utils import make_key
 
 logger = logging.getLogger("EnqueueToRedis")
@@ -33,13 +32,15 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         enqueued = make_key(ident, REDIS_TYPE.QUEUE.value)
         # 1. Remove queued elements
         oldvalues = redis.smembers(enqueued)
+        oset = redis.pipeline()
         if oldvalues and len(oldvalues) > 0:
-            redis.zrem(queue, *oldvalues)
+            oset.zrem(queue, *oldvalues)
             logger.debug(f":dequeue: deleted {len(oldvalues)} entries for {enqueued}")
         else:
             logger.debug(f":dequeue: no enqueued entries for {enqueued}")
         # 2. Remove enqueued list
-        redis.delete(enqueued)
+        oset.delete(enqueued)
+        oset.execute()
         logger.debug(f":dequeue: deleted {enqueued}")
 
         return (True, f"EnqueueToRedis::dequeue dequeued {ident}")
@@ -53,20 +54,24 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         if queue is not None:
             EnqueueToRedis.dequeue(redis, ident, queue)
         # 2. Remove formatted
+        oset = redis.pipeline()
+
         emits = make_key(ident, REDIS_TYPE.FORMAT.value)
-        redis.delete(emits)
+        oset.delete(emits)
         logger.debug(f":delete: deleted {emits} format")
         # 3. Remove messages
         emits = make_key(ident, REDIS_TYPE.EMIT_MESSAGE.value)
-        redis.delete(emits)
+        oset.delete(emits)
         logger.debug(f":delete: deleted {emits} messages")
         # 4. Remove emit meta
         emits = make_key(ident, REDIS_TYPE.EMIT_META.value)
-        redis.delete(emits)
+        oset.delete(emits)
         logger.debug(f":delete: deleted {emits} meta data")
         # 5. Remove emit
         emits = make_key(ident, REDIS_TYPE.EMIT.value)
-        redis.delete(emits)
+        oset.delete(emits)
+
+        oset.execute()
         logger.debug(f":delete: deleted {emits} emits")
         return (True, f"EnqueueToRedis::delete deleted {ident}")
 
@@ -86,12 +91,14 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             logger.warning(f":save: key {emit_id} already exist, not saved")
             return (False, "EnqueueToRedis::save key already exist")
 
+        oset = self.redis.pipeline()
         if n > 0:
-            self.redis.delete(emit_id)
+            oset.delete(emit_id)
         tosave = []
         for f in self.output:
             tosave.append(str(f))
-        self.redis.sadd(emit_id, *tosave)
+        oset.sadd(emit_id, *tosave)
+        oset.execute()
         logger.debug(f":save: key {emit_id} saved {len(tosave)} entries")
         return (True, "EnqueueToRedis::save completed")
 
@@ -106,24 +113,27 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
         emit_id = self.emit.getKey(REDIS_TYPE.QUEUE.value)
         oldvalues = self.redis.smembers(emit_id)
+        oset = self.redis.pipeline()
         if oldvalues and len(oldvalues) > 0:
             # dequeue old values
-            self.redis.zrem(self.queue.name, *oldvalues)
-            self.redis.delete(emit_id)
+            oset.zrem(self.queue.name, *oldvalues)
+            oset.delete(emit_id)
             logger.debug(f":enqueue: removed {len(oldvalues)} old entries")
 
         emit = {}
         for f in self.output:
             emit[str(f)] = f.ts
-        self.redis.sadd(emit_id, *list(emit.keys()))
+        oset.sadd(emit_id, *list(emit.keys()))
         logger.debug(f":enqueue: saved {len(emit)} new entries to {emit_id}")
 
         # enqueue new values
-        self.redis.zadd(self.queue.name, emit)
+        oset.zadd(self.queue.name, emit)
         logger.debug(f":enqueue: added {len(emit)} new entries to sorted set {self.queue.name}")
 
         logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})..")
-        self.redis.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)
+        oset.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)
         logger.debug(f":enqueue: ..done")
 
+        oset.execute()
+        logger.debug(f":enqueue: enqueued")
         return (True, "EnqueueToRedis::enqueue completed")

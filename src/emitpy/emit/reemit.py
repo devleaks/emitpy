@@ -3,7 +3,6 @@ from datetime import datetime
 
 from .emit import EmitPoint, Emit
 from emitpy.constants import FEATPROP, REDIS_DATABASE, REDIS_DATABASES, REDIS_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
-from emitpy.parameters import REDIS_CONNECT
 
 import logging
 
@@ -88,9 +87,12 @@ class ReEmit(Emit):
         emit_id = self.getKey(REDIS_TYPE.EMIT.value)
         logger.debug(f":loadFromCache: trying to read {emit_id}..")
         ret = self.redis.zrange(emit_id, 0, -1)
-        logger.debug(f":loadFromCache: ..got {len(ret)} members")
-        self._emit = [toEmitPoint(f) for f in ret]
-        logger.debug(f":loadFromCache: ..collected {len(self._emit)} points")
+        if ret is not None:
+            logger.debug(f":loadFromCache: ..got {len(ret)} members")
+            self._emit = [toEmitPoint(f) for f in ret]
+            logger.debug(f":loadFromCache: ..collected {len(self._emit)} points")
+        else:
+            logger.debug(f":loadFromCache: ..could not load {emit_id}")
         return (True, "ReEmit::loadFromCache loaded")
 
 

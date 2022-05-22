@@ -24,7 +24,7 @@ from emitpy.utils import FT, Messages, EstimatedTimeMessage
 from emitpy.constants import MANAGED_AIRPORT, FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
 from emitpy.constants import RATE_LIMIT, EMIT_RANGE
-from emitpy.parameters import AODB_DIR, REDIS_CONNECT
+from emitpy.parameters import AODB_DIR
 
 
 logger = logging.getLogger("Emit")
