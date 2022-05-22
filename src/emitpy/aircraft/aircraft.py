@@ -104,7 +104,20 @@ class AircraftType(Identity):
                                                                   name=row["Model"],
                                                                   data=row)
         logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft types")
+        AircraftType.loadAircraftEquivalences()
 
+
+    @staticmethod
+    def loadAircraftEquivalences():
+        """
+        Loads aircraft type equivalences. Be aware ICAO aircraft type name often
+        does not discriminate from models: Ex. ICAO A350, IATA 350, 359, 358, 35K...
+        While performances parameters are VERY different from version to version,
+        for this simulation of tracks it will be accepted as good enough.
+        If possible we work with detailed IATA model/submodel, if not ICAO model is OK.
+        :param      icao:  The icao
+        :type       icao:  str
+        """
         # Aircraft equivalence patch(!)
         ae = files('data.aircraft_types').joinpath('aircraft-equivalence.yaml').read_text()
         data = yaml.safe_load(ae)
@@ -138,6 +151,7 @@ class AircraftType(Identity):
             "class": self.classId,
             "actype": self.typeId,
             "acmodel": self.name,
+            "acclass": self._ac_class,
             "properties": {
                 "length": self.getProp("length"),
                 "wingspan": self.getProp("wingspan")
@@ -165,7 +179,7 @@ class AircraftType(Identity):
                 except ValueError:
                     return None
             return self.rawdata[name] if name in self.rawdata else None
-        logger.warning(f":getProp: AircraftType {self.typeId} no raw data")
+        logger.warning(f":getProp: AircraftType {self.typeId} no raw data for {name}")
         return None
 
 
@@ -232,6 +246,7 @@ class AircraftPerformance(AircraftType):
     with aircraft performance data necessary for the computation of its movements.
     {
         "icao": "A321",
+        "iata": "321/32S",
         "takeoff_speed": 145,
         "takeoff_distance": 2210,
         "takeoff_wtc": "M",
@@ -258,7 +273,8 @@ class AircraftPerformance(AircraftType):
         "landing_speed": 141,
         "landing_distance": 1600,
         "landing_apc": "C",
-        "iata": "321/32S"
+        "wingspan": 30.56,
+        "length": 28.45
     }
     """
     _DB_PERF = {}
@@ -407,6 +423,8 @@ class AircraftPerformance(AircraftType):
         return {
             "type": "aircraft-performances",
             "base-type": super().getInfo(),
+            "class": self._ac_class,
+            "performances-raw": self.perfraw,
             "performances": self.perfdata,
             "profile-tar": self.tarprofile,
             "profile-gse": self.gseprofile
@@ -588,7 +606,7 @@ class AircraftPerformance(AircraftType):
         if ac_class is not None and ac_class in "ABCDEF":
             self._ac_class = ac_class
         else:
-            logger.warning(f":setClass: invalid class {ac_class}")
+            logger.warning(f":setClass: invalid class {ac_class} for {self.typeId}")
 
 
     def toSI(self):
