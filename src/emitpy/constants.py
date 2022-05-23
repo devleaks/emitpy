@@ -2,7 +2,6 @@
 #
 from enum import Enum, IntEnum, Flag
 
-
 ########################################
 # Identifiers (org,class,type,name)
 #
@@ -91,6 +90,11 @@ ACTUAL = "actual"
 TERMINATED = "terminated"
 
 
+ID_SEP = ":"
+TAG_SEP = "|"
+FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
+
+
 ########################################
 # Redis databases and keys
 #
@@ -157,9 +161,33 @@ class REDIS_LOVS(Enum):
     AIRCRAFT_TYPES_WITH_PERFS = "aircraft-performances"
 
 
-TAG_SEP = "|"
-ID_SEP = ":"
-FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
+def key_path(*args):
+    a = map(lambda x: x if x is not None else "", args)
+    return ID_SEP.join(a)
+
+class REDIS_PREFIX(Enum):
+    AIRCRAFT_TYPES = key_path("aircraft", "types")
+    AIRCRAFT_PERFS = key_path("aircraft", "performances")
+    AIRCRAFT_EQUIS = key_path("aircraft", "equivalences")
+    AIRPORTS = "airports"
+    AIRPORT = "airport"
+    BUSINESS = "business"
+    FLIGHTPLAN_FPDB = key_path("flightplans", "fpdb")
+    FLIGHTPLAN_GEOJ = key_path("flightplans", "geojson")
+    FLIGHTPLAN_APTS = key_path("flightplans", "airports")
+    COMPANIES = key_path("business", "companies")
+    AIRLINES = key_path("business", "airlines")
+    AIRROUTES = key_path("business", "airroutes")
+    IATA = "iata"
+    ICAO = "icao"
+    GEOJSON = "geojson"
+    RAMPS = "ramps"
+    RUNWAYS = "runways"
+    AEROWAYS ="aeroways"
+    GSE = key_path("airport", "gse")
+    GROUNDSUPPORT = "service"
+    GROUNDSUPPORT_DESTINATION = "service-destination"
+    MISSION = "mission"
 
 
 ########################################
@@ -254,8 +282,8 @@ class FLIGHT_PHASE(Enum):
     TOP_OF_ASCENT = "TOP_OF_ASCENT"
     TOP_OF_DESCENT = "TOP_OF_DESCENT"
 
-ARRIVAL_TIME = FLIGHT_PHASE.TOUCH_DOWN.value  # {TOUCH_DOWN|ONBLOCK}
-DEPARTURE_TIME = FLIGHT_PHASE.TAKE_OFF.value  # {OFFBLOCK|TAKE_OFF_HOLD|TAKE_OFF}
+ARRIVAL_TIME   = FLIGHT_PHASE.TOUCH_DOWN.value  # {TOUCH_DOWN|ONBLOCK}
+DEPARTURE_TIME = FLIGHT_PHASE.TAKE_OFF.value    # {OFFBLOCK|TAKE_OFF_HOLD|TAKE_OFF}
 
 
 class MISSION_PHASE(Enum):
