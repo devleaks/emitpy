@@ -49,6 +49,16 @@ async def list_airports():
     return JSONResponse(content=Airport.getCombo())
 
 
+@router.get("/airroutes-by-airport/{airport_iata}", tags=["reference"])
+async def list_airroutes_by_airport(request: Request, airport_iata: str):
+    return JSONResponse(content=request.app.state.emitpy.airport.manager.getAirrouteCombo(airport=airport_iata))
+
+
+@router.get("/airroutes-by-airline/{airline_iata}", tags=["reference"])
+async def list_airroutes_by_airline(request: Request, airline_iata: str):
+    return JSONResponse(content=request.app.state.emitpy.airport.manager.getAirrouteCombo(airline=airline_iata))
+
+
 @router.get("/ramps", tags=["reference"])
 async def list_ramps(request: Request):
     return JSONResponse(content=request.app.state.emitpy.airport.getRampCombo())
