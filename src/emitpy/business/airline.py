@@ -14,7 +14,7 @@ from .company import Company
 from emitpy.airport import Airport
 from emitpy.constants import AIRLINE, AIRLINE_DATABASE
 from emitpy.parameters import DATA_DIR
-from emitpy.utils import toNm
+from emitpy.utils import toNm, key_path
 
 logger = logging.getLogger("Airline")
 
@@ -119,6 +119,21 @@ class Airline(Company):
         """
         s = "0123456789"
         return (self.icao if icao else self.iata) + "-" + "".join(random.sample(s, reglen)).lstrip("0") # no SN-0010, SN-10
+
+
+    def save(self, base, redis, mode: str = "icao"):
+        """
+        Saves airport data to cache.
+
+        :param      base:   The base
+        :type       base:   { type_description }
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        """
+        if mode == "icao":
+            redis.json().set(key_path(base, self.icao), "$", self.getInfo())
+        else:
+            redis.json().set(key_path(base, self.iata), "$", self.getInfo())
 
 
 class Airroute:

@@ -46,6 +46,7 @@ class ManagedAirport:
         logger.debug("loading aircrafts..")
         AircraftType.loadAll()
         AircraftPerformance.loadAll()
+        AircraftType.loadAircraftEquivalences()
         logger.debug("..done")
 
         logger.debug("loading managed airport..")
@@ -129,24 +130,27 @@ class ManagedAirport:
             redis.json().set(k2, Path.root_path(), jsonable_encoder(d2))
 
         redis = self._app.redis
+        logger.debug(":cache: caching..")
+        prevdb = redis.client_info()["db"]
+        redis.select(dbid)
+
         # #############################@
         # D A T A
         #
         # Airports
-        logger.debug(":cache: caching..")
-        prevdb = redis.client_info()["db"]
-        redis.select(dbid)
         # logger.debug(":cache: ..airports..")
         # for a in Airport._DB.values():
         #     a.save("airports", self._app.redis)
         # Airports + procedures
         # Aircraft Types
-        logger.debug(":cache: ..aircrafts..")
-        for a in AircraftType._DB.values():
-            a.save("aircraft-types", self._app.redis)
-        # Aircraft types + performances
-        for a in AircraftPerformance._DB_PERF.values():
-            a.save("aircraft-performances", self._app.redis)
+        # logger.debug(":cache: ..aircrafts..")
+        # for a in AircraftType._DB.values():
+        #     a.save("aircraft-types", self._app.redis)
+        # # Aircraft types + performances
+        # for a in AircraftPerformance._DB_PERF.values():
+        #     a.save("aircraft-performances", self._app.redis)
+        # # Aircraft equivalences
+        # self._app.redis.json().set("aircraft-equivalences", Path.root_path(), AircraftPerformance._DB_EQUIVALENCE)
         # Airlines
         # Airlines + routes
         # Airspace (terminals, navaids, fixes, airways)
@@ -174,6 +178,7 @@ class ManagedAirport:
         # redis.set(LOVS+"service-handlers", Mission.getCombo())
         # # Mission handlers
         # redis.set(LOVS+"service-handlers", self.airport.manager.getCompaniesCombo(classId="Mission"))
+
         redis.select(prevdb)
         logger.debug(":cache: ..done")
 

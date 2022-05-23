@@ -158,16 +158,17 @@ class AirportManager:
         return [(a.iata, a.orgId) for a in sorted(self.airlines.values(), key=operator.attrgetter('orgId'))]
 
 
-    def getAirrouteCombo(self, airline = None):
+    def getAirrouteCombo(self, airline = None, airport = None):
         """
         Builds a list of (code, description) pairs for all routes for the airline operating at this airport.
         """
         routes = set()
         if airline is None:
             for al in self.airline_route_frequencies.values():
-                routes = routes.union(al.keys())
+                ap = al.keys()
+                if airport is None or airport in ap:
+                    routes = routes.union(ap)
         else:
-
             routes = set(self.airline_route_frequencies[airline].keys())
         # return routes
         apts = list(filter(lambda a: a.iata in routes, Airport._DB_IATA.values()))
@@ -305,7 +306,6 @@ class AirportManager:
 
         logger.warning(f":loadServiceVehicles: {business} not found")
         return [False, "AirportManager::loadServiceVehicles file %s not found", business]
-
 
 
     def selectServiceVehicle(self, operator: "Company", service: "Service", reqtime: "datetime", reqend: "datetime" = None,

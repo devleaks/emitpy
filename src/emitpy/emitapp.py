@@ -43,7 +43,7 @@ SAVE_TO_FILE = False
 class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
-        ManagedAirport.__init__(self, airport, self, True)
+        ManagedAirport.__init__(self, airport, self)
         self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
         self.redis = redis.Redis(connection_pool=self.redis_pool)
         # Default queue(s)
@@ -144,10 +144,10 @@ class EmitApp(ManagedAirport):
 
         logger.debug("loading aircraft ..")
         actype, acsubtype = acarr
-        ac = AircraftPerformance.findAircraftByType(actype, acsubtype)
+        ac = AircraftPerformance.findAircraftByType(actype, acsubtype, self.redis)
         if ac is None:
             return StatusInfo(100, f"aircraft performance not found for {actype} or {acsubtype}", None)
-        acperf = AircraftPerformance.find(icao=ac)
+        acperf = AircraftPerformance.find(icao=ac, redis=self.redis)
         if acperf is None:
             return StatusInfo(101, f"aircraft performance not found for {ac}", None)
         acperf.load()

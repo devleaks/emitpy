@@ -3,7 +3,7 @@ import logging
 
 from emitpy.constants import REDIS_DATABASE, ID_SEP
 from emitpy.utils import make_key
-
+from emitpy.parameters import DEFAULT_QUEUES
 
 logger = logging.getLogger("Queue")
 
@@ -62,6 +62,8 @@ class Queue:
 
     @staticmethod
     def delete(redis, name):
+        if name in DELETE_QUEUE.keys():
+            return (False, "Queue::delete: cannot delete default queue")
         ident = make_key(REDIS_DATABASE.QUEUES.value, name)
         redis.srem(REDIS_DATABASE.QUEUES.value, ident)
         redis.delete(ident)

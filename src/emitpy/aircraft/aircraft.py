@@ -17,7 +17,7 @@ import sys
 sys.path.append(HOME_DIR)
 
 from emitpy.business import Identity, Company
-from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE
+from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX
 from emitpy.parameters import DATA_DIR
 from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, key_path
 
@@ -108,7 +108,7 @@ class AircraftType(Identity):
 
 
     @staticmethod
-    def loadAircraftEquivalences():
+    def loadAircraftEquivalences(redis = None):
         """
         Loads aircraft type equivalences. Be aware ICAO aircraft type name often
         does not discriminate from models: Ex. ICAO A350, IATA 350, 359, 358, 35K...
@@ -119,22 +119,64 @@ class AircraftType(Identity):
         :type       icao:  str
         """
         # Aircraft equivalence patch(!)
-        ae = files('data.aircraft_types').joinpath('aircraft-equivalence.yaml').read_text()
-        data = yaml.safe_load(ae)
-        AircraftType._DB_EQUIVALENCE = data
+        if redis is not None:
+            data = redis.get("aircrafts:equivalences")
+            AircraftType._DB_EQUIVALENCE = data.convert("UTF-8")
+        else:
+            ae = files('data.aircraft_types').joinpath('aircraft-equivalence.yaml').read_text()
+            data = yaml.safe_load(ae)
+            AircraftType._DB_EQUIVALENCE = data
         logger.debug(f":loadAll: loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences")
 
 
     @staticmethod
-    def find(icao: str):
+    def getEquivalence(ac, redis = None):
+        """
+        Attempt to guess an aircraft code equivalence.
+        Example: B777 ->["777", "B77L", "77L"...]
+        The aircraft equivalence should be set as an aircraft performance data.
+
+        :param      ac:   { parameter_description }
+        :type       ac:   { type_description }
+        """
+        if len(AircraftType._DB_EQUIVALENCE) == 0:
+            AircraftType.loadAircraftEquivalences(redis)
+        for k, v in AircraftType._DB_EQUIVALENCE.items():
+            if ac in v:
+                return k
+        logger.warning(f":getEquivalence: no equivalence for {ac}")
+        return None
+
+
+    @staticmethod
+    def find(icao: str, redis = None):
         """
         Returns aircraft type instance based on ICAO type code.
 
         :param      icao:  The icao
         :type       icao:  str
         """
+        if redis is not None:
+            k = key_path(REDIS_PREFIX.AIRCRAFT_TYPES.value, icao)
+            ac = redis.get(k)
+            if ac is not None:
+                return AircraftType.fromInfo(info=ac)
+            else:
+                logger.warning(f"AircraftType::find: no such key {k}")
         return AircraftType._DB[icao] if icao in AircraftType._DB else None
 
+
+    @classmethod
+    def fromInfo(cls, info: str):
+        at = AircraftType(orgId=info["actype-manufacturer"],
+                                      classId=info["acclass"],
+                                      typeId=info["actype"],
+                                      name=info["acmodel"],
+                                      data=info)
+        # backward compatibility (to be removed later)
+        at.rawdata["length"] = info["properties"]["length"]
+        at.rawdata["wingspan"] = info["properties"]["wingspan"]
+        return at
 
     def getKey(self):
         if self.iata is not None:
@@ -316,13 +358,20 @@ class AircraftPerformance(AircraftType):
 
 
     @staticmethod
-    def find(icao: str):
+    def find(icao: str, redis = None):
         """
         Returns AircraftPerformance type instance based on ICAO type code.
 
         :param      icao:  The icao
         :type       icao:  str
         """
+        if redis is not None:
+            k = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, icao)
+            ap = redis.get(k)
+            if ap is not None:
+                return AircraftPerformance.fromInfo(info=ap)
+            else:
+                logger.warning(f"AircraftPerformance::find: no such key {k}")
         return AircraftPerformance._DB_PERF[icao] if icao in AircraftPerformance._DB_PERF else None
 
 
@@ -354,24 +403,7 @@ class AircraftPerformance(AircraftType):
 
 
     @staticmethod
-    def getEquivalence(ac):
-        """
-        Attempt to guess an aircraft code equivalence.
-        Example: B777 ->["777", "B77L", "77L"...]
-        The aircraft equivalence should be set as an aircraft performance data.
-
-        :param      ac:   { parameter_description }
-        :type       ac:   { type_description }
-        """
-        for k, v in AircraftType._DB_EQUIVALENCE.items():
-            if ac in v:
-                return k
-        logger.warning(f":getEquivalence: no equivalence for {ac}")
-        return None
-
-
-    @staticmethod
-    def findAircraftByType(actype: str, acsubtype: str):
+    def findAircraftByType(actype: str, acsubtype: str, redis = None):
         """
         Returns existing AircraftPerformance aircraft or None if aircraft cannot be found.
 
@@ -383,21 +415,43 @@ class AircraftPerformance(AircraftType):
         :returns:   The aircraft performance.
         :rtype:     AircraftPerformance
         """
-        if actype in AircraftPerformance._DB_PERF.keys():
-            logger.debug(f":findAircraftByType: found type {actype}")
-            return actype
-        if acsubtype in AircraftPerformance._DB_PERF.keys():
-            logger.debug(f":findAircraftByType: found sub type {acsubtype}")
-            return acsubtype
-        eq = AircraftPerformance.getEquivalence(actype)
-        if eq is not None:
-            logger.debug(f":findAircraftByType: found equivalence {eq} for type {actype}")
-            return eq
-        eq = AircraftPerformance.getEquivalence(acsubtype)
-        if eq is not None:
-            logger.debug(f":findAircraftByType: found equivalence {eq} for subtype {acsubtype}")
-            return eq
-        logger.warning(f":findAircraftByType: no aircraft for {actype}, {acsubtype}")
+        if redis is not None:
+            k = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, actype)
+            if k is not None:
+                logger.debug(f":findAircraftByType: found type {actype}")
+                return actype
+
+            k = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, acsubtype)
+            if k is not None:
+                logger.debug(f":findAircraftByType: found sub type {acsubtype}")
+                return acsubtype
+
+            eq = AircraftPerformance.getEquivalence(actype, redis)
+            if eq is not None:
+                logger.debug(f":findAircraftByType: found equivalence {eq} for type {actype}")
+                return eq
+            eq = AircraftPerformance.getEquivalence(acsubtype, redis)
+            if eq is not None:
+                logger.debug(f":findAircraftByType: found equivalence {eq} for subtype {acsubtype}")
+                return eq
+
+        else:
+            if actype in AircraftPerformance._DB_PERF.keys():
+                logger.debug(f":findAircraftByType: found type {actype}")
+                return actype
+            if acsubtype in AircraftPerformance._DB_PERF.keys():
+                logger.debug(f":findAircraftByType: found sub type {acsubtype}")
+                return acsubtype
+            eq = AircraftPerformance.getEquivalence(actype)
+            if eq is not None:
+                logger.debug(f":findAircraftByType: found equivalence {eq} for type {actype}")
+                return eq
+            eq = AircraftPerformance.getEquivalence(acsubtype)
+            if eq is not None:
+                logger.debug(f":findAircraftByType: found equivalence {eq} for subtype {acsubtype}")
+                return eq
+            logger.warning(f":findAircraftByType: no aircraft for {actype}, {acsubtype}")
+
         return None
 
 
@@ -412,11 +466,28 @@ class AircraftPerformance(AircraftType):
 
 
     def getKey(self):
-        iata = self.getIata()
-        if iata is not None:
-            if len(iata) > 0:
-                return iata[0]
-        return super().getId()
+        return self.typeId
+        # iata = self.getIata()
+        # if iata is not None:
+        #     if len(iata) > 0:
+        #         return iata[0]
+        # return super().getId()
+
+
+    @classmethod
+    def fromInfo(cls, info: str):
+        acperf = AircraftPerformance(orgId=info["base-type"]["actype-manufacturer"],
+                                     classId=info["base-type"]["acclass"],
+                                     typeId=info["base-type"]["actype"],
+                                     name=info["base-type"]["acmodel"],
+                                     data=info["performances-raw"])
+        acperf.display_name = acperf.orgId + " " + acperf.name
+        acperf.perfraw = info["performances-raw"]
+        acperf.perfdata = info["performances"]
+        acperf._ac_class = info["class"]
+        acperf.tarprofile = info["profile-tar"]
+        acperf.gseprofile = info["profile-gse"]
+        return acperf
 
 
     def getInfo(self):
