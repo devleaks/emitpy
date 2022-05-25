@@ -202,6 +202,8 @@ class FlightMovement(Movement):
         Perform vertical navigation for route
         @todo: Add optional hold
         """
+        is_grounded = True
+
         def addCurrentpoint(coll, pos, oi, ni, color, mark, reverse: bool = False):
             # catch up adding all points in flight plan between oi, ni
             # then add pos (which is between ni and ni+1)
@@ -247,6 +249,7 @@ class FlightMovement(Movement):
             mvpt.setColor(color)
             mvpt.setProp(FEATPROP.MARK.value, mark)
             mvpt.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, ix)
+            mvpt.setProp(FEATPROP.GROUNDED.value, is_grounded)
             arr.append(mvpt)
             return mvpt
 
@@ -316,6 +319,7 @@ class FlightMovement(Movement):
             self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
                                             msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
                                             move=self, feature=p))
+            is_grounded = False
 
             # initial climb, commonly accepted to above 1500ft AGL
             logger.debug(":vnav: initialClimb")
@@ -361,6 +365,7 @@ class FlightMovement(Movement):
             self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
                                             msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
                                             move=self, feature=currpos))
+            is_grounded = False
 
             # initial climb, commonly accepted to above 1500ft AGL
             logger.debug(":vnav: initialClimb")
@@ -520,6 +525,8 @@ class FlightMovement(Movement):
         fc.reverse()
         fcidx = 0
 
+        is_grounded = True
+
         if self.flight.arrival.has_rwys():  # the path starts at the of roll out
 
             if self.flight.is_arrival():  # we are at the managed airport, we must use the selected runway
@@ -567,6 +574,7 @@ class FlightMovement(Movement):
             self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
                                             msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
                                             move=self, feature=p))
+            is_grounded = False
 
             # we move to the final fix at max FINAL_ALT ft, approach speed, from touchdown
             logger.debug(":vnav:(rev) final")
@@ -630,6 +638,7 @@ class FlightMovement(Movement):
             self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
                                             msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
                                             move=self, feature=currpos))
+            is_grounded = False
 
             # we move to the final fix at max 3000ft, approach speed either from  airport last point
             logger.debug(":vnav:(rev) final")
@@ -1042,6 +1051,7 @@ class FlightMovement(Movement):
 
         for f in self.taxipos:
             f.setProp(FEATPROP.SAVED_TIME.value, f.time())
+            f.setProp(FEATPROP.GROUNDED.value, True)
 
         logger.debug(":taxiInterpolateAndTime: .. done.")
 
@@ -1211,6 +1221,9 @@ class TowMovement(Movement):
             logger.debug(f":tow: end: {newparking}")
         else:
             logger.debug(f":tow: end: parking {newparking.getProp('name')}")
+
+        for f in fc:
+            f.setProp(FEATPROP.GROUNDED.value, True)
 
         tow = {
             "from": self.flight.ramp,
