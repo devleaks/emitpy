@@ -359,6 +359,7 @@ class FEATPROP(Enum):
     EMIT_RELATIVE_TIME = "emit-relative-time"
     FLIGHT_PLAN_INDEX = "plan-index"
     FLIGHT_PLANDB_INDEX = "fpdb-index"
+    GROUNDED = "grounded"
     HEADING = "heading"
     ICAO24 = "icao24"
     MARK = "_mark"

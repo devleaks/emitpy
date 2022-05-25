@@ -65,7 +65,7 @@ class Airline(Company):
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
-                logger.warning(f"Airline::find: no such key {k}")
+                logger.warning(f":find: no such key {k}")
         else:
             if len(code) == 3:
                 return Airline._DB[code] if code in Airline._DB else None
@@ -84,7 +84,7 @@ class Airline(Company):
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
-                logger.warning(f"Airline::find: no such key {k}")
+                logger.warning(f":findICAO: no such key {k}")
         else:
             return Airline._DB[icao] if icao in Airline._DB else None
         return None
@@ -100,7 +100,7 @@ class Airline(Company):
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
-                logger.warning(f"Airline::find: no such key {k}")
+                logger.warning(f":findIATA: no such key {k}")
         else:
             return Airline._DB_IATA[iata] if iata in Airline._DB_IATA else None
         return None

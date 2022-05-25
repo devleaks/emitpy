@@ -101,8 +101,8 @@ class ManagedAirportData:
         self.redis.select(self.dbid)
         for k, v in self.manager.airline_route_frequencies.items():
             for k1, v1 in v.items():
-                self.redis.json().set(key_path(REDIS_PREFIX.AIRLINE_ROUTES.value, "airlines", k), Path.root_path(), list(v.keys()))
-                k2 = key_path(REDIS_PREFIX.AIRLINE_ROUTES.value, "airports", k1)
+                self.redis.json().set(key_path(REDIS_PREFIX.AIRLINE_ROUTES.value, k), Path.root_path(), list(v.keys()))
+                k2 = key_path(REDIS_PREFIX.AIRPORT_ROUTES.value, k1)
                 if self.redis.json().get(k2) is None:
                     self.redis.json().set(k2, Path.root_path(), [k])
                 else:
@@ -116,8 +116,8 @@ class ManagedAirportData:
         self.redis.select(self.dbid)
         for k, v in self.manager.airline_route_frequencies.items():
             for k1, v1 in v.items():
-                self.redis.json().set(key_path(REDIS_PREFIX.AIRLINE_ROUTES.value, "airlines", k, k1), Path.root_path(), v1)
-                self.redis.json().set(key_path(REDIS_PREFIX.AIRLINE_ROUTES.value, "airports", k1, k), Path.root_path(), v1)
+                self.redis.json().set(key_path(REDIS_PREFIX.AIRLINE_ROUTES.value, k, k1), Path.root_path(), v1)
+                self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT_ROUTES.value, k1, k), Path.root_path(), v1)
         self.redis.select(prevdb)
         return (True, f"ManagedAirportData::loadAirlineRouteFrequencies: loaded airline route frequencies")
 
