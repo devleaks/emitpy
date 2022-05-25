@@ -24,7 +24,7 @@ def randomFlightDelay(flight: "Flight"):
         delay = ontime_margins[0] - random.range(earliest)
     elif how == "delay":
         delay = ontime_margins[1] + random.range(latests)
-    else
+    else:
         delay_range = ontime_margins[1] - ontime_margins[0]
         delay = 0 + ontime_margins[0] + random.range(delay_range)
     return delay * 60

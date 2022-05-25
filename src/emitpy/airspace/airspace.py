@@ -13,7 +13,7 @@ from turfpy.measurement import distance, destination
 from emitpy.graph import Vertex, Edge, Graph
 from emitpy.parameters import LOAD_AIRWAYS
 from emitpy.geo import FeatureWithProps
-
+from emitpy.utils import key_path
 
 logger = logging.getLogger("Airspace")
 
@@ -42,6 +42,15 @@ class Restriction:
         self.altmax = None
         self.speedmin = None
         self.speedmax = None
+
+    def getInfo(self):
+        return {
+            "type": type(self).__name__,
+            "altmin": self.altmin,
+            "altmax": self.altmax,
+            "speedmin": self.speedmin,
+            "speedmax": self.speedmax
+        }
 
     def setAltitudeRestriction(self, altmin: float, altmax: float):
         self.altmin = altmin
@@ -136,6 +145,14 @@ class ControlledPoint(Vertex):
             CPIDENT.AIRPORT: arr[3]
         } if len(arr) == 4 else None
 
+    def getInfo(self):
+        return {
+            "class": type(self).__name__,
+            "name": self.name,          # from Vertex()
+            "ident": self.ident,
+            "region": self.region,
+            "airport": self.airport
+        }
 
 class RestrictedControlledPoint(ControlledPoint, Restriction):
     """
@@ -163,60 +180,60 @@ class NavAid(ControlledPoint):
         self.name = name
 
 
-class NDB(ControlledPoint):  # 2
+class NDB(NavAid):  # 2
 
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
 
 
-class VOR(ControlledPoint):  # 3
+class VOR(NavAid):  # 3
 
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
 
 
-class LOC(ControlledPoint):  # 4,5
+class LOC(NavAid):  # 4,5
 
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
-class GS(ControlledPoint):  # 6
+class GS(NavAid):  # 6
 
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
-class MB(ControlledPoint):  # 7,8,9
+class MB(NavAid):  # 7,8,9
 
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
-class DME(ControlledPoint):  # 12,13
+class DME(NavAid):  # 12,13
 
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
 
 
-class FPAP(ControlledPoint):  # 14
+class FPAP(NavAid):  # 14
 
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
-class GLS(ControlledPoint):  # 16
+class GLS(NavAid):  # 16
 
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
-class LTPFTP(ControlledPoint):  # 16
+class LTPFTP(NavAid):  # 16
 
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
@@ -249,11 +266,13 @@ class Terminal(ControlledPoint):
     def __init__(self, name: str, lat: float, lon: float, alt: int, iata: str, longname: str, country: str, city: str):
         ControlledPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)
         self.iata = iata
+        self.icao = name
         self.country = country
         self.city = city
         # logger.debug(f"Terminal:__init__: name: {self.id} / {name[0:2]}:{iata} / {longname}")
-        self.name = longname
-        Terminal.AS_WAYPOINTS[f"{name[0:2]}:{iata}"] = self  # keep region:iata name for reference in lnav
+        self.longname = longname
+        self._as_waypoint = f"{name[0:2]}:{iata}"
+        Terminal.AS_WAYPOINTS[self.as_waypoint] = self  # keep region:iata name for reference in lnav
 
         if len(self["geometry"]["coordinates"]) > 2:
             self["geometry"]["coordinates"][2] = alt
@@ -263,6 +282,21 @@ class Terminal(ControlledPoint):
     @staticmethod
     def as_waypoint(name):
         return Terminal.AS_WAYPOINTS[name] if name in Terminal.AS_WAYPOINTS.keys() else None
+
+    def getKey(self):
+        return key_path(self.icao[0:2], self.icao[2:4])
+
+    def getInfo(self):
+        i = super().getInfo()
+        i.update({
+            "iata": self.iata,
+            "icao": self.icao,
+            "country": self.country,
+            "city": self.city,
+            "longname": self.longname
+        })
+        return i
+
 
 
 ################################
@@ -300,6 +334,16 @@ class Hold(Restriction):
         self.setAltitudeRestriction(altmin, altmax)
         self.setSpeedRestriction(speed, speed)
 
+
+    def getInfo(self):
+        return {
+            "class": type(self).__name__,
+            "restriction": super().getInfo(),
+            "fix": self.fix.getInfo(),
+            "course": self.course,
+            "leg_time": self.leg_time,
+            "leg_length": self.leg_length
+        }
 
     def getRoute(self, speed: float, finesse: int = 6):
         """
@@ -382,6 +426,22 @@ class AirwaySegment(Edge):
         self.lowhigh = lowhigh
         self.fl_floor = fl_floor
         self.fl_ceil = fl_ceil
+
+    def getKey(self):
+        return key_path(self.start.id.replace(":", "-"), self.end.id.replace(":", "-"))
+
+    def getInfo(self):
+        return {
+            "type": type(self).__name__,
+            "start": self.start.id,
+            "end": self.end.id,
+            "names": self.names,
+            "lowhigh": self.lowhigh,
+            "fl_floor": self.fl_floor,
+            "fl_ceil": self.fl_ceil,
+            "length": self.weight,
+            "directed": self.directed
+        }
 
 
 class AirwayRoute(FeatureWithProps):

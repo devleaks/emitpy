@@ -17,7 +17,7 @@ HOME_DIR = os.path.join("/Users", "pierre", "Developer", "oscars", "emitpy")  # 
 
 # DATA is a database of *static* data, definitions, etc. (read-only)
 DATA_DIR = os.path.join(HOME_DIR, "data")
-LOAD_AIRWAYS=False  # to speedup developments
+LOAD_AIRWAYS=True  # to speedup developments
 
 # AODB is a database of working data (read-write). Mostly replaced by Redis
 AODB_DIR = os.path.join(HOME_DIR, "db")
