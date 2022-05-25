@@ -12,9 +12,9 @@ from turfpy import measurement
 
 from .company import Company
 from emitpy.airport import Airport
-from emitpy.constants import AIRLINE, AIRLINE_DATABASE
+from emitpy.constants import AIRLINE, AIRLINE_DATABASE, REDIS_PREFIX
 from emitpy.parameters import DATA_DIR
-from emitpy.utils import toNm, key_path
+from emitpy.utils import toNm, key_path, rejson
 
 logger = logging.getLogger("Airline")
 
@@ -52,27 +52,58 @@ class Airline(Company):
         logger.debug(f":loadAll: loaded {len(Airline._DB)} airlines")
 
     @staticmethod
-    def find(code: str):
+    def find(code: str, redis = None):
         """
         Finds an airline through its either IIATA 2 letter code or ICAO 3 letter code.
         """
-        if len(code) == 3:
-            return Airline._DB[code] if code in Airline._DB else None
-        return Airline._DB_IATA[code] if code in Airline._DB_IATA else None
+        if redis is not None:
+            if len(code) == 3:
+                k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.ICAO.value), code)
+            else:
+                k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.IATA.value), code)
+            ac = rejson(redis, key=k, db=1)
+            if ac is not None:
+                return Airline.fromInfo(info=ac)
+            else:
+                logger.warning(f"Airline::find: no such key {k}")
+        else:
+            if len(code) == 3:
+                return Airline._DB[code] if code in Airline._DB else None
+            return Airline._DB_IATA[code] if code in Airline._DB_IATA else None
+        return None
+
 
     @staticmethod
-    def findICAO(icao: str):
+    def findICAO(icao: str, redis = None):
         """
         Finds an airline through ICAO 3 letter code.
         """
-        return Airline._DB[icao] if icao in Airline._DB else None
+        if redis is not None:
+            k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.ICAO.value), icao)
+            ac = rejson(redis, key=k, db=1)
+            if ac is not None:
+                return Airline.fromInfo(info=ac)
+            else:
+                logger.warning(f"Airline::find: no such key {k}")
+        else:
+            return Airline._DB[icao] if icao in Airline._DB else None
+        return None
 
     @staticmethod
-    def findIATA(iata: str):
+    def findIATA(iata: str, redis = None):
         """
-        Finds an airline through its IIATA 2 letter code.
+        Finds an airline through its IATA 2 letter code.
         """
-        return Airline._DB_IATA[iata] if iata in Airline._DB_IATA else None
+        if redis is not None:
+            k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.IATA.value), iata)
+            ac = rejson(redis, key=k, db=1)
+            if ac is not None:
+                return Airline.fromInfo(info=ac)
+            else:
+                logger.warning(f"Airline::find: no such key {k}")
+        else:
+            return Airline._DB_IATA[iata] if iata in Airline._DB_IATA else None
+        return None
 
     @staticmethod
     def getCombo():
@@ -82,6 +113,19 @@ class Airline(Company):
         l = filter(lambda a: len(a.routes) > 0, Airline._DB_IATA.values())
         a = [(a.iata, a.orgId) for a in sorted(l, key=operator.attrgetter('orgId'))]
         return a
+
+
+    @classmethod
+    def fromInfo(cls, info):
+        return Airline(name=info["orgId"], iata=info["iata"], icao=info["icao"])
+
+
+    def getInfo(self):
+        i = super().getInfo()
+        i["iata"] = self.iata
+        i["icao"] = self.icao
+        return i
+
 
     def loadFromFile(self):
         """

@@ -50,11 +50,12 @@ class AirspaceData:
         logger.debug("..done")
 
 
-    def load(self):
+    def load(self, what = ["*"]):
 
-        status = self.loadNavaids()
-        if not status[0]:
-            return status
+        if "*" in what or "navaid" in what:
+            status = self.loadNavaids()
+            if not status[0]:
+                return status
 
         prevdb = self.redis.client_info()["db"]
         self.redis.select(self.dbid)

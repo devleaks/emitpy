@@ -141,7 +141,7 @@ class Resource:
 
     def load(self, base: str, redis):
         k=self.getKey()
-        rsvs = redis.keys(k + "*")
+        rsvs = redis.keys(keypath(k, "*"))
         for r in rsvs:
             rsc = redis.get(r)
             rsc = json.loads(rsc.decode("UTF-8"))
@@ -348,7 +348,7 @@ class AllocationTable:
 
     def load(self, redis):
         k=self.getKey()
-        keys = redis.keys(k + "*")
+        keys = redis.keys(keypath(k , "*"))
         rscs = set([a.decode("UTF-8").split(ID_SEP)[2] for a in keys])
         # logger.debug(f":load: {rscs}")
         for r in rscs:

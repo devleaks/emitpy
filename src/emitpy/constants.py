@@ -166,28 +166,29 @@ def key_path(*args):
     return ID_SEP.join(a)
 
 class REDIS_PREFIX(Enum):
-    AIRCRAFT_TYPES = key_path("aircraft", "types")
-    AIRCRAFT_PERFS = key_path("aircraft", "performances")
+    AEROWAYS ="aeroways"
     AIRCRAFT_EQUIS = key_path("aircraft", "equivalences")
-    AIRPORTS = "airports"
+    AIRCRAFT_PERFS = key_path("aircraft", "performances")
+    AIRCRAFT_TYPES = key_path("aircraft", "types")
+    AIRLINES = key_path("business", "airlines")
     AIRPORT = "airport"
+    AIRPORTS = "airports"
+    AIRLINE_ROUTES = key_path("business", "airroutes", "airlines")
+    AIRPORT_ROUTES = key_path("business", "airroutes", "airports")
     BUSINESS = "business"
+    COMPANIES = key_path("business", "companies")
+    FLIGHTPLAN_APTS = key_path("flightplans", "airports")
     FLIGHTPLAN_FPDB = key_path("flightplans", "fpdb")
     FLIGHTPLAN_GEOJ = key_path("flightplans", "geojson")
-    FLIGHTPLAN_APTS = key_path("flightplans", "airports")
-    COMPANIES = key_path("business", "companies")
-    AIRLINES = key_path("business", "airlines")
-    AIRROUTES = key_path("business", "airroutes")
-    IATA = "iata"
-    ICAO = "icao"
     GEOJSON = "geojson"
-    RAMPS = "ramps"
-    RUNWAYS = "runways"
-    AEROWAYS ="aeroways"
-    GSE = key_path("airport", "gse")
     GROUNDSUPPORT = "service"
     GROUNDSUPPORT_DESTINATION = "service-destination"
+    GSE = key_path("airport", "gse")
+    IATA = "iata"
+    ICAO = "icao"
     MISSION = "mission"
+    RAMPS = "ramps"
+    RUNWAYS = "runways"
 
 
 ########################################

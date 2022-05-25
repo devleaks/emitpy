@@ -17,9 +17,10 @@ from .company import Company
 from emitpy.airport import Airport
 from emitpy.resource import AllocationTable
 
-from emitpy.constants import ARRIVAL, DEPARTURE, REDIS_DATABASE, REDIS_TYPE, ID_SEP, FLIGHT_TIME_FORMAT
+from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB
+from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT
-from emitpy.utils import key_path, Timezone
+from emitpy.utils import key_path, rejson, rejson_keys, Timezone
 from emitpy.emit import ReEmit
 
 MANAGED_AIRPORT_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
@@ -61,93 +62,118 @@ class AirportManager:
         self.data = None
 
 
-    def load(self):
+    def load(self, redis = None):
         """
         Loads airport manager data from files.
         """
-        status = self.loadFromFile()
+        status = self.loadAirport(redis)
         if not status[0]:
             return status
 
-        status = self.loadCompanies()
+        status = self.loadCompanies(redis)
         if not status[0]:
             return status
 
-        status = self.loadAirRoutes()
+        status = self.loadAirRoutes(redis)
         if not status[0]:
             return status
 
-        status = self.loadServiceVehicles()
+        status = self.loadServiceVehicles(redis)
         if not status[0]:
             return status
 
         return [True, "AirportManager::loaded"]
 
 
-    def loadFromFile(self):
+    def loadAirport(self, redis = None):
         """
         Loads an airport's data file and place its content in self.data
         """
         self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
-        business = os.path.join(self.airport_base_path, "airport.yaml")
-        if os.path.exists(business):
-            with open(business, "r") as fp:
-                self.data = yaml.safe_load(fp)
-            logger.warning(f":file: {business} loaded")
-            return [True, "AirportManager::loadFromFile: loaded"]
-        logger.warning(f":file: {business} not found")
-        return [False, "AirportManager::loadFromFile file %s not found", business]
+        if redis is not None:
+            k = key_path(REDIS_PREFIX.AIRPORT.value, "managed")
+            self.data = rejson(redis, k, db=REDIS_DB.REF.value)
+            logger.debug(f":loadAirport: {k} loaded")
+            return (True, "AirportManager::loadFromFile: loaded")
+        else:
+            business = os.path.join(self.airport_base_path, "airport.yaml")
+            if os.path.exists(business):
+                with open(business, "r") as fp:
+                    self.data = yaml.safe_load(fp)
+                logger.debug(f":file: {business} loaded")
+                return (True, "AirportManager::loadFromFile: loaded")
+        logger.warning(f":loadAirport: {business} not found")
+        return (False, "AirportManager::loadFromFile file %s not found", business)
 
 
-    def loadAirRoutes(self):
+    def loadAirRoutes(self, redis = None):
         """
         Loads this airport's air routes from a data file.
         """
-        routes = os.path.join(self.airport_base_path, "airlines", "airline-routes.csv")
-        file = open(routes, "r")
-        csvdata = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
-        cnt = 0
-        for row in csvdata:
-            airline = Airline.findIATA(row["AIRLINE CODE"])
-            if airline is not None:
-                if airline.iata not in self.airlines.keys():
-                    self.airlines[airline.icao] = airline
-                airport = Airport.findIATA(row["AIRPORT"])
-                if airport is not None:
-                    airline.addRoute(airport)
-                    airport.addAirline(airline)
-                    cnt = cnt + 1
+        if redis is not None:
+            rkeys = rejson_keys(redis, key_path(REDIS_PREFIX.AIRLINE_ROUTES.value, "*"), db=REDIS_DB.REF.value)
+            for key in rkeys:
+                k = key.decode("UTF-8").split(ID_SEP)
+                if len(k) == 5:
+                    airline = Airline.findIATA(k[-2], redis)
+                    if airline is not None:
+                        if airline.icao not in self.airlines.keys():
+                            self.airlines[airline.icao] = airline
+                        airport = Airport.findIATA(k[-1], redis)
+                        if airport is not None:
+                            airline.addRoute(airport)
+                            airport.addAirline(airline)
+                        else:
+                            logger.warning(f":loadAirRoutes: airport {k[-1]} not found")
+                    else:
+                        logger.warning(f":loadAirRoutes: airline {k[-2]} not found")
+            logger.debug(":loadAirRoutes: loaded (Redis)")
+        else:
+            routes = os.path.join(self.airport_base_path, "airlines", "airline-routes.csv")
+            file = open(routes, "r")
+            csvdata = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
+            cnt = 0
+            for row in csvdata:
+                airline = Airline.findIATA(row["AIRLINE CODE"])
+                if airline is not None:
+                    if airline.icao not in self.airlines.keys():
+                        self.airlines[airline.icao] = airline
+                    airport = Airport.findIATA(row["AIRPORT"])
+                    if airport is not None:
+                        airline.addRoute(airport)
+                        airport.addAirline(airline)
+                        cnt = cnt + 1
+                    else:
+                        logger.warning(f":loadAirRoutes: airport {row['AIRPORT']} not found")
                 else:
-                    logger.warning(f":loadAirRoutes: airport {row['AIRPORT']} not found")
-            else:
-                logger.warning(f":loadAirRoutes: airline {row['AIRLINE CODE']} not found")
-        file.close()
-        logger.debug(":loadAirRoutes: loaded %d airline routes for %d airlines" % (cnt, len(self.airlines)))
+                    logger.warning(f":loadAirRoutes: airline {row['AIRLINE CODE']} not found")
+            file.close()
+            logger.debug(":loadAirRoutes: loaded %d airline routes for %d airlines" % (cnt, len(self.airlines)))
 
-        fn = os.path.join(self.airport_base_path, "airlines", "airline-frequencies.csv")
-        if os.path.exists(fn):
-            self.airline_frequencies = {}
-            with open(fn, "r") as file:
-                data = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
-                for row in data:
-                    self.airline_frequencies[row["AIRLINE CODE"]] = int(row["COUNT"])
-                logger.debug(":loadAirRoutes: airline-frequencies loaded")
+            fn = os.path.join(self.airport_base_path, "airlines", "airline-frequencies.csv")
+            if os.path.exists(fn):
+                self.airline_frequencies = {}
+                with open(fn, "r") as file:
+                    data = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
+                    for row in data:
+                        self.airline_frequencies[row["AIRLINE CODE"]] = int(row["COUNT"])
+                    logger.debug(":loadAirRoutes: airline-frequencies loaded")
 
-        fn = os.path.join(self.airport_base_path, "airlines", "airline-route-frequencies.csv")
-        if os.path.exists(fn):
-            self.airline_route_frequencies = {}
-            with open(fn, "r") as file:
-                data = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
-                for row in data:
-                    if row["AIRLINE CODE"] not in self.airline_route_frequencies:
-                        self.airline_route_frequencies[row["AIRLINE CODE"]] = {}
+            fn = os.path.join(self.airport_base_path, "airlines", "airline-route-frequencies.csv")
+            if os.path.exists(fn):
+                self.airline_route_frequencies = {}
+                with open(fn, "r") as file:
+                    data = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
+                    for row in data:
+                        if row["AIRLINE CODE"] not in self.airline_route_frequencies:
+                            self.airline_route_frequencies[row["AIRLINE CODE"]] = {}
 
-                    if row["AIRPORT"] not in self.airline_route_frequencies[row["AIRLINE CODE"]]:
-                        self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] = 0
-                    self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] = self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] + int(row["COUNT"])
-                logger.debug(":loadAirRoutes: airline-route-frequencies loaded")
+                        if row["AIRPORT"] not in self.airline_route_frequencies[row["AIRLINE CODE"]]:
+                            self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] = 0
+                        self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] = self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] + int(row["COUNT"])
+                    logger.debug(":loadAirRoutes: airline-route-frequencies loaded")
+            logger.debug(":loadAirRoutes: loaded")
 
-        logger.debug(":loadAirRoutes: loaded")
         return [True, "AirportManager::loadAirRoutes: loaded"]
 
 
@@ -223,26 +249,41 @@ class AirportManager:
         airline.addHub(airport)
 
 
-    def loadCompanies(self):
+    def loadCompanies(self, redis = None):
         """
         Loads companies.
 
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
-        companies = os.path.join(self.airport_base_path, "services", "companies.yaml")
-        if os.path.exists(companies):
-            with open(companies, "r") as fp:
-                self.data = yaml.safe_load(fp)
-            logger.warning(f":file: {companies} loaded")
-            for k, c in self.data.items():
-                self.companies[k] = Company(orgId=c["orgId"],
-                                            classId=c["classId"],
-                                            typeId=c["typeId"],
-                                            name=c["name"])
-            return [True, f"AirportManager::loadCompanies loaded {self.companies.keys()}"]
-        return [False, f"AirportManager::loadCompanies file {companies} not found"]
+        if redis is not None:
+            rkeys = rejson_keys(redis, key_path(REDIS_PREFIX.COMPANIES.value, "*"), db=REDIS_DB.REF.value)
+            for key in rkeys:
+                c = rejson(redis, key=key, db=REDIS_DB.REF.value)
+                if c is not None:
+                    k = key.decode("UTF-8").split(ID_SEP)
+                    self.companies[k[-1]] =Company(orgId=c["orgId"],
+                                      classId=c["classId"],
+                                      typeId=c["typeId"],
+                                      name=c["name"])
+                else:
+                    logger.warning(f":loadCompanies: not found {key}")
+            logger.debug(":loadCompanies: loaded (Redis)")
+            return (True, f"AirportManager::loadCompanies loaded")
+        else:
+            self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
+            companies = os.path.join(self.airport_base_path, "services", "companies.yaml")
+            if os.path.exists(companies):
+                with open(companies, "r") as fp:
+                    self.data = yaml.safe_load(fp)
+                logger.warning(f":file: {companies} loaded")
+                for k, c in self.data.items():
+                    self.companies[k] = Company(orgId=c["orgId"],
+                                                classId=c["classId"],
+                                                typeId=c["typeId"],
+                                                name=c["name"])
+                return (True, f"AirportManager::loadCompanies loaded {self.companies.keys()}")
+        return (False, f"AirportManager::loadCompanies not loaded")
 
 
     def getCompaniesCombo(self, classId: str = None, typeId: str = None):
@@ -266,46 +307,69 @@ class AirportManager:
         return list([(c.getId(), c.name) for c in companies])
 
 
-    def loadServiceVehicles(self):
+    def loadServiceVehicles(self, redis = None):
         """
         Loads service vehicle fleet and creates vehicle.
         """
-        self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
-        business = os.path.join(self.airport_base_path, "services", "servicevehiclefleet.yaml")
-        if os.path.exists(business):
-            with open(business, "r") as fp:
-                self.data = yaml.safe_load(fp)
-            logger.warning(f":file: {business} loaded")
+        if redis is not None:
+            vehicles = rejson_keys(redis, key_path(REDIS_PREFIX.GSE.value, "*"), db=REDIS_DB.REF.value)
             servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
-            for vtype in self.data["ServiceVehicleFleet"]:
-                (vcl, vqty) = list(vtype.items())[0]
-                logger.debug(f":loadServiceVehicles: doing {vtype}..")
-                names = vcl.split("Vehicle")
-                vname_root = names[0][0:3].upper()
-                if len(names) > 1 and names[1] != "":
-                    vname_root = vname_root + names[1][0:2].upper()
-                else:
-                    vname_root = vname_root + "SV"  # "standard vehicle"
+            for v in vehicles:
+                vdat = rejson(redis, key=v, db=REDIS_DB.REF.value)
+                vname = vdat["registration"]
+                model = vdat["model"].replace("-", "_")  # now model is snake_case
+                mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
+                vcl = vdat["service"].title() + "Vehicle" + mdl
                 if hasattr(servicevehicleclasses, vcl):
-                    for idx in range(int(vqty)):
-                        vname = f"{vname_root}{idx:03d}"
-                        vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=self.operator)  ## getattr(sys.modules[__name__], str) if same module...
-                        vehicle.setICAO24(AirportManager.randomICAO24(15))  # starts with F like fleet.
-                        self.service_vehicles[vname] = vehicle
-                        if vcl not in self.vehicle_by_type:
-                            self.vehicle_by_type[vcl] = []
-                        self.vehicle_by_type[vcl].append(vehicle)
-                        # logger.debug(f":loadServiceVehicles: ..added {vname}")
+                    # @todo: shoudl reconstruct Company from data
+                    vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=self.operator)  ## getattr(sys.modules[__name__], str) if same module...
+                    vehicle.setICAO24(vdat["icao24"])  # starts with F like fleet.
+                    self.service_vehicles[vname] = vehicle
+                    if vcl not in self.vehicle_by_type:
+                        self.vehicle_by_type[vcl] = []
+                    self.vehicle_by_type[vcl].append(vehicle)
+                    # logger.debug(f":loadServiceVehicles: ..added {vname}")
                 else:
-                    logger.warning(f":loadServiceVehicles: vehicle type {vcl} not found")
-
+                    logger.debug(f":loadServiceVehicles: vehicle type {vcl} not found")
             self.setServiceVehicles(self.service_vehicles)
-            logger.debug(f":loadServiceVehicles: ..done")
-            return [True, "AirportManager::loadServiceVehicles: loaded"]
+            return (True, "AirportManager::loadServiceVehicles: loaded")
+        else:
+            self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
+            business = os.path.join(self.airport_base_path, "services", "servicevehiclefleet.yaml")
+            if os.path.exists(business):
+                with open(business, "r") as fp:
+                    self.data = yaml.safe_load(fp)
+                logger.debug(f":file: {business} loaded")
+                servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
+                for vtype in self.data["ServiceVehicleFleet"]:
+                    (vcl, vqty) = list(vtype.items())[0]
+                    logger.debug(f":loadServiceVehicles: doing {vtype}..")
+                    names = vcl.split("Vehicle")
+                    vname_root = names[0][0:3].upper()
+                    if len(names) > 1 and names[1] != "":
+                        vname_root = vname_root + names[1][0:2].upper()
+                    else:
+                        vname_root = vname_root + "SV"  # "standard vehicle"
+                    if hasattr(servicevehicleclasses, vcl):
+                        for idx in range(int(vqty)):
+                            vname = f"{vname_root}{idx:03d}"
+                            vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=self.operator)  ## getattr(sys.modules[__name__], str) if same module...
+                            vehicle.setICAO24(AirportManager.randomICAO24(15))  # starts with F like fleet.
+                            self.service_vehicles[vname] = vehicle
+                            if vcl not in self.vehicle_by_type:
+                                self.vehicle_by_type[vcl] = []
+                            self.vehicle_by_type[vcl].append(vehicle)
+                            # logger.debug(f":loadServiceVehicles: ..added {vname}")
+                    else:
+                        logger.warning(f":loadServiceVehicles: vehicle type {vcl} not found")
 
+                self.setServiceVehicles(self.service_vehicles)
+                logger.debug(f":loadServiceVehicles: ..done")
+                return (True, "AirportManager::loadServiceVehicles: loaded")
+            logger.warning(f":loadServiceVehicles: {business} not found")
 
-        logger.warning(f":loadServiceVehicles: {business} not found")
-        return [False, "AirportManager::loadServiceVehicles file %s not found", business]
+        logger.warning(f":loadServiceVehicles: not loaded")
+        return (False, "AirportManager::loadServiceVehicles: not loaded")
 
 
     def selectServiceVehicle(self, operator: "Company", service: "Service", reqtime: "datetime", reqend: "datetime" = None,
@@ -509,7 +573,7 @@ class AirportManager:
 
 
     def allFlights(self, redis):
-        keys = redis.keys(REDIS_DATABASE.FLIGHTS.value + "*")
+        keys = redis.keys(keypath(REDIS_DATABASE.FLIGHTS.value, "*"))
         items = []
         if items is not None and len(keys) > 0:
             for f in keys:
@@ -519,7 +583,7 @@ class AirportManager:
 
 
     def allMissions(self, redis):
-        keys = redis.keys(REDIS_DATABASE.MISSIONS.value + "*")
+        keys = redis.keys(keypath(REDIS_DATABASE.MISSIONS.value, "*"))
         items = []
         if keys is not None and len(keys) > 0:
             for f in keys:

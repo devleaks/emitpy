@@ -33,7 +33,7 @@ csvdata = csv.DictReader(file)
 icao = {}
 
 NUM_TURNAROUNDS = 0
-DO_SERVICE = True
+DO_SERVICE = False
 USE_TURNAROUND = False
 
 cnt = 0
@@ -130,7 +130,7 @@ for r in csvdata:
             movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
 
             ret = e.do_flight_services(queue="raw",
-                              emit_rate=30)
+                                       emit_rate=30)
 
             if ret.status != 0:
                 logger.warning(f"ERROR(departure) around line {cnt}: {ret.status}" + ">=" * 30)

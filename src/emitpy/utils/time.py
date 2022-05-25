@@ -44,3 +44,12 @@ def actual_time(scheduled_time: str, is_arrival: bool, delay: int, block: bool =
     dt = datetime.now() + timedelta(minutes=delay)
 
     return f".schedule('{dt.isoformat()}', '{sync}')"
+
+
+
+# subclass JSONEncoder
+# class DateTimeEncoder(JSONEncoder):
+#         #Override the default method
+#         def default(self, obj):
+#             if isinstance(obj, (datetime.date, datetime.datetime)):
+#                 return obj.isoformat()

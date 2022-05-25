@@ -127,14 +127,14 @@ class Emit(Messages):
         """
         Emit identifier augmented with data from the movement.
         """
-        meta_data = self.getInfo()
-        meta_data["props"] = self.props
+        self.emit_meta = self.getInfo()
+        self.emit_meta["props"] = self.props
         source = self.getSource()
         if source is not None:
-            meta_data["move"] = source.getInfo()
-            meta_data["time"] = source.getScheduleHistory()
-        logger.debug(f":getMeta: {meta_data}")
-        return meta_data
+            self.emit_meta["move"] = source.getInfo()
+            self.emit_meta["time"] = source.getScheduleHistory()
+        # logger.debug(f":getMeta: {meta_data}")
+        return self.emit_meta
 
 
     def getSource(self):

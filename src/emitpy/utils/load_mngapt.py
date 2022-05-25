@@ -55,34 +55,42 @@ class ManagedAirportFlightData:
         logger.debug("..done")
 
 
-    def load(self):
-        status = self.loadFlightPlans()
-        if not status[0]:
-            return status
+    def load(self, what = ["*"]):
 
-        status = self.loadRamps()
-        if not status[0]:
-            return status
+        if "*" in what or "fpdb" in what:
+            status = self.loadFlightPlans()
+            if not status[0]:
+                return status
 
-        status = self.loadRunways()
-        if not status[0]:
-            return status
+        if "*" in what or "ramp" in what:
+            status = self.loadRamps()
+            if not status[0]:
+                return status
 
-        status = self.loadAirwayPOIS()
-        if not status[0]:
-            return status
+        if "*" in what or "rwy" in what:
+            status = self.loadRunways()
+            if not status[0]:
+                return status
 
-        status = self.loadServicePOIS()
-        if not status[0]:
-            return status
+        if "*" in what or "apoi" in what:
+            status = self.loadAirwayPOIS()
+            if not status[0]:
+                return status
 
-        status = self.loadServiceDestinations()
-        if not status[0]:
-            return status
+        if "*" in what or "spoi" in what:
+            status = self.loadServicePOIS()
+            if not status[0]:
+                return status
 
-        status = self.loadCheckpoints()
-        if not status[0]:
-            return status
+        if "*" in what or "dpoi" in what:
+            status = self.loadServiceDestinations()
+            if not status[0]:
+                return status
+
+        if "*" in what or "cpoi" in what:
+            status = self.loadCheckpoints()
+            if not status[0]:
+                return status
 
         logger.debug(f":load: loaded")
         return (True, f"ManagedAirportFlightData::load: loaded")

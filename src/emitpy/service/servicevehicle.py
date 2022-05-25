@@ -5,6 +5,7 @@ It has a Service Vehicle Type that is ued to represent it.
 import logging
 import importlib
 from math import inf
+import re
 
 from emitpy.business import Identity, Company
 from emitpy.constants import SERVICE
@@ -108,7 +109,8 @@ class ServiceVehicle(Identity):
             "callsign": self.registration,
             "icao24": self.icao24,
             "operator": self.operator.getInfo(),
-            "service": type(self).__name__.replace("Vehicle", "").lower(),  # a try..., not 100% correct
+            "service": re.sub("Vehicle(.*)$", "", type(self).__name__).lower(),  # a try..., not 100% correct
+#             "classname": type(self).__name__,
             "model": self.model,
             "model_name": self.model_name
         }
@@ -517,7 +519,7 @@ class AircraftVehicle(ServiceVehicle):
         self.setup_time = 4
         self.flow = 1
 
-class AircraftVehicleAPU(ServiceVehicle):
+class AircraftVehicleApu(ServiceVehicle):
 
     def __init__(self, registration: str, operator: Company):
         ServiceVehicle.__init__(self, registration=registration,  operator=operator)

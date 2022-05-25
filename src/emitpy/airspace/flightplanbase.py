@@ -13,7 +13,8 @@ from flightplandb.exceptions import BaseErrorHandler
 
 from geojson import Feature, LineString, Point, FeatureCollection
 
-from emitpy.utils import FT
+from emitpy.constants import REDIS_PREFIX, REDIS_DB
+from emitpy.utils import FT, key_path, rejson
 from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 from emitpy.parameters import DEVELOPMENT, PRODUCTION, DATA_DIR
 
@@ -24,13 +25,14 @@ logger = logging.getLogger("FlightPlanBase")
 
 
 class FlightPlanBase:
-    def __init__(self, managedAirport: str, fromICAO: str, toICAO: str,
+    def __init__(self, managedAirport, fromICAO: str, toICAO: str,
                  useNAT: bool = True, usePACOT: bool = True, useAWYLO: bool = True, useAWYHI: bool = True,
                  cruiseAlt: float = 35000, cruiseSpeed: float = 420,
                  ascentRate: float = 2500, ascentSpeed: float = 250,
                  descentRate: float = 1500, descentSpeed: float = 250,
                  force: bool = False):
 
+        self.managedAirport = managedAirport
         self.fromICAO = fromICAO
         self.toICAO = toICAO
         self.cruiseAlt = cruiseAlt
@@ -48,9 +50,10 @@ class FlightPlanBase:
         self.route = None
         self.routeLS = None
         self.api = None
+        self.redis = managedAirport.redis
 
         # creates file caches
-        self.flightplan_cache = os.path.join(DATA_DIR, "managedairport", managedAirport, "flightplans")
+        self.flightplan_cache = os.path.join(DATA_DIR, "managedairport", managedAirport.airport.icao, "flightplans")
         if not os.path.exists(self.flightplan_cache):
             logger.warning(":init: no file plan cache directory")
             #print("create new fpdb file cache")
@@ -101,14 +104,22 @@ class FlightPlanBase:
         if self.flight_plan is not None:
             return self.flight_plan
 
-        ffp = os.path.join(self.flightplan_cache, self.filename + ".json")
-        if os.path.exists(ffp):
-            with open(ffp, "r") as file:
-                self.flight_plan = json.load(file)
-                self._convertToGeoJSON()
-                logger.debug(f"getFlightPlan: {self.flight_plan['id']} from file cache {ffp}")
 
-            return self.flight_plan
+        if self.redis is not None:
+            ffp = key_path(REDIS_PREFIX.FLIGHTPLAN_FPDB.value, self.fromICAO.lower(), self.toICAO.lower())
+            self.flight_plan = rejson(redis=self.redis, key=ffp, db=REDIS_DB.REF.value)
+            if self.flight_plan is not None:
+                self._convertToGeoJSON()
+                logger.debug(f"getFlightPlan: {self.flight_plan['id']} from Redis cache {ffp}")
+                return self.flight_plan
+        else:
+            ffp = os.path.join(self.flightplan_cache, self.filename + ".json")
+            if os.path.exists(ffp):
+                with open(ffp, "r") as file:
+                    self.flight_plan = json.load(file)
+                    self._convertToGeoJSON()
+                    logger.debug(f"getFlightPlan: {self.flight_plan['id']} from file cache {ffp}")
+                return self.flight_plan
 
         logger.debug(f"getFlightPlan: no cached plan {ffp}, fetching from database")
         return self.fetchFlightPlan()

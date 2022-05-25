@@ -2,7 +2,7 @@ import json
 import logging
 
 from emitpy.constants import REDIS_DATABASE, ID_SEP
-from emitpy.utils import make_key
+from emitpy.utils import make_key, key_path
 from emitpy.parameters import DEFAULT_QUEUES
 
 logger = logging.getLogger("Queue")
@@ -32,7 +32,7 @@ class Queue:
         Instantiate Queue from characteristics saved in Redis
         """
         queues = {}
-        keys = redis.keys(Queue.DATABASE + "*")
+        keys = redis.keys(key_path(Queue.DATABASE, "*"))
         if keys is not None and len(keys) > 0:
             for q in keys:
                 qn = q.decode("UTF-8").replace(Queue.DATABASE, "")
@@ -75,7 +75,7 @@ class Queue:
 
     @staticmethod
     def getCombo(redis):
-        keys = redis.keys(Queue.DATABASE + "*")
+        keys = redis.keys(key_path(Queue.DATABASE, "*"))
         return [(k.decode("utf-8").replace(Queue.DATABASE, ""), k.decode("utf-8").replace(Queue.DATABASE, "")) for k in sorted(keys)]
 
 

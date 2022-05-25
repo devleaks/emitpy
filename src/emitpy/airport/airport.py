@@ -21,10 +21,10 @@ from emitpy.graph import Graph
 from emitpy.geo import Location
 
 from emitpy.airspace import CIFP
-from emitpy.constants import AIRPORT_DATABASE, FEATPROP
+from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX
 from emitpy.parameters import DATA_DIR
 from emitpy.geo import Ramp, Runway
-from emitpy.utils import FT, key_path
+from emitpy.utils import FT, key_path, rejson
 
 logger = logging.getLogger("Airport")
 
@@ -99,36 +99,69 @@ class Airport(Location):
 
 
     @staticmethod
-    def find(code: str):
+    def find(code: str, redis = None):
         """
         Finds an airport by its IATA (always 3 letter) or ICAO (2-4, often 4 letter) code.
 
         :param      code:  The code
         :type       code:  str
         """
+        if redis is not None:
+            if len(code) == 4:
+                k = key_path(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value))
+            else:
+                k = key_path(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value))
+            ac = rejson(redis, key=k, db=1, path=f".{code}")
+            if ac is not None:
+                return Airport.fromInfo(info=ac)
+            else:
+                logger.warning(f"Airport::find: no such key {k}")
+                return None
+
         return Airport.findICAO(code) if len(code) == 4 else Airport.findIATA(code)
 
 
     @staticmethod
-    def findICAO(icao: str):
+    def findICAO(icao: str, redis = None):
         """
         Finds an Airport be its ICAO code.
 
         :param      icao:  The icao
         :type       icao:  str
         """
-        return Airport._DB[icao] if icao in Airport._DB else None
+        if redis is not None:
+            k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value, icao[0:2], icao[2:4])
+            ac = rejson(redis, key=k, db=1)
+            # k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value)
+            # ac = rejson(redis, key=k, db=1, path=f".{icao}")
+            if ac is not None:
+                return Airport.fromInfo(info=ac)
+            else:
+                logger.warning(f":find: no such key {k}")
+        else:
+            return Airport._DB[icao] if icao in Airport._DB else None
+        return None
+
 
 
     @staticmethod
-    def findIATA(iata: str):
+    def findIATA(iata: str, redis = None):
         """
         Finds an Airport be its IATA code.
 
         :param      icao:  The icao
         :type       icao:  str
         """
-        return Airport._DB_IATA[iata] if iata in Airport._DB_IATA else None
+        if redis is not None:
+            k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value)
+            ac = rejson(redis, key=k, db=1, path=f".{iata}")
+            if ac is not None:
+                return Airport.fromInfo(info=ac)
+            else:
+                logger.warning(f":find: no such key {k}")
+        else:
+            return Airport._DB[iata] if iata in Airport._DB else None
+        return None
 
 
     @staticmethod
@@ -138,6 +171,20 @@ class Airport(Location):
         """
         l = filter(lambda a: len(a.airlines) > 0, Airport._DB_IATA.values())
         return [(a.iata, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
+
+
+    @classmethod
+    def fromInfo(cls, info):
+        # logger.debug(f":fromInfo: {json.dumps(info, indent=2)}")
+        return Airport(icao=info["icao"],
+                       iata=info["iata"],
+                       name=info["properties"]["name"],
+                       city=info["properties"]["city"],
+                       country=info["properties"]["country"],
+                       region=info["region"],
+                       lat=float(info["geometry"]["coordinates"][1]),
+                       lon=float(info["geometry"]["coordinates"][0]),
+                       alt=float(info["geometry"]["coordinates"][2] if len(info["geometry"]["coordinates"])>2 else None))
 
 
     def loadFromFile(self):
@@ -182,7 +229,11 @@ class Airport(Location):
             "iata": self.iata,
             "name": self.getProp(FEATPROP.NAME.value),
             "city": self.getProp(FEATPROP.CITY.value),
-            "country": self.getProp(FEATPROP.COUNTRY.value)
+            "country": self.getProp(FEATPROP.COUNTRY.value),
+            "iso_region": self.region,
+            "lat": self["geometry"]["coordinates"][1],
+            "lon": self["geometry"]["coordinates"][0],
+            "alt": self.altitude()
         }
 
 

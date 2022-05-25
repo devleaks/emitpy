@@ -170,7 +170,7 @@ def getFeatureCollection(features, addline: bool = False):
 
 def printFeatures(features, info, addline: bool = False):
     dashlen = 50
-    print(f">>> {info} " + ("-" * dashlen))
+    print(f"*** {info} " + ("-" * dashlen))
     print(getFeatureCollection(features, addline))
     print("-" * (dashlen + 5 + len(info)))
 

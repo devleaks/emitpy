@@ -231,3 +231,9 @@ class BaggageService(Service):
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
+
+class AircraftService(Service):
+
+    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
+        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
+

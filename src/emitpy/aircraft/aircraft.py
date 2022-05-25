@@ -17,9 +17,9 @@ import sys
 sys.path.append(HOME_DIR)
 
 from emitpy.business import Identity, Company
-from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX
+from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB
 from emitpy.parameters import DATA_DIR
-from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, key_path
+from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, key_path, rejson
 
 
 logger = logging.getLogger("Aircraft")
@@ -120,13 +120,16 @@ class AircraftType(Identity):
         """
         # Aircraft equivalence patch(!)
         if redis is not None:
-            data = redis.get("aircrafts:equivalences")
-            AircraftType._DB_EQUIVALENCE = data.convert("UTF-8")
+            data = rejson(redis, key=REDIS_PREFIX.AIRCRAFT_EQUIS.value, db=REDIS_DB.REF.value)
+            if data is not None:
+                AircraftType._DB_EQUIVALENCE = data
+            else:
+                logger.warning(f":loadAircraftEquivalences: cannot find {REDIS_PREFIX.AIRCRAFT_EQUIS.value}")
         else:
             ae = files('data.aircraft_types').joinpath('aircraft-equivalence.yaml').read_text()
             data = yaml.safe_load(ae)
             AircraftType._DB_EQUIVALENCE = data
-        logger.debug(f":loadAll: loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences")
+        logger.debug(f":loadAircraftEquivalences: loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences")
 
 
     @staticmethod
@@ -367,7 +370,7 @@ class AircraftPerformance(AircraftType):
         """
         if redis is not None:
             k = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, icao)
-            ap = redis.get(k)
+            ap = rejson(redis, key=k, db=REDIS_DB.REF.value)
             if ap is not None:
                 return AircraftPerformance.fromInfo(info=ap)
             else:
@@ -416,12 +419,12 @@ class AircraftPerformance(AircraftType):
         :rtype:     AircraftPerformance
         """
         if redis is not None:
-            k = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, actype)
+            k = rejson(redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, actype), db=REDIS_DB.REF.value)
             if k is not None:
                 logger.debug(f":findAircraftByType: found type {actype}")
                 return actype
 
-            k = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, acsubtype)
+            k = rejson(redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, acsubtype), db=REDIS_DB.REF.value)
             if k is not None:
                 logger.debug(f":findAircraftByType: found sub type {acsubtype}")
                 return acsubtype

@@ -26,7 +26,7 @@ class ReEmit(Emit):
         self.redis = redis
         self.meta = None
         self.parseKey(ident, REDIS_TYPE.EMIT.value)
-        self.load()
+        res = self.load()
 
 
     def parseKey(self, emit_key: str, extension: str = None):
@@ -101,8 +101,8 @@ class ReEmit(Emit):
         logger.debug(f":loadMetaFromCache: trying to read {emit_id}..")
         if self.redis.exists(emit_id):
             self.meta = self.redis.json().get(emit_id)
-            # logger.debug(f":loadMetaFromCache: ..got {len(self.meta)} meta data")
-            logger.debug(f":loadMetaFromCache: {self.meta}")
+            logger.debug(f":loadMetaFromCache: ..got {len(self.meta)} meta data")
+            # logger.debug(f":loadMetaFromCache: {self.meta}")
         else:
             logger.debug(f":loadMetaFromCache: ..no meta for {emit_id}")
         return (True, "ReEmit::loadMetaFromCache loaded")

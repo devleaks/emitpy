@@ -15,7 +15,7 @@ logger = logging.getLogger("FlightPlan")
 
 class FlightPlan(FlightPlanBase):
 
-    def __init__(self, managedAirport: str, fromICAO: str, toICAO: str,
+    def __init__(self, managedAirport, fromICAO: str, toICAO: str,
                  useNAT: bool = True, usePACOT: bool = True, useAWYLO: bool = True, useAWYHI: bool = True,
                  cruiseAlt: float = 35000, cruiseSpeed: float = 420,
                  ascentRate: float = 2500, ascentSpeed: float = 250,

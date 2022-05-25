@@ -50,32 +50,38 @@ class ManagedAirportData:
         logger.debug("..done")
 
 
-    def load(self):
+    def load(self, what = ["*"]):
 
-        status = self.loadAirlineFrequencies()
-        if not status[0]:
-            return status
+        if "*" in what or "alfreq" in what:
+            status = self.loadAirlineFrequencies()
+            if not status[0]:
+                return status
 
-        status = self.loadAirlineRoutes()
-        if not status[0]:
-            return status
+        if "*" in what or "alroute" in what:
+            status = self.loadAirlineRoutes()
+            if not status[0]:
+                return status
 
-        status = self.loadAirlineRouteFrequencies()
-        if not status[0]:
-            return status
+        if "*" in what or "alroutefreq" in what:
+            status = self.loadAirlineRouteFrequencies()
+            if not status[0]:
+                return status
 
-        status = self.loadCompanies()
-        if not status[0]:
-            return status
+        if "*" in what or "comp" in what:
+            status = self.loadCompanies()
+            if not status[0]:
+                return status
 
-        status = self.loadGSE()
-        if not status[0]:
-            return status
+        if "*" in what or "gse" in what:
+            status = self.loadGSE()
+            if not status[0]:
+                return status
 
-        prevdb = self.redis.client_info()["db"]
-        self.redis.select(self.dbid)
-        self.redis.json().set(REDIS_PREFIX.AIRPORT.value, Path.root_path(), MANAGED_AIRPORT)
-        self.redis.select(prevdb)
+        if "*" in what or "info" in what:
+            prevdb = self.redis.client_info()["db"]
+            self.redis.select(self.dbid)
+            self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, "managed"), Path.root_path(), MANAGED_AIRPORT)
+            self.redis.select(prevdb)
 
         logger.debug(f":load: loaded")
         return (True, f"ManagedAirportData::load: loaded")

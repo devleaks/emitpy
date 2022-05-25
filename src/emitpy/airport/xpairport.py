@@ -84,7 +84,7 @@ class XPAirport(AirportBase):
         status = self.makeAdditionalAerowayPOIS()
         if not status[0]:
             return status
-        logger.debug(f":load: ..done {status}")
+        logger.debug(f":load: ..done")
         return [True, ":XPAirport::load loaded"]
 
 

@@ -186,8 +186,8 @@ class Flight(Messages):
 
     def setRamp(self, ramp):
         name = ramp.getName()
-        if name in self.managedAirport.ramps.keys():
-            am = self.managedAirport.manager
+        if name in self.managedAirport.airport.ramps.keys():
+            am = self.managedAirport.airport.manager
             reqtime = self.scheduled_dt
             reqend  = reqtime + timedelta(minutes=120)
             if am.ramp_allocator.isAvailable(name, reqtime, reqend):
@@ -223,7 +223,7 @@ class Flight(Messages):
                 # if name[0:2] != "RW":  # add it
                 #     logger.debug(f":_setRunway: correcting: RW+{name}")
                 #     name = "RW" + name
-                am = self.managedAirport.manager
+                am = self.managedAirport.airport.manager
                 if name in am.runway_allocator.resources.keys():
                     reqtime = self.scheduled_dt + timedelta(minutes=20)  # time to taxi
                     reqend  = reqtime + timedelta(minutes=5)  # time to take-off + WTC spacing
@@ -243,7 +243,7 @@ class Flight(Messages):
 
 
     def loadFlightPlan(self):
-        self.flightplan = FlightPlan(managedAirport=self.managedAirport.icao, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
+        self.flightplan = FlightPlan(managedAirport=self.managedAirport, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
 
         if not self.flightplan.has_plan():
             logger.warning(":loadFlightPlan: no flight plan in database")
@@ -269,7 +269,7 @@ class Flight(Messages):
 
 
     def toAirspace(self):
-        fpcp = self.flightplan.toAirspace(self.managedAirport.airspace)
+        fpcp = self.flightplan.toAirspace(self.managedAirport.airport.airspace)
         if fpcp[1] > 0:
             logger.warning(":toAirspace: unidentified %d waypoints" % fpcp[1])
         idx = 0
@@ -336,7 +336,7 @@ class Flight(Messages):
             sid = depapt.selectSID(rwydep)
             if sid is not None:  # inserts it
                 logger.debug(f":plan: {depapt.icao} using SID {sid.name}")
-                ret = depapt.procedures.getRoute(sid, self.managedAirport.airspace)
+                ret = depapt.procedures.getRoute(sid, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, "_plan_segment_type", "sid")
                 Flight.setProp(ret, "_plan_segment_name", sid.name)
                 planpts = planpts + ret
@@ -385,7 +385,7 @@ class Flight(Messages):
             star = arrapt.selectSTAR(rwyarr)
             if star is not None:
                 logger.debug(f":plan: {arrapt.icao} using STAR {star.name}")
-                ret = arrapt.procedures.getRoute(star, self.managedAirport.airspace)
+                ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, "_plan_segment_type", "star")
                 Flight.setProp(ret, "_plan_segment_name", star.name)
                 planpts = planpts[:-1] + ret + [planpts[-1]]  # insert STAR before airport
@@ -401,7 +401,7 @@ class Flight(Messages):
             appch = arrapt.selectApproach(star, rwyarr)  # star won't be used, we can safely pass star=None
             if appch is not None:
                 logger.debug(f":plan: {arrapt.icao} using APPCH {appch.name}")
-                ret = arrapt.procedures.getRoute(appch, self.managedAirport.airspace)
+                ret = arrapt.procedures.getRoute(appch, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, "_plan_segment_type", "appch")
                 Flight.setProp(ret, "_plan_segment_name", appch.name)
                 if len(planpts) > 2 and len(ret) > 0 and planpts[-2].id == ret[0].id:
@@ -436,7 +436,7 @@ class Flight(Messages):
 class Arrival(Flight):
 
     def __init__(self, number: str, scheduled: datetime, managedAirport: Airport, origin: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
-        Flight.__init__(self, number=number, scheduled=scheduled, departure=origin, arrival=managedAirport, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
+        Flight.__init__(self, number=number, scheduled=scheduled, departure=origin, arrival=managedAirport.airport, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
         self.managedAirport = managedAirport
 
     def _setRunway(self):
@@ -454,7 +454,7 @@ class Arrival(Flight):
 class Departure(Flight):
 
     def __init__(self, number: str, scheduled: datetime, managedAirport: Airport, destination: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
-        Flight.__init__(self, number=number, scheduled=scheduled, departure=managedAirport, arrival=destination, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
+        Flight.__init__(self, number=number, scheduled=scheduled, departure=managedAirport.airport, arrival=destination, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
         self.managedAirport = managedAirport
 
     def _setRunway(self):

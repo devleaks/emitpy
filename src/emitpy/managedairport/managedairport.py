@@ -35,19 +35,19 @@ class ManagedAirport:
         airspace.load()
         logger.debug("..done")
 
-        logger.debug("loading airport..")
-        Airport.loadAll()
-        logger.debug("..done")
+        # logger.debug("loading airport..")
+        # Airport.loadAll()
+        # logger.debug("..done")
 
-        logger.debug("loading airlines..")
-        Airline.loadAll()
-        logger.debug("..done")
+        # logger.debug("loading airlines..")
+        # Airline.loadAll()
+        # logger.debug("..done")
 
-        logger.debug("loading aircrafts..")
-        AircraftType.loadAll()
-        AircraftPerformance.loadAll()
-        AircraftType.loadAircraftEquivalences()
-        logger.debug("..done")
+        # logger.debug("loading aircrafts..")
+        # AircraftType.loadAll()
+        # AircraftPerformance.loadAll()
+        # AircraftType.loadAircraftEquivalences()
+        # logger.debug("..done")
 
         logger.debug("loading managed airport..")
 
@@ -57,7 +57,7 @@ class ManagedAirport:
                            typeId="Airport Operator",
                            name=self._this_airport["operator"])
         manager = AirportManager(icao=self._this_airport["ICAO"], operator=operator, app=self._app)
-        ret = manager.load()
+        ret = manager.load(self._app.redis)
         if not ret[0]:
             logger.warning("Airport manager not loaded")
             return ret
@@ -87,12 +87,8 @@ class ManagedAirport:
         manager.setRunways(self.airport.getRunways())
         self.airport.setManager(manager)
 
-
         logger.debug("..updating metar..")
         self.update_metar()
-
-        logger.debug("..loading past allocations..")
-        self.airport.manager.loadAllocators(self._app.redis)
 
         if self._cache:
             logger.debug("..caching static data..")

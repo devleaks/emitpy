@@ -43,7 +43,7 @@ SAVE_TO_FILE = False
 class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
-        ManagedAirport.__init__(self, airport, self)
+        ManagedAirport.__init__(self, airport=airport, app=self)
         self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
         self.redis = redis.Redis(connection_pool=self.redis_pool)
         # Default queue(s)
@@ -59,9 +59,11 @@ class EmitApp(ManagedAirport):
             for k, v in DEFAULT_QUEUES.items():
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                 self.queues[k].save()
+
         self.init()
 
         logger.debug(":init: initialized. listening..")
+        logger.debug("=" * 90)
 
 
     def getId(self):
@@ -98,8 +100,8 @@ class EmitApp(ManagedAirport):
     def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
         logger.debug("Airline, airport ..")
         # Add pure commercial stuff
-        airline = Airline.find(airline)
-        remote_apt = Airport.find(apt)
+        airline = Airline.find(airline, self.redis)
+        remote_apt = Airport.find(apt, self.redis)
         aptrange = self.airport.miles(remote_apt)
         logger.debug(".. done")
 
@@ -126,7 +128,7 @@ class EmitApp(ManagedAirport):
 
         scheduled_dt = datetime.fromisoformat(scheduled)
         if scheduled_dt.tzname() is None:  # has no time zone, uses local one
-            scheduled_dt.replace_tzinfo(self.timezone)
+            scheduled_dt.replace(tzinfo=self.timezone)
             logger.debug("scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug(".. collecting metar ..")
@@ -165,9 +167,19 @@ class EmitApp(ManagedAirport):
         logger.debug("creating flight ..")
         flight = None
         if movetype == ARRIVAL:
-            flight = Arrival(operator=airline, number=flightnumber, scheduled=scheduled_dt, managedAirport=self.airport, origin=remote_apt, aircraft=aircraft)
+            flight = Arrival(operator=airline,
+                             number=flightnumber,
+                             scheduled=scheduled_dt,
+                             managedAirport=self,
+                             origin=remote_apt,
+                             aircraft=aircraft)
         else:
-            flight = Departure(operator=airline, number=flightnumber, scheduled=scheduled_dt, managedAirport=self.airport, destination=remote_apt, aircraft=aircraft)
+            flight = Departure(operator=airline,
+                               number=flightnumber,
+                               scheduled=scheduled_dt,
+                               managedAirport=self,
+                               destination=remote_apt,
+                               aircraft=aircraft)
         flight.setFL(reqfl)
         rampval = self.airport.getRamp(ramp)  # Aircraft won't get towed
         if rampval is None:
@@ -213,7 +225,7 @@ class EmitApp(ManagedAirport):
         emit_time_str = actual_datetime if actual_datetime is not None else scheduled
         emit_time = datetime.fromisoformat(emit_time_str)
         if emit_time.tzname() is None:  # has no time zone, uses local one
-            emit_time.replace_tzinfo(self.timezone)
+            emit_time.replace(tzinfo=self.timezone)
             logger.debug("scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug(emit.getMarkList())
@@ -314,7 +326,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(201, f"EmitApp:do_service: ramp {ramp} not found", None)
         scheduled_dt = datetime.fromisoformat(scheduled)
         if scheduled_dt.tzname() is None:  # has no time zone, uses local one
-            scheduled_dt.replace_tzinfo(self.timezone)
+            scheduled_dt.replace(tzinfo=self.timezone)
             logger.debug("scheduled time has no time zone, added managed airport local time zone")
         this_service = Service.getService(service)(scheduled=scheduled_dt,
                                                    ramp=rampval,
@@ -396,7 +408,7 @@ class EmitApp(ManagedAirport):
 
         emit_time = datetime.fromisoformat(scheduled)
         if emit_time.tzname() is None:  # has no time zone, uses local one
-            emit_time.replace_tzinfo(self.timezone)
+            emit_time.replace(tzinfo=self.timezone)
             logger.debug("scheduled time has no time zone, added managed airport local time zone")
         ret = emit.schedule(flight_sync, emit_time)
         if not ret[0]:
@@ -470,7 +482,7 @@ class EmitApp(ManagedAirport):
 
         mission_time = datetime.fromisoformat(scheduled)
         if mission_time.tzname() is None:  # has no time zone, uses local one
-            mission_time.replace_tzinfo(self.timezone)
+            mission_time.replace(tzinfo=self.timezone)
             logger.debug("scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug(".. vehicle ..")
@@ -545,7 +557,7 @@ class EmitApp(ManagedAirport):
         # logger.debug(f"do_schedule:mark list: {emit.getMarkList()}")
         emit_time = datetime.fromisoformat(scheduled)
         if emit_time.tzname() is None:  # has no time zone, uses local one
-            emit_time.replace_tzinfo(self.timezone)
+            emit_time.replace(tzinfo=self.timezone)
             logger.debug("scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug("scheduling ..")
