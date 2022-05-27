@@ -2,6 +2,7 @@
 A METAR is a weather situation at a named location, usually an airport.
 """
 import os
+import pathlib
 import re
 import json
 import logging
@@ -18,13 +19,15 @@ import flightplandb as fpdb
 # from metar import Metar as MetarLib
 
 from emitpy.constants import METAR_DATABASE, REDIS_DATABASE
-from emitpy.parameters import AODB_DIR, REDIS_CONNECT, USE_REDIS
+from emitpy.parameters import AODB_DIR, REDIS_CONNECT
 
 from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 
 logger = logging.getLogger("Metar")
 
 METAR_DIR = os.path.join(AODB_DIR, METAR_DATABASE)
+
+# pathlib.Path("/tmp/path/to/desired/directory").mkdir(parents=True, exist_ok=True)
 
 
 def round_dt(dt, delta):  # rounds date to delta after date.
@@ -48,6 +51,9 @@ class Metar:
         self.metar = None   # parsed metar
         self.raw = None     # metar string
         self.redis = redis
+
+        if redis is None:
+            pathlib.Path(METAR_DIR).mkdir(parents=True, exist_ok=True)
 
 
     @staticmethod
@@ -194,9 +200,8 @@ class MetarFPDB(Metar):
 
     def __init__(self, icao: str, redis = None):
         Metar.__init__(self, icao=icao, redis=redis)
-        self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
         # For development
-        if USE_REDIS:
+        if redis is not None:
             backend = requests_cache.RedisCache(host=REDIS_CONNECT["host"], port=REDIS_CONNECT["port"], db=2)
             requests_cache.install_cache(backend=backend)
         else:
@@ -213,7 +218,7 @@ class MetarFPDB(Metar):
           "TAF": "TAF AMD KLAX 042058Z 0421/0524 26012G22KT P6SM SCT180 SCT250 FM050400 26007KT P6SM SCT200 FM050700 VRB05KT P6SM SCT007 SCT200 FM051800 23006KT P6SM SCT020 SCT180"
         }
         """
-        metar = self.api.weather.fetch(icao=self.icao)
+        metar = fpdb.weather.fetch(icao=self.icao, key=FLIGHT_PLAN_DATABASE_APIKEY)
         if metar is not None and metar.METAR is not None:
             self.raw = metar.METAR
             logger.debug(f":fetch: {self.raw}")

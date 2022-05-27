@@ -49,32 +49,35 @@ class FlightPlanBase:
         self.flight_plan = None
         self.route = None
         self.routeLS = None
-        self.api = None
         self.redis = managedAirport.redis
 
         # creates file caches
         self.flightplan_cache = os.path.join(DATA_DIR, "managedairport", managedAirport.airport.icao, "flightplans")
         if not os.path.exists(self.flightplan_cache):
             logger.warning(":init: no file plan cache directory")
+            if redis is None:
+                logger.warning(":init: no Redis, creating directory")
+                pathlib.Path(self.flightplan_cache).mkdir(parents=True, exist_ok=True)
             #print("create new fpdb file cache")
             #os.mkdir(self.flightplan_cache)
 
         self.airports_cache = os.path.join(DATA_DIR, "airports", "fpdb")
         if not os.path.exists(self.airports_cache):
             logger.warning(":init: no airport cache directory")
+            if redis is None:
+                logger.warning(":init: no Redis, creating directory")
+                pathlib.Path(self.airports_cache).mkdir(parents=True, exist_ok=True)
             #print("create new fpdb file cache")
             #os.mkdir(self.flightplan_cache)
 
         self.filename = f"{fromICAO.lower()}-{toICAO.lower()}"
-        if FLIGHT_PLAN_DATABASE_APIKEY != "":
-            self.api = fpdb.FlightPlanDB(FLIGHT_PLAN_DATABASE_APIKEY)
-        else:
-            logger.warning(":init: no api key to flightplandatabase, no route will be computed from flight plan database")
+        if FLIGHT_PLAN_DATABASE_APIKEY is None or FLIGHT_PLAN_DATABASE_APIKEY == "":
+            logger.warning(":init: no api key to flightplandatabase, no new route will be computed from flight plan database")
 
         # For development
         if DEVELOPMENT or not PRODUCTION:
-            if USE_REDIS:
-                backend = requests_cache.RedisCache(host=REDIS_CONNECT["host"], port=REDIS_CONNECT["port"], db=2)
+            if self.redis is not None:
+                backend = requests_cache.RedisCache(connection=managedAirport.redis, db=2)
                 requests_cache.install_cache(backend=backend)
             else:
                 requests_cache.install_cache()  # defaults to sqlite
@@ -145,12 +148,8 @@ class FlightPlanBase:
         fpid = None
         plans = None
 
-        if self.api is None:
-            logger.warning("fetchFlightPlan: no api")
-            return None
-
         try:
-            plans = self.api.user.plans(username="devleaks", limit=1000)
+            plans = fpdb.user.plans(username="devleaks", limit=1000)
         except BaseErrorHandler:
             logger.warning("fetchFlightPlan: error from server fetching plans")
 
@@ -161,7 +160,7 @@ class FlightPlanBase:
                         fpid = plan.id
             if fpid is not None:  # cache it
                 try:
-                    fp = self.api.plan.fetch(id_=fpid, return_format="json")
+                    fp = fpdb.plan.fetch(id_=fpid, return_format="json")
                     # @todo should check for error status...
                     self.flight_plan = json.loads(fp)
                     logger.debug("fetchFlightPlan: %d from FPDB" % (self.flight_plan["id"]))
@@ -191,10 +190,6 @@ class FlightPlanBase:
 
 
     def createFPDBFlightPlan(self):
-        if self.api is None:
-            logger.warning("createFPDBFlightPlan: no api")
-            return None
-
         plan_data = GenerateQuery(
             fromICAO=self.fromICAO,
             toICAO=self.toICAO
@@ -205,12 +200,12 @@ class FlightPlanBase:
             #ascentSpeed=self.ascentSpeed,
             #descentRate=self.descentRate,
             #descentSpeed=self.descentSpeed
-            )
+        )
         try:
-            plan = self.api.plan.generate(plan_data)
+            plan = fpdb.plan.generate(plan_data)
             if plan:
                 try:
-                    fp = self.api.plan.fetch(id_=plan.id, return_format="json")
+                    fp = fpdb.plan.fetch(id_=plan.id, return_format="json")
                     # @todo should check for error status...
                     self.flight_plan = json.loads(fp)
                     logger.debug("createFPDBFlightPlan: new plan %d" % (self.flight_plan["id"]))
@@ -229,15 +224,11 @@ class FlightPlanBase:
         """
         We cache airport data because it contains interesting information like elevation.
         """
-        if self.api is None:
-            logger.warning("cacheAirports: no api")
-            return None
-
         for f in [self.fromICAO, self.toICAO]:
             fn = os.path.join(self.airports_cache, f + ".json")
             if not os.path.exists(fn) or os.stat(fn).st_size == 0 or self.force:
                 try:
-                    aptresp = self.api.nav.airport(icao=f)
+                    aptresp = fpdb.nav.airport(icao=f)
                     apt = aptresp._to_api_dict()
                     with open(fn, "w") as outfile:
                         json.dump(apt, outfile)
