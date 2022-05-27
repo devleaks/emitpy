@@ -7,7 +7,7 @@ import logging
 import json
 
 from emitpy.constants import REDIS_DATABASE, ID_SEP
-from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTHBEAT
+from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT
 from .queue import Queue, RUN, STOP, NEW_QUEUE, DELETE_QUEUE
 
 # Queue name prefix
@@ -55,7 +55,7 @@ class Broadcaster:
         self.timeshift = None
 
         self.ping = PING_FREQUENCY
-        self.heartbeat = BROADCASTER_HEARTHBEAT
+        self.heartbeat = BROADCASTER_HEARTBEAT
 
         self.redis = redis
         self.pubsub = self.redis.pubsub()
@@ -352,7 +352,7 @@ class Hypercaster:
         self.pubsub = self.redis.pubsub()
         self.admin_queue_thread = None
         self.shutdown_flag = threading.Event()
-        self.heartbeat = BROADCASTER_HEARTHBEAT
+        self.heartbeat = BROADCASTER_HEARTBEAT
 
         self.init()
 

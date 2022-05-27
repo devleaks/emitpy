@@ -43,15 +43,29 @@ SAVE_TO_FILE = False
 class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
+
         ManagedAirport.__init__(self, airport=airport, app=self)
+
+        self.redis_pool = None
+        self.redis = None
+
+        # If Redis is defined before calling init(), it will use it.
+        # Otherwise, it will use the data files.
+        ret = self.init()  # call init() here to use data from data files
+        if not ret[0]:
+            logger.warning(ret[1])
+
+
+        # (Mandatory) use of Redis starts here
         self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
         self.redis = redis.Redis(connection_pool=self.redis_pool)
+
         # Default queue(s)
         try:
             pong = self.redis.ping()
         except redis.RedisError:
             logger.error(":init: cannot connect to redis")
-            return (False, "EmitApp::init: cannot connect to redis")
+            return
 
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
         if len(self.queues) == 0:
@@ -60,7 +74,9 @@ class EmitApp(ManagedAirport):
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                 self.queues[k].save()
 
-        self.init()
+        ret = self.init()  # call init() here to use data from Redis
+        if not ret[0]:
+            logger.warning(ret[1])
 
         logger.debug(":init: initialized. listening..")
         logger.debug("=" * 90)

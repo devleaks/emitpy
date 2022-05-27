@@ -5,8 +5,8 @@ Used for file location, connection details, etc.
 import os
 
 
-DEVELOPMENT = False  # produces additional debug if True
-PRODUCTION  = True  # removed caches and short circuits
+DEVELOPMENT = True  # produces additional debug if True
+PRODUCTION  = True  # removes caches and short circuits
 
 
 # ######################@
@@ -17,7 +17,7 @@ HOME_DIR = os.path.join("/Users", "pierre", "Developer", "oscars", "emitpy")  # 
 
 # DATA is a database of *static* data, definitions, etc. (read-only)
 DATA_DIR = os.path.join(HOME_DIR, "data")
-LOAD_AIRWAYS=True  # to speedup developments
+LOAD_AIRWAYS=False  # to speedup developments
 
 # AODB is a database of working data (read-write). Mostly replaced by Redis
 AODB_DIR = os.path.join(HOME_DIR, "db")
@@ -26,18 +26,11 @@ AODB_DIR = os.path.join(HOME_DIR, "db")
 # ######################@
 # Database system-based Data
 #
-# REDIS
-USE_REDIS = True
-
 REDIS_CONNECT = {
     "host": "localhost",
     "port": 6379,
     "db": 0
 }
-
-REDIS_COMMANDER_URL = "http://127.0.0.1:8081/"
-
-
 
 # ######################@
 # Application options and parameters
@@ -64,7 +57,7 @@ DEFAULT_QUEUES = {
     "raw": "raw"
 }
 
-BROADCASTER_HEARTHBEAT = True
+BROADCASTER_HEARTBEAT = True
 
 # Sources of some data
 METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"  # on window, don't you have to change / to \?

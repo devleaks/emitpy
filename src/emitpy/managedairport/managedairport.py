@@ -21,6 +21,7 @@ class ManagedAirport:
 
     def __init__(self, airport, app, cache: bool=False):
         self._this_airport = airport
+        self._inited = False
         self._app = app  # context
         self._cache = cache
         self.airport = None
@@ -30,24 +31,28 @@ class ManagedAirport:
         """
         Load entire managed airport data together with airport manager.
         """
+        if self._inited:
+            return (False, "ManagedAirport::init already inited")
+
         airspace = XPAirspace()
         logger.debug("loading airspace..")
         airspace.load()
         logger.debug("..done")
 
-        # logger.debug("loading airport..")
-        # Airport.loadAll()
-        # logger.debug("..done")
+        if self._app.redis is None:  # load from data files
+            logger.debug("loading airport..")
+            Airport.loadAll()
+            logger.debug("..done")
 
-        # logger.debug("loading airlines..")
-        # Airline.loadAll()
-        # logger.debug("..done")
+            logger.debug("loading airlines..")
+            Airline.loadAll()
+            logger.debug("..done")
 
-        # logger.debug("loading aircrafts..")
-        # AircraftType.loadAll()
-        # AircraftPerformance.loadAll()
-        # AircraftType.loadAircraftEquivalences()
-        # logger.debug("..done")
+            logger.debug("loading aircrafts..")
+            AircraftType.loadAll()
+            AircraftPerformance.loadAll()
+            AircraftType.loadAircraftEquivalences()
+            logger.debug("..done")
 
         logger.debug("loading managed airport..")
 
@@ -95,6 +100,7 @@ class ManagedAirport:
             self.cache()
             logger.debug("..done")
 
+        self._inited = True
         return (True, "ManagedAirport::init done")
 
 
