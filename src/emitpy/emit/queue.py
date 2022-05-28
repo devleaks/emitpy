@@ -15,8 +15,6 @@ DELETE_QUEUE = "del-queue"
 
 class Queue:
 
-    DATABASE = REDIS_DATABASE.QUEUES.value + ID_SEP
-
     def __init__(self, name: str, formatter_name: str, starttime: str = None, speed: float = 1, start: bool=True, redis = None):
         self.name = name
         self.formatter_name = formatter_name
@@ -32,10 +30,11 @@ class Queue:
         Instantiate Queue from characteristics saved in Redis
         """
         queues = {}
-        keys = redis.keys(key_path(Queue.DATABASE, "*"))
+        keys = redis.keys(key_path(REDIS_DATABASE.QUEUES.value, "*"))
         if keys is not None and len(keys) > 0:
             for q in keys:
-                qn = q.decode("UTF-8").replace(Queue.DATABASE, "")
+                qa = q.decode("UTF-8").split(ID_SEP)
+                qn = qa[-1]
                 queues[qn] = Queue.loadFromDB(redis, qn)
             logger.debug(f":loadAllQueuesFromDB: loaded {queues.keys()}")
         else:
@@ -75,8 +74,10 @@ class Queue:
 
     @staticmethod
     def getCombo(redis):
-        keys = redis.keys(key_path(Queue.DATABASE, "*"))
-        return [(k.decode("utf-8").replace(Queue.DATABASE, ""), k.decode("utf-8").replace(Queue.DATABASE, "")) for k in sorted(keys)]
+        redis.select(0)
+        keys = redis.keys(key_path(REDIS_DATABASE.QUEUES.value, "*"))
+        qns = [k.decode("utf-8").split(ID_SEP)[-1] for k in keys]
+        return [(k, k) for k in sorted(qns)]
 
 
     def reset(self, speed: float = 1, starttime: str = None, start: bool = True):

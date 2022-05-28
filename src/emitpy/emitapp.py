@@ -12,7 +12,8 @@ from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE, ID_SEP
+from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE
+from emitpy.constants import ID_SEP, REDIS_TYPE, key_path
 from emitpy.parameters import DEFAULT_QUEUES, REDIS_CONNECT, METAR_HISTORICAL
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
@@ -51,9 +52,9 @@ class EmitApp(ManagedAirport):
 
         # If Redis is defined before calling init(), it will use it.
         # Otherwise, it will use the data files.
-        ret = self.init()  # call init() here to use data from data files
-        if not ret[0]:
-            logger.warning(ret[1])
+        # ret = self.init()  # call init() here to use data from data files
+        # if not ret[0]:
+        #     logger.warning(ret[1])
 
 
         # (Mandatory) use of Redis starts here
@@ -642,3 +643,20 @@ class EmitApp(ManagedAirport):
         if name in self.queues.keys():
             del self.queues[name]
         return StatusInfo(0, "queue delete successfully", None)
+
+
+    def do_list_emit(self):
+        keys = self.redis.keys(key_path("*", REDIS_TYPE.QUEUE.value))
+        karr = [(k.decode("UTF-8"), k.decode("UTF-8")) for k in sorted(keys)]
+        return karr
+
+
+    def do_pias_emit(self, queue, ident):
+        ret = EnqueueToRedis.pias(redis=self.redis, ident=ident, queue=queue)
+        if not ret[0]:
+            return StatusInfo(500, f"problem during pias of {ident}", ret)
+        return StatusInfo(0, "pias successfully", None)
+
+
+
+

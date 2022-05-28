@@ -3,6 +3,7 @@
 import os
 import logging
 import datetime
+import json
 
 from .format import Format
 from .queue import Queue
@@ -74,6 +75,37 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset.execute()
         logger.debug(f":delete: deleted {emits} emits")
         return (True, f"EnqueueToRedis::delete deleted {ident}")
+
+
+    @staticmethod
+    def pias(redis, ident: str, queue: str):
+        # Play it again Sam. Re-enqueue an existing formatted set.
+        # Ident must be a key name to a set of formatted, enqueued members
+
+        # dequeue values to avoid duplicates
+        oldvalues = redis.smembers(ident)
+        oset = redis.pipeline()
+        if oldvalues and len(oldvalues) > 0:
+            oset.zrem(queue, *oldvalues)
+            logger.debug(f":enqueue: removed {len(oldvalues)} old entries")
+
+        # enqueue new values (the same ones)
+        emit = {}
+        for f1 in oldvalues:
+            f = json.loads(f1.decode("UTF-8"))
+            emit[str(f)] = f["properties"]["emit-absolute-time"]
+
+        oset.zadd(queue, emit)
+        logger.debug(f":enqueue: added {len(oldvalues)} new entries to sorted set {queue}")
+
+        logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+queue} of new data ({NEW_DATA})..")
+        oset.publish(ADM_QUEUE_PREFIX+queue, NEW_DATA)
+        logger.debug(f":enqueue: ..done")
+
+        logger.debug(f":enqueue: executing..")
+        oset.execute()
+        logger.debug(f":enqueue: ..done")
+        return (True, f"EnqueueToRedis::pias enqueued {ident}")
 
 
     def save(self, overwrite: bool = False):

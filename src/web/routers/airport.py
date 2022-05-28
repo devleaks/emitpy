@@ -129,6 +129,11 @@ async def list_mission_handlers(request: Request):
     return JSONResponse(content=request.app.state.emitpy.airport.manager.getCompaniesCombo(classId="Mission"))
 
 
+@router.get("/pias", tags=["flights", "services", "missions"])
+async def list_enqueues(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.do_list_emit())
+
+
 # ###############################@
 # Display allocations
 #

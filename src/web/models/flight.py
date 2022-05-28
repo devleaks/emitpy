@@ -112,4 +112,3 @@ class DeleteFlight(BaseModel):
         return LOV_Validator(value=queue,
                              valid_values=valid_values,
                              invalid_message=f"Invalid queue name {queue}")
-

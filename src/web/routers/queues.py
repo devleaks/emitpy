@@ -12,7 +12,7 @@ from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, validator
 
 from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES
-from ..models import CreateQueue, ScheduleQueue
+from ..models import CreateQueue, ScheduleQueue, PiasEmit
 from emitpy.emitapp import StatusInfo
 from emitpy.emit import Format, Queue
 
@@ -98,3 +98,18 @@ async def delete_queue(
     except Exception as ex:
         ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
     return JSONResponse(content=jsonable_encoder(ret))
+
+
+@router.put("/pias", tags=["queues"])
+async def pias_emit(
+    request: Request, emit_in: PiasEmit
+):
+    ret = StatusInfo(status=1, message="exception", data=None)
+    try:
+        ret = request.app.state.emitpy.do_pias_emit(
+                ident=emit_in.emit_id,
+                queue=emit_in.queue)
+    except Exception as ex:
+        ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
+    return JSONResponse(content=jsonable_encoder(ret))
+
