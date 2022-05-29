@@ -39,6 +39,7 @@ class StatusInfo:
 
 
 SAVE_TO_FILE = False
+CACHE_DATA = False
 
 
 class EmitApp(ManagedAirport):
@@ -47,19 +48,26 @@ class EmitApp(ManagedAirport):
 
         ManagedAirport.__init__(self, airport=airport, app=self)
 
+        self._use_redis = False
+
         self.redis_pool = None
         self.redis = None
 
         # If Redis is defined before calling init(), it will use it.
         # Otherwise, it will use the data files.
-        # ret = self.init()  # call init() here to use data from data files
-        # if not ret[0]:
-        #     logger.warning(ret[1])
-
+        if CACHE_DATA:  # If caching data we MUST preload them from files
+            ret = self.init()  # call init() here to use data from data files
+            if not ret[0]:
+                logger.warning(ret[1])
 
         # (Mandatory) use of Redis starts here
         self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
         self.redis = redis.Redis(connection_pool=self.redis_pool)
+
+        if CACHE_DATA:
+            logger.debug("..caching static data..")
+            self.cache(self.redis, REDIS_DB.REF.value)
+            logger.debug("..done")
 
         # Default queue(s)
         try:

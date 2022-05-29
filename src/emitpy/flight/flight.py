@@ -95,6 +95,7 @@ class Flight(Messages):
     def getInfo(self):
         return {
             "identifier": self.getId(),  # IATA/ICAO flight identifier
+            "scheduled": self.scheduled,
             "airline": self.operator.getInfo(),
             "departure": self.departure.getInfo(),
             "arrival": self.arrival.getInfo(),

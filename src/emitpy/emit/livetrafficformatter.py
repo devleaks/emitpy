@@ -91,3 +91,17 @@ class LiveTrafficFormatter(Formatter):
         part2 = f",{callsign},{actype},{tailnumber},{aptfrom},{aptto},{round(ts, 3)}"
 
         return (part1 + part2).replace("None", "")
+
+
+    @staticmethod
+    def getAbsoluteTime(f):
+        """
+        Method that returns the absolute emission time of a formatted message
+
+        :param      f:    { parameter_description }
+        :type       f:    { type_description }
+        """
+        a = f.split(",")
+        if len(a) == 15:
+            return a[-1]
+        return None

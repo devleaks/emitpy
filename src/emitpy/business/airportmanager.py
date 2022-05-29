@@ -573,7 +573,7 @@ class AirportManager:
 
 
     def allFlights(self, redis):
-        keys = redis.keys(keypath(REDIS_DATABASE.FLIGHTS.value, "*"))
+        keys = redis.keys(key_path(REDIS_DATABASE.FLIGHTS.value, "*"))
         items = []
         if items is not None and len(keys) > 0:
             for f in keys:
@@ -583,7 +583,7 @@ class AirportManager:
 
 
     def allMissions(self, redis):
-        keys = redis.keys(keypath(REDIS_DATABASE.MISSIONS.value, "*"))
+        keys = redis.keys(key_path(REDIS_DATABASE.MISSIONS.value, "*"))
         items = []
         if keys is not None and len(keys) > 0:
             for f in keys:
@@ -595,14 +595,43 @@ class AirportManager:
     def allServiceForFlight(self, redis, flight_id: str):
         items = []
         emit = ReEmit(flight_id, redis)
-        flight_meta = emit.getMeta()
+        emit_meta = emit.getMeta()
 
-        if flight_meta is not None and flight_meta["is_arrival"]:  # in minutes:
-            before = 60
-            after = 180
+        # props.flight.is_arrival
+        flight_meta = None
+        if emit_meta is not None:
+            if "props" in emit_meta:
+                if "flight" in emit_meta["props"]:
+                    flight_meta = emit_meta["props"]["flight"]
         else:
-            before = 180
-            after = 60
+            logger.warning(f":allServiceForFlight: cannot get emit meta data")
+            return ()
+
+        if flight_meta is None:
+            logger.warning(f":allServiceForFlight: cannot get flight meta data")
+            print(">>>", emit_meta)
+            return ()
+
+        before = None
+        if "is_arrival" in flight_meta:
+            if flight_meta["is_arrival"]:  # in minutes:
+                before = 60
+                after = 180
+            else:
+                before = 180
+                after = 60
+        if before is None:
+            logger.warning(f":allServiceForFlight: cannot determine flight movement")
+            print(">>>", flight_meta)
+            return ()
+
+        if "scheduled" in flight_meta:
+            flight_meta.scheduled = datetime.fromisoformat(flight_meta["scheduled"])
+        else:
+            logger.warning(f":allServiceForFlight: cannot determine flight scheduled time")
+            print(">>>", flight_meta)
+            return ()
+
         et_min = flight_meta.scheduled - timedelta(minutes=before)
         et_max = flight_meta.scheduled + timedelta(minutes=after)
         logger.debug(f":allServiceForFlight: {ARRIVAL if flight_meta.is_arrival else DEPARTURE} at {et_move}")

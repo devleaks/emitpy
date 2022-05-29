@@ -160,7 +160,7 @@ class Airport(Location):
             else:
                 logger.warning(f":find: no such key {k}")
         else:
-            return Airport._DB[iata] if iata in Airport._DB else None
+            return Airport._DB_IATA[iata] if iata in Airport._DB_IATA else None
         return None
 
 

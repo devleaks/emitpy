@@ -19,11 +19,10 @@ class ManagedAirport:
     Wrapper class to load all managed airport parts.
     """
 
-    def __init__(self, airport, app, cache: bool=False):
+    def __init__(self, airport, app):
         self._this_airport = airport
         self._inited = False
         self._app = app  # context
-        self._cache = cache
         self.airport = None
         self.timezone = Timezone(offset=self._this_airport["tzoffset"], name=self._this_airport["tzname"])
 
@@ -38,9 +37,8 @@ class ManagedAirport:
         logger.debug("loading airspace..")
         ret = airspace.load(self._app.redis)
         if not ret[0]:
+            logger.warning("Airspace not loaded")
             return ret
-        else:
-            logger.debug(":init: Redis ready")
         logger.debug("..done")
 
         if self._app.redis is None:  # load from data files
@@ -99,11 +97,7 @@ class ManagedAirport:
 
         logger.debug("..updating metar..")
         self.update_metar()
-
-        if self._cache:
-            logger.debug("..caching static data..")
-            self.cache()
-            logger.debug("..done")
+        logger.debug("..done")
 
         self._inited = True
         return (True, "ManagedAirport::init done")
@@ -123,7 +117,7 @@ class ManagedAirport:
         logger.debug(":update_metar: ..done")
 
 
-    def cache(self, dbid: int = 1):
+    def cache(self, redis, dbid: int = 1):
         """
         Saves Managed Airport and Airport Manager static data into Redis datastore.
 
@@ -136,7 +130,6 @@ class ManagedAirport:
             d2 = dict(arr)
             redis.json().set(k2, Path.root_path(), jsonable_encoder(d2))
 
-        redis = self._app.redis
         logger.debug(":cache: caching..")
         prevdb = redis.client_info()["db"]
         redis.select(dbid)
