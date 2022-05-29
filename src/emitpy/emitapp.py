@@ -13,7 +13,7 @@ from emitpy.service import Service, ServiceMove, FlightServices, Mission, Missio
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE
-from emitpy.constants import ID_SEP, REDIS_TYPE, key_path
+from emitpy.constants import ID_SEP, REDIS_TYPE, REDIS_DB, key_path
 from emitpy.parameters import DEFAULT_QUEUES, REDIS_CONNECT, METAR_HISTORICAL
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
@@ -68,6 +68,7 @@ class EmitApp(ManagedAirport):
             logger.error(":init: cannot connect to redis")
             return
 
+        self.redis.select(REDIS_DB.APP.value)
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
         if len(self.queues) == 0:
             logger.debug(":init: no queue found, create default queues..")

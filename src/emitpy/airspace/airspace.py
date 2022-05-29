@@ -5,6 +5,7 @@
 #
 import logging
 import math
+import json
 from enum import Enum
 
 from geojson import Point, Feature
@@ -154,13 +155,22 @@ class ControlledPoint(Vertex):
             "airport": self.airport
         }
 
+    def getFeature(self):
+        try:
+            s = json.dumps(self)
+            # if succeeded:
+            return self
+        except:
+            # else, tries a simpler version
+            return FeatureWithProps.new(self)
+
+
 class RestrictedControlledPoint(ControlledPoint, Restriction):
     """
     """
     def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
         ControlledPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
         Restriction.__init__(self)
-
 
 
 ################################
@@ -481,12 +491,16 @@ class Airspace(Graph):
         self.all_points = {}
         self.holds = {}
         self.loaded = False
+        self.redis = None
         self.simairspacetype = "Generic"
 
 
-    def load(self):
-        status = self.loadAirports()
+    def load(self, redis = None):
+        if redis is not None:
+            self.redis = redis
+            return [True, "Airspace::load: Redis ready"]
 
+        status = self.loadAirports()
         if not status[0]:
             return status
 

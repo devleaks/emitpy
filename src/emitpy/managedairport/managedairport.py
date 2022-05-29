@@ -36,10 +36,15 @@ class ManagedAirport:
 
         airspace = XPAirspace()
         logger.debug("loading airspace..")
-        airspace.load()
+        ret = airspace.load(self._app.redis)
+        if not ret[0]:
+            return ret
+        else:
+            logger.debug(":init: Redis ready")
         logger.debug("..done")
 
         if self._app.redis is None:  # load from data files
+
             logger.debug("loading airport..")
             Airport.loadAll()
             logger.debug("..done")

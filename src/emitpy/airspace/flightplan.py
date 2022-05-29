@@ -57,10 +57,10 @@ class FlightPlan(FlightPlanBase):
                 fty = f["properties"]["type"] if "type" in f["properties"] else None
                 fid = f["properties"]["ident"] if "ident" in f["properties"] else None
                 if fid is not None:
-                    wid = airspace.findControlledPointByName(fid)
+                    wid = airspace.findControlledPointByIdent(fid)
                     if len(wid) == 1:
                         if wid[0] != last:
-                            v = airspace.vert_dict[wid[0]]
+                            v = airspace.getControlledPoint(wid[0])
                             wpts.append(v)
                             last = wid[0]
                         else:
@@ -76,7 +76,7 @@ class FlightPlan(FlightPlanBase):
                             logger.debug(f":toAirspace: will search for closest to previous {wpts[-1].id}")
                             wid2 = airspace.findClosestControlledPoint(reference=wpts[-1].id, vertlist=wid)  # returns (wpt, dist)
                             if wid2[0] != last:
-                                v = airspace.vert_dict[wid2[0]]
+                                v = airspace.getControlledPoint(wid2[0])
                                 wpts.append(v)
                                 last = wid2[0]
                             else:
@@ -89,19 +89,3 @@ class FlightPlan(FlightPlanBase):
                     errs = errs + 1
                     logger.warning(f":toAirspace: no ident for feature {fid}")
         return (copy.deepcopy(wpts), errs)
-
-
-    def vnav(self, isArrival: bool, ac: AircraftPerformance):
-        """
-        Make vertical navigation and and speeds
-        """
-        # print(self.getGeoJSON())
-        fc = self.getGeoJSON()
-        features = fc["features"]
-
-        if not isArrival:
-            return
-        # arrival
-
-        # From origin airport we climb to cruize alt
-        # We start from TOH (Take off Hold, at the end of the runway.)

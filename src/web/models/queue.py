@@ -56,7 +56,6 @@ class PiasEmit(BaseModel):
     def validate_queue(cls,queue):
         r = redis.Redis(**REDIS_CONNECT)
         valid_values = [q[0] for q in Queue.getCombo(r)]
-        print(">>>", valid_values)
         return LOV_Validator(value=queue,
                              valid_values=valid_values,
                              invalid_message=f"Invalid queue name {queue}")

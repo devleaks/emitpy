@@ -161,27 +161,36 @@ class REDIS_LOVS(Enum):
     AIRCRAFT_TYPES_WITH_PERFS = "aircraft-performances"
 
 
-def key_path(*args):
+def key_path(*args):  # difficult to "import" without circular issues
     a = map(lambda x: x if x is not None else "", args)
     return ID_SEP.join(a)
 
 class REDIS_PREFIX(Enum):
-    AEROWAYS ="aeroways"
+    AEROWAYS = "aeroways"
+    AIRWAYS  = "aeroways"
     AIRCRAFT_EQUIS = key_path("aircraft", "equivalences")
     AIRCRAFT_PERFS = key_path("aircraft", "performances")
     AIRCRAFT_TYPES = key_path("aircraft", "types")
     AIRLINE_ROUTES = key_path("business", "airroutes", "airlines")
     AIRLINES = key_path("business", "airlines")
-    AIRPORT = "airport"
+    AIRPORT  = "airport"
     AIRPORT_ROUTES = key_path("business", "airroutes", "airports")
     AIRPORTS = "airports"
     AIRSPACE = "airspace"
     AIRSPACE_AIRWAYS = key_path("airspace", "airways")
-    AIRSPACE_FIXES = key_path("airspace", "fixes")
+    # AIRSPACE_ALL_INDEX = key_path("airspace", "idents")
+    # AIRSPACE_FIXES = key_path("airspace", "fixes")
+    # AIRSPACE_FIXES_INDEX = key_path("airspace", "fixes", "_index")
+    # AIRSPACE_GEO_INDEX = key_path("airspace", "_geo_index")
     AIRSPACE_HOLDS = key_path("airspace", "holds")
-    AIRSPACE_NAVAIDS = key_path("airspace", "navaids")
-    AIRSPACE_RESTRICTIONS = key_path("airspace", "restrictions")
-    AIRSPACE_TERMINALS = key_path("airspace", "terminals")
+    AIRSPACE_HOLDS_GEO_INDEX = key_path("airspace", "holds", "_geo_index")
+    # AIRSPACE_NAVAIDS = key_path("airspace", "navaids")
+    # AIRSPACE_NAVAIDS_INDEX = key_path("airspace", "navaids", "_index")
+    # AIRSPACE_RESTRICTIONS = key_path("airspace", "restrictions")
+    # AIRSPACE_TERMINALS = key_path("airspace", "terminals")
+    AIRSPACE_WAYPOINTS_GEO_INDEX = key_path("airspace", "waypoints", "_geo_index")
+    AIRSPACE_WAYPOINTS_INDEX = key_path("airspace", "waypoints", "_index")
+    AIRSPACE_WAYPOINTS = key_path("airspace", "waypoints")
     BUSINESS = "business"
     COMPANIES = key_path("business", "companies")
     FLIGHTPLAN_APTS = key_path("flightplans", "airports")
@@ -348,6 +357,7 @@ class FEATPROP(Enum):
     ALTITUDE = "altitude"
     BROADCAST = "broadcast"
     CITY = "city"
+    CLASS = "class"
     CONTROL_TIME = "control-time"
     COUNTRY = "country"
     DELAY = "delay"  # was pause in emitjs

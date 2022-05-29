@@ -4,12 +4,15 @@ import os.path
 import re
 import logging
 import time
+import json
 from math import inf
 from turfpy.measurement import distance
 
 from .airspace import Airspace, Terminal, Fix, ControlledPoint, AirwaySegment, CPIDENT
 from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
-
+from emitpy.geo import FeatureWithProps
+from emitpy.constants import REDIS_PREFIX, REDIS_DB
+from emitpy.utils import key_path
 from emitpy.parameters import DATA_DIR
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
@@ -50,6 +53,8 @@ FIX_TYPE = {
     3: "VHF",
     11: "Fix"
 }
+
+LOCAL_HOLDS_ONLY = False
 
 ##########################
 #
@@ -316,29 +321,55 @@ class XPAirspace(Airspace):
         if region in self._cached_vectex_ids:
             if ident in self._cached_vectex_ids[region]:
                 i = self._cached_vectex_ids[region][ident]["Fix"] if int(navtypeid) == 11 else self._cached_vectex_ids[region][ident]["VHF"]
-                return self.vert_dict[i[0]]
+                return self.get_vertex(i[0])
         return None
 
 
-    def findControlledPointByName(self, ident):
+    def getControlledPoint(self, k):
         """
-        Finds fix or navaid from its identifier.
+        Finds terminal, navaid, or fix its identifier, returns a Vertex or None.
         """
-        self.createIndex()
-        if ident in self._cached_vectex_idents:
-            return self._cached_vectex_idents[ident]
+        if self.redis is not None:
+            prevdb = self.redis.client_info()["db"]
+            self.redis.select(REDIS_DB.REF.value)
+            kr = key_path(REDIS_PREFIX.AIRSPACE_WAYPOINTS.value, k)
+            ret = self.redis.json().get(kr)
+            self.redis.select(prevdb)
+            if ret is not None:
+                # logger.debug(f":getControlledPoint: found {kr}")
+                return FeatureWithProps.new(ret)
+            logger.warning(f":getControlledPoint:  {kr} not found")
+            return None
+        else:
+            return self.get_vertex(k)
+
+
+    def findControlledPointByIdent(self, ident):
+        """
+        Finds terminal, navaid, or fix its identifier, returns an array of Vertex ids.
+        """
+        if self.redis is not None:
+            prevdb = self.redis.client_info()["db"]
+            self.redis.select(REDIS_DB.REF.value)
+
+            k = key_path(REDIS_PREFIX.AIRSPACE_WAYPOINTS_INDEX.value, ident)
+            ret = self.redis.smembers(k)
+            self.redis.select(prevdb)
+            # logger.debug(f":findControlledPointByIdent: {k}=>{ret}..")
+            return [] if ret is None else [k.decode("UTF-8") for k in ret]
+        else:
+            self.createIndex()
+            if ident in self._cached_vectex_idents:
+                return self._cached_vectex_idents[ident]
         return []
-
-        s = region + ":" + ident + (":Fix" if int(navtypeid) == 11 else "") + ":"
-        candidates = [key for key in self.vert_dict.keys() if key.startswith(s)]
-
-        if len(candidates) > 0:
-            # if len(candidates) > 1:
-            #    logger.warning(":findControlledPoint: %d matches on '%s': %s" % (len(candidates), s, candidates))
-            return self.vert_dict[candidates[0]]
-
-        logger.debug(":findControlledPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
-        return None
+        # s = region + ":" + ident + (":Fix" if int(navtypeid) == 11 else "") + ":"
+        # candidates = [key for key in self.vert_dict.keys() if key.startswith(s)]
+        # if len(candidates) > 0:
+        #     # if len(candidates) > 1:
+        #     #    logger.warning(":findControlledPoint: %d matches on '%s': %s" % (len(candidates), s, candidates))
+        #     return self.vert_dict[candidates[0]]
+        # logger.debug(":findControlledPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
+        # return None
 
 
     def findClosestControlledPoint(self, reference, vertlist):
@@ -349,8 +380,15 @@ class XPAirspace(Airspace):
         refvtx = self.get_vertex(reference)
         dist = inf
         for v in vertlist:
-            vtx = self.get_vertex(v)
-            d = distance(refvtx, vtx)
+            if self.redis is not None:
+                prevdb = self.redis.client_info()["db"]
+                self.redis.select(REDIS_DB.REF.value)
+                d = self.redis.geodist(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, reference, v)
+                logger.debug(f":findClosestControlledPoint:Redis: {v}: {d}")
+                self.redis.select(prevdb)
+            else:
+                vtx = self.get_vertex(v)
+                d = distance(refvtx, vtx)
             if d < dist:
                 dist = d
                 closest = v
@@ -427,9 +465,11 @@ class XPAirspace(Airspace):
         lonmin, lonmax = (50, 53)
         latmin, latmax = (23, 27)
         def inBbox(p):
-            lat = p["geometry"]["coordinates"][1]
-            lon = p["geometry"]["coordinates"][0]
-            return (lat > latmin) and (lat < latmax) and (lon > lonmin) and (lon < lonmax)
+            if LOCAL_HOLDS_ONLY:
+                lat = p["geometry"]["coordinates"][1]
+                lon = p["geometry"]["coordinates"][0]
+                return (lat > latmin) and (lat < latmax) and (lon > lonmin) and (lon < lonmax)
+            return True
 
         while line:
             if line == "":
@@ -464,7 +504,8 @@ class XPAirspace(Airspace):
         file.close()
 
         # logger.info(":loadHolds: %d holds loaded.", len(self.holds))
-        logger.debug(f":loadHolds: {len(self.holds)} holds loaded. {self.holds.keys()}")
+        logger.debug(f":loadHolds: {len(self.holds)} holds loaded.")
+        # logger.debug(f":loadHolds: {self.holds.keys()}")
         return [True, "XPAirspace::Holds loaded"]
 
 

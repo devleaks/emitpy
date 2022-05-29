@@ -36,6 +36,20 @@ class Vertex(FeatureWithProps):
     def get_neighbors(self):
         return list(map(lambda a: (a, self.adjacent[a]), self.adjacent))
 
+    def getInfo(self):
+        a = FeatureWithProps.new(self)
+        a["vertex"] = {
+            "name": self.name,
+            "usage": self.usage,
+            "adjacent": self.adjacent,
+            "connected": self.connected,
+        }
+        return a
+
+    @classmethod
+    def new(cls, info):
+        return info
+
 
 class Edge(FeatureWithProps):
 

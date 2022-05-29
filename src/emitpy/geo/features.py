@@ -8,6 +8,7 @@ from turfpy.measurement import bearing, destination
 from .utils import printFeatures
 from emitpy.constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
 import emitpy
+import inspect
 
 # from emitpy.business.identity import Identity
 
@@ -40,14 +41,37 @@ class FeatureWithProps(Feature):
     (https://datatracker.ietf.org/doc/rfc7946/?include_text=1)
     """
     def __init__(self, id=None, geometry=None, properties=None, **extra):
-        # before: def __init__(self, geometry: Geometry, properties: dict):
+        # MUST CALL BEFORE: def __init__(self, geometry: Geometry, properties: dict):
         self["type"] = "Feature"  # see https://github.com/jazzband/geojson/issues/178
         Feature.__init__(self, id=id, geometry=geometry, properties=copy.deepcopy(properties) if properties is not None else None)
-        self.setProp(FEATPROP.VERSION.value, emitpy.__version__)
+        self.setVersion()
+        self.setClass()
 
     @classmethod
     def new(cls, f):
-        return cls(geometry=f["geometry"], properties=f["properties"])
+        # a = inspect.getargspec(cls.__init__)
+        a = inspect.signature(cls.__init__)
+        # Does cls have an id parameter?
+        # Does f have an id to carry over?
+        i = None
+        if callable(getattr(f, "getId", None)):  # if f is a FeatureWithProps
+            i = f.getId()
+        elif hasattr(f, "id"):
+            i = f.id
+        elif "id" in f:
+            i = f["id"]
+        elif "properties" in f and "id" in f["properties"]:  # if f is a Feature
+            i = f["properties"]["id"]
+        # print(f"FeatureWithProps::new: id={i}")  #, cls={cls}")
+
+        if hasattr(a, "id"):
+            return cls(id=i, geometry=f["geometry"], properties=f["properties"])
+        else:
+            t = cls(geometry=f["geometry"], properties=f["properties"])
+            if i is not None:
+                t.id = i
+            return t
+
 
     @staticmethod
     def convert(f):
@@ -66,6 +90,12 @@ class FeatureWithProps(Feature):
     def coords(self):
         return self["geometry"]["coordinates"] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
 
+    def lat(self):
+        return self["geometry"]["coordinates"][1] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
+
+    def lon(self):
+        return self["geometry"]["coordinates"][0] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
+
     def geomtype(self):
         return self["geometry"]["type"] if (("geometry" in self) and ("type" in self["geometry"])) else None
 
@@ -74,6 +104,16 @@ class FeatureWithProps(Feature):
 
     def copy(self):
         return copy.deepcopy(self)
+
+    def setVersion(self, v: str = emitpy.__version__):
+        self.setProp(FEATPROP.VERSION.value, v)
+
+    def setClass(self, c: str = None, force: bool = False):
+        if force or self.getClass() is None:
+            self.setProp(FEATPROP.CLASS.value, c if c is not None else type(self).__name__)
+
+    def getClass(self):
+        return self.getProp(FEATPROP.CLASS.value)
 
     def getProp(self, name: str):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
@@ -259,7 +299,7 @@ class Ramp(FeatureWithProps):
         self.ac_nose = None
 
     def getInfo(self):
-        a = self.getName()[0]
+        a = self.getName()[0]  # Special OTHH
         if a == "5":
             a = "J"
 
