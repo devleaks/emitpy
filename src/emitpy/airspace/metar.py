@@ -18,8 +18,9 @@ import flightplandb as fpdb
 
 # from metar import Metar as MetarLib
 
-from emitpy.constants import METAR_DATABASE, REDIS_DATABASE
+from emitpy.constants import METAR_DATABASE, REDIS_DATABASE, REDIS_DB
 from emitpy.parameters import AODB_DIR, REDIS_CONNECT
+from emitpy.utils import key_path
 
 from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 
@@ -125,12 +126,17 @@ class Metar:
     def save(self):
         if self.redis is not None:
             if self.raw is not None:
+                prevdb = self.redis.client_info()["db"]
+                self.redis.select(REDIS_DB.PERM.value)
                 nowstr = self.getFullDT()
-                metid = REDIS_DATABASE.METAR.value + ":" + self.raw[0:4] + ':' + nowstr
+                metid = key_path(REDIS_DATABASE.METAR.value, self.raw[0:4], nowstr)
                 if not self.redis.exists(metid):
                     self.redis.set(metid, self.raw)
+                    self.redis.select(prevdb)
+                    logger.debug(f":save: saved {metid}")
                     return (True, "Metar::save: saved")
                 else:
+                    self.redis.select(prevdb)
                     logger.warning(f":save: already exist {metid}")
             else:
                 logger.warning(f":save: no metar to save")
