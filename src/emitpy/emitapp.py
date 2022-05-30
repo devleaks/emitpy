@@ -69,13 +69,13 @@ class EmitApp(ManagedAirport):
             self.cache(self.redis, REDIS_DB.REF.value)
             logger.debug("..done")
 
-        # Default queue(s)
         try:
             pong = self.redis.ping()
         except redis.RedisError:
             logger.error(":init: cannot connect to redis")
             return
 
+        # Default queue(s)
         self.redis.select(REDIS_DB.APP.value)
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
         if len(self.queues) == 0:
