@@ -1053,5 +1053,8 @@ class Aircraft:
         :param      redis:  The redis
         :type       redis:  { type_description }
         """
+        prevdb = redis.client_info()["db"]
+        redis.select(REDIS_DB.PERM.value)
         redis.set(key_path(REDIS_DATABASE.AIRCRAFTS.value, self.getId()), json.dumps(self.getInfo()))
+        redis.select(prevdb)
         return (True, "Aircraft::save: saved")

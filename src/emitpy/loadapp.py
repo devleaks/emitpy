@@ -8,6 +8,9 @@ import json
 
 import redis
 from redis.commands.json.path import Path
+from fastapi.encoders import jsonable_encoder
+
+from datetime import datetime
 
 from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company
@@ -18,15 +21,18 @@ from emitpy.business import AirportManager
 from emitpy.airspace import ControlledPoint, CPIDENT, AirwaySegment
 from emitpy.airport import Airport, AirportBase
 
-from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_PREFIX, key_path
+from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, key_path
 from emitpy.utils import NAUTICAL_MILE
 from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR
+from emitpy.geo import FeatureWithProps
 
 
 logger = logging.getLogger("LoadApp")
 
 logging.basicConfig(level=logging.DEBUG)
 
+MANAGED_AIRPORT_KEY = "managed"
+MANAGED_AIRPORT_LAST_UPDATED = "last-updated"
 
 class LoadApp(ManagedAirport):
 
@@ -37,7 +43,7 @@ class LoadApp(ManagedAirport):
         self.redis_pool = None
         self.redis = None
 
-        ret = self.init(load_airways=True)  # call init() here to use data from data files (no Redis supplied)
+        ret = self.init(load_airways=False)  # call init() here to use data from data files (no Redis supplied)
         if not ret[0]:
             logger.warning(ret[1])
 
@@ -65,6 +71,24 @@ class LoadApp(ManagedAirport):
 
         # Restore default db
         self._app.redis.select(prevdb)
+
+
+    @staticmethod
+    def is_loaded(redis):
+        """
+        Determines whether emitpy data is loaded in Redis.
+        Returns (True|False, comment), where comment is datetime of last load
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        """
+        prevdb = redis.client_info()["db"]
+        redis.select(REDIS_DB.REF.value)
+        k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
+        a = redis.json().get(k, Path.root_path())
+        redis.select(prevdb)
+        if a is not None and MANAGED_AIRPORT_LAST_UPDATED in a:
+            return (True, a[MANAGED_AIRPORT_LAST_UPDATED])
+        return (False, f"{k} not found")
 
 
     def load(self, what = ["*"]):
@@ -163,10 +187,6 @@ class LoadApp(ManagedAirport):
             if not status[0]:
                 return status
 
-        if "*" in what or "info" in what:
-            self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, "managed"), Path.root_path(), MANAGED_AIRPORT)
-
-
         # #############################@
         # MANAGED AIRPORT
         #
@@ -206,8 +226,8 @@ class LoadApp(ManagedAirport):
                 return status
 
         if "*" in what or "info" in what:
-            MANAGED_AIRPORT["last-loaded"] = datetime.now().isoformat()
-            self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, "managed"), Path.root_path(), MANAGED_AIRPORT)
+            MANAGED_AIRPORT[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().isoformat()
+            self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), MANAGED_AIRPORT)
 
         logger.debug(f":load: loaded")
         return (True, f"LoadApp::load: loaded")
@@ -373,6 +393,8 @@ class LoadApp(ManagedAirport):
 
     def loadRamps(self):
         for k, v in self.airport.ramps.items():
+            if hasattr(v, "_resource"):
+                del v._resource
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RAMPS.value, k), Path.root_path(), v)
 
         logger.debug(f":loadRamps: loaded {len(self.airport.ramps)}")
@@ -385,6 +407,8 @@ class LoadApp(ManagedAirport):
                 v.setProp("opposite-end", v.end.getProp("name"))
                 logger.warning(f":loadRunways: removed circular dependency {v.getProp('name')} <> {v.end.getProp('name')}")
                 del v.end
+            if hasattr(v, "_resource"):
+                del v._resource
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RUNWAYS.value, k), Path.root_path(), v)
 
         logger.debug(f":loadRamps: loaded {len(self.airport.runways)}")
@@ -538,8 +562,6 @@ class LoadApp(ManagedAirport):
             self.redis.json().set(k2, Path.root_path(), jsonable_encoder(d2))
 
         logger.debug(":cache: caching..")
-        prevdb = redis.client_info()["db"]
-        redis.select(REDIS_DB.REF.value)
 
         # Airports operating at managed airport
         saveComboAsJson("airports", Airport.getCombo())
@@ -562,9 +584,7 @@ class LoadApp(ManagedAirport):
         # # Mission handlers
         # redis.set(LOVS+"service-handlers", self.airport.manager.getCompaniesCombo(classId="Mission"))
 
-        redis.select(prevdb)
         logger.debug(":cache: ..done")
-
         return (True, f"LoadApp::cache_lovs: cached")
 
 
