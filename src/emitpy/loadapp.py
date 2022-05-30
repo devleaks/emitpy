@@ -1,5 +1,7 @@
+import os
 import sys
-sys.path.append('/Users/pierre/Developer/oscars/emitpy/src')
+from parameters import HOME_DIR
+sys.path.append(os.path.join(HOME_DIR, "src"))
 
 import logging
 import json
@@ -13,12 +15,12 @@ from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.airspace import ControlledPoint, CPIDENT
+from emitpy.airspace import ControlledPoint, CPIDENT, AirwaySegment
 from emitpy.airport import Airport, AirportBase
 
 from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_PREFIX, key_path
 from emitpy.utils import NAUTICAL_MILE
-from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, LOAD_AIRWAYS
+from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR
 
 
 logger = logging.getLogger("LoadApp")
@@ -35,7 +37,7 @@ class LoadApp(ManagedAirport):
         self.redis_pool = None
         self.redis = None
 
-        ret = self.init()  # call init() here to use data from data files (no Redis supplied)
+        ret = self.init(load_airways=True)  # call init() here to use data from data files (no Redis supplied)
         if not ret[0]:
             logger.warning(ret[1])
 
@@ -203,11 +205,18 @@ class LoadApp(ManagedAirport):
             if not status[0]:
                 return status
 
+        if "*" in what or "info" in what:
+            MANAGED_AIRPORT["last-loaded"] = datetime.now().isoformat()
+            self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, "managed"), Path.root_path(), MANAGED_AIRPORT)
+
         logger.debug(f":load: loaded")
         return (True, f"LoadApp::load: loaded")
 
 
-    # #############################@
+    # ####################################################################################################################
+    # 
+    # 
+    # #############################
     # GENERIC
     #
     def loadAircraftTypes(self):
@@ -517,6 +526,9 @@ class LoadApp(ManagedAirport):
         return (True, f"LoadApp::loadAirways: loaded airways")
 
 
+    # #############################@
+    # LISTS OF VALUES
+    #
     def cache_lovs(self):
 
         def saveComboAsJson(k, arr):
@@ -556,5 +568,4 @@ class LoadApp(ManagedAirport):
         return (True, f"LoadApp::cache_lovs: cached")
 
 
-LOAD_AIRWAYS = True
 d = LoadApp(airport=MANAGED_AIRPORT)

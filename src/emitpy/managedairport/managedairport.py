@@ -26,14 +26,15 @@ class ManagedAirport:
         self.airport = None
         self.timezone = Timezone(offset=self._this_airport["tzoffset"], name=self._this_airport["tzname"])
 
-    def init(self):
+
+    def init(self, load_airways: bool = False):
         """
         Load entire managed airport data together with airport manager.
         """
         if self._inited:
             return (False, "ManagedAirport::init already inited")
 
-        airspace = XPAirspace()
+        airspace = XPAirspace(load_airways=load_airways)
         logger.debug("loading airspace..")
         ret = airspace.load(self._app.redis)
         if not ret[0]:

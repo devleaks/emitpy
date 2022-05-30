@@ -12,7 +12,6 @@ from geojson import Point, Feature
 from turfpy.measurement import distance, destination
 
 from emitpy.graph import Vertex, Edge, Graph
-from emitpy.parameters import LOAD_AIRWAYS
 from emitpy.geo import FeatureWithProps
 from emitpy.utils import key_path
 
@@ -485,7 +484,7 @@ class Airspace(Graph):
     Vertices are airports, navaids, and fixes. Edges are airway (segements).
     """
 
-    def __init__(self, bbox=None):
+    def __init__(self, bbox=None, load_airways: bool = False):
         Graph.__init__(self)
         self.bbox = bbox
         self.all_points = {}
@@ -493,6 +492,8 @@ class Airspace(Graph):
         self.loaded = False
         self.redis = None
         self.simairspacetype = "Generic"
+        self.load_airways = load_airways
+        self.airways_loaded = False
 
 
     def load(self, redis = None):
@@ -512,7 +513,7 @@ class Airspace(Graph):
         if not status[0]:
             return status
 
-        if LOAD_AIRWAYS:
+        if self.load_airways:
             status = self.loadAirwaySegments()
             if not status[0]:
                 return status

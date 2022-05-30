@@ -7,7 +7,6 @@ from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
 from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT
 from emitpy.utils import FT, Messages, FlightboardMessage
-from emitpy.parameters import LOAD_AIRWAYS
 
 logger = logging.getLogger("Flight")
 
@@ -249,7 +248,7 @@ class Flight(Messages):
         if not self.flightplan.has_plan():
             logger.warning(":loadFlightPlan: no flight plan in database")
 
-            if LOAD_AIRWAYS:  # we loaded airways, we try to build our route
+            if self.managedAirport is not None and self.managedAirport.airspace.airways_loaded:  # we loaded airways, we try to build our route
                 logger.debug(":loadFlightPlan: trying to build route..")
                 self.flightplan = FlightPlanRoute(managedAirport=self.managedAirport.icao, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
                 if self.flightplan is not None:

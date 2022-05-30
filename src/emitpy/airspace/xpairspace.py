@@ -65,8 +65,8 @@ class XPAirspace(Airspace):
     """
     Airspace definition based on X-Plane data.
     """
-    def __init__(self, bbox=None):
-        Airspace.__init__(self, bbox)
+    def __init__(self, bbox=None, load_airways: bool = False):
+        Airspace.__init__(self, bbox, load_airways=load_airways)
         self.basename = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data")
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
@@ -448,6 +448,7 @@ class XPAirspace(Airspace):
 
         file.close()
         self.dropIndex()
+        self.airways_loaded = True
 
         logger.debug(":loadAirwaySegments: %d segments loaded.", len(self.edges_arr))
         return [True, "XPAirspace::AirwaySegments loaded"]
