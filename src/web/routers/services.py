@@ -95,29 +95,27 @@ async def delete_service(
     return JSONResponse(content=jsonable_encoder(ret))
 
 
-# will be /services/flight/...
+@router.get("/flight/{flight_id}", tags=["flights", "services"])
+async def list_services_by_flight(request: Request, flight_id: str):
+    t = request.app.state.emitpy.airport.manager.allServiceForFlight(redis=request.app.state.emitpy.redis, flight_id=flight_id)
+    return JSONResponse(content=list(t))
+
+
 @router.post("/flight", tags=["flights", "services"])
 async def create_fight_services(
     request: Request, fs_in: CreateFlightServices
 ):
-    # ret = StatusInfo(status=1, message="exception", data=None)
-    # try:
-    #     input_d = fs_in.service_date if fs_in.service_date is not None else datetime.now()
-    #     input_t = fs_in.service_time if fs_in.service_time is not None else datetime.now()
-    #     dt = datetime(year=input_d.year,
-    #                   month=input_d.month,
-    #                   day=input_d.day,
-    #                   hour=input_t.hour,
-    #                   minute=input_t.minute)
-    #     ret = request.app.state.emitpy.do_flight_service(
-    #             flight_id=fs_in.flight_id,
-    #             scheduled=dt.isoformat(),
-    #             emit_rate=fs_in.emit_rate,
-    #             queue=fs_in.queue)
-    # except Exception as ex:
-    #     ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
+    ret = StatusInfo(status=1, message="exception", data=None)
+    try:
+        ret = request.app.state.emitpy.do_flight_services(
+                flight_id=fs_in.flight_id,
+                operator=fs_in.handler,
+                emit_rate=fs_in.emit_rate,
+                queue=fs_in.queue)
+    except Exception as ex:
+        ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
 
-    return JSONResponse(content=jsonable_encoder(NotAvailable("CreateFlightServices")))
+    return JSONResponse(content=jsonable_encoder(ret))
 
 
 @router.put("/flight", tags=["flights", "services"])

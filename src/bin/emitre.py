@@ -13,8 +13,9 @@ logging.basicConfig(level=logging.DEBUG)
 e = EmitApp(MANAGED_AIRPORT)
 
 ret = e.do_schedule(queue="raw",
-                    ident="services:FuelService:E17R:2019-04-05T02.50.00+03.00:FUEPU000:e",
-                    sync="start",
-                    scheduled=(datetime.now() + timedelta(seconds=10)).isoformat(timespec="seconds"))
+                    ident="flights:QR289-S201904012320:e",
+                    sync="OFFBLOCK",
+                    scheduled=(datetime.now() + timedelta(seconds=10)).isoformat(),
+                    do_services=True)
 
 print(ret)

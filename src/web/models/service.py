@@ -30,6 +30,14 @@ class CreateService(BaseModel):
     emit_rate: int = Field(30, description="Emission rate (sent every ... seconds)")
     queue: str = Field(..., description="Name of emission broadcast queue")
 
+    @validator('handler')
+    def validate_handler(cls,handler):
+        r = redis.Redis(**REDIS_CONNECT)
+        return REDISLOV_Validator(redis=r,
+                                  value=handler,
+                                  valid_key="lovs:airport:companies",
+                                  invalid_message=f"Invalid company code {handler}")
+
     @validator('service_type')
     def validate_service_type(cls,service_type):
         valid_values = [e[0] for e in Service.getCombo()]
@@ -131,8 +139,17 @@ class DeleteService(BaseModel):
 class CreateFlightServices(BaseModel):
 
     flight_id: str = Field(..., description="Flight IATA identifier")
+    handler: str = Field(..., description="Operator code name")
     emit_rate: int = 30
     queue: str = Field(..., description="Name of emission broadcast queue")
+
+    @validator('handler')
+    def validate_handler(cls,handler):
+        r = redis.Redis(**REDIS_CONNECT)
+        return REDISLOV_Validator(redis=r,
+                                  value=handler,
+                                  valid_key="lovs:airport:companies",
+                                  invalid_message=f"Invalid company code {handler}")
 
     @validator('emit_rate')
     def validate_emit_rate(cls,emit_rate):

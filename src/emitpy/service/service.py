@@ -41,7 +41,7 @@ class GroundSupport:
 
         self.pts_reltime     = scheduled  # relative scheduled service date/time in minutes after/before(negative) on-block/off-block
         self.pts_duration    = duration   # relative scheduled service duration in minutes, may be refined and computed from quantity+vehicle
-        self.pts_scheduled   = None  # absolute time for above
+        self.pts_scheduled   = None       # absolute time for above
         self.pts_estimated   = None
         self.pts_actual      = None
 
@@ -68,7 +68,7 @@ class GroundSupport:
         return {
             "ground-support": type(self).__name__,
             "operator": self.operator.getInfo(),
-            "schedule": self.pts_schedule,
+            "schedule": self.pts_reltime,
             "duration": self.pts_duration,
             "name": self.name
         }
@@ -154,6 +154,7 @@ class Service(GroundSupport):
 
     def getInfo(self):
         return {
+            "ground-support": super().getInfo(),  # contains PTS, etc.
             "service-type": type(self).__name__,
             "service-identifier": self.getId(),
             "operator": self.operator.getInfo(),
@@ -162,7 +163,8 @@ class Service(GroundSupport):
             "icao24": self.vehicle.icao24,
             "registration": self.vehicle.registration,
             "scheduled": self.scheduled.isoformat(),
-            "quantity": self.quantity
+            "quantity": self.quantity,
+            "flight": self.flight.getId() if self.flight is not None else None
         }
 
     def getKey(self):

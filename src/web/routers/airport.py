@@ -204,13 +204,6 @@ async def list_flights(request: Request):
     t = request.app.state.emitpy.airport.manager.allFlights(request.app.state.emitpy.redis)
     return JSONResponse(content=list(t))
 
-
-
-@router.get("/services/flight/{flight_id}", tags=["movements"])
-async def list_services_by_flight(request: Request, flight_id: str):
-    t = request.app.state.emitpy.airport.manager.allServiceForFlight(redis=request.app.state.emitpy.redis, flight_id=flight_id)
-    return JSONResponse(content=list(t))
-
 @router.get("/services/service/{service_type}", tags=["movements"])
 async def list_services_by_type(request: Request, service_type: str):
     t = request.app.state.emitpy.airport.manager.allServiceOfType(redis=request.app.state.emitpy.redis, service_type=service_type)

@@ -597,54 +597,42 @@ class AirportManager:
         emit = ReEmit(flight_id, redis)
         emit_meta = emit.getMeta()
 
-        # props.flight.is_arrival
-        flight_meta = None
-        if emit_meta is not None:
-            if "props" in emit_meta:
-                if "flight" in emit_meta["props"]:
-                    flight_meta = emit_meta["props"]["flight"]
-        else:
-            logger.warning(f":allServiceForFlight: cannot get emit meta data")
-            return ()
-
-        if flight_meta is None:
-            logger.warning(f":allServiceForFlight: cannot get flight meta data")
-            print(">>>", emit_meta)
+        is_arrival = emit.getMeta("$.move.is_arrival")
+        if is_arrival is None:
+            logger.warning(f":allServiceForFlight: cannot get flight movement")
             return ()
 
         before = None
-        if "is_arrival" in flight_meta:
-            if flight_meta["is_arrival"]:  # in minutes:
-                before = 60
-                after = 180
-            else:
-                before = 180
-                after = 60
-        if before is None:
-            logger.warning(f":allServiceForFlight: cannot determine flight movement")
-            print(">>>", flight_meta)
-            return ()
-
-        if "scheduled" in flight_meta:
-            flight_meta.scheduled = datetime.fromisoformat(flight_meta["scheduled"])
+        if is_arrival:
+            before = 60
+            after = 180
         else:
-            logger.warning(f":allServiceForFlight: cannot determine flight scheduled time")
-            print(">>>", flight_meta)
-            return ()
+            before = 180
+            after = 60
 
-        et_min = flight_meta.scheduled - timedelta(minutes=before)
-        et_max = flight_meta.scheduled + timedelta(minutes=after)
-        logger.debug(f":allServiceForFlight: {ARRIVAL if flight_meta.is_arrival else DEPARTURE} at {et_move}")
+        scheduled = emit.getMeta("$.move.scheduled")
+        if scheduled is None:
+            logger.warning(f":do_flight_services: cannot get flight scheduled time {emit.getMeta()}")
+            return ()
+        scheduled = datetime.fromisoformat(scheduled)
+
+        et_min = scheduled - timedelta(minutes=before)
+        et_max = scheduled + timedelta(minutes=after)
+        logger.debug(f":allServiceForFlight: {ARRIVAL if is_arrival else DEPARTURE} at {scheduled}")
         logger.debug(f":allServiceForFlight: trying services between {et_min} and {et_max}")
 
         # 2 search for all services at that ramp, "around" supplied ETA/ETD.
+        ramp = emit.getMeta("$.move.ramp.name")
+        keys = redis.keys(key_path(REDIS_DATABASE.SERVICES.value, "*", ramp, "*"))
         for k in keys:
             k = k.decode("UTF-8")
             karr = k.split(ID_SEP)
             dt = datetime.fromisoformat(karr[3].replace(".", ":"))
-            logger.debug(f":allServiceForFlight: testing {dt}...")
+            # logger.debug(f":allServiceForFlight: {k}: testing {dt}..")
             if dt > et_min and dt < et_max:
                 items.append(ID_SEP.join(k.split(ID_SEP)[:-1]))
+                logger.debug(f":allServiceForFlight: added {k}..")
+        logger.debug(f":allServiceForFlight: ..done")
         return set(items)
 
 

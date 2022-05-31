@@ -50,9 +50,14 @@ class ReEmit(Emit):
             logger.warning(f":parseKey: database {arr[0]} not found ({emit_key}).")
 
         if extension is not None:
-            if extension == arr[-1] or extension == "*":  # if it is the extention we expect
+            if extension == arr[-1]:  # if it is the extention we expect
+                self.emit_id = ":".join(arr[1:-1])  # remove extension
+            elif extension == "*" and len(arr[-1]) == 1:
+                logger.debug(f":parseKey: removed extension {arr[-1]}.")
                 self.emit_id = ":".join(arr[1:-1])  # remove extension
             else:
+                if len(arr[-1]) == 1:
+                    logger.warning(f":parseKey: {emit_key} seems to have extension {arr[-1]} (not removed).")
                 self.emit_id = ":".join(arr[1:])    # it is not the expected extension, we leave it
                 logger.warning(f":parseKey: extension {extension} not found ({emit_key}).")
         else:
@@ -110,14 +115,17 @@ class ReEmit(Emit):
         return (True, "ReEmit::loadMetaFromCache loaded")
 
 
-    def getMeta(self, path: str = None):
+    def getMeta(self, path: str = None, return_first_only: bool = True):
         if self.meta is None:
             ret = self.loadMetaFromCache()
             if not ret[0]:
                 logger.warning(f":getMeta: load meta returned error {ret[1]}")
                 return None
         if path is not None:
-            return JSONPath(path).parse(self.meta)
+            arr = JSONPath(path).parse(self.meta)
+            if arr is not None and len(arr) > 0:
+                return arr if not return_first_only else arr[0]
+            return None  # arr is either None or len(arr)==0
         # return entire meta structure
         return self.meta
 
@@ -191,7 +199,7 @@ class ReEmit(Emit):
         if ff is not None:
             f = self.getAbsoluteEmissionTime(ff)
             if f is not None:
-                esti = datetime.fromtimestamp(f.getAbsoluteEmissionTime())
+                esti = datetime.fromtimestamp(f)
                 if esti is not None:
                     ident = self.getMeta("$.ident")
                     if ident is not None:

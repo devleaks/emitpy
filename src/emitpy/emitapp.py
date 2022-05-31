@@ -13,7 +13,7 @@ from emitpy.service import Service, ServiceMove, FlightServices, Mission, Missio
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE
-from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path
+from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE
 from emitpy.parameters import REDIS_CONNECT, METAR_HISTORICAL
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
@@ -425,36 +425,86 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "completed successfully", this_service.getId())
 
 
-    def do_flight_services(self, emit_rate, queue, operator, flight_ident, flight_sync, scheduled):
-        logger.debug(f"servicing {flight_ident}..")
+    def do_flight_services(self, emit_rate, queue, operator, flight_id, estimated = None):
+        emit_ident = key_path(REDIS_DATABASE.FLIGHTS.value, flight_id, REDIS_TYPE.EMIT.value)
+        logger.debug(f"servicing {emit_ident}..")
         # Get flight data
         logger.debug("..retrieving flight..")
-        emit = ReEmit(flight_ident, self.redis)
-        logger.debug(emit.getMarkList())
+        emit = ReEmit(emit_ident, self.redis)
 
-        emit_time = datetime.fromisoformat(scheduled)
-        if emit_time.tzname() is None:  # has no time zone, uses local one
-            emit_time.replace(tzinfo=self.timezone)
-            logger.debug("scheduled time has no time zone, added managed airport local time zone")
-        ret = emit.schedule(flight_sync, emit_time)
-        if not ret[0]:
-            return StatusInfo(803, f"problem during schedule", ret[1])
+        scheduled = emit.getMeta("$.move.scheduled")
+        if scheduled is None:
+            logger.warning(f":do_flight_services: cannot get flight scheduled time {emit.getMeta()}")
+            return StatusInfo(250, "cannot get flight scheduled time from meta", emit_ident)
+        scheduled = datetime.fromisoformat(scheduled)
 
-        flight_meta = emit.getMeta()
-
-        if flight_meta["is_arrival"]:
+        is_arrival = emit.getMeta("$.move.is_arrival")
+        if is_arrival is None:
+            logger.warning(f":do_flight_services: cannot get flight movement")
+        if is_arrival:
             sync = FLIGHT_PHASE.TOUCH_DOWN.value
             svc_sync = FLIGHT_PHASE.ONBLOCK.value
         else:
             sync = FLIGHT_PHASE.TAKE_OFF.value
             svc_sync = FLIGHT_PHASE.OFFBLOCK.value
-
         st = emit.getRelativeEmissionTime(sync)
         bt = emit.getRelativeEmissionTime(svc_sync)  # 0 for departure...
         td = bt - st
-        blocktime = emit_time + timedelta(seconds=td)
+        blocktime = scheduled + timedelta(seconds=td)
 
-        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=operator)
+        oarr = operator.split(ID_SEP)
+        operator = Company(orgId=oarr[0], classId=oarr[1], typeId=oarr[2], name=oarr[3])
+
+        flight_meta = emit.getMeta("$.move.flight")
+
+        # Need to create a flight container with necessary data
+        logger.debug("Creating flight shell ..")
+        logger.debug(f"..is {'arrival' if is_arrival else 'departure'}..")
+        airline_code = emit.getMeta("$.move.airline.iata")
+        logger.debug(f"..got airline code {airline_code}..")
+        airline = Airline.find(airline_code, self.redis)
+        airport_code = None
+        if is_arrival:
+            airport_code = emit.getMeta("$.move.departure.airport.icao")
+        else:
+            airport_code = emit.getMeta("$.move.arrival.airport.icao")
+        logger.debug(f"..got remote airport code {airport_code}..")
+        remote_apt = Airport.find(airport_code, self.redis)
+        actype_code = emit.getMeta("$.move.aircraft.actype.base-type.actype")
+        logger.debug(f"..got actype code {actype_code}..")
+        acperf = AircraftPerformance.find(icao=actype_code, redis=self.redis)
+        acperf.load()
+        acreg  = emit.getMeta("$.move.aircraft.acreg")
+        icao24 = emit.getMeta("$.move.aircraft.icao24")
+        logger.debug(f"..got aircraft {acreg}, {icao24}..")
+        aircraft = Aircraft(registration=acreg, icao24= icao24, actype=acperf, operator=airline)
+        flightnumber = emit.getMeta("$.move.flightnumber")
+        logger.debug(f"..got flight number {flightnumber}..")
+        flight = None
+        if is_arrival:
+            flight = Arrival(operator=airline,
+                             number=flightnumber,
+                             scheduled=scheduled,
+                             managedAirport=self,
+                             origin=remote_apt,
+                             aircraft=aircraft)
+        else:
+            flight = Departure(operator=airline,
+                               number=flightnumber,
+                               scheduled=scheduled,
+                               managedAirport=self,
+                               destination=remote_apt,
+                               aircraft=aircraft)
+        rampcode = emit.getMeta("$.move.ramp.name")
+        logger.debug(f"..got ramp {rampcode}..")
+        rampval = self.airport.getRamp(rampcode)
+        if rampval is None:
+            logger.warning(f"ramp {ramp} not found, quitting")
+            return StatusInfo(102, f"ramp {ramp} not found", None)
+        flight.setRamp(rampval)
+        logger.debug(".. done")
+        # we "just need" actype and ramp
+        logger.debug(f"Got flight: {flight.getInfo()}")
 
         flight_service = FlightServices(flight, operator)
         flight_service.setManagedAirport(self.airport)
@@ -578,7 +628,7 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "do_mission completed successfully", mission.getId())
 
 
-    def do_schedule(self, queue, ident, sync, scheduled):
+    def do_schedule(self, queue, ident, sync, scheduled, do_services: bool = False):
         emit = ReEmit(ident, self.redis)
         # logger.debug(f"do_schedule:mark list: {emit.getMarkList()}")
         emit_time = datetime.fromisoformat(scheduled)
@@ -608,7 +658,37 @@ class EmitApp(ManagedAirport):
             return StatusInfo(403, f"problem during rescheduled enqueing", ret[1])
         logger.debug(".. done.")
 
-        return StatusInfo(0, "scheduled successfully", ident)
+
+        if not do_services:
+            return StatusInfo(0, "scheduled successfully", ident)
+
+        logger.debug(f"doing scheduling of associated services..")
+        services = self.airport.manager.allServiceForFlight(redis=self.redis, flight_id=ident)
+
+        is_arrival = emit.getMeta("$.move.is_arrival")
+        logger.debug(f"..is {'arrival' if is_arrival else 'departure'}..")
+        if is_arrival:
+            svc_sync = FLIGHT_PHASE.ONBLOCK.value
+        else:
+            svc_sync = FLIGHT_PHASE.OFFBLOCK.value
+        blocktime1 = emit.getAbsoluteEmissionTime(svc_sync)
+        blocktime = datetime.fromtimestamp(blocktime1)
+        logger.debug(f"..{svc_sync} at {blocktime} ({blocktime1}).. done")
+
+        logger.debug(f"Scheduling..")
+        for service in services:
+            logger.debug(f"..doing service {service}..")
+            k = key_path(service, REDIS_TYPE.EMIT.value)
+            se = ReEmit(k, self.redis)
+            se_relstart = se.getMeta("$.move.ground-support.schedule")
+            se_absstart = blocktime + timedelta(minutes=se_relstart)
+            self.do_schedule(queue=queue, emit_id=k, sync=SERVICE_PHASE.START.value,
+                             scheduled=se_absstart.isoformat(), do_services=False)
+            # we could cut'n paste code from begining of this function as well...
+            # I love recursion.
+        logger.debug(f"..done")
+
+        return StatusInfo(0, "scheduled successfully (with services)", ident)
 
 
     def do_delete(self, queue, ident):

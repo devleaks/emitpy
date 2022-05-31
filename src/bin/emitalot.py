@@ -33,7 +33,7 @@ csvdata = csv.DictReader(file)
 icao = {}
 
 NUM_TURNAROUNDS = 0
-DO_SERVICE = False
+DO_SERVICE = True
 USE_TURNAROUND = False
 
 cnt = 0

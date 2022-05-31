@@ -587,12 +587,25 @@ class Emit(Messages):
         return None
 
 
-    def getAbsoluteEmissionTime(self, sync: str):
+    def getFeatureAt(self, sync: str):
         f = findFeatures(self.scheduled_emit, {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
-            logger.debug(f":getAbsoluteEmissionTime: found {sync}")
+            logger.debug(f":getFeatureAt: found {sync}")
             return f[0]
-        logger.warning(f":getAbsoluteEmissionTime: {sync} not found in emission")
+        logger.warning(f":getFeatureAt: {sync} not found in emission")
+        return None
+
+
+    def getAbsoluteEmissionTime(self, sync: str):
+        """
+        Gets the absolute emission time.
+        Returns UNIX timestamp.
+        :param      sync:  The synchronize
+        :type       sync:  str
+        """
+        f = self.getFeatureAt(sync)
+        if f is not None:
+            return f.getAbsoluteEmissionTime()
         return None
 
 
@@ -618,7 +631,7 @@ class Emit(Messages):
             if ff is not None:
                 f = self.getAbsoluteEmissionTime(ff)
                 if f is not None:
-                    esti = datetime.fromtimestamp(f.getAbsoluteEmissionTime())
+                    esti = datetime.fromtimestamp(f)
                     if esti is not None:
                         source.setEstimatedTime(dt=esti)
                         self.addMessage(EstimatedTimeMessage(flight_id=source.getId(),

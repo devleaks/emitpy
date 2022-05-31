@@ -63,7 +63,7 @@ class LoadApp(ManagedAirport):
         logger.debug("=" * 90)
         logger.debug(":init: initialized. ready to cache. caching..")
         # Caching emitpy data into Redis
-        self.load()
+        self.load([])
         # Caching emitpy lists of values Redis
         self.cache_lovs()
         logger.debug(":init: .. done")
@@ -573,6 +573,8 @@ class LoadApp(ManagedAirport):
         saveComboAsJson("airport:runways", self.airport.getRunwayCombo())
         # Airport point of interest
         saveComboAsJson("airport:pois", self.airport.getPOICombo())
+        # Airport handlers and operators
+        saveComboAsJson("airport:companies", self.airport.manager.getCompaniesCombo())
         # Aircraft types
         saveComboAsJson("aircrafts", AircraftPerformance.getCombo())
         # # Services
