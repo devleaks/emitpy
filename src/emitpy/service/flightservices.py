@@ -54,15 +54,11 @@ class FlightServices:
 
     def service(self):
         # From dict, make append appropriate service to list
-        if self.actype.tarprofile is None:
-            logger.warning(":run: no turnaround profile")
-            return (False, "FlightServices::run: no turnaround profile")
+        svcs = self.flight.aircraft.actype.getTurnaroundProfile(move=self.flight.get_move(),
+                                                                ramp=self.ramp.getProp("sub-type"))
+        if svcs is None:
+            return (False, f"FlightServices::run: no turnaround profile for {self.flight.aircraft.actype}")
 
-        move = ARRIVAL if self.flight.is_arrival() else DEPARTURE
-        if not move in self.flight.aircraft.actype.tarprofile:
-            return (False, f"FlightServices::run: no turnaround profile for {move}")
-
-        svcs = self.flight.aircraft.actype.tarprofile[move]
         am = self.airport.manager
 
         for svc in svcs:
@@ -74,9 +70,10 @@ class FlightServices:
             this_service = Service.getService(sname)(scheduled=service_scheduled_dt,
                                                        ramp=self.flight.ramp,
                                                        operator=self.operator)
-            this_service.setPTS(scheduled=sched[0], duration=sched[1])
+            this_service.setPTS(relstartime=sched[0], duration=sched[1])
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
+            this_service.setRamp(self.ramp)
             vehicle_model = sched[2] if len(sched) > 2 else None
             # should book vehicle a few minutes before and after...
             this_vehicle = am.selectServiceVehicle(operator=self.operator,

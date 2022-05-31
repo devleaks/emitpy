@@ -5,7 +5,7 @@ from emitpy.airspace import FlightPlan, FlightPlanRoute
 from emitpy.airport import Airport
 from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
-from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT
+from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE
 from emitpy.utils import FT
 from emitpy.message import Messages, FlightboardMessage
 
@@ -163,6 +163,12 @@ class Flight(Messages):
             return self.arrival.icao == self.managedAirport.icao
         logger.warning(f":is_arrival: no managedAirport, cannot determine")
         return None
+
+
+    def get_move(self) -> str:
+        if self.is_arrival():
+            return ARRIVAL
+        return DEPARTURE
 
 
     def is_departure(self) -> bool:

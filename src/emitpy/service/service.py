@@ -76,8 +76,8 @@ class GroundSupport:
     def getScheduleHistory(self):
         return self.schedule_history
 
-    def setPTS(self, scheduled: int, duration: int):
-        self.pts_scheduled = scheduled
+    def setPTS(self, relstartime: int, duration: int):
+        self.pts_reltime   = relstartime
         self.pts_duration  = duration
 
     def setName(self, name: str):

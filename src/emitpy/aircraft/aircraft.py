@@ -944,9 +944,24 @@ class AircraftPerformance(AircraftType):
         """
         return self.climb(altstart, altend, - self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.landing_speed))
 
-    #
-    # Landing helper functions
-    #
+    def getTurnaroundProfile(self, move: str, ramp: str):
+        if self.tarprofile is None:
+            self.loadTurnaroundProfile()
+
+        if self.tarprofile is None:
+            logger.warning(":getTurnaroundProfile: no turnaround profile")
+            return None
+        if not move in self.tarprofile:
+            logger.warning(f":getTurnaroundProfile: no turnaround profile for {move}")
+            return None
+        return self.tarprofile[move]
+        # if not ramp in self.flight.aircraft.actype.tarprofile[move]:
+        #     logger.warning(f":getTurnaroundProfile: no turnaround profile for {move}/{ramp}")
+        #     return None
+        # return self.flight.aircraft.actype.tarprofile[move][ramp]
+
+
+
 
 
 class AircraftClass(AircraftPerformance):
