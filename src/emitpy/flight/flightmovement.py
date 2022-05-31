@@ -18,9 +18,9 @@ from emitpy.geo import moveOn, cleanFeatures, printFeatures, findFeatures, asLin
 from emitpy.graph import Route
 from emitpy.utils import FT, NAUTICAL_MILE
 from emitpy.constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
-from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT
+from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT, MOVE_TYPE
 from emitpy.parameters import AODB_DIR
-from emitpy.business import MESSAGE_TYPE, MovementMessage
+from emitpy.message import MovementMessage
 
 from .standardturn import standard_turn_flyby
 from emitpy.utils import interpolate as doInterpolation, compute_time as doTime
@@ -61,7 +61,7 @@ class FlightMovement(Movement):
 
     def getInfo(self):
         return {
-            "type": "flight",
+            "type": MOVE_TYPE.FLIGHT.value,
             "ident": self.getId(),
             "flight": self.flight.getInfo(),
             "icao24": self.flight.getInfo()["icao24"]
@@ -316,9 +316,10 @@ class FlightMovement(Movement):
             groundmv = takeoff_distance
             logger.debug(f":vnav: takeoff at {rwy.name}, {takeoff_distance:f}")
 
-            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
-                                            msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
-                                            move=self, feature=p))
+            self.addMessage(MovementMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TAKE_OFF.value}",
+                                            move=self,
+                                            sync=FLIGHT_PHASE.TAKE_OFF.value,
+                                            info=self.getInfo()))
             is_grounded = False
 
             # initial climb, commonly accepted to above 1500ft AGL
@@ -362,9 +363,10 @@ class FlightMovement(Movement):
                                    ix=fcidx)
             logger.debug(":vnav: origin added first point")
 
-            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
-                                            msgsubtype=FLIGHT_PHASE.TAKE_OFF.value,
-                                            move=self, feature=currpos))
+            self.addMessage(MovementMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TAKE_OFF.value}",
+                                            move=self,
+                                            sync=FLIGHT_PHASE.TAKE_OFF.value,
+                                            info=self.getInfo()))
             is_grounded = False
 
             # initial climb, commonly accepted to above 1500ft AGL
@@ -571,9 +573,10 @@ class FlightMovement(Movement):
                              ix=len(fc)-fcidx)
             logger.debug(f":vnav:(rev) touch down at {rwy.name}, {LAND_TOUCH_DOWN:f}, {alt:f}")
 
-            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
-                                            msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
-                                            move=self, feature=p))
+            self.addMessage(MovementMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TOUCH_DOWN.value}",
+                                            move=self,
+                                            sync=FLIGHT_PHASE.TOUCH_DOWN.value,
+                                            info=self.getInfo()))
             is_grounded = False
 
             # we move to the final fix at max FINAL_ALT ft, approach speed, from touchdown
@@ -635,9 +638,10 @@ class FlightMovement(Movement):
                                    ix=len(fc)-fcidx)
             logger.debug(":vnav:(rev) destination added as last point")
 
-            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
-                                            msgsubtype=FLIGHT_PHASE.TOUCH_DOWN.value,
-                                            move=self, feature=currpos))
+            self.addMessage(MovementMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TOUCH_DOWN.value}",
+                                            move=self,
+                                            sync=FLIGHT_PHASE.TOUCH_DOWN.value,
+                                            info=self.getInfo()))
             is_grounded = False
 
             # we move to the final fix at max 3000ft, approach speed either from  airport last point
@@ -951,6 +955,7 @@ class FlightMovement(Movement):
         # Add last point too
         self.moves.append(self._premoves[-1])
 
+        # Sets unique index on flight movement features
         idx = 0
         for f in self.moves:
             f.setProp(FEATPROP.MOVE_INDEX.value, idx)
@@ -1084,9 +1089,10 @@ class FlightMovement(Movement):
         self.moves.insert(idx, tmomp)
         logger.debug(f":add_tmo: added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down")
 
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.FLIGHTINFO.value,
-                                        msgsubtype=FLIGHT_PHASE.TEN_MILE_OUT.value,
-                                        move=self, feature=tmomp))
+        self.addMessage(MovementMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.TEN_MILE_OUT.value}",
+                                        move=self,
+                                        sync=FLIGHT_PHASE.TEN_MILE_OUT.value,
+                                        info=self.getInfo()))
 
         return (True, "Movement::add_tmo added")
 
@@ -1145,9 +1151,10 @@ class TowMovement(Movement):
         if show_pos:
             logger.debug(f":tow: tow start: {parkingpos}")
 
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
-                                        msgsubtype=FLIGHT_PHASE.OFFBLOCK.value,
-                                        move=self, feature=parkingpos))
+        self.addMessage(MovementMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value}",
+                                        move=self,
+                                        sync=FLIGHT_PHASE.OFFBLOCK.value,
+                                        info=self.getInfo()))
 
         # we call the move from packing position to taxiway network the "pushback"
         pushback_end = self.airport.taxiways.nearest_point_on_edge(parking)
@@ -1346,9 +1353,10 @@ class ArrivalMove(FlightMovement):
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.ONBLOCK.value)
         fc.append(parkingpos)
 
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
-                                        msgsubtype=FLIGHT_PHASE.ONBLOCK.value,
-                                        move=self, feature=parkingpos))
+        self.addMessage(MovementMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.ONBLOCK.value}",
+                                        move=self,
+                                        sync=FLIGHT_PHASE.ONBLOCK.value,
+                                        info=self.getInfo()))
 
         if show_pos:
             logger.debug(f":taxi:in: taxi end: {parking}")
@@ -1402,9 +1410,10 @@ class DepartureMove(FlightMovement):
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.OFFBLOCK.value)
         fc.append(parkingpos)
 
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.OOOI.value,
-                                        msgsubtype=FLIGHT_PHASE.OFFBLOCK.value,
-                                        move=self, feature=parkingpos))
+        self.addMessage(MovementMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value}",
+                                        move=self,
+                                        sync=FLIGHT_PHASE.OFFBLOCK.value,
+                                        info=self.getInfo()))
 
         if show_pos:
             logger.debug(f":taxi:out: taxi start: {parkingpos}")

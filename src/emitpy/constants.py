@@ -99,6 +99,12 @@ FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
 # Redis databases and keys
 #
 # Type of data stored into files
+class MOVE_TYPE(Enum):
+    FLIGHT = "flight"
+    SERVICE = "service"
+    MISSION = "mission"
+
+
 class FILE_FORMAT(Enum):
     FLIGHT_PLAN = "1-plan"
     FLIGHT = "2-flight"
@@ -543,3 +549,7 @@ class SERVICE_PHASE_COLOR(Enum):
 class MESSAGE_COLOR(Enum):
     DEFAULT = "#888888"
 
+INTERNAL_QUEUES = {
+    "raw": "raw",
+    "wire": "wire"
+}

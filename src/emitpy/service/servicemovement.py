@@ -15,8 +15,8 @@ from emitpy.geo import MovePoint, Movement, printFeatures, asLineString
 from emitpy.service import Service, ServiceVehicle
 from emitpy.graph import Route
 from emitpy.utils import compute_time as doTime
-from emitpy.constants import FEATPROP, SERVICE_PHASE
-from emitpy.business import MESSAGE_TYPE, MovementMessage
+from emitpy.constants import FEATPROP, SERVICE_PHASE, MOVE_TYPE
+from emitpy.message import MovementMessage, ServiceMessage
 
 logger = logging.getLogger("ServiceMove")
 
@@ -37,7 +37,7 @@ class ServiceMove(Movement):
 
     def getInfo(self):
         return {
-            "type": "service",
+            "type": MOVE_TYPE.SERVICE.value,
             "ident": self.getId(),
             "service": self.service.getInfo(),
             "icao24": self.service.getInfo()["icao24"]
@@ -59,6 +59,11 @@ class ServiceMove(Movement):
         startpos.setSpeed(0)  # starts at rest
         startpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.START.value)
         self.moves.append(startpos)
+
+        self.addMessage(MovementMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.START.value}",
+                                        move=self,
+                                        sync=SERVICE_PHASE.START.value,
+                                        info=self.getInfo()))
 
         # starting position to network
         startnp = self.airport.service_roads.nearest_point_on_edge(startpos)
@@ -142,15 +147,13 @@ class ServiceMove(Movement):
         ramp_stop.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
         self.moves.append(ramp_stop)
 
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                        msgsubtype=SERVICE_PHASE.ARRIVED.value,
-                                        move=self, feature=ramp_stop))
-
         self.service.vehicle.setPosition(ramp_stop)
 
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                        msgsubtype=SERVICE_PHASE.SERVICE_START.value,
-                                        move=self, feature=ramp_stop))
+        self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has started",
+                                       move=self,
+                                       sync=SERVICE_PHASE.SERVICE_START.value,
+                                       info=self.getInfo(),
+                                       service=SERVICE_PHASE.SERVICE_START.value))
 
         # .. servicing ..
         # before service, may first go to ramp rest area.
@@ -167,7 +170,6 @@ class ServiceMove(Movement):
                 logger.warning(f":move: no end rest area for { service_type }, using start position")
                 finalpos = startpos
 
-
         # find end position on network
         endnp = self.airport.service_roads.nearest_point_on_edge(finalpos)
         if endnp[0] is None:
@@ -182,10 +184,11 @@ class ServiceMove(Movement):
         svc_end.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_END.value)
         self.moves.append(svc_end)
 
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                        msgsubtype=SERVICE_PHASE.SERVICE_END.value,
-                                        move=self, feature=svc_end))
-
+        self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has ended",
+                                       move=self,
+                                       sync=SERVICE_PHASE.SERVICE_END.value,
+                                       info=self.getInfo(),
+                                       service=SERVICE_PHASE.SERVICE_END.value))
         # ###
         # If there is a stop poi named "REST" and if the service has pause_after > 0
         # we first go to the rest position and wait pause_after minutes.
@@ -205,10 +208,6 @@ class ServiceMove(Movement):
             ramp_leave.setSpeed(speeds["slow"])
             ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
             self.moves.append(ramp_leave)
-
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                        msgsubtype=SERVICE_PHASE.LEAVE.value,
-                                        move=self, feature=ramp_leave))
 
         logger.debug(f":move: route from {ramp_nv[0].id} to {endnv[0].id}")
         r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)
@@ -233,9 +232,20 @@ class ServiceMove(Movement):
         self.moves.append(finalpos)
         self.service.vehicle.setPosition(finalpos)
 
+        self.addMessage(MovementMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.END.value}",
+                                        move=self,
+                                        sync=SERVICE_PHASE.END.value,
+                                        info=self.getInfo()))
+
         ret = doTime(self.moves)
         if not ret[0]:
             return ret
+
+        # Sets unique index on service movement features
+        idx = 0
+        for f in self.moves:
+            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
+            idx = idx + 1
 
         # printFeatures(self.moves, "route")
         # printFeatures([Feature(geometry=asLineString(self.moves))], "route")

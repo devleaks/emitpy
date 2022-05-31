@@ -18,8 +18,8 @@ from turfpy.measurement import distance, bearing, destination
 from redis.commands.json.path import Path
 
 from emitpy.geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
-from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path
-from emitpy.utils import FT, Messages, EstimatedTimeMessage
+from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, FT
+from emitpy.message import Messages, EstimatedTimeMessage
 
 from emitpy.constants import MANAGED_AIRPORT, FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
@@ -116,7 +116,7 @@ class Emit(Messages):
                 ty = m["type"]
         return {
             "type": "emit",
-            "subtype": self.emit_type if self.emit_type is not None else ty,
+            "emit-type": self.emit_type if self.emit_type is not None else ty,
             "ident": self.emit_id,
             "frequency": self.frequency,
             "version": self.version
@@ -278,7 +278,7 @@ class Emit(Messages):
         def emit_point(idx, pos, time, reason, waypt=False):
             e = EmitPoint.new(pos)
             e.setProp(FEATPROP.EMIT_REL_TIME.value, time)
-            e.setProp(FEATPROP.EMIT_INDEX.value, len(self._emit))
+            e.setProp(FEATPROP.EMIT_INDEX.value, len(self._emit))  # Sets unique index on emit features
             e.setProp(FEATPROP.BROADCAST.value, not waypt)
             e.setProp(FEATPROP.EMIT_REASON.value, reason)
             if not e.hasColor():
@@ -513,7 +513,6 @@ class Emit(Messages):
             return res
         logger.debug(f":interpolate: {self.getId()}: .. done.")
 
-
         # name = check
         # for i in range(len(to_interp)):
         #     v = to_interp[i].getProp(name) if to_interp[i].getProp(name) is not None and to_interp[i].getProp(name) != "None" else "none"
@@ -584,7 +583,7 @@ class Emit(Messages):
             else:
                 logger.warning(f":schedule: {FEATPROP.MARK.value} {sync} has no time offset, using 0")
                 return 0
-        logger.warning(f":getRelativeEmissionTime: {sync} not found in emission")
+        logger.warning(f":getRelativeEmissionTime: {sync} not found in emission ({self.getMarkList()})")
         return None
 
 
@@ -625,6 +624,7 @@ class Emit(Messages):
                         self.addMessage(EstimatedTimeMessage(flight_id=source.getId(),
                                                              is_arrival=is_arrival,
                                                              et=esti))
+                        logger.debug(f":updateEstimatedTime: sent new ET{'A' if is_arrival else 'D'} {source.getId()}: {esti}")
                     else:
                         logger.warning(":updateEstimatedTime: feature has no absolute emission time")
                 else:

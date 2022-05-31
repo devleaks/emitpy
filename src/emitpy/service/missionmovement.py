@@ -15,8 +15,8 @@ from emitpy.geo import MovePoint, Movement
 from emitpy.service import Mission, ServiceVehicle
 from emitpy.graph import Route
 from emitpy.utils import compute_time as doTime
-from emitpy.constants import FEATPROP, MISSION_PHASE, MISSION_COLOR
-from emitpy.business import MESSAGE_TYPE, MovementMessage
+from emitpy.constants import FEATPROP, MISSION_PHASE, MISSION_COLOR, MOVE_TYPE
+from emitpy.message import MovementMessage, ServiceMessage
 
 logger = logging.getLogger("ServiceMove")
 
@@ -37,7 +37,7 @@ class MissionMove(Movement):
 
     def getInfo(self):
         return {
-            "type": "mission",
+            "type": MOVE_TYPE.MISSION.value,
             "ident": self.getId(),
             "mission": self.mission.getInfo(),
             "icao24": self.mission.getInfo()["icao24"]
@@ -62,9 +62,16 @@ class MissionMove(Movement):
         self.moves.append(pos)
         logger.debug(f":move: start added")
 
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                        msgsubtype=MISSION_PHASE.START.value,
-                                        move=self, feature=pos))
+        self.addMessage(MovementMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.START.value}",
+                                        move=self,
+                                        sync=MISSION_PHASE.START.value,
+                                        info=self.getInfo()))
+
+        self.addMessage(ServiceMessage(subject=f"Mission {self.getId()} has started",
+                                       move=self,
+                                       sync=MISSION_PHASE.START.value,
+                                       info=self.getInfo(),
+                                       service=MISSION_PHASE.START.value))
 
         # starting position to network
         start_npe = self.airport.service_roads.nearest_point_on_edge(start_pos)
@@ -142,9 +149,11 @@ class MissionMove(Movement):
             self.moves.append(pos)
             logger.debug(f":move: checkpoint added")
 
-            self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                            msgsubtype=MISSION_PHASE.CHECKPOINT.value,
-                                            move=self, feature=pos))
+            self.addMessage(ServiceMessage(subject=f"Mission {self.getId()} reached control point",
+                                           move=self,
+                                           sync=MISSION_PHASE.CHECKPOINT.value,
+                                           info=self.getInfo(),
+                                           service=MISSION_PHASE.CHECKPOINT.value))
 
             # goes back on service road network (edge)
             if cp_npe[0] is None:
@@ -207,11 +216,24 @@ class MissionMove(Movement):
         pos.setColor(MISSION_COLOR.END.value)
         self.moves.append(pos)
 
-        self.addMessage(MovementMessage(msgtype=MESSAGE_TYPE.SERVICE.value,
-                                        msgsubtype=MISSION_PHASE.END.value,
-                                        move=self, feature=pos))
+        self.addMessage(ServiceMessage(subject=f"Mission {self.getId()} has ended",
+                                       move=self,
+                                       sync=MISSION_PHASE.END.value,
+                                       info=self.getInfo(),
+                                       service=MISSION_PHASE.END.value))
+
+        self.addMessage(MovementMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.END.value}",
+                                        move=self,
+                                        sync=MISSION_PHASE.END.value,
+                                        info=self.getInfo()))
 
         logger.debug(f":move: end added")
+
+        # Sets unique index on mission movement features
+        idx = 0
+        for f in self.moves:
+            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
+            idx = idx + 1
 
         return (True, "Mission::move completed")
 

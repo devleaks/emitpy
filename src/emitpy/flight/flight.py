@@ -6,7 +6,8 @@ from emitpy.airport import Airport
 from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
 from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT
-from emitpy.utils import FT, Messages, FlightboardMessage
+from emitpy.utils import FT
+from emitpy.message import Messages, FlightboardMessage
 
 logger = logging.getLogger("Flight")
 
@@ -123,6 +124,19 @@ class Flight(Messages):
         return self.operator.iata + self.number + "-S" + self.scheduled_dt.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
 
 
+    @staticmethod
+    def parseId(flight_id):
+        """
+        Parses IATA flight identifier as built by getId().
+        Returns set(flight designator, scheduled time (UTC), airline IATA code, flight number)
+
+        :param      flight_id:  The flight identifier
+        :type       flight_id:  { type_description }
+        """
+        a = flight_id.split("-")
+        scheduled_utc = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
+        return (a[0], scheduled_utc, a[0][0:2], a[2:])
+
     def getScheduleHistory(self):
         """
         Gets the schedule history.
@@ -156,6 +170,10 @@ class Flight(Messages):
             return self.departure.icao == self.managedAirport.icao
         logger.warning(f":is_departure: no managedAirport, cannot determine")
         return None
+
+
+    def getRemoteAirport(self) -> Airport:
+        return self.departure if self.is_arrival() else self.arrival
 
 
     def setLinkedFlight(self, linked_flight: 'Flight') -> None:
@@ -272,6 +290,7 @@ class Flight(Messages):
         fpcp = self.flightplan.toAirspace(self.managedAirport.airport.airspace)
         if fpcp[1] > 0:
             logger.warning(":toAirspace: unidentified %d waypoints" % fpcp[1])
+        # Sets unique index on flight plan features
         idx = 0
         for f in fpcp[0]:
             f.setProp(FEATPROP.FLIGHT_PLANDB_INDEX.value, idx)
@@ -301,10 +320,9 @@ class Flight(Messages):
         normplan = self.toAirspace()
         planpts = []
 
-        remote_apt = self.departure if self.is_arrival() else self.arrival
         self.addMessage(FlightboardMessage(flight_id=self.getId(),
                                            is_arrival=self.is_arrival(),
-                                           airport=remote_apt.icao))
+                                           airport=self.getRemoteAirport().icao))
 
         # ###########################
         # DEPARTURE AND CRUISE

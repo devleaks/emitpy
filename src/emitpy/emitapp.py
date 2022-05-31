@@ -13,8 +13,8 @@ from emitpy.service import Service, ServiceMove, FlightServices, Mission, Missio
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE
-from emitpy.constants import ID_SEP, REDIS_TYPE, REDIS_DB, key_path
-from emitpy.parameters import DEFAULT_QUEUES, REDIS_CONNECT, METAR_HISTORICAL
+from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path
+from emitpy.parameters import REDIS_CONNECT, METAR_HISTORICAL
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
@@ -80,7 +80,7 @@ class EmitApp(ManagedAirport):
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
         if len(self.queues) == 0:
             logger.debug(":init: no queue found, create default queues..")
-            for k, v in DEFAULT_QUEUES.items():
+            for k, v in INTERNAL_QUEUES.items():
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                 self.queues[k].save()
 
