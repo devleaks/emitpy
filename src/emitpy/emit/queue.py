@@ -1,9 +1,8 @@
 import json
 import logging
 
-from emitpy.constants import REDIS_DATABASE, ID_SEP
+from emitpy.constants import INTERNAL_QUEUES, REDIS_DATABASE, ID_SEP
 from emitpy.utils import make_key, key_path
-from emitpy.parameters import DEFAULT_QUEUES
 
 logger = logging.getLogger("Queue")
 
@@ -61,7 +60,7 @@ class Queue:
 
     @staticmethod
     def delete(redis, name):
-        if name in DEFAULT_QUEUES.keys():
+        if name in INTERNAL_QUEUES.keys() or name == "lt":
             return (False, "Queue::delete: cannot delete default queue")
         # 3. Stop broad
         redis.publish(REDIS_DATABASE.QUEUES.value, DELETE_QUEUE+ID_SEP+name)

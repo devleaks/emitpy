@@ -95,6 +95,11 @@ TAG_SEP = "|"
 FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
 
 
+class POI_COMBO(Enum):
+    RAMP = "ramp"
+    SERVICE = "svc"
+    CHECKPOINT = "ckpt"
+
 ########################################
 # Redis databases and keys
 #
@@ -187,6 +192,8 @@ class REDIS_PREFIX(Enum):
     AIRPORT  = "airport"
     AIRPORT_ROUTES = key_path("business", "airroutes", "airports")
     AIRPORTS = "airports"
+    AIRPORTS_GEO_INDEX = key_path("airports", "_geo_index")
+    AIRPORT_GEO_INDEX = key_path("airport", "_geo_index")
     AIRSPACE = "airspace"
     AIRSPACE_AIRWAYS = key_path("airspace", "airways")
     # AIRSPACE_ALL_INDEX = key_path("airspace", "idents")

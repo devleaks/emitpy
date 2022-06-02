@@ -21,7 +21,7 @@ from emitpy.business import AirportManager
 from emitpy.airspace import ControlledPoint, CPIDENT, AirwaySegment
 from emitpy.airport import Airport, AirportBase
 
-from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, key_path
+from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path
 from emitpy.utils import NAUTICAL_MILE
 from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR
 from emitpy.geo import FeatureWithProps
@@ -63,9 +63,9 @@ class LoadApp(ManagedAirport):
         logger.debug("=" * 90)
         logger.debug(":init: initialized. ready to cache. caching..")
         # Caching emitpy data into Redis
-        self.load([])
+        self.load(["ramp", "spoi"])
         # Caching emitpy lists of values Redis
-        self.cache_lovs()
+        # self.cache_lovs()
         logger.debug(":init: .. done")
         logger.debug("=" * 90)
 
@@ -281,11 +281,17 @@ class LoadApp(ManagedAirport):
 
     def loadAirports(self):
         Airport.loadAll()
+        errcnt = 0
         for a in Airport._DB.values():
             a.save(REDIS_PREFIX.AIRPORTS.value, self.redis)
+            try:  # we noticed, experimentally, abs(lon) > 85 is not good...
+                self.redis.geoadd(REDIS_PREFIX.AIRPORTS_GEO_INDEX.value, (a.lon(), a.lat(), a.icao))
+            except:
+                logger.debug(f":loadAirports: cannot load {a.icao} (lat={a.lat()}, lon={a.lon()})")
+                errcnt = errcnt + 1
         self.redis.json().set(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value), Path.root_path(), Airport._DB)
         self.redis.json().set(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value), Path.root_path(), Airport._DB_IATA)
-        logger.debug(f":loadAirports: loaded {len(Airport._DB)} airports")
+        logger.debug(f":loadAirports: loaded {len(Airport._DB)} airports ({errcnt} geo errors)")
         return (True, f"LoadApp::loadAirports: loaded airports")
 
 
@@ -396,6 +402,7 @@ class LoadApp(ManagedAirport):
             if hasattr(v, "_resource"):
                 del v._resource
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RAMPS.value, k), Path.root_path(), v)
+            self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), key_path(POI_COMBO.RAMP.value, k)))
 
         logger.debug(f":loadRamps: loaded {len(self.airport.ramps)}")
         return (True, f"LoadApp::loadRamps: loaded ramps")
@@ -426,6 +433,8 @@ class LoadApp(ManagedAirport):
     def loadServicePOIS(self):
         for k, v in self.airport.service_pois.items():
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.GROUNDSUPPORT.value, k), Path.root_path(), v)
+            self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), k))
+            self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), key_path(POI_COMBO.SERVICE.value, k)))
 
         logger.debug(f":loadServicePOIS: loaded {len(self.airport.service_pois)}")
         return (True, f"LoadApp::loadServicePOIS: loaded service points of interest")
@@ -434,6 +443,7 @@ class LoadApp(ManagedAirport):
     def loadServiceDestinations(self):
         for k, v in self.airport.service_destinations.items():
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.GROUNDSUPPORT_DESTINATION.value, k), Path.root_path(), v)
+            # self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), k))
 
         logger.debug(f":loadServiceDestinations: loaded {len(self.airport.service_destinations)}")
         return (True, f"LoadApp::loadServiceDestinations: loaded service points of interest")

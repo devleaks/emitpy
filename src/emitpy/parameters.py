@@ -54,11 +54,6 @@ MANAGED_AIRPORT = {
     "operator": "MATAR"
 }
 
-# Default queues are created in emitpy if they do not exists.
-DEFAULT_QUEUES = {
-    "raw": "raw"
-}
-
 BROADCASTER_HEARTBEAT = True
 
 # Sources of some data
@@ -66,6 +61,8 @@ METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"  # on w
 METAR_HISTORICAL = False
 
 # X-Plane location
+XPLANE_FEED = True
+
 XPLANE_HOSTNAME = "Mac-mini-de-Pierre.local"
 XPLANE_POST = 49003
 XPLANE_DIRECTORY = os.path.join("/Users", "pierre", "X-Plane 11")

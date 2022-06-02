@@ -15,17 +15,12 @@ from .airport import AirportBase
 from emitpy.graph import Vertex, Edge, USAGE_TAG
 from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
 from emitpy.parameters import DATA_DIR
-from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, REDIS_PREFIX, REDIS_DB, ID_SEP
+from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, REDIS_PREFIX, REDIS_DB, ID_SEP, POI_COMBO
 from emitpy.utils import key_path, rejson
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
 logger = logging.getLogger("XPAirport")
-
-class POI_COMBO(Enum):
-    RAMP = "ramp"
-    SERVICE = "svc"
-    CHECKPOINT = "ckpt"
 
 
 # ################################@
@@ -683,29 +678,34 @@ class XPAirport(AirportBase):
         :param      service:  The service
         :type       service:  str
         """
-        if redis is not None:
-            a = name.split(ID_SEP)
-            print(">>> FULL", name)
-            if a[0] == POI_COMBO.RAMP.value:
-                return self.getRamp(key_path(*a[1:]), redis)
-            if a[0] == POI_COMBO.CHECKPOINT.value:
-                return self.getCheckpoint(key_path(*a[1:]), redis)
-            if a[0] == POI_COMBO.SERVICE.value:
-                return self.getServicePOI(key_path(*a[1:]), redis)
-
-        ret = self.service_pois[name] if name in self.service_pois.keys() else None
-        if ret is None:
-            logger.debug(f":selectServicePOI: {name} is not a service poi, may be a ramp?")
-            ret = self.ramps[name] if name in self.ramps.keys() else None
-        if ret is not None:
-            logger.debug(f":selectServicePOI: found {name}")
-            return ret
         if name == POI_TYPE.DEPOT.value:  # keyword for any depot for service
             logger.debug(f":selectServicePOI: trying generic depot")
-            return self.selectRandomServiceDepot(service)
+            return self.selectRandomServiceDepot(service, redis)
         if name in [POI_TYPE.REST_AREA.value, "rest", "parking"]:  # keyword for any rest area/parking for service
             logger.debug(f":selectServicePOI: trying generic rest area")
-            return self.selectRandomServiceRestArea(service)
+            return self.selectRandomServiceRestArea(service, redis)
+
+        a = name.split(ID_SEP)
+
+        if a[0] == POI_COMBO.RAMP.value:
+            return self.getRamp(key_path(*a[1:]), redis)
+        if a[0] == POI_COMBO.CHECKPOINT.value:
+            return self.getCheckpoint(key_path(*a[1:]), redis)
+        if a[0] == POI_COMBO.SERVICE.value:
+            return self.getServicePOI(key_path(*a[1:]), redis)
+
+
+        # logger.debug(f":selectServicePOI: {name} trying service poi..")
+        # ret = self.service_pois[name] if name in self.service_pois.keys() else None
+        # if ret is None: # if poi in the form ramp:XXX or svc:XXX
+        #     logger.debug(f":selectServicePOI: {name} is not a service poi, may be a ramp?")
+        #     a = name.split(ID_SEP)
+        #     if len(a)>1:
+        #         ret = self.ramps[a[1]] if a[1] in self.ramps.keys() else None
+
+        # if ret is not None:
+        #     logger.debug(f":selectServicePOI: found {name}")
+        #     return ret
 
     def getNearestPOI(self, poi_list, position: Feature):
         """
@@ -733,7 +733,7 @@ class XPAirport(AirportBase):
         logger.debug(f":getNearestPOI: found {poi_list[0].getProp('name')}")
         return closest
 
-    def getDepots(self, service_name: str):
+    def getDepots(self, service_name: str, redis = None):
         """
         Get all depot POIs for named service.
 
@@ -742,7 +742,7 @@ class XPAirport(AirportBase):
         """
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOIs(service_name)))
 
-    def getNearestServiceDepot(self, service_name: str, position: Feature):
+    def getNearestServiceDepot(self, service_name: str, position: Feature, redis = None):
         """
         Get nearest depot POI for named service.
 
@@ -751,7 +751,7 @@ class XPAirport(AirportBase):
         """
         return self.getNearestPOI(self.getDepots(service_name), position)
 
-    def getRestAreas(self, service_name: str):
+    def getRestAreas(self, service_name: str, redis = None):
         """
         Get all rest area POIs for named service.
 
@@ -760,7 +760,7 @@ class XPAirport(AirportBase):
         """
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOIs(service_name)))
 
-    def getNearestServiceRestArea(self, service_name: str, position: Feature):
+    def getNearestServiceRestArea(self, service_name: str, position: Feature, redis = None):
         """
         Get nearest rest area POI for named service.
 
@@ -769,7 +769,7 @@ class XPAirport(AirportBase):
         """
         return self.getNearestPOI(self.getRestAreas(service_name), position)
 
-    def selectRandomServiceDepot(self, service: str):
+    def selectRandomServiceDepot(self, service: str, redis = None):
         """
         Selects a random depot for named service.
 
@@ -783,7 +783,7 @@ class XPAirport(AirportBase):
             return None
         return random.choice(l)
 
-    def selectRandomServiceRestArea(self, service: str):
+    def selectRandomServiceRestArea(self, service: str, redis = None):
         """
         Selects a random service area for named service.
 
@@ -797,7 +797,7 @@ class XPAirport(AirportBase):
             return None
         return random.choice(l)
 
-    def getServiceDepot(self, name: str, service_name: str=None):
+    def getServiceDepot(self, name: str, service_name: str=None, redis = None):
         """
         Returns the named depot POI if existing, otherwise tries to locate an alternative depot for service.
 
@@ -806,14 +806,14 @@ class XPAirport(AirportBase):
         :param      service:  The service
         :type       service:  str
         """
-        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name)
+        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name, redis = None)
         dn = list(filter(lambda f: f.getName() == name, dl))
         if len(dn) == 0:
             logger.warning(f":getServiceDepot: { name } not found")
             return None
         return dn[0]  # name may not be unique
 
-    def getServiceRestArea(self, name: str, service_name: str=None):
+    def getServiceRestArea(self, name: str, service_name: str=None, redis = None):
         """
         Returns the named rest area POI if existing, otherwise tries to locate an alternative rest area for service.
 

@@ -16,7 +16,7 @@ from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
-from emitpy.parameters import DATA_IN_REDIS, REDIS_CONNECT, METAR_HISTORICAL
+from emitpy.parameters import DATA_IN_REDIS, REDIS_CONNECT, METAR_HISTORICAL, XPLANE_FEED
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
@@ -42,7 +42,7 @@ class StatusInfo:
         })
 
 
-SAVE_TO_FILE = False
+SAVE_TO_FILE = False  # for debugging purpose
 
 
 class EmitApp(ManagedAirport):
@@ -88,6 +88,14 @@ class EmitApp(ManagedAirport):
         for k, v in INTERNAL_QUEUES.items():
             if k not in self.queues.keys():
                 logger.debug(f":init: creating missing default queue {k}..")
+                self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
+                self.queues[k].save()
+
+        if XPLANE_FEED:  # obstinately harcoded
+            k = "lt"
+            v = "ltTOTO"
+            if k not in self.queues.keys():
+                logger.debug(f":init: creating LiveTraffic queue..")
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                 self.queues[k].save()
 
@@ -205,7 +213,7 @@ class EmitApp(ManagedAirport):
         ac = AircraftPerformance.findAircraftByType(actype, acsubtype, self.redis)
         if ac is None:
             return StatusInfo(100, f"aircraft performance not found for {actype} or {acsubtype}", None)
-        acperf = AircraftPerformance.find(icao=ac, redis=self.redis)
+        acperf = AircraftPerformance.find(icao=ac, redis=self.use_redis())
         if acperf is None:
             return StatusInfo(101, f"aircraft performance not found for {ac}", None)
         acperf.load()
@@ -237,7 +245,7 @@ class EmitApp(ManagedAirport):
                                destination=remote_apt,
                                aircraft=aircraft)
         flight.setFL(reqfl)
-        rampval = self.airport.getRamp(ramp, redis=self.redis)
+        rampval = self.airport.getRamp(ramp, redis=self.use_redis())
         if rampval is None:
             logger.warning(f"ramp {ramp} not found, quitting")
             return StatusInfo(102, f"ramp {ramp} not found", None)
@@ -368,7 +376,7 @@ class EmitApp(ManagedAirport):
 
     def do_service(self, queue, emit_rate, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         logger.debug("loading aircraft ..")
-        acperf = AircraftPerformance.find(aircraft, redis=self.redis)
+        acperf = AircraftPerformance.find(aircraft, redis=self.use_redis())
         if acperf is None:
             return StatusInfo(200, f"EmitApp:do_service: aircraft performance {aircraft} not found", None)
         acperf.load()
@@ -377,7 +385,7 @@ class EmitApp(ManagedAirport):
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
         logger.debug("creating service ..")
-        rampval = self.airport.getRamp(ramp, redis=self.redis)
+        rampval = self.airport.getRamp(ramp, redis=self.use_redis())
         if rampval is None:
             return StatusInfo(201, f"EmitApp:do_service: ramp {ramp} not found", None)
         scheduled_dt = datetime.fromisoformat(scheduled)
@@ -393,11 +401,11 @@ class EmitApp(ManagedAirport):
         if this_vehicle is None:
             return StatusInfo(202, f"EmitApp:do_service: vehicle not found", None)
         this_vehicle.setICAO24(vehicle_icao24)
-        startpos = self.airport.selectServicePOI(vehicle_startpos, service, redis=self.redis)
+        startpos = self.airport.selectServicePOI(vehicle_startpos, service, redis=self.use_redis())
         if startpos is None:
             return StatusInfo(203, f"EmitApp:do_service: start position {vehicle_startpos} for {service} not found", None)
         this_vehicle.setPosition(startpos)  # this is the start position for the vehicle
-        nextpos = self.airport.selectServicePOI(vehicle_endpos, service, redis=self.redis)
+        nextpos = self.airport.selectServicePOI(vehicle_endpos, service, redis=self.use_redis())
         if nextpos is None:
             return StatusInfo(204, f"EmitApp:do_service: start position {vehicle_endpos} for {service} not found", None)
         this_vehicle.setNextPosition(nextpos)  # this is the position the vehicle is going to after service
@@ -501,7 +509,7 @@ class EmitApp(ManagedAirport):
         remote_apt = Airport.find(airport_code, self.redis)
         actype_code = emit.getMeta("$.move.aircraft.actype.base-type.actype")
         logger.debug(f"..got actype code {actype_code}..")
-        acperf = AircraftPerformance.find(icao=actype_code, redis=self.redis)
+        acperf = AircraftPerformance.find(icao=actype_code, redis=self.use_redis())
         acperf.load()
         acreg  = emit.getMeta("$.move.aircraft.acreg")
         icao24 = emit.getMeta("$.move.aircraft.icao24")
@@ -526,7 +534,7 @@ class EmitApp(ManagedAirport):
                                aircraft=aircraft)
         rampcode = emit.getMeta("$.move.ramp.name")
         logger.debug(f"..got ramp {rampcode}..")
-        rampval = self.airport.getRamp(rampcode, redis=self.redis)
+        rampval = self.airport.getRamp(rampcode, redis=self.use_redis())
         if rampval is None:
             logger.warning(f"ramp {ramp} not found, quitting")
             return StatusInfo(102, f"ramp {ramp} not found", None)
