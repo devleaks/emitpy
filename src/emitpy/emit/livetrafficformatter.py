@@ -3,6 +3,8 @@
 import logging
 import datetime
 import json
+from jsonpath import JSONPath
+import flatdict
 
 from emitpy.constants import FEATPROP
 from emitpy.airport import Airport
@@ -53,6 +55,17 @@ class LiveTrafficFormatter(Formatter):
         # AITFC,10674098,34.3683,-118.7518,8600,-64,1,296,123,N28431,AA5,N28431,FUL,,1593034599
         # AITFC,10674098,34.3683,-118.7518,8600,-64,1,296,123,N28431,AA5,N28431,FUL,,1593034599
         #
+        # fp = dict(flatdict(f.properties))  # we only flatten props
+
+        def getprop(path: str):
+            r = JSONPath(path).parse(self.feature.properties)
+            if len(r) == 1:
+                return r[0]
+            elif len(r) > 1:
+                logger.warning(f":__str__: ambiguous return value for {path}")
+                return r[0]
+            return None
+
         f = self.feature
 
         icao24x = f.getProp(FEATPROP.ICAO24.value)
@@ -61,27 +74,31 @@ class LiveTrafficFormatter(Formatter):
         else:
             icao24 = None
 
-        coords = f.coords()
+        coords   = f.coords()
 
-        alt = f.altitude(0) / FT  # m -> ft
+        alt      = f.altitude(0) / FT  # m -> ft
 
-        vspeed = f.vspeed(0) * FT * 60  # m/s -> ft/min
-        speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
+        vspeed   = f.vspeed(0) * FT * 60  # m/s -> ft/min
+        speed    = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
         airborne = (alt > 0 and speed > 20)
 
-        heading = f.getProp(FEATPROP.HEADING.value)
+        heading  = f.getProp(FEATPROP.HEADING.value)
 
-        actype = f.getProp("aircraft:actype:actype")  # ICAO
-        if f.getProp("flight:identifier") is not None:  # it's a flight
-            callsign = f.getProp("flight:aircraft:callsign").replace(" ","").replace("-","")
-            tailnumber = f.getProp("flight:aircraft:acreg")
-            aptfrom = f.getProp("flight:departure:icao")     # IATA
-            aptto = f.getProp("flight:arrival:icao")  # IATA
+        actype = getprop("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
+
+        emit_type = getprop("$.emit.emit-type")
+
+        if emit_type == "flight":
+            callsign = getprop("$.flight.callsign").replace(" ","").replace("-","")
+            tailnumber = getprop("$.flight.aircraft.acreg")
+            aptfrom = getprop("$.flight.departure.icao")     # IATA
+            aptto = getprop("$.flight.arrival.icao")  # IATA
         else:  # not a flight
-            callsign = f.getProp("vehicle:callsign").replace(" ","").replace("-","")
-            tailnumber = f.getProp("vehicle:icao")
+            callsign = getprop("$.service.callsign").replace(" ","").replace("-","")
+            tailnumber = getprop("$.vehicle.icao")
             aptfrom = ""
             aptto = ""
+
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
         #         0    ,1       ,2          ,3          ,4    ,5       ,6                     ,7                 ,8
         #         AITFC,hexid   ,lat        ,lon        ,alt  ,vs      ,airborne              ,hdg               ,spd ### ,cs,type,tail,from,to,timestamp

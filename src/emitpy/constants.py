@@ -565,3 +565,4 @@ INTERNAL_QUEUES = {
     "raw": "raw",
     "wire": "wire"
 }
+LIVETRAFFIC_QUEUE = "lt"

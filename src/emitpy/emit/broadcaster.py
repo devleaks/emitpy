@@ -5,9 +5,12 @@ import time
 import redis
 import logging
 import json
+import socket
 
-from emitpy.constants import REDIS_DATABASE, ID_SEP
+from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE
 from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT
+from emitpy.parameters import XPLANE_HOSTNAME, XPLANE_PORT
+
 from .queue import Queue, RUN, STOP, NEW_QUEUE, DELETE_QUEUE
 
 # Queue name prefix
@@ -233,7 +236,7 @@ class Broadcaster:
                     #     ping = self.ping
                     # elif self.ping > 0:
                     #     ping = ping - 1
-                    # logger.debug(f":broadcast: {self.name}: bzpopmin timed out..")
+                    logger.debug(f":broadcast: {self.name}: bzpopmin timed out..")
                     continue
 
                 numval = self.redis.zcard(self.name)
@@ -266,8 +269,9 @@ class Broadcaster:
                     if not self.rdv.wait(timeout=realtimetowait):
                         # we timed out, we need to send
                         logger.debug(f":broadcast: {self.name}: sending..")
-                        if self.send_data(currval[1].decode('UTF-8')) != 0:
-                            logger.warning(f":send_data: did not complete successfully")
+                        r = self.send_data(currval[1].decode('UTF-8'))
+                        if r != 0:
+                            logger.warning(f":send_data: did not complete successfully (errcode={r})")
                         # self.redis.publish(OUT_QUEUE_PREFIX+self.name, currval[1].decode('UTF-8'))
                         currval = None  # currval was sent, we don't need to push it back or anything like that
                         logger.debug(f":broadcast: {self.name}: ..done")
@@ -319,6 +323,49 @@ class Broadcaster:
             logger.debug(f":broadcast: {self.name}: ..bye")
 
 
+class LiveTrafficForwarder(Broadcaster):
+
+    def __init__(self, redis):
+        Broadcaster.__init__(self, redis=redis, name=LIVETRAFFIC_QUEUE)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        logger.debug(f"LiveTrafficForwarder::__init__: inited")
+
+    # def compWaitTS(ts_s: str) -> str:
+    #     global _tsDiff
+    #     # current time and convert timestamp
+    #     now = int(time.time())
+    #     ts = int(ts_s)
+    #     # First time called? -> compute initial timestamp difference
+    #     if not _tsDiff:
+    #         _tsDiff = now - ts - args.bufPeriod
+    #         if args.verbose:
+    #             print ("Timestamp difference: {}".format(_tsDiff))
+    #     # What's the required timestamp to wait for and then return?
+    #     ts += _tsDiff
+    #     # if that's in the future then wait
+    #     if (ts > now):
+    #         if args.verbose:
+    #             print ("Waiting for {} seconds...".format(ts-now), end='\r')
+    #         time.sleep (ts-now)
+    #     # Adjust returned timestamp value for historic timestamp
+    #     ts -= args.historic
+    #     return str(ts)
+
+    def send_data(self, data: str) -> int:
+        fields = data.split(',')
+        if len(fields) != 15:
+            logger.warning(f"Found {len(fields)} fields, expected 15, in line {data}")
+            return 1
+        # Update and wait for timestamp
+        # fields[14] = compWaitTS(fields[14])  # this is done in our own broadcaster :-)
+        datagram = ','.join(fields)
+        self.sock.sendto(datagram.encode('ascii'), (XPLANE_HOSTNAME, XPLANE_PORT))
+        fields[1] = f"{int(fields[1]):x}"
+        logger.debug(f":send_data: {datagram}")
+        logger.debug(f":send_data: ac:{fields[1]}: alt={fields[4]} ft, hdg={fields[7]}, speed={fields[8]} kn, vspeed={fields[5]} ft/min")
+        return 0
+
+
 # ##############################@@
 # H Y P E R C A S T E R
 #
@@ -366,7 +413,12 @@ class Hypercaster:
 
     def start_queue(self, queue):
         if self.queues[queue.name].status == RUN:
-            b = Broadcaster(redis.Redis(connection_pool=self.redis_pool), queue.name, queue.speed, queue.starttime)
+            b = None
+            if queue.name == LIVETRAFFIC_QUEUE:
+                b = LiveTrafficForwarder(redis.Redis(connection_pool=self.redis_pool))
+                hyperlogger.debug(f":start_queue: LiveTrafficForwarder started")
+            else:
+                b = Broadcaster(redis.Redis(connection_pool=self.redis_pool), queue.name, queue.speed, queue.starttime)
             self.queues[queue.name].broadcaster = b
             self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
             self.queues[queue.name].thread.start()

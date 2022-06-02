@@ -3,7 +3,7 @@ import socket
 from datetime import datetime
 
 from emitpy.parameters import XPLANE_HOSTNAME, XPLANE_PORT
-from .broadcaster import QUIT as QUIT_MSG, Broadcaster
+from .broadcaster import Broadcaster
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("LiveTrafficForwarder")

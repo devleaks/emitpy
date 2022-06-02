@@ -14,7 +14,7 @@ from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE
+from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE, LIVETRAFFIC_QUEUE
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
 from emitpy.parameters import DATA_IN_REDIS, REDIS_CONNECT, METAR_HISTORICAL, XPLANE_FEED
 from emitpy.airport import Airport, AirportBase
@@ -92,8 +92,8 @@ class EmitApp(ManagedAirport):
                 self.queues[k].save()
 
         if XPLANE_FEED:  # obstinately harcoded
-            k = "lt"
-            v = "ltTOTO"
+            k = LIVETRAFFIC_QUEUE
+            v = LIVETRAFFIC_QUEUE
             if k not in self.queues.keys():
                 logger.debug(f":init: creating LiveTraffic queue..")
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)

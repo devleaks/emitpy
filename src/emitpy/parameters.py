@@ -64,5 +64,5 @@ METAR_HISTORICAL = False
 XPLANE_FEED = True
 
 XPLANE_HOSTNAME = "Mac-mini-de-Pierre.local"
-XPLANE_POST = 49003
+XPLANE_PORT = 49003
 XPLANE_DIRECTORY = os.path.join("/Users", "pierre", "X-Plane 11")
