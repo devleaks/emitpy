@@ -3,6 +3,8 @@ import json
 import random
 import redis
 
+from redis.commands.json.path import Path
+
 from datetime import datetime, timedelta
 
 from emitpy.managedairport import ManagedAirport
@@ -13,14 +15,16 @@ from emitpy.service import Service, ServiceMove, FlightServices, Mission, Missio
 from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE
-from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE
-from emitpy.parameters import REDIS_CONNECT, METAR_HISTORICAL
+from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
+from emitpy.parameters import DATA_IN_REDIS, REDIS_CONNECT, METAR_HISTORICAL
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
 
-
 logger = logging.getLogger("EmitApp")
+
+MANAGED_AIRPORT_KEY = "managed"
+MANAGED_AIRPORT_LAST_UPDATED = "last-updated"
 
 
 class StatusInfo:
@@ -39,7 +43,6 @@ class StatusInfo:
 
 
 SAVE_TO_FILE = False
-CACHE_DATA = False
 
 
 class EmitApp(ManagedAirport):
@@ -55,7 +58,7 @@ class EmitApp(ManagedAirport):
 
         # If Redis is defined before calling init(), it will use it.
         # Otherwise, it will use the data files.
-        if CACHE_DATA:  # If caching data we MUST preload them from files
+        if not DATA_IN_REDIS:  # If caching data we MUST preload them from files
             ret = self.init()  # call init() here to use data from data files
             if not ret[0]:
                 logger.warning(ret[1])
@@ -64,32 +67,59 @@ class EmitApp(ManagedAirport):
         self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
         self.redis = redis.Redis(connection_pool=self.redis_pool)
 
-        if CACHE_DATA:
-            logger.debug("..caching static data..")
-            self.cache(self.redis, REDIS_DB.REF.value)
-            logger.debug("..done")
-
         try:
             pong = self.redis.ping()
         except redis.RedisError:
             logger.error(":init: cannot connect to redis")
             return
 
+        if DATA_IN_REDIS:
+            ret = self.check_data()
+            if not ret[0]:
+                logger.warning(ret[1])
+                return
+        logger.debug(f":init: data last loaded on {ret[1]}")
+
+
         # Default queue(s)
         self.redis.select(REDIS_DB.APP.value)
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
-        if len(self.queues) == 0:
-            logger.debug(":init: no queue found, create default queues..")
-            for k, v in INTERNAL_QUEUES.items():
+        # logger.debug(":init: checking for default queues..")
+        for k, v in INTERNAL_QUEUES.items():
+            if k not in self.queues.keys():
+                logger.debug(f":init: creating missing default queue {k}..")
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                 self.queues[k].save()
 
         ret = self.init()  # call init() here to use data from Redis
         if not ret[0]:
             logger.warning(ret[1])
+            return
 
         logger.debug(":init: initialized. listening..")
         logger.debug("=" * 90)
+
+
+    def use_redis(self):
+        """
+        Function that check whether we are using Redis for data.
+        If true, we return a redis connection instance ready to be used.
+        If false, we return None and the function that called us can choose another path.
+        """
+        if DATA_IN_REDIS:
+            return redis.Redis(connection_pool=self.redis_pool)
+        return None
+
+
+    def check_data(self):
+        prevdb = self.redis.client_info()["db"]
+        self.redis.select(REDIS_DB.REF.value)
+        k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
+        a = self.redis.json().get(k, Path.root_path())
+        self.redis.select(prevdb)
+        if a is not None and MANAGED_AIRPORT_LAST_UPDATED in a:
+            return (True, a[MANAGED_AIRPORT_LAST_UPDATED])
+        return (False, f"{k} not found")
 
 
     def getId(self):
@@ -207,7 +237,7 @@ class EmitApp(ManagedAirport):
                                destination=remote_apt,
                                aircraft=aircraft)
         flight.setFL(reqfl)
-        rampval = self.airport.getRamp(ramp)  # Aircraft won't get towed
+        rampval = self.airport.getRamp(ramp, redis=self.redis)
         if rampval is None:
             logger.warning(f"ramp {ramp} not found, quitting")
             return StatusInfo(102, f"ramp {ramp} not found", None)
@@ -338,7 +368,7 @@ class EmitApp(ManagedAirport):
 
     def do_service(self, queue, emit_rate, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         logger.debug("loading aircraft ..")
-        acperf = AircraftPerformance.find(aircraft)
+        acperf = AircraftPerformance.find(aircraft, redis=self.redis)
         if acperf is None:
             return StatusInfo(200, f"EmitApp:do_service: aircraft performance {aircraft} not found", None)
         acperf.load()
@@ -347,7 +377,7 @@ class EmitApp(ManagedAirport):
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
 
         logger.debug("creating service ..")
-        rampval = self.airport.getRamp(ramp)
+        rampval = self.airport.getRamp(ramp, redis=self.redis)
         if rampval is None:
             return StatusInfo(201, f"EmitApp:do_service: ramp {ramp} not found", None)
         scheduled_dt = datetime.fromisoformat(scheduled)
@@ -363,11 +393,11 @@ class EmitApp(ManagedAirport):
         if this_vehicle is None:
             return StatusInfo(202, f"EmitApp:do_service: vehicle not found", None)
         this_vehicle.setICAO24(vehicle_icao24)
-        startpos = self.airport.selectServicePOI(vehicle_startpos, service)
+        startpos = self.airport.selectServicePOI(vehicle_startpos, service, redis=self.redis)
         if startpos is None:
             return StatusInfo(203, f"EmitApp:do_service: start position {vehicle_startpos} for {service} not found", None)
         this_vehicle.setPosition(startpos)  # this is the start position for the vehicle
-        nextpos = self.airport.selectServicePOI(vehicle_endpos, service)
+        nextpos = self.airport.selectServicePOI(vehicle_endpos, service, redis=self.redis)
         if nextpos is None:
             return StatusInfo(204, f"EmitApp:do_service: start position {vehicle_endpos} for {service} not found", None)
         this_vehicle.setNextPosition(nextpos)  # this is the position the vehicle is going to after service
@@ -452,8 +482,7 @@ class EmitApp(ManagedAirport):
         td = bt - st
         blocktime = scheduled + timedelta(seconds=td)
 
-        oarr = operator.split(ID_SEP)
-        operator = Company(orgId=oarr[0], classId=oarr[1], typeId=oarr[2], name=oarr[3])
+        operator = self.airport.manager.getCompany(operator)
 
         flight_meta = emit.getMeta("$.move.flight")
 
@@ -497,7 +526,7 @@ class EmitApp(ManagedAirport):
                                aircraft=aircraft)
         rampcode = emit.getMeta("$.move.ramp.name")
         logger.debug(f"..got ramp {rampcode}..")
-        rampval = self.airport.getRamp(rampcode)
+        rampval = self.airport.getRamp(rampcode, redis=self.redis)
         if rampval is None:
             logger.warning(f"ramp {ramp} not found, quitting")
             return StatusInfo(102, f"ramp {ramp} not found", None)
@@ -544,7 +573,7 @@ class EmitApp(ManagedAirport):
         self.airport.manager.saveAllocators(self.redis)
 
         logger.debug("..done")
-        return StatusInfo(0, "completed successfully", None)
+        return StatusInfo(0, "completed successfully", emit.getId())
 
 
     def do_mission(self, emit_rate, queue, operator, checkpoints, mission, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
@@ -553,7 +582,7 @@ class EmitApp(ManagedAirport):
             logger.debug("..no checkpoint, generating random..")
             checkpoints = [c[0] for c in random.choices(self.airport.getPOICombo(), k=3)]
 
-        operator = Company(orgId="Airport Security", classId="Airport Operator", typeId="Airport Operator", name=operator)
+        operator = self.airport.manager.getCompany(operator)
         mission = Mission(operator=operator, checkpoints=checkpoints, name=mission)
 
         mission_time = datetime.fromisoformat(scheduled)
@@ -563,6 +592,8 @@ class EmitApp(ManagedAirport):
 
         logger.debug(".. vehicle ..")
         mission_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=mission, reqtime=mission_time, model=vehicle_model, registration=vehicle_ident, use=True)
+        if mission_vehicle is None:
+            return StatusInfo(311, f"connot find vehicle {vehicle_model}", None)
         mission_vehicle.setICAO24(vehicle_icao24)
 
         logger.debug(".. start and end positions ..")
@@ -691,10 +722,25 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "scheduled successfully (with services)", ident)
 
 
-    def do_delete(self, queue, ident):
+    def do_delete(self, queue, ident, do_services:bool = False):
+        # 1. Delete associated servicse if requested
+        if do_services:
+            services = self.airport.manager.allServiceForFlight(redis=self.redis, flight_id=ident)
+            logger.debug(f"deleting services..")
+            for service in services:
+                logger.debug(f"..{service}..")
+                si = self.do_delete(queue, service)
+                if si.status != 0:
+                    return StatusInfo(501, f"problem during deletion of associated services {service} of {ident} ", si)
+            logger.debug(f"..done")
+
         ret = EnqueueToRedis.delete(ident=ident, queue=queue, redis=self.redis)
         if not ret[0]:
             return StatusInfo(500, f"problem during deletion of {ident} ", ret)
+
+        if do_services:
+            return StatusInfo(0, "deleted successfully (with services)", None)
+
         return StatusInfo(0, "deleted successfully", None)
 
 

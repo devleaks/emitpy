@@ -21,7 +21,7 @@ from emitpy.business import AirportManager
 from emitpy.airspace import ControlledPoint, CPIDENT, AirwaySegment
 from emitpy.airport import Airport, AirportBase
 
-from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, key_path
+from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, key_path
 from emitpy.utils import NAUTICAL_MILE
 from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR
 from emitpy.geo import FeatureWithProps
@@ -564,19 +564,19 @@ class LoadApp(ManagedAirport):
         logger.debug(":cache: caching..")
 
         # Airports operating at managed airport
-        saveComboAsJson("airports", Airport.getCombo())
+        saveComboAsJson(REDIS_LOVS.AIRPORTS.value, Airport.getCombo())
         # Airlines operating at managed airport
-        saveComboAsJson("airlines", Airline.getCombo())
+        saveComboAsJson(REDIS_LOVS.AIRLINES.value, Airline.getCombo())
         # Airport ramps
-        saveComboAsJson("airport:ramps", self.airport.getRampCombo())
+        saveComboAsJson(REDIS_LOVS.RAMPS.value, self.airport.getRampCombo())
         # Airport runways
-        saveComboAsJson("airport:runways", self.airport.getRunwayCombo())
+        saveComboAsJson(REDIS_LOVS.RUNWAYS.value, self.airport.getRunwayCombo())
         # Airport point of interest
-        saveComboAsJson("airport:pois", self.airport.getPOICombo())
+        saveComboAsJson(REDIS_LOVS.POIS.value, self.airport.getPOICombo())
         # Airport handlers and operators
-        saveComboAsJson("airport:companies", self.airport.manager.getCompaniesCombo())
+        saveComboAsJson(REDIS_LOVS.COMPANIES.value, self.airport.manager.getCompaniesCombo())
         # Aircraft types
-        saveComboAsJson("aircrafts", AircraftPerformance.getCombo())
+        saveComboAsJson(REDIS_LOVS.AIRCRAFT_TYPES.value, AircraftPerformance.getCombo())
         # # Services
         # redis.set(LOVS+"services", Service.getCombo())
         # # Service handlers

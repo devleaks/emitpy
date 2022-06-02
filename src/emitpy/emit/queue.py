@@ -61,14 +61,18 @@ class Queue:
 
     @staticmethod
     def delete(redis, name):
-        if name in DELETE_QUEUE.keys():
+        if name in DEFAULT_QUEUES.keys():
             return (False, "Queue::delete: cannot delete default queue")
+        # 3. Stop broad
+        redis.publish(REDIS_DATABASE.QUEUES.value, DELETE_QUEUE+ID_SEP+name)
+        logger.debug(f"Hypercaster notified for deletion of {name}")
+        # 1. Remove definition
         ident = make_key(REDIS_DATABASE.QUEUES.value, name)
         redis.srem(REDIS_DATABASE.QUEUES.value, ident)
         redis.delete(ident)
+        # 2. Remove preparation queue
+        redis.delete(name)
         logger.debug(f":delete: deleted {name}")
-        redis.publish(REDIS_DATABASE.QUEUES.value, DELETE_QUEUE+ID_SEP+name)
-        logger.debug(f"Hypercaster notified for deletion of {ident}")
         return (True, "Queue::delete: deleted")
 
 

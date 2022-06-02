@@ -40,13 +40,13 @@ templates = Jinja2Templates(directory="web/templates")
 # Special lists for UI
 #
 @router.get("/airlines", tags=["reference"])
-async def list_airlines():
-    return JSONResponse(content=Airline.getCombo())
+async def list_airlines(request: Request):
+    return JSONResponse(content=Airline.getCombo(request.app.state.emitpy.redis))
 
 
 @router.get("/airports", tags=["reference"])
-async def list_airports():
-    return JSONResponse(content=Airport.getCombo())
+async def list_airports(request: Request):
+    return JSONResponse(content=Airport.getCombo(request.app.state.emitpy.redis))
 
 
 @router.get("/airroutes-by-airport/{airport_iata}", tags=["reference"])

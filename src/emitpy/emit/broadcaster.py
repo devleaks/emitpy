@@ -383,15 +383,19 @@ class Hypercaster:
                 # now that we have notified the broadcaster, we don't need it anymore
                 self.queues[queue].broadcaster = None
                 hyperlogger.debug(f":terminate_queue: {queue} notified")
-            else:
+            else:  # @todo: Why do we sometimes get here??
                 hyperlogger.warning(f":terminate_queue: {queue} has no shutdown_flag")
         else:
             hyperlogger.warning(f":terminate_queue: {queue} has no broadcaster")
 
     def terminate_all_queues(self):
-        self.redis.publish(REDIS_DATABASE.QUEUES.value, QUIT)
+        hyperlogger.debug(f":terminate_all_queues: notifying..")
         for k in self.queues.keys():
+            hyperlogger.debug(f":terminate_all_queues: notifying {k}..")
             self.terminate_queue(k)
+        hyperlogger.debug(f":terminate_all_queues: notifying admin..")
+        self.redis.publish(REDIS_DATABASE.QUEUES.value, QUIT)
+        hyperlogger.debug(f":terminate_all_queues: ..done")
 
     def admin_queue(self):
         # redis events:
@@ -423,6 +427,10 @@ class Hypercaster:
                         oldst = self.queues[qn].starttime
                         # there is no broadcaster if queue was not started
                         oldbr = self.queues[qn].broadcaster if hasattr(self.queues[qn], "broadcaster") else None
+                        # if oldbr is None:
+                        #     hyperlogger.debug(f":admin_queue: ..queue {qn} had no broadcaster..")
+                        # else:
+                        #     hyperlogger.debug(f":admin_queue: ..queue reusing {qn} broadcaster..")
                         self.queues[qn] = Queue.loadFromDB(redis=self.redis, name=qn)
                         if oldbr is not None and self.queues[qn].status == STOP:
                             # queue was working beofre and is now stopped: replaces broadcaster and terminates it
@@ -438,9 +446,11 @@ class Hypercaster:
                             hyperlogger.debug(f":admin_queue: ..queue {qn} added but stopped")
                         else:
                             # queue was working before, will continue to work bbut some parameters are reset
+                            self.queues[qn].broadcaster = oldbr
                             oldbr.reset(speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
                             hyperlogger.debug(f":admin_queue: .. queue {qn} speed {self.queues[qn].speed} (was {oldsp}) " +
                                          f"starttime {self.queues[qn].starttime} (was {oldst}) reset")
+                        hyperlogger.debug(f":admin_queue: ..done")
 
                 elif type(msg).__name__ == "str" and msg.startswith(DELETE_QUEUE+ID_SEP):
                     arr = msg.split(ID_SEP)

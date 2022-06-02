@@ -11,7 +11,7 @@ def LOV_Validator(
     valid_values: List[str],
     invalid_message: str) -> str:
     if value not in valid_values:
-        raise ValueError(invalid_message)
+        raise ValueError(f"key {value} not in {valid_values}")
     return value
 
 

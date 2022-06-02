@@ -601,7 +601,7 @@ class AircraftPerformance(AircraftType):
             data = self.loadFromFile("-tarpro.yaml")
             if data is not None:
                 self.tarprofile = data
-                logger.debug(f":loadTurnaroundProfile: loaded for {self.typeId.upper()}: {data}")
+                logger.debug(f":loadTurnaroundProfile: loaded for {self.typeId.upper()}")
             else:
                 logger.warning(f":loadTurnaroundProfile: no turnaround profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadTurnaroundProfile: not implemented"]

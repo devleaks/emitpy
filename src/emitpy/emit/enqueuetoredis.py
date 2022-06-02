@@ -8,7 +8,7 @@ import json
 from .format import Format
 from .queue import Queue
 from .broadcaster import NEW_DATA, ADM_QUEUE_PREFIX
-from emitpy.constants import REDIS_DATABASE, REDIS_TYPE
+from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, ID_SEP
 from emitpy.utils import make_key
 
 logger = logging.getLogger("EnqueueToRedis")
@@ -51,6 +51,12 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
     def delete(redis, ident: str, queue: str = None):
         # Remove ident entries from sending queue if queue is provided.
         # Remove ident from list of emits (normally, this is done with expiration date).
+
+        # If last character in the ID_SEP-separated domain is a REDIS_TYPE, we remove it
+        a = ident.split(ID_SEP)
+        if len(a[-1]) == 1 and a[-1] in [e.value for e in REDIS_TYPE]:
+            ident = ID_SEP.join(a[0:-1])
+
         # 1. Dequeue
         if queue is not None:
             EnqueueToRedis.dequeue(redis, ident, queue)
@@ -68,6 +74,10 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         emits = make_key(ident, REDIS_TYPE.EMIT_META.value)
         oset.delete(emits)
         logger.debug(f":delete: deleted {emits} meta data")
+        # 6. Remove kml
+        emits = make_key(ident, REDIS_TYPE.EMIT_KML.value)
+        oset.delete(emits)
+        logger.debug(f":delete: deleted {emits} kml")
         # 5. Remove emit
         emits = make_key(ident, REDIS_TYPE.EMIT.value)
         oset.delete(emits)

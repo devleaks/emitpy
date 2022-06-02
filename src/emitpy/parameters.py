@@ -32,6 +32,8 @@ REDIS_CONNECT = {
     "db": 0
 }
 
+DATA_IN_REDIS = True
+
 # ######################@
 # Application options and parameters
 #

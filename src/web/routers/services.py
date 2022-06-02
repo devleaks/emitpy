@@ -122,4 +122,22 @@ async def create_fight_services(
 async def schedule_fight_services(
     request: Request, fs_in: ScheduleFlightServices
 ):
-    return JSONResponse(content=jsonable_encoder(NotAvailable("ScheduleFlightServices")))
+    ret = StatusInfo(status=1, message="exception", data=None)
+    try:
+        input_d = fs_in.flight_date if fs_in.flight_date is not None else datetime.now()
+        input_t = fs_in.flight_time if fs_in.flight_time is not None else datetime.now()
+        dt = datetime(year=input_d.year,
+                      month=input_d.month,
+                      day=input_d.day,
+                      hour=input_t.hour,
+                      minute=input_t.minute)
+        ret = request.app.state.emitpy.do_schedule(
+                queue=fs_in.queue,
+                ident=fs_in.service_id,
+                sync=fs_in.sync_name,
+                scheduled=dt.isoformat(),
+                do_services=True)
+    except Exception as ex:
+        ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
+
+    return JSONResponse(content=jsonable_encoder(ret))

@@ -5,7 +5,8 @@ from typing import Optional, Literal, List
 
 from pydantic import BaseModel, Field, validator, constr
 
-from emitpy.constants import EMIT_RATES
+from emitpy.constants import EMIT_RATES, REDIS_DATABASE, REDIS_LOVS
+from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT
 from emitpy.service import Mission, MissionVehicle
 from emitpy.emit import Queue
@@ -27,6 +28,14 @@ class CreateMission(BaseModel):
     mission_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Service scheduled time")
     emit_rate: int = Field(30, description="Emission rate (sent every ... seconds)")
     queue: str = Field(..., description="Name of emission broadcast queue")
+
+    @validator('operator')
+    def validate_operator(cls, operator):
+        r = redis.Redis(**REDIS_CONNECT)
+        return REDISLOV_Validator(redis=r,
+                                  value=operator,
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.COMPANIES.value),
+                                  invalid_message=f"Invalid point of interest code {operator}")
 
     @validator('mission_type')
     def validate_mission_type(cls, mission_type):
@@ -52,7 +61,7 @@ class CreateMission(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=previous_position,
-                                  valid_key="lovs:airport:pois",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.POIS.value),
                                   invalid_message=f"Invalid point of interest code {previous_position}")
 
     @validator('next_position')

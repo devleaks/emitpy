@@ -21,7 +21,7 @@ from emitpy.graph import Graph
 from emitpy.geo import Location
 
 from emitpy.airspace import CIFP
-from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX
+from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR
 from emitpy.geo import Ramp, Runway
 from emitpy.utils import FT, key_path, rejson
@@ -111,7 +111,7 @@ class Airport(Location):
                 k = key_path(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value))
             else:
                 k = key_path(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value))
-            ac = rejson(redis, key=k, db=1, path=f".{code}")
+            ac = rejson(redis, key=k, db=REDIS_DB.REF.value, path=f".{code}")
             if ac is not None:
                 return Airport.fromInfo(info=ac)
             else:
@@ -131,9 +131,9 @@ class Airport(Location):
         """
         if redis is not None:
             k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value, icao[0:2], icao[2:4])
-            ac = rejson(redis, key=k, db=1)
+            ac = rejson(redis, key=k, db=REDIS_DB.REF.value)
             # k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value)
-            # ac = rejson(redis, key=k, db=1, path=f".{icao}")
+            # ac = rejson(redis, key=k, db=REDIS_DB.REF.value, path=f".{icao}")
             if ac is not None:
                 return Airport.fromInfo(info=ac)
             else:
@@ -154,7 +154,7 @@ class Airport(Location):
         """
         if redis is not None:
             k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value)
-            ac = rejson(redis, key=k, db=1, path=f".{iata}")
+            ac = rejson(redis, key=k, db=REDIS_DB.REF.value, path=f".{iata}")
             if ac is not None:
                 return Airport.fromInfo(info=ac)
             else:
@@ -165,10 +165,14 @@ class Airport(Location):
 
 
     @staticmethod
-    def getCombo():
+    def getCombo(redis = None):
         """
         Returns a list of pairs (code, description) ssorted by description.
         """
+        if redis is not None:
+            k = key_path(REDIS_DATABASE.LOVS.value, REDIS_LOVS.AIRPORTS.value)
+            return rejson(redis, key=k, db=REDIS_DB.REF.value)
+
         l = filter(lambda a: len(a.airlines) > 0, Airport._DB_IATA.values())
         return [(a.iata, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
 

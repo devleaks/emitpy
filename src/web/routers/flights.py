@@ -90,7 +90,8 @@ async def delete_flight(
     try:
         ret = request.app.state.emitpy.do_delete(
                 ident=flight_in.flight_id,
-                queue=flight_in.queue)
+                queue=flight_in.queue,
+                do_services=flight_in.delete_services)
     except Exception as ex:
         ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
 

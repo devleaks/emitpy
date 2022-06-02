@@ -286,6 +286,10 @@ class AirportManager:
         return (False, f"AirportManager::loadCompanies not loaded")
 
 
+    def getCompany(self, company):
+        return self.companies[company] if company in self.companies else None
+
+
     def getCompaniesCombo(self, classId: str = None, typeId: str = None):
         """
         Builds (key, display name) pairs for companies, filtered by classId
@@ -304,7 +308,7 @@ class AirportManager:
             companies = filter(lambda c: c.classId == classId , companies)
         if typeId is not None:
             companies = filter(lambda c: c.typeId == typeId , companies)
-        return list([(c.getId(), c.name) for c in companies])
+        return list([(c.orgId, c.name) for c in companies])
 
 
     def loadServiceVehicles(self, redis = None):
@@ -402,12 +406,13 @@ class AirportManager:
 
         if vname is not None and vname in self.service_vehicles.keys():
             vehicle = self.service_vehicles[vname]
+            logger.debug(f":selectServiceVehicle: found existing {vehicle.registration}")
             if use: # there is no check that the vehicle is available
                 if reqend is None:
                     reqend = reqtime + timedelta(seconds=service.duration())
                 res = self.vehicle_allocator.book(vname, reqtime, reqend, service.getId())
                 service.setVehicle(vehicle)
-                logger.debug(f":selectServiceVehicle: reusing {vehicle.registration}")
+                logger.debug(f":selectServiceVehicle: reusing {vehicle.registration} (even if not available)")
             return vehicle
 
         # is there a vehicle of same type available:
@@ -447,7 +452,11 @@ class AirportManager:
 
             if vehicle is not None:
                 logger.debug(f":selectServiceVehicle: found {vcl}, reusing {vehicle.registration}")
-            return vehicle
+                return vehicle
+
+            # Else, we did not find a vehicle of that type that is available.
+            # What should we do? Create an additional one?
+            #
         else:
             logger.debug(f":selectServiceVehicle: no {vcl} available")
 
@@ -458,9 +467,11 @@ class AirportManager:
             logger.debug(f":selectServiceVehicle: no registration supplied, creating {vname}..")
         else:
             logger.debug(f":selectServiceVehicle: vehicle {vname} does not exist, creating..")
+
         if vname not in self.service_vehicles.keys():
             servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
             if hasattr(servicevehicleclasses, vcl):
+                logger.debug(f":selectServiceVehicle: creating {vname}..")
                 vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
                 vehicle.setICAO24(AirportManager.randomICAO24(10))  # starts with A
                 self.service_vehicles[vname] = vehicle

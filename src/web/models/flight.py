@@ -5,7 +5,8 @@ from datetime import datetime, date, time, timedelta
 
 from pydantic import BaseModel, Field, validator, constr
 
-from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES
+from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES, REDIS_DATABASE, REDIS_LOVS
+from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT
 from emitpy.emit import Queue
 
@@ -35,7 +36,7 @@ class CreateFlight(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=airline,
-                                  valid_key="lovs:airlines",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.AIRLINES.value),
                                   invalid_message=f"Invalid airline code {airline}")
 
     @validator('airport')
@@ -43,7 +44,7 @@ class CreateFlight(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=airport,
-                                  valid_key="lovs:airports",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.AIRPORTS.value),
                                   invalid_message=f"Invalid airport code {airport}")
 
     @validator('ramp')
@@ -51,7 +52,7 @@ class CreateFlight(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=ramp,
-                                  valid_key="lovs:airport:ramps",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.RAMPS.value),
                                   invalid_message=f"Invalid ramp {ramp}")
 
     @validator('icao24')
@@ -64,7 +65,7 @@ class CreateFlight(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=aircraft_type,
-                                  valid_key="lovs:aircrafts",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.AIRCRAFT_TYPES.value),
                                   invalid_message=f"Invalid aircraft type code {aircraft_type}")
 
     @validator('queue')
@@ -103,6 +104,7 @@ class ScheduleFlight(BaseModel):
 class DeleteFlight(BaseModel):
 
     flight_id: str = Field(..., description="Flight IATA identifier")
+    delete_services: bool = False
     queue: str = Field(..., description="Queue where flight was scheduled")
 
     @validator('queue')

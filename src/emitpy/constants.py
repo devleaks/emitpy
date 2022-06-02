@@ -149,6 +149,11 @@ REDIS_DATABASES = {
     "unknowndb": REDIS_DATABASE.UNKNOWN.value  # should be symmetric to avoid issues
 }
 
+# Redis key builder with domains
+def key_path(*args):  # difficult to "import" without circular issues
+    a = map(lambda x: x if x is not None else "", args)
+    return ID_SEP.join(a)
+
 # Type of data stored into keys
 class REDIS_TYPE(Enum):
     EMIT = "e"
@@ -161,15 +166,15 @@ class REDIS_TYPE(Enum):
 
 # Type of data stored into keys
 class REDIS_LOVS(Enum):
-    AIRCRAFT_TYPES = "aircraft-types"
+    AIRCRAFT_TYPES = "aircrafts"
     AIRPORTS = "airports"
+    AIRLINES = "airlines"
+    RAMPS = key_path("airport", "ramps")
+    RUNWAYS = key_path("airport", "runways")
+    POIS = key_path("airport", "pois")
+    COMPANIES = key_path("airport", "companies")
     MANAGED_AIRPORTS = "managed-airports"
-    AIRCRAFT_TYPES_WITH_PERFS = "aircraft-performances"
 
-
-def key_path(*args):  # difficult to "import" without circular issues
-    a = map(lambda x: x if x is not None else "", args)
-    return ID_SEP.join(a)
 
 class REDIS_PREFIX(Enum):
     AEROWAYS = "aeroways"

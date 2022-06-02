@@ -5,7 +5,8 @@ from typing import Optional, Literal, List
 
 from pydantic import BaseModel, Field, validator, constr
 
-from emitpy.constants import EMIT_RATES
+from emitpy.constants import EMIT_RATES, REDIS_DATABASE, REDIS_LOVS
+from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT
 from emitpy.service import Service, ServiceVehicle
 from emitpy.emit import Queue
@@ -35,7 +36,7 @@ class CreateService(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=handler,
-                                  valid_key="lovs:airport:companies",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.COMPANIES.value),
                                   invalid_message=f"Invalid company code {handler}")
 
     @validator('service_type')
@@ -50,7 +51,7 @@ class CreateService(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=aircraft_type,
-                                  valid_key="lovs:aircrafts",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.AIRCRAFT_TYPES.value),
                                   invalid_message=f"Invalid aircraft type code {aircraft_type}")
 
     @validator('ramp')
@@ -58,7 +59,7 @@ class CreateService(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=ramp,
-                                  valid_key="lovs:airport:ramps",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.RAMPS.value),
                                   invalid_message=f"Invalid ramp {ramp}")
 
     @validator('service_vehicle_model')
@@ -78,7 +79,7 @@ class CreateService(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=previous_position,
-                                  valid_key="lovs:airport:pois",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.POIS.value),
                                   invalid_message=f"Invalid point of interest code {previous_position}")
 
     @validator('next_position')
@@ -86,7 +87,7 @@ class CreateService(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=next_position,
-                                  valid_key="lovs:airport:pois",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.POIS.value),
                                   invalid_message=f"Invalid point of interest code {next_position}")
 
     @validator('emit_rate')
@@ -148,7 +149,7 @@ class CreateFlightServices(BaseModel):
         r = redis.Redis(**REDIS_CONNECT)
         return REDISLOV_Validator(redis=r,
                                   value=handler,
-                                  valid_key="lovs:airport:companies",
+                                  valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.COMPANIES.value),
                                   invalid_message=f"Invalid company code {handler}")
 
     @validator('emit_rate')
@@ -169,6 +170,8 @@ class CreateFlightServices(BaseModel):
 
 class ScheduleFlightServices(BaseModel):
     flight_id: str = Field(..., description="Flight IATA identifier")
-    flight_date: datetime = Field(..., description="Scheduled date time for flight (arrival or departure), services will be scheduled according to PTS")
+    flight_date: date = Field(..., description="Flight date in managed airport local time")
+    flight_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Flight time in managed airport local time")
+    # flight_date: datetime = Field(..., description="Scheduled date time for flight (arrival or departure), services will be scheduled according to PTS")
 
 

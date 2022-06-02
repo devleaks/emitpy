@@ -6,6 +6,7 @@ import re
 import logging
 import random
 
+from enum import Enum
 from math import inf
 from geojson import Point, Polygon, Feature
 from turfpy.measurement import distance, destination, bearing
@@ -14,11 +15,17 @@ from .airport import AirportBase
 from emitpy.graph import Vertex, Edge, USAGE_TAG
 from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
 from emitpy.parameters import DATA_DIR
-from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP
+from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, REDIS_PREFIX, REDIS_DB, ID_SEP
+from emitpy.utils import key_path, rejson
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
 logger = logging.getLogger("XPAirport")
+
+class POI_COMBO(Enum):
+    RAMP = "ramp"
+    SERVICE = "svc"
+    CHECKPOINT = "ckpt"
 
 
 # ################################@
@@ -202,7 +209,7 @@ class XPAirport(AirportBase):
         self.ramps = ramps
         # for k,r in ramps.items():
         #     print(f"{k},{r['geometry']['coordinates'][1]},{r['geometry']['coordinates'][0]},{r.getProp('orientation')},{r.getProp('sub-type')},{r.getProp('use')},{r.getProp('icao-width')},{r.getProp('operation-type')},{r.getProp('airline')}")
-        logger.debug(f":loadRamps: added {len(ramps.keys())} ramps: {ramps.keys()}")
+        logger.debug(f":loadRamps: added {len(ramps.keys())} ramps")  # : {ramps.keys()}
         return [True, "XPAirport::loadRamps loaded"]
 
     def loadTaxiways(self):
@@ -483,13 +490,18 @@ class XPAirport(AirportBase):
         a = [(a.getName(), a.getName()) for a in l]
         return a
 
-    def getCheckpoint(self, name):
+    def getCheckpoint(self, name, redis = None):
         """
         Gets a named checkpoint.
 
         :param      name:  The name
         :type       name:  { type_description }
         """
+        if redis:
+            k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.MISSION.value, name)
+            r = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            f = FeatureWithProps.new(r)
+            return f
         return self.check_pois[name] if name in self.check_pois.keys() else None
 
     def getControlPoint(self, name):
@@ -511,13 +523,18 @@ class XPAirport(AirportBase):
         res = list(filter(lambda f: f.name == name, self.aeroway_pois))
         return res[0] if len(res) == 1 else None
 
-    def getRamp(self, name):
+    def getRamp(self, name, redis = None):
         """
         Gets the ramp as a X-Plane entity (not a GeoJSON feature)
 
         :param      name:  The name
         :type       name:  { type_description }
         """
+        if redis:
+            k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RAMPS.value, name)
+            r = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            f = FeatureWithProps.new(r)
+            return Ramp(name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=r["geometry"]["coordinates"], orientation=f.getProp("orientation"), use=f.getProp("use"))
         return self.ramps[name] if name in self.ramps.keys() else None
 
     def miles(self, airport):
@@ -643,13 +660,20 @@ class XPAirport(AirportBase):
                         sl.append(f)
         return sl
 
-    def getServicePOI(self, name: str):
+    def getServicePOI(self, name: str, redis = None):
         """
         Returns the named POI.
         """
+        if redis:
+            print(">>>", name)
+            k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.GROUNDSUPPORT.value, name)
+            r = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            f = FeatureWithProps.new(r)
+            return f
+
         return self.service_pois[name] if name in self.service_pois.keys() else None
 
-    def selectServicePOI(self, name: str, service: str):
+    def selectServicePOI(self, name: str, service: str, redis = None):
         """
         Returns the named POI if existing, otherwise tries to locate an alternative POI
         for the supplied service.
@@ -659,6 +683,16 @@ class XPAirport(AirportBase):
         :param      service:  The service
         :type       service:  str
         """
+        if redis is not None:
+            a = name.split(ID_SEP)
+            print(">>> FULL", name)
+            if a[0] == POI_COMBO.RAMP.value:
+                return self.getRamp(key_path(*a[1:]), redis)
+            if a[0] == POI_COMBO.CHECKPOINT.value:
+                return self.getCheckpoint(key_path(*a[1:]), redis)
+            if a[0] == POI_COMBO.SERVICE.value:
+                return self.getServicePOI(key_path(*a[1:]), redis)
+
         ret = self.service_pois[name] if name in self.service_pois.keys() else None
         if ret is None:
             logger.debug(f":selectServicePOI: {name} is not a service poi, may be a ramp?")
@@ -819,17 +853,17 @@ class XPAirport(AirportBase):
         # In the process, we add a .desc attribute to simplify presentation in list
         # Ramps
         for k, v in self.ramps.items():
-            v.combo_name = "ramp:"+k
+            v.combo_name = key_path(POI_COMBO.RAMP.value, k)
             v.display_name = "Ramp " + k
             self.all_pois_combo[v.combo_name] = v
         # Checkpoints
         for k, v in self.check_pois.items():
-            v.combo_name = "ckpt:"+k
+            v.combo_name = key_path(POI_COMBO.CHECKPOINT.value, k)
             v.display_name = "Checkpoint " + k
             self.all_pois_combo[v.combo_name] = v
         # Depots and rest areas
         for k, v in self.service_pois.items():
-            v.combo_name = "svc:"+k
+            v.combo_name = key_path(POI_COMBO.SERVICE.value, k)
             v.display_name = k
             self.all_pois_combo[v.combo_name] = v
 
