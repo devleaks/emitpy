@@ -15,7 +15,9 @@ class FormatterFlat:
 
 
     def __str__(self):
-        return json.dumps(flatdict.FlatDict(self.feature).as_dict())
+        # self.feature["properties"] = dict(flatdict.FlatDict(self.feature["properties"]))
+        # return json.dumps(self.feature)
+        return json.dumps(dict(flatdict.FlatDict(self.feature)))
 
 
     @staticmethod

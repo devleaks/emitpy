@@ -127,7 +127,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             return (False, "EnqueueToRedis::save: no emission point")
 
         emit_id = self.emit.getKey(REDIS_TYPE.FORMAT.value)  # ident + REDIS_TYPE.EMIT.value
-
         n = self.redis.scard(emit_id)
         if n > 0 and not overwrite:
             logger.warning(f":save: key {emit_id} already exist, not saved")
@@ -155,30 +154,32 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
         emit_id = self.emit.getKey(REDIS_TYPE.QUEUE.value)
         oldvalues = self.redis.smembers(emit_id)
-        oset = self.redis.pipeline()
+        oset = self.redis.pipeline()  # set
         if oldvalues and len(oldvalues) > 0:
             # dequeue old values
-            removed = oset.zrem(self.queue.name, *oldvalues)
-            oset.delete(emit_id)
-            logger.debug(f":enqueue: removed {removed}/{len(oldvalues)} old entries")
+            oset.zrem(self.queue.name, *oldvalues)  # #0
+            oset.delete(emit_id)  # #1
+            logger.debug(f":enqueue: removed ***= ***/{len(oldvalues)} old entries")
 
         emit = {}
         for f in self.output:
             emit[str(f)] = f.ts
-        oset.sadd(emit_id, *list(emit.keys()))
+        oset.sadd(emit_id, *list(emit.keys()))  # #2
 
         minv = min(emit.values())
         maxv = min(emit.values())
         logger.debug(f":enqueue: saved {len(emit)} new entries to {emit_id}, from ts={minv} to ts={maxv}")
 
         # enqueue new values
-        oset.zadd(self.queue.name, emit)
+        oset.zadd(self.queue.name, emit)  # #3
         logger.debug(f":enqueue: added {len(emit)} new entries to sorted set {self.queue.name}")
 
         logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})..")
-        oset.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)
+        oset.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)  # #4
         logger.debug(f":enqueue: ..done")
 
-        oset.execute()
+        retval = oset.execute()
+        logger.debug(f":enqueue: pipeline: {retval}")
+        logger.debug(f":enqueue: ***= *** removed {retval[0]}/{len(oldvalues)} old entries")
         logger.debug(f":enqueue: enqueued")
         return (True, "EnqueueToRedis::enqueue completed")

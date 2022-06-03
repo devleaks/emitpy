@@ -158,7 +158,7 @@ class Emit(Messages):
             logger.debug(f":loadFromCache: ..got {len(self.props)} props")
         else:
             logger.debug(f":loadFromCache: ..no meta for {emit_id}")
-        return (True, "Emit::saveMeta saved")
+        return (True, "Emit::loadMeta loaded")
 
 
     def saveMeta(self, redis):
@@ -440,7 +440,8 @@ class Emit(Messages):
         # transfert common data to each emit point for emission
         # (may be should think about a FeatureCollection-level property to avoid repetition.)
         if len(self.props) > 0:
-            p = flatdict.FlatDict(self.props).as_dict()
+            # p = dict(flatdict.FlatDict(self.props))
+            p = self.props
             for f in self._emit:
                 f.addProps(p)
             logger.debug(f":emit: added { len(p) } properties to { len(self._emit) } features")
@@ -647,6 +648,8 @@ class Emit(Messages):
         else:
             logger.warning(":updateEstimatedTime: no source movement to update")
 
+        return (True, "Emit::updateEstimatedTime updated")
+
 
     def schedule(self, sync, moment: datetime):
         """
@@ -675,7 +678,10 @@ class Emit(Messages):
                 self.scheduled_emit.append(p)
             logger.debug(f":schedule: emit_point finishes at {when} ({when.timestamp()}) ({len(self.scheduled_emit)} positions)")
             # now that we have "absolute time", we update the parent
-            self.updateEstimatedTime()
+            ret = self.updateEstimatedTime()
+            if not ret[0]:
+                return ret
+            print("***>", "updateEstimatedTime")
             return (True, "Emit::schedule completed")
 
         return (False, f"Emit::schedule sync {sync} not found")

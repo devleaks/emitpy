@@ -184,11 +184,10 @@ class ReEmit(Emit):
         We simply augment the schedule_history with this new re-scheduling
         """
         # 1. Get the movement type and info, determine the _mark name
-        emit_type = self.getMeta("$.emit-type")[0]
-
+        emit_type = self.getMeta("$.emit-type")
         ff = None
         if emit_type == MOVE_TYPE.FLIGHT.value:
-            is_arrival = self.getMeta("$.move.is_arrival")[0]
+            is_arrival = self.getMeta("$.move.is_arrival")
             ff = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
         elif emit_type == MOVE_TYPE.SERVICE.value:
             ff = SERVICE_PHASE.SERVICE_START.value
@@ -208,7 +207,7 @@ class ReEmit(Emit):
                         # self.addMessage(EstimatedTimeMessage(flight_id=ident,
                         #                                      is_arrival=is_arrival,
                         #                                      et=esti))
-                        logger.debug(f":updateEstimatedTime: sent new ET{'A' if is_arrival else 'D'} {ident}: {esti}")
+                        logger.debug(f":updateEstimatedTime: sent new ET {ident}: {esti}")  # {'A' if is_arrival else 'D'}
                     else:
                         logger.warning(f":updateEstimatedTime: fcannot get ident from meta {self.meta}")
             else:

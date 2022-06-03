@@ -20,3 +20,11 @@ Gépès Cidesimal & Nafis Atou Ahouiyassa.
 Future releases:
 Evergreen
 Titanic
+
+
+--------
+To Do
+
+Bug:
+
+Do not enqueue if queue exist but is stopped (useless?)

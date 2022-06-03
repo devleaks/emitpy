@@ -5,6 +5,8 @@ import redis
 
 from redis.commands.json.path import Path
 
+from pottery import RedisDict
+
 from datetime import datetime, timedelta
 
 from emitpy.managedairport import ManagedAirport
@@ -55,6 +57,7 @@ class EmitApp(ManagedAirport):
 
         self.redis_pool = None
         self.redis = None
+        self.gas = None
 
         # If Redis is defined before calling init(), it will use it.
         # Otherwise, it will use the data files.
@@ -78,6 +81,13 @@ class EmitApp(ManagedAirport):
             if not ret[0]:
                 logger.warning(ret[1])
                 return
+            # Init "Global Airport Status" structure.
+            # For later use. Used for testing only.
+            # self.redis.select(REDIS_DB.CACHE.value)
+            # self.gas = RedisDict(None, redis=redis.Redis(connection_pool=self.redis_pool), key='airport')
+            # self.gas["managed-airport"] = airport
+            # print(self.gas)
+            # self.redis.select(REDIS_DB.APP.value)
         logger.debug(f":init: data last loaded on {ret[1]}")
 
 
