@@ -133,7 +133,7 @@ async def schedule_fight_services(
                       minute=input_t.minute)
         ret = request.app.state.emitpy.do_schedule(
                 queue=fs_in.queue,
-                ident=fs_in.service_id,
+                ident=fs_in.flight_id,
                 sync=fs_in.sync_name,
                 scheduled=dt.isoformat(),
                 do_services=True)

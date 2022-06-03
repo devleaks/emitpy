@@ -203,6 +203,9 @@ class Broadcaster:
         """
         Pop elements from the sortedset at requested time and publish them on pubsub queue.
         """
+        # MAXBACKLOGSECS is the maximum negative time we tolerate
+        # for sending events late (in seconds)
+        MAXBACKLOGSECS = -10  # 0 is too critical, but MUST be <=0.
         logger.debug(f":broadcast: {self.name}: pre-start trimming..")
         self._do_trim()
         logger.debug(f":broadcast: {self.name}: ..done")
@@ -246,9 +249,10 @@ class Broadcaster:
                 # logger.debug(f":broadcast: {self.name}: at {df(now)}: {numval} in queue")
                 timetowait = currval[2] - now       # wait time independant of time warp
                 realtimetowait = timetowait / self.speed  # real wait time, taking warp time into account
-                if timetowait < 0:  # there are things on the queue that don't need to be sent, let's trim:
+                if timetowait < MAXBACKLOGSECS:  # there are things on the queue that don't need to be sent, let's trim:
                     # the item we poped out is older than the queue time, we do not send it
                     logger.debug(f":broadcast: {self.name}: awake by old event. Trim other old events..")
+                    logger.debug(f":broadcast: {self.name}: {currval[2]} vs now={now} ({timetowait})..")
 
                     if self.shutdown_flag.is_set():
                         logger.debug(f":broadcast: {self.name}: awake to quit, quitting..")

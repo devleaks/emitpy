@@ -61,7 +61,7 @@ METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"  # on w
 METAR_HISTORICAL = False
 
 # X-Plane location
-XPLANE_FEED = True
+XPLANE_FEED = False
 
 XPLANE_HOSTNAME = "Mac-mini-de-Pierre.local"
 XPLANE_PORT = 49003

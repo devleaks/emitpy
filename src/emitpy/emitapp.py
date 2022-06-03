@@ -731,7 +731,7 @@ class EmitApp(ManagedAirport):
             se = ReEmit(k, self.redis)
             se_relstart = se.getMeta("$.move.ground-support.schedule")
             se_absstart = blocktime + timedelta(minutes=se_relstart)
-            self.do_schedule(queue=queue, emit_id=k, sync=SERVICE_PHASE.START.value,
+            self.do_schedule(queue=queue, ident=k, sync=SERVICE_PHASE.START.value,
                              scheduled=se_absstart.isoformat(), do_services=False)
             # we could cut'n paste code from begining of this function as well...
             # I love recursion.

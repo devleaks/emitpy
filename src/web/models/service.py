@@ -170,8 +170,10 @@ class CreateFlightServices(BaseModel):
 
 class ScheduleFlightServices(BaseModel):
     flight_id: str = Field(..., description="Flight IATA identifier")
+    sync_name: str = Field(..., description="Name of sychronization mark for new date time")
     flight_date: date = Field(..., description="Flight date in managed airport local time")
     flight_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Flight time in managed airport local time")
     # flight_date: datetime = Field(..., description="Scheduled date time for flight (arrival or departure), services will be scheduled according to PTS")
+    queue: str = Field(..., description="Name of emission broadcast queue")
 
 
