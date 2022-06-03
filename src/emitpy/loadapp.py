@@ -63,9 +63,9 @@ class LoadApp(ManagedAirport):
         logger.debug("=" * 90)
         logger.debug(":init: initialized. ready to cache. caching..")
         # Caching emitpy data into Redis
-        self.load(["ramp", "spoi"])
+        self.load()
         # Caching emitpy lists of values Redis
-        # self.cache_lovs()
+        self.cache_lovs()
         logger.debug(":init: .. done")
         logger.debug("=" * 90)
 

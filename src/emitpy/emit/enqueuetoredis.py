@@ -158,15 +158,18 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset = self.redis.pipeline()
         if oldvalues and len(oldvalues) > 0:
             # dequeue old values
-            oset.zrem(self.queue.name, *oldvalues)
+            removed = oset.zrem(self.queue.name, *oldvalues)
             oset.delete(emit_id)
-            logger.debug(f":enqueue: removed {len(oldvalues)} old entries")
+            logger.debug(f":enqueue: removed {removed}/{len(oldvalues)} old entries")
 
         emit = {}
         for f in self.output:
             emit[str(f)] = f.ts
         oset.sadd(emit_id, *list(emit.keys()))
-        logger.debug(f":enqueue: saved {len(emit)} new entries to {emit_id}")
+
+        minv = min(emit.values())
+        maxv = min(emit.values())
+        logger.debug(f":enqueue: saved {len(emit)} new entries to {emit_id}, from ts={minv} to ts={maxv}")
 
         # enqueue new values
         oset.zadd(self.queue.name, emit)

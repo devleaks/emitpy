@@ -139,7 +139,7 @@ class Broadcaster:
         Removes elements in sortedset that are outdated for this queue's time.
         """
         now = self.now()
-        logger.debug(f":_do_trim: {self.name}: {df(now)}): trimming..")
+        logger.debug(f":_do_trim: {self.name}: {df(now)}(ts={now})): trimming..")
         oldones = self.redis.zrangebyscore(self.name, min=0, max=now)
         if oldones and len(oldones) > 0:
             self.redis.zrem(self.name, *oldones)
@@ -236,11 +236,11 @@ class Broadcaster:
                     #     ping = self.ping
                     # elif self.ping > 0:
                     #     ping = ping - 1
-                    logger.debug(f":broadcast: {self.name}: bzpopmin timed out..")
+                    # logger.debug(f":broadcast: {self.name}: bzpopmin timed out..")
                     continue
 
                 numval = self.redis.zcard(self.name)
-                # logger.debug(f":broadcast: {self.name}: {numval} items left in queue")
+                logger.debug(f":broadcast: {self.name}: {numval} items left in queue")
                 now = self.now()
                 # logger.debug(f":broadcast: {self.name}: it is now {df(now)}")
                 # logger.debug(f":broadcast: {self.name}: at {df(now)}: {numval} in queue")

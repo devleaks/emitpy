@@ -84,20 +84,30 @@ class LiveTrafficFormatter(Formatter):
 
         heading  = f.getProp(FEATPROP.HEADING.value)
 
-        actype = getprop("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
 
         emit_type = getprop("$.emit.emit-type")
 
         if emit_type == "flight":
+            actype = getprop("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
             callsign = getprop("$.flight.callsign").replace(" ","").replace("-","")
             tailnumber = getprop("$.flight.aircraft.acreg")
             aptfrom = getprop("$.flight.departure.icao")     # IATA
             aptto = getprop("$.flight.arrival.icao")  # IATA
-        else:  # not a flight
-            callsign = getprop("$.service.callsign").replace(" ","").replace("-","")
-            tailnumber = getprop("$.vehicle.icao")
+        elif emit_type == "service":
+            callsign = getprop("$.service.vehicle.callsign").replace(" ","").replace("-","")
+            tailnumber = getprop("$.service.vehicle.registration")
+            actype = getprop("$.service.vehicle.icao")
             aptfrom = ""
             aptto = ""
+        elif emit_type == "mission":
+            callsign = getprop("$.mission.vehicle.callsign").replace(" ","").replace("-","")
+            tailnumber = getprop("$.mission.vehicle.registration")
+            actype = getprop("$.mission.vehicle.icao")
+            aptfrom = ""
+            aptto = ""
+        else:
+            logger.warning(f":__str__: invalid emission type {emit_type}")
+            return None
 
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
         #         0    ,1       ,2          ,3          ,4    ,5       ,6                     ,7                 ,8

@@ -10,7 +10,7 @@ from emitpy.utils import FT, NAUTICAL_MILE
 
 from .format import Formatter
 
-logger = logging.getLogger("LiveTrafficFormatter")
+logger = logging.getLogger("RTTFCFormatter")
 
 
 class RTTFCFormatter(Formatter):
