@@ -731,6 +731,7 @@ class EmitApp(ManagedAirport):
             se = ReEmit(k, self.redis)
             se_relstart = se.getMeta("$.move.ground-support.schedule")
             se_absstart = blocktime + timedelta(minutes=se_relstart)
+            logger.debug(f"..service {service} will start at {se_absstart} {se_relstart}min relative to blocktime {blocktime}..")
             self.do_schedule(queue=queue, ident=k, sync=SERVICE_PHASE.START.value,
                              scheduled=se_absstart.isoformat(), do_services=False)
             # we could cut'n paste code from begining of this function as well...

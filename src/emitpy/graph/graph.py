@@ -36,6 +36,9 @@ class Vertex(FeatureWithProps):
     def get_neighbors(self):
         return list(map(lambda a: (a, self.adjacent[a]), self.adjacent))
 
+    def getKey(self):
+        return self.getId()
+
     def getInfo(self):
         a = FeatureWithProps.new(self)
         a["vertex"] = {
@@ -67,6 +70,9 @@ class Edge(FeatureWithProps):
                 self.setProp("width-code", w)
                 if w not in list("ABCDEF"):
                     logger.warning(f":edge: invalid runway widthcode '{w}'")
+
+    def getKey(self):
+        return self.start.getId()+"-"+self.end.getId()
 
     def setColor(self, color: str):
         # geojson.io specific

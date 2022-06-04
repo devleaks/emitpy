@@ -9,18 +9,14 @@ import socket
 
 from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE
 from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT
-from emitpy.parameters import XPLANE_HOSTNAME, XPLANE_PORT
+from emitpy.parameters import XPLANE_FEED, XPLANE_HOSTNAME, XPLANE_PORT
 
 from .queue import Queue, RUN, STOP, NEW_QUEUE, DELETE_QUEUE
-
-# Queue name prefix
-ADM_QUEUE_PREFIX = "adm:"
-OUT_QUEUE_PREFIX = "emitpy:"  # could be ""
 
 logger = logging.getLogger("Broadcaster")
 
 
-# Utility functions for debugging time
+# Utility functions for debugging time and printing timestamp nicely
 def df(ts):
     return f"{datetime.fromtimestamp(ts).isoformat(timespec='seconds')} ({round(ts, 1)})"
 
@@ -28,10 +24,22 @@ def td(ts):
     return f"{timedelta(seconds=round(ts))} ({round(ts, 1)})"
 
 
+# ##############################
+# C O N F I G
+#
 # Delicate parameters, too dangerous to externalize
+#
 ZPOPMIN_TIMEOUT = 10  # secs
 PING_FREQUENCY  = 6   # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
 LISTEN_TIMEOUT = 10.0
+
+# MAXBACKLOGSECS is the maximum negative time we tolerate
+# for sending events late (in seconds)
+MAXBACKLOGSECS = -20  # 0 is too critical, but MUST be <=0
+
+# Queue name prefix
+ADM_QUEUE_PREFIX = "adm:"
+OUT_QUEUE_PREFIX = "emitpy:"  # could be ""
 
 
 # Internal keywords
@@ -39,10 +47,16 @@ QUIT = "quit"
 NEW_DATA = "new-data"
 
 
+
 # ##############################
 # B R O A D C A S T E R
 #
 class Broadcaster:
+    """
+    The Broadcaster pops items from the sorted set, reads the timestamp,
+    and publish items at the right time.
+    Also trims the sorted set when events older than the "queue time" are found.
+    """
 
     def __init__(self, redis, name: str, speed: float = 1, starttime: datetime = None):
         self.name = name
@@ -203,9 +217,10 @@ class Broadcaster:
         """
         Pop elements from the sortedset at requested time and publish them on pubsub queue.
         """
-        # MAXBACKLOGSECS is the maximum negative time we tolerate
-        # for sending events late (in seconds)
-        MAXBACKLOGSECS = -10  # 0 is too critical, but MUST be <=0.
+        global MAXBACKLOGSECS
+        if MAXBACKLOGSECS > 0:
+            MAXBACKLOGSECS = - MAXBACKLOGSECS  # MUST be <=0 I said
+
         logger.debug(f":broadcast: {self.name}: pre-start trimming..")
         self._do_trim()
         logger.debug(f":broadcast: {self.name}: ..done")
@@ -249,6 +264,13 @@ class Broadcaster:
                 # logger.debug(f":broadcast: {self.name}: at {df(now)}: {numval} in queue")
                 timetowait = currval[2] - now       # wait time independant of time warp
                 realtimetowait = timetowait / self.speed  # real wait time, taking warp time into account
+
+                if timetowait < 0:
+                    # there is a thing on top that should have be sent earlier
+                    # me be we were busy doing something else, and just need to catchup.
+                    # Example: 2 events just a few millisecs apart
+                    logger.debug(f":broadcast: {self.name}: older event ({timetowait})")
+
                 if timetowait < MAXBACKLOGSECS:  # there are things on the queue that don't need to be sent, let's trim:
                     # the item we poped out is older than the queue time, we do not send it
                     logger.debug(f":broadcast: {self.name}: awake by old event. Trim other old events..")
@@ -327,6 +349,9 @@ class Broadcaster:
             logger.debug(f":broadcast: {self.name}: ..bye")
 
 
+
+logger = logging.getLogger("LiveTrafficForwarder")
+
 class LiveTrafficForwarder(Broadcaster):
 
     def __init__(self, redis):
@@ -377,7 +402,7 @@ hyperlogger = logging.getLogger("Hypercaster")
 
 class Hypercaster:
     """
-    Starts a Broadcaster for each queue
+    Starts/stop/reset a Broadcaster for each queue.
     """
 
     _instance = None
@@ -419,8 +444,12 @@ class Hypercaster:
         if self.queues[queue.name].status == RUN:
             b = None
             if queue.name == LIVETRAFFIC_QUEUE:
-                b = LiveTrafficForwarder(redis.Redis(connection_pool=self.redis_pool))
-                hyperlogger.debug(f":start_queue: LiveTrafficForwarder started")
+                if XPLANE_FEED:
+                    b = LiveTrafficForwarder(redis.Redis(connection_pool=self.redis_pool))
+                    hyperlogger.debug(f":start_queue: LiveTrafficForwarder started")
+                else:
+                    hyperlogger.debug(f":start_queue: {queue.name} not started")
+                    return
             else:
                 b = Broadcaster(redis.Redis(connection_pool=self.redis_pool), queue.name, queue.speed, queue.starttime)
             self.queues[queue.name].broadcaster = b

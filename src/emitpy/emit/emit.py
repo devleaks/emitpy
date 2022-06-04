@@ -114,6 +114,8 @@ class Emit(Messages):
             m = self.move.getInfo()
             if m is not None and "type" in m:
                 ty = m["type"]
+        if self.emit_type is None and ty != REDIS_DATABASE.UNKNOWN.value:
+            self.emit_type = ty
         return {
             "type": "emit",
             "emit-type": self.emit_type if self.emit_type is not None else ty,
