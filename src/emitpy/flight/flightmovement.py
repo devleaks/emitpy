@@ -61,7 +61,7 @@ class FlightMovement(Movement):
 
     def getInfo(self):
         return {
-            "type": MOVE_TYPE.FLIGHT.value,
+            "type": MOVE_TYPE.FLIGHT.value,  # type(self).__name__
             "ident": self.getId(),
             "flight": self.flight.getInfo(),
             "icao24": self.flight.getInfo()["icao24"]

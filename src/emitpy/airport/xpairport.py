@@ -23,7 +23,7 @@ SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 logger = logging.getLogger("XPAirport")
 
 
-# ################################@
+# ################################
 # APT LINE
 #
 #
@@ -48,7 +48,7 @@ class AptLine:
         return " ".join(self.arr)
 
 
-# ################################@
+# ################################
 # XP AIRPORT
 #
 #

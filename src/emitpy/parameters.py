@@ -9,7 +9,7 @@ DEVELOPMENT = True  # produces additional debug if True
 PRODUCTION  = True  # removes caches and short circuits
 
 
-# ######################@
+# ######################
 # File system-based Data
 #
 # Should not be specified, should be deduced from Emitpy.__FILE__
@@ -23,7 +23,7 @@ LOAD_AIRWAYS=False  # to speedup developments
 AODB_DIR = os.path.join(HOME_DIR, "db")
 
 
-# ######################@
+# ######################
 # Database system-based Data
 #
 REDIS_CONNECT = {
@@ -34,7 +34,7 @@ REDIS_CONNECT = {
 
 DATA_IN_REDIS = True
 
-# ######################@
+# ######################
 # Application options and parameters
 #
 # Managed Airport we are working on

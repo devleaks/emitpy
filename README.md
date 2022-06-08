@@ -7,7 +7,7 @@ Flight path and Ground Support Vehicle path generator
 
 I thank the following software owners and programmers.
 
-I used their tools and free software numerous time during the development of mine.
+I used their tools and free software numerous time for inspiration or education during the development of mine.
 
  1. X-Plane, for its open data, free data designer tool, and data documentation.
  2. Little Navmap, to the exceptional software to plan flights. I use it to visualize plan, routes, procedures, transitions. I also visualize all my generated tracks on the moving map.
@@ -15,16 +15,12 @@ I used their tools and free software numerous time during the development of min
  4. XPPython3, to allow me to smoothly integrate my development to X-Plane
 
 
-Gépès Cidesimal & Nafis Atou Ahouiyassa.
+Gépès Cidesimal, geospatial specialist,
+& Nafis Atou Ahouiyassa, developer,
+& Hessa Hamplis, developer.
 
-Future releases:
+
+
+Future releases tags:
 Evergreen
 Titanic
-
-
---------
-To Do
-
-Bug:
-
-Do not enqueue if queue exist but is stopped (useless?)

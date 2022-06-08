@@ -10,24 +10,25 @@ from enum import Enum, IntEnum, Flag
 # 1. Vehicle
 AIRCRAFT = "aircraft"
 GSE = "gse"
-CAR = "car"
-BUS = "bus"
-LORRY = "lorry"
-TRUCK = "lorry"
+# CAR = "car"
+# BUS = "bus"
+# LORRY = "lorry"
+# TRUCK = "lorry"
 
 
 # 2. Companies
 AIRLINE = "airline"
-TRANSPORTER = "transporter"
-LOGISTICS = "logistics"
+# TRANSPORTER = "transporter"
+# LOGISTICS = "logistics"
 HANDLER = "handler"  # GSE, etc.
+OPERATOR = "operator"  # GSE, etc.
 
 
 # 3. Airports (detailed and managed)
 AIRLINES = "airlines"
 AIRPORTS = "airports"
-CONNECTIONS = "connections"
 ROUTES = "routes"
+
 PASSENGER = "pax"
 CARGO = "cargo"
 

@@ -19,7 +19,7 @@ SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 logger = logging.getLogger("OSMAirport")
 
 
-# ################################@
+# ################################
 # GEOJSON AIRPORT
 #
 #

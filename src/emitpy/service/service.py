@@ -5,6 +5,8 @@ A Service  is a maintenance operation performed on an aircraft during a turn-aro
 import sys
 import logging
 from datetime import datetime
+from typing import Union
+from types import NoneType
 
 from emitpy.constants import SERVICE, ID_SEP
 from emitpy.utils import key_path
@@ -175,6 +177,15 @@ class Service(GroundSupport):
         s = s + " at ramp " + self.ramp.getName()
         s = s + " by vehicle " + self.vehicle.getName()  # model, icao24
 
+    def is_arrival(self) -> Union[bool, NoneType]:
+        """
+        Returns True if service is for an arrival flight, False if service is for a departure,
+        or None if service is independent.
+        """
+        if self.flight is not None:
+            return self.flight.is_arrival()
+        return None
+
     def setAircraftType(self, actype: "AircraftType"):
         self.actype = actype
 
@@ -188,7 +199,7 @@ class Service(GroundSupport):
         self.turnaround = turnaround
 
 
-# ########################@
+# ########################
 # Specific ground handling services
 #
 #

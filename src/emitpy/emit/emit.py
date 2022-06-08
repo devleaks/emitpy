@@ -18,13 +18,13 @@ from turfpy.measurement import distance, bearing, destination
 from redis.commands.json.path import Path
 
 from emitpy.geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
-from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, FT
+from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, FT, Timezone
 from emitpy.message import Messages, EstimatedTimeMessage
 
-from emitpy.constants import MANAGED_AIRPORT, FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
+from emitpy.constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
-from emitpy.constants import RATE_LIMIT, EMIT_RANGE
-from emitpy.parameters import AODB_DIR
+from emitpy.constants import RATE_LIMIT, EMIT_RANGE, MOVE_TYPE
+from emitpy.parameters import AODB_DIR, MANAGED_AIRPORT
 
 
 logger = logging.getLogger("Emit")
@@ -67,6 +67,9 @@ class Emit(Messages):
         self.version = 0
         self.offset_name = None
         self.offset = None
+
+        if type(self).__name__ == "Emit" and move is None:
+            logger.error(":init: move cannot be None for new Emit")
 
         if move is not None:
             # We create an emit from a movement
@@ -125,6 +128,13 @@ class Emit(Messages):
         }
 
 
+    def getSource(self):
+        if self.move is not None:
+            return self.move.getSource()
+        logger.error(":getSource: no movement")
+        return None
+
+
     def getMeta(self):
         """
         Emit identifier augmented with data from the movement.
@@ -137,13 +147,6 @@ class Emit(Messages):
             self.emit_meta["time"] = source.getScheduleHistory()
         # logger.debug(f":getMeta: {meta_data}")
         return self.emit_meta
-
-
-    def getSource(self):
-        # Abstract class
-        if self.move is not None:
-            return self.move.getSource()
-        return None
 
 
     def getKey(self, extension: str):
@@ -574,85 +577,6 @@ class Emit(Messages):
         self.pause(sync=sync, duration=duration)
 
 
-    def getRelativeEmissionTime(self, sync: str):
-        f = findFeatures(self._emit, {FEATPROP.MARK.value: sync})
-        if f is not None and len(f) > 0:
-            self.scheduled_emit = []
-            r = f[0]
-            logger.debug(f":getRelativeEmissionTime: found {sync}")
-            offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
-            if offset is not None:
-                return offset
-            else:
-                logger.warning(f":schedule: {FEATPROP.MARK.value} {sync} has no time offset, using 0")
-                return 0
-        logger.warning(f":getRelativeEmissionTime: {sync} not found in emission ({self.getMarkList()})")
-        return None
-
-
-    def getFeatureAt(self, sync: str):
-        f = findFeatures(self.scheduled_emit, {FEATPROP.MARK.value: sync})
-        if f is not None and len(f) > 0:
-            logger.debug(f":getFeatureAt: found {sync}")
-            return f[0]
-        logger.warning(f":getFeatureAt: {sync} not found in emission")
-        return None
-
-
-    def getAbsoluteEmissionTime(self, sync: str):
-        """
-        Gets the absolute emission time.
-        Returns UNIX timestamp.
-        :param      sync:  The synchronize
-        :type       sync:  str
-        """
-        f = self.getFeatureAt(sync)
-        if f is not None:
-            return f.getAbsoluteEmissionTime()
-        return None
-
-
-    def updateEstimatedTime(self):
-        """
-        Based on this "absolute" time of emission, update "parent" movement ETA/ETD for flights
-        and estimated time of service for GSE. In other words, getAbsoluteEmissionTime for estimated
-        time events for each type of move.
-        """
-        ff = None
-        source = self.getSource()
-        is_arrival = False
-        if source is not None:
-            if type(source).__name__ in ["Flight", "Arrival", "Departure"]:
-                ff = FLIGHT_PHASE.TOUCH_DOWN.value if source.is_arrival() else FLIGHT_PHASE.TAKE_OFF.value
-                is_arrival = source.is_arrival()
-            elif type(source).__name__.startswith("Service"):
-                ff = SERVICE_PHASE.SERVICE_START.value
-                is_arrival = source.is_arrival()
-            elif type(source).__name__.startswith("Mission"):
-                ff = MISSION_PHASE.START.value
-
-            if ff is not None:
-                f = self.getAbsoluteEmissionTime(ff)
-                if f is not None:
-                    esti = datetime.fromtimestamp(f)
-                    if esti is not None:
-                        source.setEstimatedTime(dt=esti)
-                        self.addMessage(EstimatedTimeMessage(flight_id=source.getId(),
-                                                             is_arrival=is_arrival,
-                                                             et=esti))
-                        logger.debug(f":updateEstimatedTime: sent new ET{'A' if is_arrival else 'D'} {source.getId()}: {esti}")
-                    else:
-                        logger.warning(":updateEstimatedTime: feature has no absolute emission time")
-                else:
-                    logger.warning(f":updateEstimatedTime: feature at mark {ff} not found")
-            else:
-                logger.warning(f":updateEstimatedTime: source {type(source).__name__} has no scheduled time to adjust")
-        else:
-            logger.warning(":updateEstimatedTime: no source movement to update")
-
-        return (True, "Emit::updateEstimatedTime updated")
-
-
     def schedule(self, sync, moment: datetime):
         """
         Adjust a emission track to synchronize moment at position mkar synch.
@@ -683,7 +607,141 @@ class Emit(Messages):
             ret = self.updateEstimatedTime()
             if not ret[0]:
                 return ret
-            print("***>", "updateEstimatedTime")
             return (True, "Emit::schedule completed")
 
         return (False, f"Emit::schedule sync {sync} not found")
+
+
+    def getFeatureAt(self, sync: str):
+        f = findFeatures(self.scheduled_emit, {FEATPROP.MARK.value: sync})
+        if f is not None and len(f) > 0:
+            logger.debug(f":getFeatureAt: found {sync}")
+            return f[0]
+        logger.warning(f":getFeatureAt: {sync} not found in emission")
+        return None
+
+
+    def getRelativeEmissionTime(self, sync: str):
+        f = findFeatures(self._emit, {FEATPROP.MARK.value: sync})
+        if f is not None and len(f) > 0:
+            self.scheduled_emit = []
+            r = f[0]
+            logger.debug(f":getRelativeEmissionTime: found {sync}")
+            offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
+            if offset is not None:
+                return offset
+            else:
+                logger.warning(f":schedule: {FEATPROP.MARK.value} {sync} has no time offset, using 0")
+                return 0
+        logger.warning(f":getRelativeEmissionTime: {sync} not found in emission ({self.getMarkList()})")
+        return None
+
+
+    def getAbsoluteEmissionTime(self, sync: str):
+        """
+        Gets the absolute emission time.
+        Returns UNIX timestamp.
+        :param      sync:  The synchronize
+        :type       sync:  str
+        """
+        f = self.getFeatureAt(sync)
+        if f is not None:
+            return f.getAbsoluteEmissionTime()
+        logger.warning(f":getAbsoluteEmissionTime: no feature at {sync}")
+        return None
+
+
+    def getEstimatedTime(self):
+        """
+        Gets the time of the start of the source move for departure/mission/service
+        or the end of the source move for arrival
+        """
+        mark = None
+        if self.emit_type == MOVE_TYPE.FLIGHT.value:
+            is_arrival = self.getSource().is_arrival()
+            mark = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
+        elif self.emit_type == MOVE_TYPE.SERVICE.value:
+            mark = SERVICE_PHASE.SERVICE_START.value
+        elif self.emit_type == MOVE_TYPE.MISSION.value:
+            mark = MISSION_PHASE.START.value
+
+        if mark is not None:
+            f = self.getAbsoluteEmissionTime(mark)
+            if f is not None:
+                localtz = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
+                return datetime.fromtimestamp(f, tz=localtz)
+            else:
+                logger.warning(f":getEstimatedTime: no feature at mark {mark}")
+        else:
+            logger.warning(f":getEstimatedTime: no mark")
+
+        logger.warning(f":getEstimatedTime: could not estimate")
+        return None
+
+
+    def updateEstimatedTime(self):
+        """
+        Copies the estimated time into source movement.
+        """
+        et = self.getEstimatedTime()
+        if et is not None:
+            source = self.getSource()
+            source.setEstimatedTime(et=et)
+            self.updateResources(et, source.is_arrival())
+            logger.debug(f":updateEstimatedTime: estimated {source.getId()}: {et.isoformat()}")
+            return (True, "Emit::updateEstimatedTime updated")
+
+        logger.warning(f":updateEstimatedTime: no estimated time")
+        return (True, "Emit::updateEstimatedTime not updated")
+
+
+    def updateResources(self, et: datetime, is_arrival: bool):
+        source = self.getSource()
+        if self.emit_type == MOVE_TYPE.FLIGHT.value:
+            fid = source.getId()
+            am = source.managedAirport.airport.manager
+
+            self.addMessage(EstimatedTimeMessage(flight_id=fid,
+                                                 is_arrival=is_arrival,
+                                                 et=et))
+            logger.debug(f":updateResources: sent new estimate message {fid}: {et}")
+
+
+            rwy = source.runway.getResourceId()
+            et_from = et - timedelta(minutes=3)
+            et_to   = et + timedelta(minutes=3)
+            rwrsc = am.runway_allocator.findReservation(rwy, fid)
+            if rwrsc is not None:
+                rwrsc.setEstimatedTime(et_from, et_to)
+                logger.debug(f":updateResources: updated {rwy} for {fid}")
+            else:
+                logger.warning(f":updateResources: no reservation found for runway {rwy}")
+
+            ramp = source.ramp.getResourceId()
+            if is_arrival:
+                et_from = et
+                et_to   = et + timedelta(minutes=150)
+            else:
+                et_from = et - timedelta(minutes=150)
+                et_to   = et
+            rprsc = am.ramp_allocator.findReservation(ramp, fid)
+            if rprsc is not None:
+                rprsc.setEstimatedTime(et_from, et_to)
+                logger.debug(f":updateResources: updated {ramp} for {fid}")
+            else:
+                logger.warning(f":updateResources: no reservation found for ramp {ramp}")
+
+        else:
+            ident = source.getId()
+            vehicle = source.vehicle
+
+            svrsc = am.vehicle_allocator.findReservation(vehicle.getResourceId(), ident)
+            if svrsc is not None:
+                svrsc.setEstimatedTime(et)
+                logger.logger(f":updateResources: updated {vehicle.getResourceId()} for {ident}")
+            else:
+                logger.warning(f":updateResources: no reservation found for vehicle {vehicle.getResourceId()}")
+
+        logger.debug(f":updateResources: resources not updated")
+
+        return (True, "Emit::updateResources updated")

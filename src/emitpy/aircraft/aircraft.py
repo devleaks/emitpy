@@ -1028,6 +1028,7 @@ class Aircraft:
         self.operator = operator
         self.actype = actype
         self.callsign = None
+        self.serial_number = None
 
     def setCallsign(self, callsign: str):
         """

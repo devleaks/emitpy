@@ -36,7 +36,7 @@ router = APIRouter(
 templates = Jinja2Templates(directory="web/templates")
 
 
-# ###############################@
+# ###############################
 # Special lists for UI
 #
 @router.get("/airlines", tags=["reference"])
@@ -134,7 +134,7 @@ async def list_enqueues(request: Request):
     return JSONResponse(content=request.app.state.emitpy.do_list_emit())
 
 
-# ###############################@
+# ###############################
 # Display allocations
 #
 @router.get("/allocation/runways", tags=["allocations"])
@@ -196,7 +196,7 @@ async def allocation_vehicles(request: Request):
     return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "vehicles"})
 
 
-# ###############################@
+# ###############################
 # Other general lists
 #
 @router.get("/flights", tags=["movements"])

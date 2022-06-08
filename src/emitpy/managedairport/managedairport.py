@@ -1,4 +1,5 @@
 import logging
+
 import json
 from redis.commands.json.path import Path
 from fastapi.encoders import jsonable_encoder
@@ -135,7 +136,7 @@ class ManagedAirport:
         prevdb = redis.client_info()["db"]
         redis.select(dbid)
 
-        # #############################@
+        # #############################
         # D A T A
         #
         # Airports
@@ -156,7 +157,7 @@ class ManagedAirport:
         # Airlines + routes
         # Airspace (terminals, navaids, fixes, airways)
         #
-        # #############################@
+        # #############################
         # L I S T S   O F   V A L U E S
         #
         # Airports operating at managed airport

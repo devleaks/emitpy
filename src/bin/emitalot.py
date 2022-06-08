@@ -30,21 +30,30 @@ with open(filename, 'r') as fp:
 file = open(filename, "r")
 csvdata = csv.DictReader(file)
 
+a = []
+for r in csvdata:
+    a.append(r)
+
+sorted(a, key=lambda x: (x['FLIGHT SCHEDULED TIME_x']))
+print(len(a))
+
 icao = {}
 
-NUM_TURNAROUNDS = 0
-DO_SERVICE = True
+NUM_TURNAROUNDS = 4
+DO_SERVICE = False
 USE_TURNAROUND = False
 
 cnt = 0
 cnt_begin = random.randint(0, numlines) # random pair of flights
 cnt_end = cnt_begin + NUM_TURNAROUNDS
 
-for r in csvdata:
+# for r in csvdata:
+for i in range(cnt_begin, cnt_end):
+    r = a[i]
 
-    if cnt < cnt_begin:
-        cnt = cnt + 1
-        continue
+    # if cnt < cnt_begin:
+    #     cnt = cnt + 1
+    #     continue
 
     if r['REGISTRATION NO_x'] not in icao.keys():
         icao[r['REGISTRATION NO_x']] = f"{random.getrandbits(24):x}"
@@ -53,6 +62,7 @@ for r in csvdata:
 
     try:
         dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
+        dtactual = datetime.strptime(r['FLIGHT ACTUAL TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
         movetype = "arrival" if r['IS ARRIVAL_x'] == 'True' else "departure"
 
         ret = e.do_flight(queue="raw",
@@ -67,7 +77,8 @@ for r in csvdata:
                           icao24=icao[r['REGISTRATION NO_x']],
                           acreg=r['REGISTRATION NO_x'],
                           runway="RW16L",
-                          do_services=DO_SERVICE and not USE_TURNAROUND)
+                          do_services=DO_SERVICE and not USE_TURNAROUND,
+                          actual_datetime=dtactual.isoformat())
 
         if ret.status != 0:
             logger.warning(f"ERROR(arrival) around line {cnt}: {ret.status}" + ">=" * 30)
@@ -90,6 +101,7 @@ for r in csvdata:
 
     try:
         dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
+        dtactual = datetime.strptime(r['FLIGHT ACTUAL TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
         movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
 
         ret = e.do_flight(queue="raw",
@@ -104,7 +116,8 @@ for r in csvdata:
                           icao24=icao[r['REGISTRATION NO_y']],
                           acreg=r['REGISTRATION NO_y'],
                           runway="RW16L",
-                          do_services=DO_SERVICE and not USE_TURNAROUND)
+                          do_services=DO_SERVICE and not USE_TURNAROUND,
+                          actual_datetime=dtactual.isoformat())
 
         if ret.status != 0:
             logger.warning(f"ERROR(departure) around line {cnt}: {ret.status}" + ">=" * 30)
@@ -152,8 +165,8 @@ for r in csvdata:
 
     cnt = cnt + 1
 
-    if cnt > cnt_end:
-        break
+    # if cnt > cnt_end:
+    #     break
 
 ##
 # {

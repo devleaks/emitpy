@@ -62,10 +62,13 @@ class LoadApp(ManagedAirport):
 
         logger.debug("=" * 90)
         logger.debug(":init: initialized. ready to cache. caching..")
+
         # Caching emitpy data into Redis
         self.load()
+
         # Caching emitpy lists of values Redis
         self.cache_lovs()
+
         logger.debug(":init: .. done")
         logger.debug("=" * 90)
 
@@ -93,7 +96,7 @@ class LoadApp(ManagedAirport):
 
     def load(self, what = ["*"]):
 
-        # #############################@
+        # #############################
         # GENERIC
         #
         if "*" in what or "actype" in what:
@@ -126,7 +129,7 @@ class LoadApp(ManagedAirport):
             if not status[0]:
                 return status
 
-        # #############################@
+        # #############################
         # AIRSPACE
         #
         if "*" in what or "vertex" in what:
@@ -159,7 +162,7 @@ class LoadApp(ManagedAirport):
             if not status[0]:
                 return status
 
-        # #############################@
+        # #############################
         # AIRPORT MANAGER
         #
         if "*" in what or "alfreq" in what:
@@ -187,7 +190,7 @@ class LoadApp(ManagedAirport):
             if not status[0]:
                 return status
 
-        # #############################@
+        # #############################
         # MANAGED AIRPORT
         #
         if "*" in what or "fpdb" in what:
@@ -222,6 +225,16 @@ class LoadApp(ManagedAirport):
 
         if "*" in what or "cpoi" in what:
             status = self.loadCheckpoints()
+            if not status[0]:
+                return status
+
+        if "taxiways" in what:
+            status = self.loadGraph("taxiways", self.airport.taxiways)
+            if not status[0]:
+                return status
+
+        if "serviceroads" in what:
+            status = self.loadGraph("serviceroads", self.airport.service_roads)
             if not status[0]:
                 return status
 
@@ -319,7 +332,7 @@ class LoadApp(ManagedAirport):
         return (False, f"LoadApp::loadAirlineRoutes: no free global feed for airline routes")
 
 
-    # #############################@
+    # #############################
     # AIRPORT MANAGER
     #
     def loadAirlineFrequencies(self):
@@ -363,7 +376,7 @@ class LoadApp(ManagedAirport):
         return (True, f"LoadApp::loadGSE: loaded GSE")
 
 
-    # #############################@
+    # #############################
     # MANAGED AIRPORT
     #
     def loadFlightPlans(self):
@@ -457,7 +470,7 @@ class LoadApp(ManagedAirport):
         return (True, f"LoadApp::loadCheckpoints: loaded check points")
 
 
-    # #############################@
+    # #############################
     # AIRSPACE
     #
     def loadVertices(self):
@@ -560,7 +573,20 @@ class LoadApp(ManagedAirport):
         return (True, f"LoadApp::loadAirways: loaded airways")
 
 
-    # #############################@
+    def loadGraph(self, key, g):
+        kbase = key_path("airport", key)
+        kgeo  = key_path("airport", key, "_geo_index")
+        kn = key_path(kbase, "nodes")
+        for k,v in g.vert_dict.items():
+            self.redis.json().set(key_path(kn, k), Path.root_path(), v)
+            self.redis.geoadd(kgeo, (v.lon(), v.lat(), k))
+        kn = key_path(kbase, "edges")
+        for e in g.edges_arr:
+            self.redis.json().set(key_path(kn, e.getKey()), Path.root_path(), e)
+            # self.redis.set(key_path(kn, e.getKey()), json.dumps(e))
+
+
+    # #############################
     # LISTS OF VALUES
     #
     def cache_lovs(self):

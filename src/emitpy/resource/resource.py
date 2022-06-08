@@ -23,19 +23,22 @@ START = "start"
 END = "end"
 
 
+# Note to self: Should ensure that AllocationTable.name + Resource.name + Reservation.label is a PK.
+# For now, we *suppose* it is the case.
+
 class Reservation:
     """
     A reservation is a occupied slot in an allocation table.
     """
     def __init__(self, resource: "Resource", date_from: datetime, date_to: datetime, label: str = None):
         self.resource = resource
-        self.label = label
+        self.label = label  # refactor to name
         self.scheduled = (date_from, date_to)
         self.estimated = None
         self._actual = None
         self.status = RESERVATION_STATUS.PROVISIONED.value  # to normalize
 
-        self.eta(date_from, date_to)
+        self.setEstimatedTime(date_from, date_to)
 
     def getId(self):
         return self.label if self.label is not None else self.scheduled[0].isoformat()
@@ -71,10 +74,10 @@ class Reservation:
             return self._actual[1] - self._actual[0]
         return self.estimated[1] - self.estimated[0]
 
-    def eta(self, date_from: datetime, date_to: datetime):
+    def setEstimatedTime(self, date_from: datetime, date_to: datetime):
         self.estimated = (date_from, date_to)
 
-    def actual(self, date_from: datetime, date_to: datetime):
+    def setActualTime(self, date_from: datetime, date_to: datetime):
         self._actual = (date_from, date_to)
 
     def save(self, base: str, redis):
@@ -93,7 +96,7 @@ class Resource:
     def __init__(self, name: str, table: str):
         self.table = table
         self.name = name
-        self.reservations = []
+        self.reservations = []  # may be change to a dict({reservation.label: reservation}) ?
         self._updated = True
 
     def getId(self):
@@ -152,9 +155,9 @@ class Resource:
                 lbl = r.decode("UTF-8").split(ID_SEP)[2]
             res = Reservation(self, datetime.fromisoformat(rsc[SCHEDULED][START]), datetime.fromisoformat(rsc[SCHEDULED][END]), label=lbl)
             if ESTIMATED in rsc:
-                res.eta(datetime.fromisoformat(rsc[ESTIMATED][START]), datetime.fromisoformat(rsc[ESTIMATED][END]))
+                res.setEstimatedTime(datetime.fromisoformat(rsc[ESTIMATED][START]), datetime.fromisoformat(rsc[ESTIMATED][END]))
             if ACTUAL in rsc:
-                res.eta(datetime.fromisoformat(rsc[ACTUAL][START]), datetime.fromisoformat(rsc[ACTUAL][END]))
+                res.setEstimatedTime(datetime.fromisoformat(rsc[ACTUAL][START]), datetime.fromisoformat(rsc[ACTUAL][END]))
             self.reservations.append(res)
         # logger.debug(f":load: {self.getId()} loaded {len(self.reservations)} reservations")
 
@@ -261,6 +264,14 @@ class Resource:
         return (soonest, soonest + duration)
 
 
+    def findReservation(self, label: str):
+        r = list(filter(lambda s: s.label == label, self.reservations))
+        if len(r) == 1:
+            return r[0]
+        logger.debug(f":findReservation: reservation {label} not found ({self.name})")
+        return None
+
+
 class AllocationTable:
     """
     An allocation table is a collection of resources and usage.
@@ -288,7 +299,7 @@ class AllocationTable:
         self.resources[name] = resource._resource
 
     def add(self, resource):
-        self.addNamedResource(resource, resource.getId())
+        self.addNamedResource(resource, resource.getResourceId())
 
     def isAvailable(self, name, req_from: datetime, req_to: datetime):
         """
@@ -359,3 +370,14 @@ class AllocationTable:
         return (True, "AllocationTable::load loaded")
 
 
+    def findReservation(self, resource: str, label: str, redis = None) -> Reservation:
+        if redis:
+            k = key_path(self.getKey(), resource, label)
+            logger.debug(f":findReservation: {k}")
+            return redis.json().get(k)
+
+        if resource not in self.resources.keys():
+            logger.warning(":findReservation: resource {resource} not found in {self.name}")
+            return None
+        rsc = self.resources[resource]
+        return rsc.findReservation(label)

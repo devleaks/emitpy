@@ -29,7 +29,7 @@ from emitpy.utils import FT, key_path, rejson
 logger = logging.getLogger("Airport")
 
 
-# ################################@
+# ################################
 # AIRPORT
 #
 #
@@ -260,7 +260,7 @@ class Airport(Location):
 
 
 
-# ################################@
+# ################################
 # AIRPORT BASE
 #
 #
@@ -467,7 +467,7 @@ class AirportWithProcedures(Airport):
         return None
 
 
-# ################################@
+# ################################
 # AIRPORT BASE
 #
 #

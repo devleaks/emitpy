@@ -296,6 +296,7 @@ class EmitApp(ManagedAirport):
 
         logger.debug(".. scheduling ..")
         # Schedule actual time if supplied
+        logger.debug(f"scheduled={scheduled}, actual={actual_datetime}")
         emit_time_str = actual_datetime if actual_datetime is not None else scheduled
         emit_time = datetime.fromisoformat(emit_time_str)
         if emit_time.tzname() is None:  # has no time zone, uses local one
@@ -341,7 +342,9 @@ class EmitApp(ManagedAirport):
         td = bt - st
         blocktime = emit_time + timedelta(seconds=td)
 
+        # @todo: pass service operator
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name="MATAR")
+        # operator = self.airport.manager.getCompany(operator)
 
         flight_service = FlightServices(flight, operator)
         flight_service.setManagedAirport(self.airport)
@@ -597,8 +600,9 @@ class EmitApp(ManagedAirport):
     def do_mission(self, emit_rate, queue, operator, checkpoints, mission, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
         logger.debug("creating mission..")
         if len(checkpoints) == 0:
-            logger.debug("..no checkpoint, generating random..")
-            checkpoints = [c[0] for c in random.choices(self.airport.getPOICombo(), k=3)]
+            k = 3
+            checkpoints = [c[0] for c in random.choices(self.airport.getCheckpointCombo(), k=k)]  # or getPOICombo()
+            logger.debug(f"..no checkpoint, generating {k} random checkpoint ({checkpoints})..")
 
         operator = self.airport.manager.getCompany(operator)
         mission = Mission(operator=operator, checkpoints=checkpoints, name=mission)

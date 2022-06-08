@@ -13,7 +13,7 @@ import inspect
 # from emitpy.business.identity import Identity
 
 
-# ################################@
+# ################################
 # IDENTIFIED FEATURE (=GEOJSON FEATURE WITH COMPLEX ID)
 #
 #
@@ -26,7 +26,7 @@ import inspect
 #         Identity.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name)
 
 
-# ################################@
+# ################################
 # FEATUREWITHPROPS
 #
 #
@@ -262,7 +262,7 @@ class FeatureWithProps(Feature):
         return float(a)
 
 
-# ################################@
+# ################################
 # LOCATION
 #
 #
@@ -279,7 +279,7 @@ class Location(FeatureWithProps):  # Location(Feature)
         })
 
 
-# ################################@
+# ################################
 # RAMP
 #
 #
@@ -311,6 +311,9 @@ class Ramp(FeatureWithProps):
     def getId(self):
         # remove spaces
         return "".join(self.getName().split())
+
+    def getResourceId(self):
+        return self.getName()
 
     def busy(self):
         self["properties"]["available"] = False
@@ -419,7 +422,7 @@ class Ramp(FeatureWithProps):
         return (True, "Ramp::makeServicePOIs: created")
 
 
-# ################################@
+# ################################
 # RUNWAY
 #
 #
@@ -450,7 +453,7 @@ class Runway(FeatureWithProps):
         return self.uuid
 
 
-# ################################@
+# ################################
 # SERVICE PARKING
 #
 #

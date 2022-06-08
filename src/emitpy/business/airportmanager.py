@@ -410,7 +410,7 @@ class AirportManager:
             if use: # there is no check that the vehicle is available
                 if reqend is None:
                     reqend = reqtime + timedelta(seconds=service.duration())
-                res = self.vehicle_allocator.book(vname, reqtime, reqend, service.getId())
+                res = self.vehicle_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
                 service.setVehicle(vehicle)
                 logger.debug(f":selectServiceVehicle: reusing {vehicle.registration} (even if not available)")
             return vehicle
@@ -444,9 +444,9 @@ class AirportManager:
                 v = self.vehicle_by_type[vcl][idx]
                 if reqend is None:
                     reqend = reqtime + timedelta(seconds=service.duration())
-                if self.vehicle_allocator.isAvailable(v.getId(), reqtime, reqend):
+                if self.vehicle_allocator.isAvailable(v.getResourceId(), reqtime, reqend):
                     service.setVehicle(v) # need to set vehicle to get service.getId() that includes vehicle
-                    res = self.vehicle_allocator.book(v.getId(), reqtime, reqend, service.getId())
+                    res = self.vehicle_allocator.book(v.getResourceId(), reqtime, reqend, service.getId())
                     vehicle = v
                 idx = idx + 1
 
@@ -482,7 +482,7 @@ class AirportManager:
                 self.vehicle_allocator.add(vehicle)
                 if reqend is None:
                     reqend = reqtime + timedelta(seconds=service.duration())
-                res = self.vehicle_allocator.book(vehicle.getId(), reqtime, reqend, service.getId())
+                res = self.vehicle_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
                 logger.debug(f":selectServiceVehicle: ..added {vname}")
                 if use:
                     logger.debug(f":selectServiceVehicle: using {vname}")
@@ -530,9 +530,9 @@ class AirportManager:
 
     def bookVehicle(self, vehicle: "ServiceVehicle", reqtime: "datetime", reqduration: int, reason: str):
         reqend = reqtime + timedelta(minutes=reqduration)
-        avail = self.vehicle_allocator.isAvailable(ramp.getId(), reqtime, reqend)
+        avail = self.vehicle_allocator.isAvailable(ramp.getResourceId(), reqtime, reqend)
         if avail:
-            self.vehicle_allocator.book(ramp.getId(), reqtime, reqend, reason)
+            self.vehicle_allocator.book(ramp.getResourceId(), reqtime, reqend, reason)
         return avail
 
 
@@ -546,9 +546,9 @@ class AirportManager:
 
     def bookRamp(self, ramp: "Ramp", reqtime: "datetime", reqduration: int, reason: str):
         reqend = reqtime + timedelta(minutes=reqduration)
-        avail = self.ramp_allocator.isAvailable(ramp.getId(), reqtime, reqend)
+        avail = self.ramp_allocator.isAvailable(ramp.getResourceId(), reqtime, reqend)
         if avail:
-            self.ramp_allocator.book(ramp.getId(), reqtime, reqend, reason)
+            self.ramp_allocator.book(ramp.getResourceId(), reqtime, reqend, reason)
         return avail
 
 

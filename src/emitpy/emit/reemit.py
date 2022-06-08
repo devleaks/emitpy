@@ -178,45 +178,56 @@ class ReEmit(Emit):
     #     return (True, "ReEmit::parseMeta loaded")
 
 
+    def getEstimatedTime(self):
+        logger.debug(f":getEstimatedTime: not implemented")
+        return None
+
+
     def updateEstimatedTime(self):
         """
         We have no "original" movement but we have enough information in meta data.
         We simply augment the schedule_history with this new re-scheduling
         """
-        # 1. Get the movement type and info, determine the _mark name
-        emit_type = self.getMeta("$.emit-type")
-        ff = None
-        if emit_type == MOVE_TYPE.FLIGHT.value:
-            is_arrival = self.getMeta("$.move.is_arrival")
-            ff = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
-        elif emit_type == MOVE_TYPE.SERVICE.value:
-            ff = SERVICE_PHASE.SERVICE_START.value
-        elif emit_type == MOVE_TYPE.MISSION.value:
-            ff = MISSION_PHASE.START.value
+        # # 1. Get the movement type and info, determine the _mark name
+        # emit_type = self.getMeta("$.emit-type")
+        # ff = None
+        # if emit_type == MOVE_TYPE.FLIGHT.value:
+        #     is_arrival = self.getMeta("$.move.is_arrival")
+        #     ff = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
+        # elif emit_type == MOVE_TYPE.SERVICE.value:
+        #     ff = SERVICE_PHASE.SERVICE_START.value
+        # elif emit_type == MOVE_TYPE.MISSION.value:
+        #     ff = MISSION_PHASE.START.value
 
-        # 2. Get the absolute time at _mark place
-        if ff is not None:
-            f = self.getAbsoluteEmissionTime(ff)
-            if f is not None:
-                esti = datetime.fromtimestamp(f)
-                if esti is not None:
-                    ident = self.getMeta("$.ident")
-                    if ident is not None:
-                        # 3. Augment the schedule_history
-                        self.meta["time"].append((datetime.now().isoformat(), "ET", esti.isoformat()))
-                        # self.addMessage(EstimatedTimeMessage(flight_id=ident,
-                        #                                      is_arrival=is_arrival,
-                        #                                      et=esti))
-                        logger.debug(f":updateEstimatedTime: sent new ET {ident}: {esti}")  # {'A' if is_arrival else 'D'}
-                    else:
-                        logger.warning(f":updateEstimatedTime: fcannot get ident from meta {self.meta}")
-            else:
-                logger.warning(":updateEstimatedTime: feature has no absolute emission time")
-        else:
-            logger.warning(f":updateEstimatedTime: feature at mark {ff} not found")
+        # # 2. Get the absolute time at _mark place
+        # if ff is not None:
+        #     f = self.getAbsoluteEmissionTime(ff)
+        #     if f is not None:
+        #         esti = datetime.fromtimestamp(f)
+        #         if esti is not None:
+        #             ident = self.getMeta("$.ident")
+        #             if ident is not None:
+        #                 # 3. Augment the schedule_history
+        #                 self.meta["time"].append((datetime.now().isoformat(), "ET", esti.isoformat()))
+        #                 # self.addMessage(EstimatedTimeMessage(flight_id=ident,
+        #                 #                                      is_arrival=is_arrival,
+        #                 #                                      et=esti))
+        #                 logger.debug(f":updateEstimatedTime: sent new ET {ident}: {esti}")  # {'A' if is_arrival else 'D'}
+        #             else:
+        #                 logger.warning(f":updateEstimatedTime: fcannot get ident from meta {self.meta}")
+        #     else:
+        #         logger.warning(":updateEstimatedTime: feature has no absolute emission time")
+        # else:
+        #     logger.warning(f":updateEstimatedTime: feature at mark {ff} not found")
 
-        # self.meta["time"].append((info_time, "ET", dt))
-        # 4. Save the updated meta
-        logger.debug(":updateEstimatedTime: saving new meta")
-        return self.saveMeta(self.redis)
+        # # self.meta["time"].append((info_time, "ET", dt))
+        # # 4. Save the updated meta
+        # logger.debug(":updateEstimatedTime: saving new meta")
+        # return self.saveMeta(self.redis)
+        return (True, "Emit::updateEstimatedTime updated")
+
+
+    def updateResources(self):
+        logger.debug(f":updateResources: not implemented")
+        return (True, "Emit::updateResources updated")
 
