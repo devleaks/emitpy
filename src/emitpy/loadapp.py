@@ -22,6 +22,8 @@ from emitpy.airspace import ControlledPoint, CPIDENT, AirwaySegment
 from emitpy.airport import Airport, AirportBase
 
 from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path
+from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED
+
 from emitpy.utils import NAUTICAL_MILE
 from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR
 from emitpy.geo import FeatureWithProps
@@ -31,8 +33,6 @@ logger = logging.getLogger("LoadApp")
 
 logging.basicConfig(level=logging.DEBUG)
 
-MANAGED_AIRPORT_KEY = "managed"
-MANAGED_AIRPORT_LAST_UPDATED = "last-updated"
 
 class LoadApp(ManagedAirport):
 
@@ -239,8 +239,8 @@ class LoadApp(ManagedAirport):
                 return status
 
         if "*" in what or "info" in what:
-            MANAGED_AIRPORT[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().isoformat()
-            self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), MANAGED_AIRPORT)
+            self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().isoformat()
+            self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), self._this_airport)
 
         logger.debug(f":load: loaded")
         return (True, f"LoadApp::load: loaded")
@@ -380,7 +380,7 @@ class LoadApp(ManagedAirport):
     # MANAGED AIRPORT
     #
     def loadFlightPlans(self):
-        flightplan_cache = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT["ICAO"], "flightplans")
+        flightplan_cache = os.path.join(DATA_DIR, "managedairport", self._this_airport["ICAO"], "flightplans")
         for f in sorted(os.listdir(flightplan_cache)):
             if f.endswith(".json"):
                 fn = os.path.join(flightplan_cache, f)
@@ -549,11 +549,11 @@ class LoadApp(ManagedAirport):
                 logger.debug(f":loadHolds: cannot load {k} (lat={v.fix.lat()}, lon={v.fix.lon()})")
             cnt = cnt + 1
         # We preselect holds in the vicinity of the managed airport
-        logger.debug(f":loadHolds: preselecting {MANAGED_AIRPORT['ICAO']} local holds..")
-        store = key_path(REDIS_PREFIX.AIRSPACE_HOLDS.value, MANAGED_AIRPORT["ICAO"])
+        logger.debug(f":loadHolds: preselecting {self._this_airport["ICAO"]} local holds..")
+        store = key_path(REDIS_PREFIX.AIRSPACE_HOLDS.value, self._this_airport["ICAO"])
         self.redis.geosearchstore(name=REDIS_PREFIX.AIRSPACE_HOLDS_GEO_INDEX.value,
-                                  longitude=MANAGED_AIRPORT["lon"],
-                                  latitude=MANAGED_AIRPORT["lat"],
+                                  longitude=self._this_airport["lon"],
+                                  latitude=self._this_airport["lat"],
                                   unit='km',
                                   radius=100*NAUTICAL_MILE,
                                   dest=store)

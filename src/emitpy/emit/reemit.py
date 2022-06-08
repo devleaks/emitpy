@@ -5,6 +5,7 @@ from jsonpath import JSONPath
 from .emit import EmitPoint, Emit
 from emitpy.constants import FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_DATABASES, REDIS_TYPE
+from emitpy.utils import Timezone
 
 import logging
 
@@ -25,10 +26,21 @@ class ReEmit(Emit):
         ident should be the emit key used to store emit points.
         """
         Emit.__init__(self, move=None)
-        self.redis = redis
+        self.redis = redis # this is a local sign we use Redis
         self.meta = None
-        self.parseKey(ident, REDIS_TYPE.EMIT.value)
-        res = self.load()
+        self.managedAirport = None
+
+        ret = self.parseKey(ident, REDIS_TYPE.EMIT.value)
+        if not ret[0]:
+            logger.warning(f":init: could not parse {ident}")
+
+        ret = self.load()
+        if not ret[0]:
+            logger.warning(f":init: could not load {ident}")
+
+
+    def setManagedAirport(self, airport):
+        self.airport = airport
 
 
     def parseKey(self, emit_key: str, extension: str = None):
@@ -178,56 +190,140 @@ class ReEmit(Emit):
     #     return (True, "ReEmit::parseMeta loaded")
 
 
+
+    # For the following functions, recall we don't have a self.move, just self.moves (the points).
+    # All we have are meta data associated with the move, that was saved at that time.
+    # So the following functions mainly aims at adjusting the meta data associated with the move
+    # to add the new estimate.
+    # A function also copies the new estimatated time to resources used.
     def getEstimatedTime(self):
-        logger.debug(f":getEstimatedTime: not implemented")
+        """
+        Gets the time of the start of the source move for departure/mission/service
+        or the end of the source move for arrival
+        """
+        if self.managedAirport is None:
+            logger.warning(f":getEstimatedTime: managedAirport not set")
+            return None
+
+        mark = None
+        if self.emit_type == MOVE_TYPE.FLIGHT.value:
+            is_arrival = self.getMeta("$.move.is_arrival")
+            if is_arrival is None:
+                logger.warning(f":getEstimatedTime: cannot get move for {self.emit_id}")
+            mark = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
+        elif self.emit_type == MOVE_TYPE.SERVICE.value:
+            mark = SERVICE_PHASE.SERVICE_START.value
+        elif self.emit_type == MOVE_TYPE.MISSION.value:
+            mark = MISSION_PHASE.START.value
+
+        if mark is not None:
+            f = self.getAbsoluteEmissionTime(mark)
+            if f is not None:
+                localtz = Timezone(offset=self.managedAirport._this_airport["tzoffset"], name=self.managedAirport._this_airport["tzname"])
+                return datetime.fromtimestamp(f, tz=localtz)
+            else:
+                logger.warning(f":getEstimatedTime: no feature at mark {mark}")
+        else:
+            logger.warning(f":getEstimatedTime: no mark")
+
+        logger.warning(f":getEstimatedTime: could not estimate")
         return None
 
 
     def updateEstimatedTime(self):
         """
-        We have no "original" movement but we have enough information in meta data.
-        We simply augment the schedule_history with this new re-scheduling
+        Copies the estimated time into movement meta data.
         """
-        # # 1. Get the movement type and info, determine the _mark name
-        # emit_type = self.getMeta("$.emit-type")
-        # ff = None
-        # if emit_type == MOVE_TYPE.FLIGHT.value:
-        #     is_arrival = self.getMeta("$.move.is_arrival")
-        #     ff = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
-        # elif emit_type == MOVE_TYPE.SERVICE.value:
-        #     ff = SERVICE_PHASE.SERVICE_START.value
-        # elif emit_type == MOVE_TYPE.MISSION.value:
-        #     ff = MISSION_PHASE.START.value
+        et = self.getEstimatedTime()
+        ident = self.emit_id
+        if et is not None:
+            etinfo = self.getMeta("$.time")
+            if etinfo is not None:
+                    etinfo.append( (et, "ET", datetime.now()) )
+            else:
+                logger.debug(f":updateEstimatedTime: {ident} had no estimates, adding")
+                if self.meta is not None:
+                    self.meta["time"] = [et, "ET", datetime.now()]
+            logger.debug(f":updateEstimatedTime: {ident} added ET {et}")
 
-        # # 2. Get the absolute time at _mark place
-        # if ff is not None:
-        #     f = self.getAbsoluteEmissionTime(ff)
-        #     if f is not None:
-        #         esti = datetime.fromtimestamp(f)
-        #         if esti is not None:
-        #             ident = self.getMeta("$.ident")
-        #             if ident is not None:
-        #                 # 3. Augment the schedule_history
-        #                 self.meta["time"].append((datetime.now().isoformat(), "ET", esti.isoformat()))
-        #                 # self.addMessage(EstimatedTimeMessage(flight_id=ident,
-        #                 #                                      is_arrival=is_arrival,
-        #                 #                                      et=esti))
-        #                 logger.debug(f":updateEstimatedTime: sent new ET {ident}: {esti}")  # {'A' if is_arrival else 'D'}
-        #             else:
-        #                 logger.warning(f":updateEstimatedTime: fcannot get ident from meta {self.meta}")
-        #     else:
-        #         logger.warning(":updateEstimatedTime: feature has no absolute emission time")
-        # else:
-        #     logger.warning(f":updateEstimatedTime: feature at mark {ff} not found")
+            if self.meta is not None:
+                self.saveMeta()
+            else:
+                logger.warning(f":updateEstimatedTime: {ident} had no meta data")
 
-        # # self.meta["time"].append((info_time, "ET", dt))
-        # # 4. Save the updated meta
-        # logger.debug(":updateEstimatedTime: saving new meta")
-        # return self.saveMeta(self.redis)
-        return (True, "Emit::updateEstimatedTime updated")
+            self.updateResources(et, self.getMeta("$.move.is_arrival"))
+            return (True, "ReEmit::updateEstimatedTime updated")
+
+        logger.warning(f":updateEstimatedTime: no estimated time")
+        return (True, "ReEmit::updateEstimatedTime updated")
 
 
-    def updateResources(self):
-        logger.debug(f":updateResources: not implemented")
-        return (True, "Emit::updateResources updated")
+    def updateResources(self, et: datetime, is_arrival: bool):
+        """
+        Complicated for now. We need to update the in-memory structure.
+        1. Make sure it is loaded (especially if redis, what if not found??)
+        2. Update it
+        3. If redis: save it.
 
+        :param      et:          { parameter_description }
+        :type       et:          datetime
+        :param      is_arrival:  Indicates if arrival
+        :type       is_arrival:  bool
+        """
+        if self.managedAirport is None:
+            logger.warning(f":updateResources: managedAirport not set")
+            return (False, "ReEmit::updateResources: managedAirport not set")
+
+        # 1. What is the underlying move?
+        if self.emit_type == MOVE_TYPE.FLIGHT.value:
+            # 2. What is the resource identifier
+            fid = self.getMeta("$.props.flight.identifier")
+            if fid is not None:
+                am = self.managedAirport.airport.manager
+                self.addMessage(EstimatedTimeMessage(flight_id=fid,
+                                                     is_arrival=is_arrival,
+                                                     et=et))
+                # 3. For flight: update runway, ramp
+                rwy = self.getMeta("$.props.flight.runway.name")
+                rwy = "RW" + name if rwy[0:2] != "RW" else rwy  # safe side
+                et_from = et - timedelta(minutes=3)
+                et_to   = et + timedelta(minutes=3)
+                rwrsc = am.runway_allocator.findReservation(rwy, fid)
+                if rwrsc is not None:
+                    rwrsc.setEstimatedTime(et_from, et_to)
+                    logger.debug(f":updateResources: updated {rwy} for {fid}")
+                else:
+                    logger.warning(f":updateResources: no reservation found for runway {rwy}")
+
+                # 3. For flight: update runway, ramp
+                ramp = self.getMeta("$.props.flight.ramp.name")
+                if is_arrival:
+                    et_from = et
+                    et_to   = et + timedelta(minutes=150)
+                else:
+                    et_from = et - timedelta(minutes=150)
+                    et_to   = et
+                rprsc = am.ramp_allocator.findReservation(ramp, fid)
+                if rprsc is not None:
+                    rprsc.setEstimatedTime(et_from, et_to)
+                    logger.debug(f":updateResources: updated {ramp} for {fid}")
+                else:
+                    logger.warning(f":updateResources: no reservation found for ramp {ramp}")
+            else:
+                logger.warning(f":updateResources: count not get flight id for {self.emit_id}")
+
+        else:
+            # 4. For others: update vehicle
+            ident = source.getId()
+            vehicle = source.vehicle
+
+            svrsc = am.vehicle_allocator.findReservation(vehicle.getResourceId(), ident)
+            if svrsc is not None:
+                svrsc.setEstimatedTime(et)
+                logger.logger(f":updateResources: updated {vehicle.getResourceId()} for {ident}")
+            else:
+                logger.warning(f":updateResources: no reservation found for vehicle {vehicle.getResourceId()}")
+
+        logger.debug(f":updateResources: resources not updated")
+
+        return (True, "ReEmit::updateResources updated")

@@ -442,7 +442,8 @@ class Runway(FeatureWithProps):
 
     def getInfo(self):
         return {
-            "name": self.getName()
+            "name": self.getName(),
+            "resource": self.getResourceId()
         }
 
     def getId(self):
@@ -450,7 +451,14 @@ class Runway(FeatureWithProps):
 
 
     def getResourceId(self):
-        return self.uuid
+        """
+        Resource name must be long "procedure" name RWXXX, like RW34L rather
+        than just 34L.
+        """
+        name = self.uuid
+        if name[0:2] != "RW":
+            name = "RW" + name
+        return name
 
 
 # ################################

@@ -13,7 +13,7 @@ from emitpy.flight import Flight
 from emitpy.emit import Emit, EnqueueToRedis
 from emitpy.constants import SERVICE_PHASE, ARRIVAL, DEPARTURE
 
-logger = logging.getLogger("Turnaround")
+logger = logging.getLogger("FlightServices")
 
 
 class FlightServices:

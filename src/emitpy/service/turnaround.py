@@ -13,6 +13,7 @@ logger = logging.getLogger("Turnaround")
 class Turnaround:
     """
     Convenience wrapper around a pair of linked, related flight.
+    Calls FlightServices on a pair of flights.
     """
 
     def __init__(self, arrival: Flight, departure: Flight, operator: "Company"):
@@ -33,9 +34,9 @@ class Turnaround:
         self.departure.setManagedAirport(airport)
 
     def service(self):
+        # If towed, should schedule towing
         self.arrival.service()
         self.departure.service()
-        # If towed, should schedule towing
 
     def move(self):
         self.arrival.move()

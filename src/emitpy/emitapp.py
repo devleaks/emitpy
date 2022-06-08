@@ -18,15 +18,13 @@ from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE, LIVETRAFFIC_QUEUE
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
+from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED
 from emitpy.parameters import DATA_IN_REDIS, REDIS_CONNECT, METAR_HISTORICAL, XPLANE_FEED
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
 
 logger = logging.getLogger("EmitApp")
-
-MANAGED_AIRPORT_KEY = "managed"
-MANAGED_AIRPORT_LAST_UPDATED = "last-updated"
 
 
 class StatusInfo:
@@ -482,6 +480,7 @@ class EmitApp(ManagedAirport):
         # Get flight data
         logger.debug("..retrieving flight..")
         emit = ReEmit(emit_ident, self.redis)
+        emit.setManagedAirport(self)
 
         scheduled = emit.getMeta("$.move.scheduled")
         if scheduled is None:
@@ -683,6 +682,7 @@ class EmitApp(ManagedAirport):
 
     def do_schedule(self, queue, ident, sync, scheduled, do_services: bool = False):
         emit = ReEmit(ident, self.redis)
+        emit.setManagedAirport(self)
         # logger.debug(f"do_schedule:mark list: {emit.getMarkList()}")
         emit_time = datetime.fromisoformat(scheduled)
         if emit_time.tzname() is None:  # has no time zone, uses local one
@@ -733,6 +733,7 @@ class EmitApp(ManagedAirport):
             logger.debug(f"..doing service {service}..")
             k = key_path(service, REDIS_TYPE.EMIT.value)
             se = ReEmit(k, self.redis)
+            se.setManagedAirport(self)
             se_relstart = se.getMeta("$.move.ground-support.schedule")
             se_absstart = blocktime + timedelta(minutes=se_relstart)
             logger.debug(f"..service {service} will start at {se_absstart} {se_relstart}min relative to blocktime {blocktime}..")

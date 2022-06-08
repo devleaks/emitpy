@@ -17,6 +17,7 @@ from emitpy.emit import Hypercaster
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("app")
+
 coloredlogs.DEFAULT_FIELD_STYLES['levelname'] = {'bold': True, 'color': 'blue'}
 coloredlogs.DEFAULT_FIELD_STYLES['name'] = {'color': 'white'}
 coloredlogs.install(level='DEBUG', logger=logger, fmt="%(asctime)s %(levelname)s %(name)s %(message)s", datefmt="%H:%M:%S")

@@ -173,13 +173,13 @@ class Broadcaster:
                 logger.debug(f":trim: {self.name}: listening..")
             # logger.debug(f":trim: {self.name}: waiting for message (with timeout {LISTEN_TIMEOUT} secs.)..")
             message = self.pubsub.get_message(timeout=LISTEN_TIMEOUT)
-            if message is not None:
-                logger.debug(f":trim: got raw {message}, of type {type(message)}, processing..")
+            # if message is not None:
+            #     logger.debug(f":trim: got raw {message}, of type {type(message)}, processing..")
             if message is not None and type(message) != str and "data" in message:
                 msg = message["data"]
                 if type(msg) == bytes:
                     msg = msg.decode('UTF-8')
-                logger.debug(f":trim: {self.name}: received {msg}")
+                # logger.debug(f":trim: {self.name}: received {msg}")
                 if msg == NEW_DATA:
                     logger.debug(f":trim: {self.name}: ask sender to stop..")
                     # ask run() to stop sending:
@@ -196,15 +196,15 @@ class Broadcaster:
                 elif msg == QUIT:
                     self.pubsub.unsubscribe(ADM_QUEUE_PREFIX+self.name)
                     self.shutdown_flag.set()
-                    logger.debug(f":trim: {self.name}: quitting..")
+                    logger.info(f":trim: {self.name}: quitting..")
                     logger.debug(f":trim: {self.name}: ..bye")
                     return
-                else:
-                    logger.debug(f":trim: {self.name}: ignoring '{msg}'")
+                # else:
+                #     logger.debug(f":trim: {self.name}: ignoring '{msg}'")
             # else: # timed out
             #     logger.debug(f":trim: {self.name}: trim timeout, should quit? {self.shutdown_flag.is_set()}")
 
-        logger.debug(f":trim: {self.name}: quitting..")
+        logger.info(f":trim: {self.name}: quitting..")
         logger.debug(f":trim: {self.name}: ..bye")
 
 
@@ -310,7 +310,7 @@ class Broadcaster:
                             logger.debug(f":broadcast: {self.name}: ..done")
 
                         if self.shutdown_flag.is_set():
-                            logger.debug(f":broadcast: {self.name}: awake to quit, quitting..")
+                            logger.info(f":broadcast: {self.name}: awake to quit, quitting..")
                             return
 
                         # this is not 100% correct: Some event of nextval array may have already be sent
@@ -321,6 +321,9 @@ class Broadcaster:
                         logger.debug(f":broadcast: {self.name}: ..waiting trim completes..")
                         self.trimmingcompleted.wait()
                         logger.debug(f":broadcast: {self.name}: ..trim completed, restarted listening")
+
+            logger.info(f":broadcast: {self.name}: quitting..")
+            logger.debug(f":broadcast: {self.name}: ..bye")
 
         except KeyboardInterrupt:
             if currval is not None:
@@ -416,6 +419,7 @@ class Hypercaster:
             self.start_queue(k)
         self.admin_queue_thread = threading.Thread(target=self.admin_queue)
         self.admin_queue_thread.start()
+        hyperlogger.info(f":init: admin_queue started")
         hyperlogger.debug(f":init: {self.queues.keys()}")
 
     def start_queue(self, queue):
@@ -433,7 +437,7 @@ class Hypercaster:
             self.queues[queue.name].broadcaster = b
             self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
             self.queues[queue.name].thread.start()
-            hyperlogger.debug(f":start_queue: {queue.name} started")
+            hyperlogger.info(f":start_queue: {queue.name} started")
         else:
             hyperlogger.warning(f":start_queue: {queue.name} is stopped")
 
@@ -477,7 +481,7 @@ class Hypercaster:
                 msg = message["data"]
                 if type(msg) == bytes:
                     msg = msg.decode("UTF-8")
-                hyperlogger.debug(f":admin_queue: received {msg}")
+                # hyperlogger.debug(f":admin_queue: received {msg}")
                 if type(msg).__name__ == "str" and msg.startswith(NEW_QUEUE+ID_SEP):
                     arr = msg.split(ID_SEP)
                     qn  = arr[1]
@@ -522,11 +526,11 @@ class Hypercaster:
                         if not hasattr(self.queues[qn], "deleted"):  # queue already exists, parameter changed, stop it first
                             self.terminate_queue(qn)
                             self.queues[qn].deleted = True
-                            hyperlogger.debug(f":admin_queue: queue {qn} terminated")
+                            hyperlogger.info(f":admin_queue: queue {qn} terminated")
                         else:
                             hyperlogger.debug(f":admin_queue: queue {qn} already deleted")
                 elif msg == QUIT:
-                    hyperlogger.debug(":admin_queue: quitting..")
+                    hyperlogger.info(":admin_queue: quitting..")
                     self.pubsub.unsubscribe(REDIS_DATABASE.QUEUES.value)
                     return
                 else:
@@ -534,7 +538,7 @@ class Hypercaster:
             else:  # timed out
                 # hyperlogger.debug(f":admin_queue: timed out, should quit? {self.shutdown_flag.is_set()}")
                 if self.shutdown_flag.is_set():
-                    hyperlogger.debug(f":admin_queue: should quit, quitting..")
+                    hyperlogger.info(f":admin_queue: received quit, quitting..")
                     self.pubsub.unsubscribe(REDIS_DATABASE.QUEUES.value)
                     return
 

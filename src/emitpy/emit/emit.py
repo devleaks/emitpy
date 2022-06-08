@@ -544,6 +544,14 @@ class Emit(Messages):
         return l
 
 
+    def getTimedMarkList(self):
+        l = set()
+        [l.add(f.getProp(FEATPROP.MARK.value)) for f in self._emit]
+        if None in l:
+            l.remove(None)
+        return l
+
+
     def pause(self, sync, duration: float):
         f = findFeatures(self.moves, {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
@@ -686,7 +694,7 @@ class Emit(Messages):
         et = self.getEstimatedTime()
         if et is not None:
             source = self.getSource()
-            source.setEstimatedTime(et=et)
+            source.setEstimatedTime(dt=et)
             self.updateResources(et, source.is_arrival())
             logger.debug(f":updateEstimatedTime: estimated {source.getId()}: {et.isoformat()}")
             return (True, "Emit::updateEstimatedTime updated")
@@ -697,6 +705,10 @@ class Emit(Messages):
 
     def updateResources(self, et: datetime, is_arrival: bool):
         source = self.getSource()
+
+        if source is None:
+            return (False, "Emit::updateResources no source")
+
         if self.emit_type == MOVE_TYPE.FLIGHT.value:
             fid = source.getId()
             am = source.managedAirport.airport.manager
@@ -731,14 +743,16 @@ class Emit(Messages):
             else:
                 logger.warning(f":updateResources: no reservation found for ramp {ramp}")
 
-        else:
+        else:  # service, mission
             ident = source.getId()
             vehicle = source.vehicle
+            am = self.move.airport.manager
 
             svrsc = am.vehicle_allocator.findReservation(vehicle.getResourceId(), ident)
             if svrsc is not None:
-                svrsc.setEstimatedTime(et)
-                logger.logger(f":updateResources: updated {vehicle.getResourceId()} for {ident}")
+                et_end = et + timedelta(minutes=30)
+                svrsc.setEstimatedTime(et, et_end)
+                logger.debug(f":updateResources: updated {vehicle.getResourceId()} for {ident}")
             else:
                 logger.warning(f":updateResources: no reservation found for vehicle {vehicle.getResourceId()}")
 

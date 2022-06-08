@@ -19,7 +19,7 @@ from emitpy.resource import AllocationTable
 
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB
 from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT
-from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT
+from emitpy.parameters import DATA_DIR
 from emitpy.utils import key_path, rejson, rejson_keys, Timezone
 from emitpy.emit import ReEmit
 

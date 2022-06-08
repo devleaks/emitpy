@@ -39,8 +39,8 @@ print(len(a))
 
 icao = {}
 
-NUM_TURNAROUNDS = 4
-DO_SERVICE = False
+NUM_TURNAROUNDS = 1
+DO_SERVICE = True
 USE_TURNAROUND = False
 
 cnt = 0
