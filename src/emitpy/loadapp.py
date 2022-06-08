@@ -549,7 +549,7 @@ class LoadApp(ManagedAirport):
                 logger.debug(f":loadHolds: cannot load {k} (lat={v.fix.lat()}, lon={v.fix.lon()})")
             cnt = cnt + 1
         # We preselect holds in the vicinity of the managed airport
-        logger.debug(f":loadHolds: preselecting {self._this_airport["ICAO"]} local holds..")
+        logger.debug(f":loadHolds: preselecting {self._this_airport['ICAO']} local holds..")
         store = key_path(REDIS_PREFIX.AIRSPACE_HOLDS.value, self._this_airport["ICAO"])
         self.redis.geosearchstore(name=REDIS_PREFIX.AIRSPACE_HOLDS_GEO_INDEX.value,
                                   longitude=self._this_airport["lon"],
@@ -625,5 +625,5 @@ class LoadApp(ManagedAirport):
         logger.debug(":cache: ..done")
         return (True, f"LoadApp::cache_lovs: cached")
 
-
-d = LoadApp(airport=MANAGED_AIRPORT)
+if __name__ == "__main__":
+    d = LoadApp(airport=MANAGED_AIRPORT)

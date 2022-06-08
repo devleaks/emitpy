@@ -1,6 +1,7 @@
 import json
 import logging
 import coloredlogs
+import uvicorn
 
 import fastapi
 import starlette.status as status
@@ -16,11 +17,18 @@ from emitpy.emitapp import EmitApp
 from emitpy.emit import Hypercaster
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("app")
+logger = logging.getLogger("api")
+logging.addLevelName(5, "spam")
 
-coloredlogs.DEFAULT_FIELD_STYLES['levelname'] = {'bold': True, 'color': 'blue'}
-coloredlogs.DEFAULT_FIELD_STYLES['name'] = {'color': 'white'}
-coloredlogs.install(level='DEBUG', logger=logger, fmt="%(asctime)s %(levelname)s %(name)s %(message)s", datefmt="%H:%M:%S")
+coloredlogs.DEFAULT_FIELD_STYLES["levelname"] = {"color": "blue"}
+coloredlogs.DEFAULT_FIELD_STYLES["name"] = {"color": "white", "bold": True}
+
+coloredlogs.DEFAULT_LEVEL_STYLES["spam"] = {"color": "red", "bold": True}
+coloredlogs.DEFAULT_LEVEL_STYLES["info"] = {"color": "cyan"}
+coloredlogs.DEFAULT_LEVEL_STYLES["debug"] = {"color": "white"}
+
+# %(levelname)s
+coloredlogs.install(level=logging.DEBUG, logger=logger, fmt="%(asctime)s %(name)s%(message)s", datefmt="%H:%M:%S")
 
 # #########################
 # REST API
@@ -136,13 +144,13 @@ app.mount("/static", StaticFiles(directory="web/static"), name="static")
 @app.get("/", tags=["emitpy"])
 async def root():
     return fastapi.responses.RedirectResponse(
-        '/docs',
+        "/docs",
         status_code=status.HTTP_302_FOUND)
 
 
 @app.on_event("startup")
 async def startup():
-    logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» starting..")
+    logger.info(f":startup {emitpy.__version__} «{emitpy.__version_name__}» starting..")
     # should collect and display:
     # git describe --tags
     # git log -1 --format=%cd --relative-date
@@ -150,12 +158,18 @@ async def startup():
     app.state.emitpy = EmitApp(MANAGED_AIRPORT)
     app.state.emitpy.loadFromCache()
     app.state.hypercaster = Hypercaster()
-    logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» ..started")
+    logger.log(5, f":startup {emitpy.__version__} «{emitpy.__version_name__}» ..started")
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» ..stopping..")
+    logger.info(f":shutdown {emitpy.__version__} «{emitpy.__version_name__}» ..stopping..")
     app.state.emitpy.saveToCache()
     app.state.hypercaster.terminate_all_queues()
-    logger.info(f"emitpy {emitpy.__version__} «{emitpy.__version_name__}» ..stopped")
+    logger.info(f":shutdown {emitpy.__version__} «{emitpy.__version_name__}» ..stopped")
+
+
+
+
+if __name__ == "__main__":
+    uvicorn.run("api:app", host="127.0.0.1", port=5000, log_level="info")
