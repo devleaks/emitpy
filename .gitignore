@@ -43,6 +43,7 @@ dmypy.json
 # MacOS
 .DS_Store
 
+node_modules
 
 # Emitpy
 src/emitpy/private.py

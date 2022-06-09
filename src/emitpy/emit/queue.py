@@ -67,7 +67,6 @@ class Queue:
         logger.debug(f"Hypercaster notified for deletion of {name}")
         # 1. Remove definition
         ident = make_key(REDIS_DATABASE.QUEUES.value, name)
-        redis.srem(REDIS_DATABASE.QUEUES.value, ident)
         redis.delete(ident)
         # 2. Remove preparation queue
         redis.delete(name)
@@ -101,8 +100,7 @@ class Queue:
             "speed": self.speed,
             "starttime": self.starttime,
             "status": self.status
-            }))
-        self.redis.sadd(REDIS_DATABASE.QUEUES.value, ident)
+        }))
         logger.debug(f":save: {ident} saved")
 
         self.redis.publish(REDIS_DATABASE.QUEUES.value, NEW_QUEUE+ID_SEP+self.name)

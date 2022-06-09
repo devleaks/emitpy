@@ -122,6 +122,7 @@ class Emit(Messages):
             "emit-type": self.emit_type if self.emit_type is not None else ty,
             "ident": self.emit_id,
             "frequency": self.frequency,
+            "time-bracket": self.getTimeBracket(),
             "version": self.version
         }
 
@@ -616,6 +617,20 @@ class Emit(Messages):
             return (True, "Emit::schedule completed")
 
         return (False, f"Emit::schedule sync {sync} not found")
+
+
+    def getTimeBracket(self, as_string: bool = False):
+        if self._emit is not None and len(self._emit) > 0:
+            start = self._emit[0].getAbsoluteEmissionTime()
+            end   = self._emit[-1].getAbsoluteEmissionTime()
+            if not as_string:
+                return (start, end)
+            localtz = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
+            startdt = datetime.fromtimestamp(start, tz=localtz)
+            enddt = datetime.fromtimestamp(end, tz=localtz)
+            return (startdt.isoformat(), enddt.isoformat())
+        logger.debug(f":getTimeBracket: no emit point")
+        return (None, None)
 
 
     def getFeatureAt(self, sync: str):

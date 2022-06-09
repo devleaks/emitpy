@@ -348,9 +348,9 @@ class AllocationTable:
         for r, v in self.resources.items():
             if len(v.reservations) > 0:
                 if actual:
-                    ret[v.getId()] = [ [t.isoformat() for t in rz.actual]+[rz.label] for rz in v.reservations]
+                    ret[v.getId()] = [ [t.isoformat() for t in rz.actual]+[rz.label] for rz in v.reservations.values()]
                 else:
-                    ret[v.getId()] = [ [t.isoformat() for t in rz.estimated]+[rz.label] for rz in v.reservations]
+                    ret[v.getId()] = [ [t.isoformat() for t in rz.estimated]+[rz.label] for rz in v.reservations.values()]
         return ret
 
     def save(self, redis):
