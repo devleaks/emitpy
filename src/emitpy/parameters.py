@@ -34,6 +34,8 @@ REDIS_CONNECT = {
 
 DATA_IN_REDIS = True
 
+SECURE_API = True
+ALLOW_KEYGEN = True
 # ######################
 # Application options and parameters
 #

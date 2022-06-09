@@ -57,3 +57,4 @@ src/bin/
 *.sqlite
 *.rdb
 *.tar
+*.db

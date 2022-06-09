@@ -6,29 +6,36 @@ import uvicorn
 import fastapi
 import starlette.status as status
 
-from fastapi import FastAPI, Body, File
+from fastapi import FastAPI, Body, File, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from web.routers import flights, services, missions, queues, airport
+from fastapi_simple_security import api_key_router, api_key_security
 
 import emitpy
-from emitpy.parameters import MANAGED_AIRPORT
+from emitpy.parameters import MANAGED_AIRPORT, SECURE_API, ALLOW_KEYGEN
 from emitpy.emitapp import EmitApp
 from emitpy.emit import Hypercaster
 
+
+# #########################
+# COLORFUL LOGGING
+#
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("api")
 logging.addLevelName(5, "spam")
 
 coloredlogs.DEFAULT_FIELD_STYLES["levelname"] = {"color": "blue"}
-coloredlogs.DEFAULT_FIELD_STYLES["name"] = {"color": "white", "bold": True}
+coloredlogs.DEFAULT_FIELD_STYLES["name"] = {"color": "white", "bold": False, "bright": True}
 
-coloredlogs.DEFAULT_LEVEL_STYLES["spam"] = {"color": "red", "bold": True}
-coloredlogs.DEFAULT_LEVEL_STYLES["info"] = {"color": "cyan"}
+coloredlogs.DEFAULT_LEVEL_STYLES["spam"] = {"color": "red"}
+coloredlogs.DEFAULT_LEVEL_STYLES["info"] = {"color": "cyan", "bright": True}
 coloredlogs.DEFAULT_LEVEL_STYLES["debug"] = {"color": "white"}
 
 # %(levelname)s
 coloredlogs.install(level=logging.DEBUG, logger=logger, fmt="%(asctime)s %(name)s%(message)s", datefmt="%H:%M:%S")
+
+
 
 # #########################
 # REST API
@@ -131,17 +138,28 @@ app.add_middleware(CORSMiddleware,
                    allow_methods=["*"],
                    allow_headers=["*"])
 
-app.include_router(flights.router)
-app.include_router(services.router)
-app.include_router(missions.router)
-app.include_router(airport.router)
+if SECURE_API:
+    if ALLOW_KEYGEN:
+        logger.warning(f":init {emitpy.__version__} «{emitpy.__version_name__}» key generation permitted")
+        app.include_router(api_key_router, prefix="/auth", include_in_schema=False)
+    dependencies=[Depends(api_key_security)]
+else:
+    dependencies=[]
 
-app.include_router(queues.router2)
-app.include_router(queues.router)
+logger.info(f":init {emitpy.__version__} «{emitpy.__version_name__}» {'with' if SECURE_API else 'without'} security")
+
+app.include_router(flights.router, dependencies=dependencies)
+app.include_router(services.router, dependencies=dependencies)
+app.include_router(missions.router, dependencies=dependencies)
+app.include_router(airport.router, dependencies=dependencies)
+
+app.include_router(queues.router2, dependencies=dependencies)
+app.include_router(queues.router, dependencies=dependencies)
 
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
-@app.get("/", tags=["emitpy"])
+
+@app.get("/", tags=["emitpy"], include_in_schema=False)
 async def root():
     return fastapi.responses.RedirectResponse(
         "/docs",

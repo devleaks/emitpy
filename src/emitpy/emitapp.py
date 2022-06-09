@@ -5,7 +5,7 @@ import redis
 
 from redis.commands.json.path import Path
 
-from pottery import RedisDict
+# from pottery import RedisDict
 
 from datetime import datetime, timedelta
 
