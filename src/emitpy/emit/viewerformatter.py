@@ -108,7 +108,7 @@ class ViewerFormatter(Formatter):
         # Display organisation
         f.setProp("group_name", "AIRCRAFTS")
         f.setProp("status", "ACTIVE")
-        f.setProp("_timestamp_emission", datetime.now().isoformat())
+        f.setProp("_timestamp_emission", datetime.now().astimezone().isoformat())
 
         f.setProp("_style", {
             "markerColor": "#00a",
@@ -146,7 +146,7 @@ class ViewerFormatter(Formatter):
             "source": "EMITPY",
             "topic": "gps/aircrafts",
             "type": "map",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now().astimezone().isoformat(),
             "payload": self.feature
         })
 

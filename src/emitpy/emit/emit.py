@@ -26,9 +26,7 @@ from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
 from emitpy.constants import RATE_LIMIT, EMIT_RANGE, MOVE_TYPE
 from emitpy.parameters import AODB_DIR, MANAGED_AIRPORT
 
-
 logger = logging.getLogger("Emit")
-
 
 
 class EmitPoint(FeatureWithProps):
@@ -695,7 +693,7 @@ class Emit(Messages):
         if et is not None:
             source = self.getSource()
             source.setEstimatedTime(dt=et)
-            self.updateResources(et, source.is_arrival())
+            self.updateResources(et)
             logger.debug(f":updateEstimatedTime: estimated {source.getId()}: {et.isoformat()}")
             return (True, "Emit::updateEstimatedTime updated")
 
@@ -703,14 +701,16 @@ class Emit(Messages):
         return (True, "Emit::updateEstimatedTime not updated")
 
 
-    def updateResources(self, et: datetime, is_arrival: bool):
+    def updateResources(self, et: datetime):
         source = self.getSource()
+        is_arrival = None
 
         if source is None:
             return (False, "Emit::updateResources no source")
 
         if self.emit_type == MOVE_TYPE.FLIGHT.value:
             fid = source.getId()
+            is_arrival = source.is_arrival()
             am = source.managedAirport.airport.manager
 
             self.addMessage(EstimatedTimeMessage(flight_id=fid,

@@ -30,12 +30,12 @@ class Reservation:
     """
     A reservation is a occupied slot in an allocation table.
     """
-    def __init__(self, resource: "Resource", date_from: datetime, date_to: datetime, label: str = None):
+    def __init__(self, resource: "Resource", date_from: datetime, date_to: datetime, label: str):
         self.resource = resource
         self.label = label  # refactor to name
         self.scheduled = (date_from, date_to)
         self.estimated = None
-        self._actual = None
+        self.actual = None
         self.status = RESERVATION_STATUS.PROVISIONED.value  # to normalize
 
         self.setEstimatedTime(date_from, date_to)
@@ -44,6 +44,7 @@ class Reservation:
         return self.label if self.label is not None else self.scheduled[0].isoformat()
 
     def getInfo(self):
+        logger.debug(f":getInfo: {self.scheduled[0]}, {self.scheduled[1]}")
         i = {
             "type": "reservation",
             "name": self.resource.getInfo(),
@@ -59,10 +60,10 @@ class Reservation:
                 START: self.estimated[0].isoformat(),
                 END: self.estimated[1].isoformat()
             }
-        if self._actual is not None:
+        if self.actual is not None:
             i[ACTUAL] = {
-                START: self._actual[0].isoformat(),
-                END: self._actual[1].isoformat()
+                START: self.actual[0].isoformat(),
+                END: self.actual[1].isoformat()
             }
         return i
 
@@ -71,14 +72,14 @@ class Reservation:
 
     def duration(self, actual: bool = False):
         if actual:
-            return self._actual[1] - self._actual[0]
+            return self.actual[1] - self.actual[0]
         return self.estimated[1] - self.estimated[0]
 
     def setEstimatedTime(self, date_from: datetime, date_to: datetime):
         self.estimated = (date_from, date_to)
 
     def setActualTime(self, date_from: datetime, date_to: datetime):
-        self._actual = (date_from, date_to)
+        self.actual = (date_from, date_to)
 
     def save(self, base: str, redis):
         redis.set(key_path(base, self.getKey()), json.dumps(self.getInfo()))
@@ -96,7 +97,7 @@ class Resource:
     def __init__(self, name: str, table: str):
         self.table = table
         self.name = name
-        self.reservations = []  # may be change to a dict({reservation.label: reservation}) ?
+        self.reservations = {}
         self._updated = True
 
     def getId(self):
@@ -122,11 +123,8 @@ class Resource:
     def updated(self):
         return self._updated
 
-    def reservations(self):
-        r = []
-        for u in self.reservations:
-            r.append(u.getInfo())
-        return r
+    def reservationInfos(self):
+        return [r.getInfo() for r in self.reservations.values()]
 
     def save(self, redis):
         # r = self.reservations()
@@ -137,7 +135,7 @@ class Resource:
         # self._updated = False
         if len(self.reservations) > 0 and self.updated():
             k=self.getKey()
-            for u in self.reservations:
+            for u in self.reservations.values():
                 u.save(base=k, redis=redis)
             logger.debug(f":save: {self.getId()} saved {len(self.reservations)} reservations")
         self._updated = False
@@ -158,20 +156,23 @@ class Resource:
                 res.setEstimatedTime(datetime.fromisoformat(rsc[ESTIMATED][START]), datetime.fromisoformat(rsc[ESTIMATED][END]))
             if ACTUAL in rsc:
                 res.setEstimatedTime(datetime.fromisoformat(rsc[ACTUAL][START]), datetime.fromisoformat(rsc[ACTUAL][END]))
-            self.reservations.append(res)
+            self.add(res)
         # logger.debug(f":load: {self.getId()} loaded {len(self.reservations)} reservations")
 
     def allocations(self, actual: bool = False):
         if actual:
-            return [r._actual for r in sorted(self.reservations,key= lambda x:x.estimated[0])]
-        return [(r.getId(), list(map(dt, r.estimated))) for r in sorted(self.reservations,key= lambda x:x.estimated[0])]
+            return [r.actual for r in sorted(self.reservations.values(),key= lambda x:x.estimated[0])]
+        return [(r.getId(), list(map(dt, r.estimated))) for r in sorted(self.reservations.values(),key= lambda x:x.estimated[0])]
 
     def add(self, reservation: Reservation):
-        self.reservations.append(reservation)
+        if reservation.label in self.reservations.keys():
+            logger.warning(f":add: {reservation.label} already exists, overwriting")
+        self.reservations[reservation.label] = reservation
         self.update()
 
     def remove(self, reservation: Reservation):
-        self.reservations.remove(reservation)
+        if reservation.label in self.reservations.keys():
+            del self.reservations[reservation.label]
         self.update()
 
     def clean(self, limit: datetime = datetime.now()):
@@ -181,29 +182,32 @@ class Resource:
         :param      limit:  The limit
         :type       limit:  datetime
         """
-        for r in list(filter(lambda x: x.estimated[1]<limit, self.reservations)):
+        for r in list(filter(lambda x: x.estimated[1]<limit, self.reservations.values())):
             self.remove(r)
 
     def book(self, req_from: datetime, req_to: datetime, label: str = None):
         r = Reservation(self, req_from, req_to, label)
         self.add(r)
-        logger.debug(f":book: booked {self.getId()} for {label}")
+        logger.debug(f":book: booked {self.getId()} for {label}, {req_from} to {req_to}")
         return r
 
     def isAvailable(self, req_from: datetime, req_to: datetime):
         # logger.debug(f":isAvailable: checking for {req_from} -> {req_to} ")
-        if len(self.reservations) == 0:  # no reservation yet
+        resarr = list(self.reservations.values())
+
+        if len(resarr) == 0:  # no reservation yet
             logger.debug(f":isAvailable: first one ok")
             return True
-        if len(self.reservations) == 1:  # if after or before only reservation, it's OK
-            ok = req_to < self.reservations[0].estimated[0] or req_from > self.reservations[0].estimated[1]
+        if len(resarr) == 1:  # if after or before only reservation, it's OK
+            print(">>>", req_from, req_to, resarr[0].estimated[0], resarr[0].estimated[1])
+            ok = req_to < resarr[0].estimated[0] or req_from > resarr[0].estimated[1]
             if ok:
                 logger.debug(f":isAvailable: second one, no overlap")
                 return True
             logger.debug(f":isAvailable: second one, overlaps")
             return False
         # we have more than one reservation, sort them by start time
-        busy = sorted(self.reservations, key=lambda x: x.estimated[0])
+        busy = sorted(resarr, key=lambda x: x.estimated[0])
         idx = 0
         # logger.debug(f":isAvailable: busy: {len(busy)-1}")
         while idx < len(busy) - 1:
@@ -241,7 +245,8 @@ class Resource:
 
         duration = req_to - req_from
 
-        reservations = list(filter(lambda x: x.estimated[1]>req_from, self.reservations))
+        resarr = list(self.reservations.values())
+        reservations = list(filter(lambda x: x.estimated[1]>req_from, resarr))
         logger.debug(f":firstAvailable: {len(reservations)} reservations ends after {dt(req_from)}")
         if len(reservations) == 0:
             logger.debug(":firstAvailable: available as requested")
@@ -265,9 +270,8 @@ class Resource:
 
 
     def findReservation(self, label: str):
-        r = list(filter(lambda s: s.label == label, self.reservations))
-        if len(r) == 1:
-            return r[0]
+        if label in self.reservations:
+            return self.reservations[label]
         logger.debug(f":findReservation: reservation {label} not found ({self.name})")
         return None
 

@@ -8,7 +8,7 @@ from redis.commands.json.path import Path
 
 # from pottery import RedisDict
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company
@@ -52,6 +52,7 @@ class EmitApp(ManagedAirport):
 
         ManagedAirport.__init__(self, airport=airport, app=self)
 
+        self.local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
         self._use_redis = False
 
         self.redis_pool = None
@@ -214,11 +215,11 @@ class EmitApp(ManagedAirport):
 
         scheduled_dt = datetime.fromisoformat(scheduled)
         if scheduled_dt.tzname() is None:  # has no time zone, uses local one
-            scheduled_dt.replace(tzinfo=self.timezone)
+            scheduled_dt = scheduled_dt.replace(tzinfo=self.timezone)
             logger.debug(":do_flight: scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug(":do_flight: .. collecting metar ..")
-        dt2 = datetime.now().replace(tzinfo=self.timezone) - timedelta(days=1)
+        dt2 = datetime.now().astimezone(self.timezone) - timedelta(days=1)
         if METAR_HISTORICAL and scheduled_dt < dt2:  # issues with web site to fetch historical metar.
             logger.debug(f":do_flight: ..historical.. ({scheduled})")
             remote_metar = Metar.new(icao="OTHH", redis=self.redis, method="MetarHistorical")
@@ -312,7 +313,7 @@ class EmitApp(ManagedAirport):
         emit_time_str = actual_datetime if actual_datetime is not None else scheduled
         emit_time = datetime.fromisoformat(emit_time_str)
         if emit_time.tzname() is None:  # has no time zone, uses local one
-            emit_time.replace(tzinfo=self.timezone)
+            emit_time = emit_time.replace(tzinfo=self.timezone)
             logger.debug(":do_flight: scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug(emit.getMarkList())
@@ -415,7 +416,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(201, f"EmitApp:do_service: ramp {ramp} not found", None)
         scheduled_dt = datetime.fromisoformat(scheduled)
         if scheduled_dt.tzname() is None:  # has no time zone, uses local one
-            scheduled_dt.replace(tzinfo=self.timezone)
+            scheduled_dt = scheduled_dt.replace(tzinfo=self.timezone)
             logger.debug(":do_service: scheduled time has no time zone, added managed airport local time zone")
         this_service = Service.getService(service)(scheduled=scheduled_dt,
                                                    ramp=rampval,
@@ -489,6 +490,7 @@ class EmitApp(ManagedAirport):
 
 
     def do_flight_services(self, emit_rate, queue, operator, flight_id, estimated = None):
+        # @todo: take estimated into account, reschedule accordingly.
         emit_ident = key_path(REDIS_DATABASE.FLIGHTS.value, flight_id, REDIS_TYPE.EMIT.value)
         logger.debug(f":do_flight_services: servicing {emit_ident}..")
         # Get flight data
@@ -500,7 +502,15 @@ class EmitApp(ManagedAirport):
         if scheduled is None:
             logger.warning(f":do_flight_services: cannot get flight scheduled time {emit.getMeta()}")
             return StatusInfo(250, "cannot get flight scheduled time from meta", emit_ident)
+
+        emit_time_str = estimated if estimated is not None else scheduled
         scheduled = datetime.fromisoformat(scheduled)
+
+        # this is currently unused
+        emit_time_dt = datetime.fromisoformat(emit_time_str)
+        if emit_time_dt.tzname() is None:  # has no time zone, uses local one
+            emit_time_dt = emit_time_dt.replace(tzinfo=self.timezone)
+            logger.debug(":do_flight_services: estimated time has no time zone, added managed airport local time zone")
 
         is_arrival = emit.getMeta("$.move.is_arrival")
         if is_arrival is None:
@@ -622,10 +632,11 @@ class EmitApp(ManagedAirport):
 
         mission_time = datetime.fromisoformat(scheduled)
         if mission_time.tzname() is None:  # has no time zone, uses local one
-            mission_time.replace(tzinfo=self.timezone)
+            mission_time = mission_time.replace(tzinfo=self.timezone)
             logger.debug(":do_mission: scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug(":do_mission: .. vehicle ..")
+        print(">>>>>>>>>>", mission_time, mission_time.tzname())
         mission_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=mission, reqtime=mission_time, model=vehicle_model, registration=vehicle_ident, use=True)
         if mission_vehicle is None:
             return StatusInfo(311, f"connot find vehicle {vehicle_model}", None)
@@ -700,7 +711,7 @@ class EmitApp(ManagedAirport):
         # logger.debug(f":do_flight_services: do_schedule:mark list: {emit.getMarkList()}")
         emit_time = datetime.fromisoformat(scheduled)
         if emit_time.tzname() is None:  # has no time zone, uses local one
-            emit_time.replace(tzinfo=self.timezone)
+            emit_time = emit_time.replace(tzinfo=self.timezone)
             logger.debug(":do_schedule: scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug(":do_schedule: scheduling ..")

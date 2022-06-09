@@ -238,12 +238,13 @@ class ReEmit(Emit):
         ident = self.emit_id
         if et is not None:
             etinfo = self.getMeta("$.time")
+            estat = datetime.now().astimezone()
             if etinfo is not None:
-                    etinfo.append( (et, "ET", datetime.now()) )
+                    etinfo.append( (et, "ET", estat) )
             else:
                 logger.debug(f":updateEstimatedTime: {ident} had no estimates, adding")
                 if self.meta is not None:
-                    self.meta["time"] = [et, "ET", datetime.now()]
+                    self.meta["time"] = [et, "ET", estat]
             logger.debug(f":updateEstimatedTime: {ident} added ET {et}")
 
             if self.meta is not None:
@@ -251,7 +252,7 @@ class ReEmit(Emit):
             else:
                 logger.warning(f":updateEstimatedTime: {ident} had no meta data")
 
-            self.updateResources(et, self.getMeta("$.move.is_arrival"))
+            self.updateResources(et)
             return (True, "ReEmit::updateEstimatedTime updated")
 
         logger.warning(f":updateEstimatedTime: no estimated time")
@@ -278,6 +279,7 @@ class ReEmit(Emit):
         if self.emit_type == MOVE_TYPE.FLIGHT.value:
             # 2. What is the resource identifier
             fid = self.getMeta("$.props.flight.identifier")
+            is_arrival = self.getMeta("$.move.is_arrival")
             if fid is not None:
                 am = self.managedAirport.airport.manager
                 self.addMessage(EstimatedTimeMessage(flight_id=fid,

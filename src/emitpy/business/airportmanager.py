@@ -376,7 +376,7 @@ class AirportManager:
         return (False, "AirportManager::loadServiceVehicles: not loaded")
 
 
-    def selectServiceVehicle(self, operator: "Company", service: "Service", reqtime: "datetime", reqend: "datetime" = None,
+    def selectServiceVehicle(self, operator: "Company", service: "Service", reqtime: datetime, reqend: datetime = None,
                              model: str=None, registration: str = None, use: bool=True):
         """
         Selects a service vehicle for ground support.

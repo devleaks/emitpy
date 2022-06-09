@@ -305,14 +305,14 @@ class Flight(Messages):
         return fpcp[0]
 
 
-    def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now()):
+    def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):
         self.estimated = dt
-        self.schedule_history.append((info_time.isoformat(), "ET", dt.isoformat()))
+        self.schedule_history.append((dt.isoformat(), "ET", info_time.isoformat()))
 
 
-    def setActualTime(self, dt: datetime, info_time: datetime = datetime.now()):
+    def setActualTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):
         self.actual = dt
-        self.schedule_history.append((info_time.isoformat(), "AT", dt.isoformat()))
+        self.schedule_history.append((dt.isoformat(), "AT", info_time.isoformat()))
 
 
     def plan(self):

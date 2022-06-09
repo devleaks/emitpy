@@ -7,6 +7,25 @@ logger = logging.getLogger("Utils/Time")
 
 from emitpy.constants import FLIGHT_PHASE
 
+
+
+class EstimatedTime:
+
+    def __init__(self, estimated: datetime, timestamp: datetime, reason: str, estimator: str = None):
+        self.estimated = estimated
+        self.timestamp = timestamp
+        self.reason = reason
+        self.estimator = estimator
+
+    def getInfo(self):
+        return {
+            "estimated": self.estimated,
+            "timestamp": self.timestamp,
+            "reason": self.reason,
+            "estimator": self.estimator,
+        }
+
+
 def roundTime(dt: datetime, roundTo: int = 300):
     """Round a datetime object to any time lapse in seconds
     dt : datetime.datetime object, default now.
@@ -18,6 +37,7 @@ def roundTime(dt: datetime, roundTo: int = 300):
     seconds = (dt.replace(tzinfo=None) - dt.min).seconds
     rounding = (seconds + roundTo / 2) // roundTo * roundTo
     return dt + timedelta(0, rounding-seconds, -dt.microsecond)
+
 
 def actual_time(scheduled_time: str, is_arrival: bool, delay: int, block: bool = True):
     """
@@ -49,7 +69,6 @@ def actual_time(scheduled_time: str, is_arrival: bool, delay: int, block: bool =
 
 # import re
 # from json import JSONEncoder, JSONDecoder
-# from datetime import datetime
 
 # subclass JSONEncoder
 # class DateTimeEncoder(JSONEncoder):

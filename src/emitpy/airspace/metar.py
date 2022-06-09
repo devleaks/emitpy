@@ -36,7 +36,7 @@ def round_dt(dt, delta):  # rounds date to delta after date.
 
 def normalize_dt(dt):
     dtutc = dt.astimezone(tz=timezone.utc)
-    dtret = round_dt(dtutc - timedelta(minutes=30), timedelta(minutes=60))
+    dtret = round_dt(dtutc - timedelta(minutes=30), timedelta(minutes=30))
     logger.debug(f":normalize_dt: {dt}: {dtutc}=>{dtret}")
     return dtret
 
@@ -47,7 +47,7 @@ class Metar:
     """
     def __init__(self, icao: str, redis = None):
         self.icao = icao
-        self.moment = datetime.now()
+        self.moment = datetime.now().astimezone()
         self.moment_norm = normalize_dt(self.moment)
         self.metar = None   # parsed metar
         self.raw = None     # metar string
@@ -75,7 +75,7 @@ class Metar:
             self.save()
 
 
-    def setDatetime(self, moment: datetime = datetime.now()):
+    def setDatetime(self, moment: datetime = datetime.now().astimezone()):
         self.moment = moment
         self.moment_norm = normalize_dt(self.moment)
         self.metar = None

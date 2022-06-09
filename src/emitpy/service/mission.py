@@ -7,7 +7,7 @@ import random
 from datetime import datetime
 
 from emitpy.constants import FEATPROP, REDIS_DATABASE
-from .service import GroundSupport
+from .ground_support import GroundSupport
 from .servicevehicle import ServiceVehicle
 from emitpy.geo import FeatureWithProps
 
@@ -45,8 +45,9 @@ class Mission(GroundSupport):
 
     def getInfo(self):
         return {
+            "ground-support": super().getInfo(),  # contains PTS, etc.
+            "mission-identifier": self.getId(),
             "operator": self.operator.getInfo(),
-            "mission": self.mission,
             "vehicle": self.vehicle.getInfo(),
             "icao24": self.vehicle.icao24
         }

@@ -239,7 +239,7 @@ class LoadApp(ManagedAirport):
                 return status
 
         if "*" in what or "info" in what:
-            self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().isoformat()
+            self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), self._this_airport)
 
         logger.debug(f":load: loaded")
