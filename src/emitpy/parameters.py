@@ -13,7 +13,7 @@ PRODUCTION  = True  # removes caches and short circuits
 # File system-based Data
 #
 # Should not be specified, should be deduced from Emitpy.__FILE__
-HOME_DIR = os.path.join("/Users", "pierre", "Developer", "oscars", "emitpy")  # should work even on windows... python guys are genius.
+HOME_DIR = os.path.join("/Users", "pierre", "Developer", "py", "emitpy")  # should work even on windows... python guys are genius.
 
 # DATA is a database of *static* data, definitions, etc. (read-only)
 DATA_DIR = os.path.join(HOME_DIR, "data")
