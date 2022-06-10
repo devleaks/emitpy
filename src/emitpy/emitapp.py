@@ -79,7 +79,7 @@ class EmitApp(ManagedAirport):
                 pong = self.redis.ping()
                 not_connected = False
                 logger.info(":init: connected to Redis")
-                self.redis.config_set('notify-keyspace-events', "Kgz")  #KA
+                self.redis.config_set('notify-keyspace-events', "KA")
                 logger.debug(f":init: {self.redis.config_get('notify-keyspace-events')}")
                 logger.info(":init: keyspace notification enabled")
             except redis.RedisError:
@@ -346,9 +346,12 @@ class EmitApp(ManagedAirport):
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(107, f"problem during formatting", ret[1])
-        ret = formatted.save()
-        if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
-            return StatusInfo(108, f"problem during formatted output save", ret[1])
+
+        # logger.debug(":do_flight: .. saving ..")
+        # ret = formatted.save()
+        # if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
+        #     return StatusInfo(108, f"problem during formatted output save", ret[1])
+
         ret = formatted.enqueue()
         if not ret[0]:
             return StatusInfo(109, f"problem during enqueue", ret[1])
@@ -488,9 +491,12 @@ class EmitApp(ManagedAirport):
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(211, f"problem during service formatting", ret[1])
-        ret = formatted.save(overwrite=True)
-        if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
-            return StatusInfo(212, f"problem during service save", ret[1])
+
+        # logger.debug(":do_service: .. saving ..")
+        # ret = formatted.save(overwrite=True)
+        # if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
+        #     return StatusInfo(212, f"problem during service save", ret[1])
+
         ret = formatted.enqueue()
         if not ret[0]:
             return StatusInfo(213, f"problem during service save to Redis", ret[1])
@@ -697,15 +703,17 @@ class EmitApp(ManagedAirport):
 
         logger.debug(":do_mission: .. broadcasting position ..")
         formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
+
         logger.debug(":do_mission: .. formatting ..")
         ret = formatted.format()
         if not ret[0]:
             return StatusInfo(308, f"problem during service formatting", ret[1])
 
-        logger.debug(":do_mission: .. saving ..")
-        ret = formatted.save(overwrite=True)
-        if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
-            return StatusInfo(309, f"problem during service save", ret[1])
+        # logger.debug(":do_mission: .. saving ..")
+        # ret = formatted.save(overwrite=True)
+        # if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
+        #     return StatusInfo(309, f"problem during service save", ret[1])
+
         logger.debug(":do_mission: .. enqueueing for broadcast ..")
         ret = formatted.enqueue()
         if not ret[0]:
@@ -737,10 +745,10 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(401, f"problem during rescheduled formatting", ret[1])
 
-        logger.debug(":do_schedule: .. saving ..")
-        ret = formatted.save(overwrite=True)
-        if not ret[0]:
-            return StatusInfo(402, f"problem during rescheduled save", ret[1])
+        # logger.debug(":do_schedule: .. saving ..")
+        # ret = formatted.save(overwrite=True)
+        # if not ret[0]:
+        #     return StatusInfo(402, f"problem during rescheduled save", ret[1])
 
         logger.debug(":do_schedule: .. enqueueing for broadcast ..")
         ret = formatted.enqueue()

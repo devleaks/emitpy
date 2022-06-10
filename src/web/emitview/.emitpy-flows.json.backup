@@ -200,8 +200,7 @@
         "y": 200,
         "wires": [
             [
-                "d96b9a585e8a8e58",
-                "dee46b090cd504ce"
+                "d96b9a585e8a8e58"
             ]
         ]
     },
@@ -222,7 +221,8 @@
             [
                 "52cf1aa80496fcd6",
                 "95070f789505afec",
-                "7430d863ff752a27"
+                "7430d863ff752a27",
+                "61389890749add36"
             ]
         ]
     },
@@ -311,14 +311,15 @@
         "statusType": "auto",
         "x": 560,
         "y": 80,
-        "wires": []
+        "wires": [],
+        "icon": "node-red/comment.svg"
     },
     {
         "id": "dee46b090cd504ce",
         "type": "debug",
         "z": "180a8a3d97d7dc3f",
         "name": "raw input",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -326,8 +327,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 280,
-        "y": 280,
+        "x": 360,
+        "y": 320,
         "wires": []
     },
     {
@@ -342,8 +343,8 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 490,
-        "y": 360,
+        "x": 530,
+        "y": 340,
         "wires": []
     },
     {
@@ -380,7 +381,7 @@
         "wires": [
             [
                 "d96b9a585e8a8e58",
-                "dee46b090cd504ce"
+                "c0a36cac05751534"
             ]
         ]
     },
@@ -529,6 +530,38 @@
         "wires": [
             [
                 "77b85ddde90439df"
+            ]
+        ]
+    },
+    {
+        "id": "61389890749add36",
+        "type": "debug",
+        "z": "180a8a3d97d7dc3f",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 810,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "c0a36cac05751534",
+        "type": "json",
+        "z": "180a8a3d97d7dc3f",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 210,
+        "y": 360,
+        "wires": [
+            [
+                "dee46b090cd504ce"
             ]
         ]
     }

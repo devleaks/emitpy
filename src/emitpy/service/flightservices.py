@@ -159,9 +159,9 @@ class FlightServices:
             ret = formatted.format()
             if not ret[0]:
                 return ret
-            ret = formatted.save()
-            if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
-                return ret
+            # ret = formatted.save()
+            # if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
+            #     return ret
             ret = formatted.enqueue()
             if not ret[0]:
                 return ret

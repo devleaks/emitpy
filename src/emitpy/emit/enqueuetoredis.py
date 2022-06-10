@@ -137,7 +137,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             oset.delete(emit_id)
         tosave = []
         for f in self.output:
-            tosave.append(str(f))
+            tosave.append(str(f))  # str applies the formatting
         oset.sadd(emit_id, *tosave)
         oset.execute()
         logger.debug(f":save: key {emit_id} saved {len(tosave)} entries")

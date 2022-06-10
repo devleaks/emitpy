@@ -89,7 +89,7 @@ class Reservation:
 
     def save(self, base: str, redis):
         redis.json().set(key_path(base, self.getKey()), Path.root_path(), self.getInfo())
-        logger.debug(f":save: {key_path(base, self.getKey())}")
+        # logger.debug(f":save: {key_path(base, self.getKey())}")
 
 
 class Resource:
@@ -147,7 +147,7 @@ class Resource:
             k=self.getKey()
             for u in self.reservations.values():
                 u.save(base=k, redis=redis)
-            logger.debug(f":save: {self.getId()} saved {len(self.reservations)} reservations")
+            # logger.debug(f":save: {self.getId()} saved {len(self.reservations)} reservations")
         self._updated = False
 
     def load(self, base: str, redis):
@@ -166,8 +166,8 @@ class Resource:
             if ACTUAL in rsc:
                 res.setEstimatedTime(datetime.fromisoformat(rsc[ACTUAL][START]), datetime.fromisoformat(rsc[ACTUAL][END]))
             self.add(res)
-            logger.debug(f":load: loaded {r.decode('UTF-8')}")
-        logger.debug(f":load: {self.getId()} loaded {len(self.reservations)} reservations")
+            # logger.debug(f":load: loaded {r.decode('UTF-8')}")
+        # logger.debug(f":load: {self.getId()} loaded {len(self.reservations)} reservations")
 
     def allocations(self, actual: bool = False):
         if actual:
@@ -378,13 +378,12 @@ class AllocationTable:
         for k, r in self.resources.items():
             if r.updated():
                 r.save(redis=redis)
-        logger.info(f":AT:save: {self.getId()} saved allocations")
+        # logger.info(f":AT:save: {self.getId()} saved resources")
         return (True, "AllocationTable::save completed")
 
     def load(self, redis):
         keys = redis.keys(key_path(self.getKey() , "*"))
         rscs = set([a.decode("UTF-8").split(ID_SEP)[2] for a in keys])
-        logger.debug(f":load: {self.getId()}: {rscs}")
         for r in rscs:
             if r not in self.resources:
                 rsc = Resource(name=r, table=self)
