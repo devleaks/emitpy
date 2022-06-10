@@ -79,6 +79,9 @@ class EmitApp(ManagedAirport):
                 pong = self.redis.ping()
                 not_connected = False
                 logger.info(":init: connected to Redis")
+                self.redis.config_set('notify-keyspace-events', "Kgz")  #KA
+                logger.debug(f":init: {self.redis.config_get('notify-keyspace-events')}")
+                logger.info(":init: keyspace notification enabled")
             except redis.RedisError:
                 logger.error(":init: cannot connect to redis, retrying...")
                 attempts = attempts + 1

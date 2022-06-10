@@ -19,7 +19,7 @@ logger = logging.getLogger("Broadcaster")
 
 # Utility functions for debugging time and printing timestamp nicely
 def df(ts):
-    return f"{datetime.fromtimestamp(ts).isoformat(timespec='seconds')} ({round(ts, 1)})"
+    return f"{datetime.fromtimestamp(ts).astimezone().isoformat(timespec='seconds')} (ts={round(ts, 1)})"
 
 def td(ts):
     return f"{timedelta(seconds=round(ts))} ({round(ts, 1)})"
@@ -153,7 +153,7 @@ class Broadcaster:
         Removes elements in sortedset that are outdated for this queue's time.
         """
         now = self.now()
-        logger.debug(f":_do_trim: {self.name}: {df(now)}(ts={now})): trimming..")
+        logger.debug(f":_do_trim: {self.name}: {df(now)}: trimming..")
         oldones = self.redis.zrangebyscore(self.name, min=0, max=now)
         if oldones and len(oldones) > 0:
             self.redis.zrem(self.name, *oldones)
@@ -331,7 +331,7 @@ class Broadcaster:
 
                         if self.shutdown_flag.is_set():
                             logger.info(f":broadcast: {self.name}: awake to quit, quitting..")
-                            contune
+                            continue
 
                         # this is not 100% correct: Some event of nextval array may have already be sent
                         logger.debug(f":broadcast: {self.name}: awake to trim, ok to trim..")

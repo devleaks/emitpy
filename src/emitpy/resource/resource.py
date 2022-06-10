@@ -44,7 +44,6 @@ class Reservation:
         return self.label if self.label is not None else self.scheduled[0].isoformat()
 
     def getInfo(self):
-        logger.debug(f":getInfo: {self.scheduled[0]}, {self.scheduled[1]}")
         i = {
             "type": "reservation",
             "name": self.resource.getInfo(),
@@ -381,6 +380,7 @@ class AllocationTable:
 
         if resource not in self.resources.keys():
             logger.warning(f":findReservation: resource {resource} not found in {self.name}")
+            logger.warning(self.resources.keys())
             return None
         rsc = self.resources[resource]
         return rsc.findReservation(label)
