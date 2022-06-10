@@ -274,7 +274,7 @@ class Broadcaster:
 
                 currval = self.redis.bzpopmin(self.name, timeout=ZPOPMIN_TIMEOUT)
                 if currval is None:
-                    # logger.debug(f":broadcast: {self.name}: bzpopmin timed out..")
+                    # logger.debug(f":broadcast: {self.name}: nothing to send, bzpopmin timed out..")
                     continue
 
                 numval = self.redis.zcard(self.name)

@@ -1,8 +1,9 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from jsonpath import JSONPath
 
 from .emit import EmitPoint, Emit
+from emitpy.message import Messages, EstimatedTimeMessage
 from emitpy.constants import FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_DATABASES, REDIS_TYPE
 from emitpy.utils import Timezone
@@ -286,11 +287,10 @@ class ReEmit(Emit):
                                                      is_arrival=is_arrival,
                                                      et=et))
                 # 3. For flight: update runway, ramp
-                rwy = self.getMeta("$.props.flight.runway.name")
-                rwy = "RW" + name if rwy[0:2] != "RW" else rwy  # safe side
+                rwy = self.getMeta("$.props.flight.runway.resource")
                 et_from = et - timedelta(minutes=3)
                 et_to   = et + timedelta(minutes=3)
-                rwrsc = am.runway_allocator.findReservation(rwy, fid)
+                rwrsc = am.runway_allocator.findReservation(rwy, fid, self.redis)
                 if rwrsc is not None:
                     rwrsc.setEstimatedTime(et_from, et_to)
                     logger.debug(f":updateResources: updated {rwy} for {fid}")
@@ -305,7 +305,7 @@ class ReEmit(Emit):
                 else:
                     et_from = et - timedelta(minutes=150)
                     et_to   = et
-                rprsc = am.ramp_allocator.findReservation(ramp, fid)
+                rprsc = am.ramp_allocator.findReservation(ramp, fid, self.redis)
                 if rprsc is not None:
                     rprsc.setEstimatedTime(et_from, et_to)
                     logger.debug(f":updateResources: updated {ramp} for {fid}")
@@ -320,7 +320,7 @@ class ReEmit(Emit):
             vehicle = self.getMeta("move.vehicle.registration")
             am = self.managedAirport.airport.manager
 
-            svrsc = am.vehicle_allocator.findReservation(vehicle, ident)
+            svrsc = am.vehicle_allocator.findReservation(vehicle, ident, self.redis)
             if svrsc is not None:
                 svrsc.setEstimatedTime(et, et)
                 logger.debug(f":updateResources: updated {vehicle} for {ident}")
@@ -333,7 +333,7 @@ class ReEmit(Emit):
             vehicle = self.getMeta("move.vehicle.registration")
             am = self.managedAirport.airport.manager
 
-            svrsc = am.vehicle_allocator.findReservation(vehicle, ident)
+            svrsc = am.vehicle_allocator.findReservation(vehicle, ident, self.redis)
             if svrsc is not None:
                 svrsc.setEstimatedTime(et, et)
                 logger.debug(f":updateResources: updated {vehicle} for {ident}")

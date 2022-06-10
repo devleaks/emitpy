@@ -130,8 +130,10 @@ class EmitApp(ManagedAirport):
             logger.warning(ret[1])
             return
 
+        self.loadFromCache()
+
         logger.debug(":init: initialized. listening..")
-        logger.debug("=" * 90)
+        logger.warning("=" * 90)
 
 
     def use_redis(self):
@@ -185,6 +187,12 @@ class EmitApp(ManagedAirport):
         logger.debug(":loadFromCache: loading .. (this may take a few microseconds)")
         self.airport.manager.loadAllocators(self.redis)
         logger.debug(":loadFromCache: .. done")
+
+
+    def shutdown(self):
+        logger.debug(":shutdown: shutting down..")
+        self.saveToCache()
+        logger.debug(":shutdown: .. done")
 
 
     def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
@@ -703,6 +711,8 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(310, f"problem during service save to Redis", ret[1])
 
+        self.airport.manager.saveAllocators(self.redis)
+
         logger.debug(":do_mission: ..done")
         return StatusInfo(0, "do_mission completed successfully", mission.getId())
 
@@ -738,6 +748,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(403, f"problem during rescheduled enqueing", ret[1])
         logger.debug(":do_schedule: .. done.")
 
+        self.airport.manager.saveAllocators(self.redis)
 
         if not do_services:
             return StatusInfo(0, "scheduled successfully", ident)
@@ -768,6 +779,9 @@ class EmitApp(ManagedAirport):
                              scheduled=se_absstart.isoformat(), do_services=False)
             # we could cut'n paste code from begining of this function as well...
             # I love recursion.
+
+        self.airport.manager.saveAllocators(self.redis)
+
         logger.debug(f":do_schedule: ..done")
 
         return StatusInfo(0, "scheduled successfully (with services)", ident)

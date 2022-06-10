@@ -159,7 +159,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             # dequeue old values
             oset.zrem(self.queue.name, *oldvalues)  # #0
             oset.delete(emit_id)  # #1
-            logger.debug(f":enqueue: removed ***= ***/{len(oldvalues)} old entries")
+            logger.debug(f":enqueue: removed old entries (count below, after execution of pipeline)")
 
         emit = {}
         for f in self.output:
@@ -182,6 +182,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
         retval = oset.execute()
         logger.debug(f":enqueue: pipeline: {retval}")
-        logger.debug(f":enqueue: ***= *** removed {retval[0]}/{len(oldvalues)} old entries")
+        logger.debug(f":enqueue: removed {retval[0]}/{len(oldvalues)} old entries")
         logger.debug(f":enqueue: enqueued")
         return (True, "EnqueueToRedis::enqueue completed")

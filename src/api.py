@@ -33,7 +33,7 @@ coloredlogs.DEFAULT_LEVEL_STYLES["info"] = {"color": "cyan", "bright": True}
 coloredlogs.DEFAULT_LEVEL_STYLES["debug"] = {"color": "white"}
 
 # %(levelname)s
-coloredlogs.install(level=logging.DEBUG, logger=logger, fmt="%(asctime)s %(name)s%(message)s", datefmt="%H:%M:%S")
+coloredlogs.install(level=logging.DEBUG, logger=logger, fmt="%(asctime)s %(name)s:%(message)s", datefmt="%H:%M:%S")
 
 
 
@@ -174,7 +174,6 @@ async def startup():
     # git log -1 --format=%cd --relative-date
     # + redis_connect info
     app.state.emitpy = EmitApp(MANAGED_AIRPORT)
-    app.state.emitpy.loadFromCache()
     app.state.hypercaster = Hypercaster()
     logger.log(5, f":startup {emitpy.__version__} «{emitpy.__version_name__}» ..started")
 
@@ -182,12 +181,14 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     logger.info(f":shutdown {emitpy.__version__} «{emitpy.__version_name__}» ..stopping..")
-    app.state.emitpy.saveToCache()
+    app.state.emitpy.shutdown()
     app.state.hypercaster.shutdown()
     logger.info(f":shutdown {emitpy.__version__} «{emitpy.__version_name__}» ..stopped")
 
 
-
-
 if __name__ == "__main__":
-    uvicorn.run("api:app", host="127.0.0.1", port=5000, log_level="info")
+    uvicorn.run(app,
+                host="127.0.0.1",
+                port=5000,
+                log_level="info",
+                reload_dirs=["emitpy", "web"])

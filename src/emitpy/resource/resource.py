@@ -1,7 +1,10 @@
 import logging
 import json
-from enum import Enum, IntEnum, Flag
 from datetime import datetime, timedelta
+from enum import Enum, IntEnum, Flag
+
+from redis.commands.json.path import Path
+
 from emitpy.constants import REDIS_DATABASE, ID_SEP
 from emitpy.constants import SCHEDULED, ESTIMATED, ACTUAL, TERMINATED
 from emitpy.utils import key_path
@@ -39,6 +42,10 @@ class Reservation:
         self.status = RESERVATION_STATUS.PROVISIONED.value  # to normalize
 
         self.setEstimatedTime(date_from, date_to)
+
+    @classmethod
+    def new(key):
+        pass
 
     def getId(self):
         return self.label if self.label is not None else self.scheduled[0].isoformat()
@@ -81,7 +88,8 @@ class Reservation:
         self.actual = (date_from, date_to)
 
     def save(self, base: str, redis):
-        redis.set(key_path(base, self.getKey()), json.dumps(self.getInfo()))
+        redis.json().set(key_path(base, self.getKey()), Path.root_path(), self.getInfo())
+        logger.debug(f":save: {key_path(base, self.getKey())}")
 
 
 class Resource:
@@ -101,6 +109,9 @@ class Resource:
 
     def getId(self):
         return self.name
+
+    def getResourceId(self):
+        return self.getId()
 
     def getInfo(self):
         i = {
@@ -140,11 +151,10 @@ class Resource:
         self._updated = False
 
     def load(self, base: str, redis):
-        k=self.getKey()
+        k = self.getKey()
         rsvs = redis.keys(key_path(k, "*"))
         for r in rsvs:
-            rsc = redis.get(r)
-            rsc = json.loads(rsc.decode("UTF-8"))
+            rsc = redis.json().get(r)
             lbl = None
             if "label" in rsc:
                 lbl = rsc["label"]
@@ -156,7 +166,8 @@ class Resource:
             if ACTUAL in rsc:
                 res.setEstimatedTime(datetime.fromisoformat(rsc[ACTUAL][START]), datetime.fromisoformat(rsc[ACTUAL][END]))
             self.add(res)
-        # logger.debug(f":load: {self.getId()} loaded {len(self.reservations)} reservations")
+            logger.debug(f":load: loaded {r.decode('UTF-8')}")
+        logger.debug(f":load: {self.getId()} loaded {len(self.reservations)} reservations")
 
     def allocations(self, actual: bool = False):
         if actual:
@@ -270,7 +281,8 @@ class Resource:
     def findReservation(self, label: str):
         if label in self.reservations:
             return self.reservations[label]
-        logger.debug(f":findReservation: reservation {label} not found ({self.name})")
+        logger.debug(f":findReservation: {self.name}: reservation {label} not found")
+        logger.debug(self.reservations.keys())
         return None
 
 
@@ -296,12 +308,23 @@ class AllocationTable:
     def getKey(self):
         return key_path(REDIS_DATABASE.ALLOCATIONS.value, self.getId())
 
-    def addNamedResource(self, resource, name):
-        resource._resource = Resource(name=name, table=self)  # attach it to the resource
-        self.resources[name] = resource._resource
+    def addResource(self, name: str, resource: "Resource"):
+        if name in self.resources.keys():
+            logger.warning(f":add: {name} already exists, overwriting")
+        self.resources[name] = resource
+
+    def createNamedResource(self, resource, name):
+        resource._resource = Resource(name=name, table=self)
+        self.addResource(name, resource._resource)
 
     def add(self, resource):
-        self.addNamedResource(resource, resource.getResourceId())
+        """
+        The object added must have a getResourceId() method.
+
+        :param      resource:  The resource
+        :type       resource:  { type_description }
+        """
+        self.createNamedResource(resource, resource.getResourceId())
 
     def isAvailable(self, name, req_from: datetime, req_to: datetime):
         """
@@ -355,32 +378,34 @@ class AllocationTable:
         for k, r in self.resources.items():
             if r.updated():
                 r.save(redis=redis)
-        logger.debug(f":save: {self.getId()} saved allocations")
+        logger.info(f":AT:save: {self.getId()} saved allocations")
         return (True, "AllocationTable::save completed")
 
-
     def load(self, redis):
-        k=self.getKey()
-        keys = redis.keys(key_path(k , "*"))
+        keys = redis.keys(key_path(self.getKey() , "*"))
         rscs = set([a.decode("UTF-8").split(ID_SEP)[2] for a in keys])
-        # logger.debug(f":load: {rscs}")
+        logger.debug(f":load: {self.getId()}: {rscs}")
         for r in rscs:
-            if r in self.resources:
+            if r not in self.resources:
+                rsc = Resource(name=r, table=self)
+                self.addResource(name=r, resource=rsc)
+            else:
                 rsc = self.resources[r]
-                rsc.load(base=k, redis=redis)
-        logger.debug(f":load: {self.getId()} loaded allocations")
+            rsc.load(base=self.getId(), redis=redis)
+        logger.debug(f":AT:load: {self.getId()} loaded {len(rscs)} resources")
         return (True, "AllocationTable::load loaded")
 
-
     def findReservation(self, resource: str, label: str, redis = None) -> Reservation:
+        if resource in self.resources.keys():
+            rsc = self.resources[resource]
+            return rsc.findReservation(label)
+        logger.debug(f":AT:findReservation: {self.name}: resource {resource} not found")
         if redis:
             k = key_path(self.getKey(), resource, label)
-            logger.debug(f":findReservation: {k}")
-            return redis.json().get(k)
-
-        if resource not in self.resources.keys():
-            logger.warning(f":findReservation: resource {resource} not found in {self.name}")
-            logger.warning(self.resources.keys())
-            return None
-        rsc = self.resources[resource]
-        return rsc.findReservation(label)
+            logger.debug(f":AT:findReservation: {k}")
+            if k is not None:
+                self.resources[resource] = Resource(name=resource, table=self)
+                self.resources[resource].load(base=self.getId(), redis=redis)
+                return self.resources[resource].findReservation(label)
+        logger.debug(f":AT:findReservation: {self.name}: resource {resource} not found in Redis")
+        return None

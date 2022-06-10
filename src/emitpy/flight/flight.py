@@ -44,6 +44,7 @@ class Flight(Messages):
             "arrival": {}
         }
         self.flight_type = PAYLOAD.PAX
+        self.load_factor = 1.0        # 100% capacity, estimated, both passengers and cargo.
 
         try:
             if int(number) > 5000:
@@ -202,6 +203,17 @@ class Flight(Messages):
             logger.warning(":setFL: %d" % self.flight_level)
         else:
             logger.debug(":setFL: %d" % self.flight_level)
+
+
+    def setLoadFactor(self, load_factor: float):
+        if load_factor >= 0 and load_factor <= 2:
+            self.load_factor = load_factor
+        else:
+            logger.warning(f":setLoadFactor: invalid load factor {load_factor} ∉ [0,2]")
+
+
+    def setFlightService(self, flight_service: 'FlightService'):
+        self.turnaround = flight_service
 
 
     def setTurnaround(self, turnaround: 'Turnaround'):

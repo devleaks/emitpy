@@ -160,9 +160,9 @@ class Emit(Messages):
         emit_id = self.getKey(REDIS_TYPE.EMIT_META.value)
         if self.redis.exists(emit_id):
             self.redis = json.loads(redis.get(emit_id))
-            logger.debug(f":loadFromCache: ..got {len(self.props)} props")
+            logger.debug(f":loadMeta: ..got {len(self.props)} props")
         else:
-            logger.debug(f":loadFromCache: ..no meta for {emit_id}")
+            logger.debug(f":loadMeta: ..no meta for {emit_id}")
         return (True, "Emit::loadMeta loaded")
 
 

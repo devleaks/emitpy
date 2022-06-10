@@ -432,8 +432,9 @@ class Runway(FeatureWithProps):
         p1 = Feature(geometry=Point((lon1, lat1)))
         p2 = Feature(geometry=Point((lon2, lat2)))
         brng = bearing(p1, p2)
-        self.uuid = name
-        self.end = None  # opposite runway
+        self.end = None   # opposite runway
+        self.uuid = name  # not correct, but acceptable default value, set unique for both "sides" of runway
+                          # some rare runways are one way only... (EDDF)
         FeatureWithProps.__init__(self, geometry=surface, properties={
             "type": "runway",
             "name": name,
@@ -452,13 +453,9 @@ class Runway(FeatureWithProps):
 
     def getResourceId(self):
         """
-        Resource name must be long "procedure" name RWXXX, like RW34L rather
-        than just 34L.
+        Resource name must be the same for either direction
         """
-        name = self.uuid
-        if name[0:2] != "RW":
-            name = "RW" + name
-        return name
+        return self.uuid
 
 
 # ################################

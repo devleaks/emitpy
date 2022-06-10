@@ -70,7 +70,12 @@ class FlightServices:
             this_service = Service.getService(sname)(scheduled=service_scheduled_dt,
                                                        ramp=self.flight.ramp,
                                                        operator=self.operator)
-            this_service.setPTS(relstartime=sched[0], duration=sched[1])
+
+            duration = sched[1]
+            if self.flight.load_factor != 1.0:  # Wow
+                duration = duration * self.flight.load_factor
+
+            this_service.setPTS(relstartime=sched[0], duration=duration)
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             this_service.setRamp(self.ramp)

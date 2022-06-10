@@ -553,6 +553,7 @@ class AirportManager:
         logger.debug(f":selectServiceVehicles: allocating..")
         self.vehicle_allocator = AllocationTable(resources=self.service_vehicles.values(),
                                                  name="service-vehicles")
+        logger.info(f":service_vehicles: resources added: {len(self.vehicle_allocator.resources.keys())}")
         logger.debug(f":service_vehicles: ..done")
 
 
@@ -569,6 +570,7 @@ class AirportManager:
         logger.debug(f":setRamps: allocating..")
         self.ramp_allocator = AllocationTable(resources=self.ramps.values(),
                                               name="ramps")
+        logger.info(f":setRamps: resources added: {len(self.ramp_allocator.resources.keys())}")
         logger.debug(f":setRamps: ..done")
 
 
@@ -587,8 +589,8 @@ class AirportManager:
         for rwy in self.runways.values():
             rwy_id = rwy.getResourceId()
             if rwy_id not in self.runway_allocator.resources.keys():
-                self.runway_allocator.addNamedResource(rwy, rwy_id)
-        logger.debug(f":setRunways: resources added: {self.runway_allocator.resources.keys()}")
+                self.runway_allocator.createNamedResource(rwy, rwy_id)
+        logger.info(f":setRunways: resources added: {self.runway_allocator.resources.keys()}")
         logger.debug(f":setRunways: ..done")
 
 
@@ -604,12 +606,15 @@ class AirportManager:
         self.ramp_allocator.save(redis)
         self.runway_allocator.save(redis)
 
-
     def loadAllocators(self, redis):
         self.runway_allocator.load(redis)
         self.ramp_allocator.load(redis)
         self.vehicle_allocator.load(redis)
 
+    def checkAllocators(self, redis):
+        logger.info(f":checkAllocators: runways: {len(self.runway_allocator.resources.keys())}")
+        logger.info(f":checkAllocators: ramps: {len(self.ramp_allocator.resources.keys())}")
+        logger.info(f":checkAllocators: vehicles: {len(self.vehicle_allocator.resources.keys())}")
 
     def allFlights(self, redis):
         keys = redis.keys(key_path(REDIS_DATABASE.FLIGHTS.value, "*"))
