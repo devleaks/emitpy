@@ -636,7 +636,6 @@ class EmitApp(ManagedAirport):
             logger.debug(":do_mission: scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug(":do_mission: .. vehicle ..")
-        print(">>>>>>>>>>", mission_time, mission_time.tzname())
         mission_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=mission, reqtime=mission_time, model=vehicle_model, registration=vehicle_ident, use=True)
         if mission_vehicle is None:
             return StatusInfo(311, f"connot find vehicle {vehicle_model}", None)
@@ -797,7 +796,12 @@ class EmitApp(ManagedAirport):
         """
         Creates or "register" a Queue for (direct) use
         """
-        q = Queue(name=name, formatter_name=formatter, starttime=starttime, speed=speed, start=start, redis=self.redis)
+        starttime_dt = datetime.fromisoformat(starttime)
+        if starttime_dt.tzname() is None:  # has no time zone, uses local one
+            starttime_dt = starttime_dt.replace(tzinfo=self.timezone)
+            logger.debug(":do_create_queue: starttime time has no time zone, added managed airport local time zone")
+
+        q = Queue(name=name, formatter_name=formatter, starttime=starttime_dt.isoformat(), speed=speed, start=start, redis=self.redis)
 
         ret = q.save()
         if not ret[0]:
@@ -810,8 +814,13 @@ class EmitApp(ManagedAirport):
         """
         Reset a queue'start time
         """
+        starttime_dt = datetime.fromisoformat(starttime)
+        if starttime_dt.tzname() is None:  # has no time zone, uses local one
+            starttime_dt = starttime_dt.replace(tzinfo=self.timezone)
+            logger.debug(":do_reset_queue: starttime time has no time zone, added managed airport local time zone")
+
         q = self.queues[name]
-        ret = q.reset(speed=speed, starttime=starttime, start=start)
+        ret = q.reset(speed=speed, starttime=starttime_dt.isoformat(), start=start)
         if not ret[0]:
             return StatusInfo(700, f"problem during restart of queue {name} ", ret)
         return StatusInfo(0, "queue started successfully", name)

@@ -660,7 +660,6 @@ class XPAirport(AirportBase):
         Returns the named POI.
         """
         if redis:
-            print(">>>", name)
             k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.GROUNDSUPPORT.value, name)
             r = rejson(redis, key=k, db=REDIS_DB.REF.value)
             f = FeatureWithProps.new(r)

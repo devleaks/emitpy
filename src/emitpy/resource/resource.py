@@ -199,7 +199,6 @@ class Resource:
             logger.debug(f":isAvailable: first one ok")
             return True
         if len(resarr) == 1:  # if after or before only reservation, it's OK
-            print(">>>", req_from, req_to, resarr[0].estimated[0], resarr[0].estimated[1])
             ok = req_to < resarr[0].estimated[0] or req_from > resarr[0].estimated[1]
             if ok:
                 logger.debug(f":isAvailable: second one, no overlap")
@@ -381,7 +380,7 @@ class AllocationTable:
             return redis.json().get(k)
 
         if resource not in self.resources.keys():
-            logger.warning(":findReservation: resource {resource} not found in {self.name}")
+            logger.warning(f":findReservation: resource {resource} not found in {self.name}")
             return None
         rsc = self.resources[resource]
         return rsc.findReservation(label)

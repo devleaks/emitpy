@@ -1,0 +1,535 @@
+[
+    {
+        "id": "180a8a3d97d7dc3f",
+        "type": "tab",
+        "label": "Emitpy Map Viewer",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "9240c7042e038827",
+        "type": "redis-config",
+        "name": "Local",
+        "options": "{}",
+        "cluster": false,
+        "optionsType": "json"
+    },
+    {
+        "id": "8e2e86d6a27e5877",
+        "type": "ui_tab",
+        "name": "Airport Status",
+        "icon": "dashboard",
+        "order": 3,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "b5ebc082fb059483",
+        "type": "ui_base",
+        "theme": {
+            "name": "theme-dark",
+            "lightTheme": {
+                "default": "#0094CE",
+                "baseColor": "#0094CE",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "edited": true,
+                "reset": false
+            },
+            "darkTheme": {
+                "default": "#097479",
+                "baseColor": "#94e3fe",
+                "baseFont": "Arial,Arial,Helvetica,sans-serif",
+                "edited": true,
+                "reset": false
+            },
+            "customTheme": {
+                "name": "Untitled Theme 1",
+                "default": "#4B7930",
+                "baseColor": "#4B7930",
+                "baseFont": "-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen-Sans,Ubuntu,Cantarell,Helvetica Neue,sans-serif",
+                "reset": false
+            },
+            "themeState": {
+                "base-color": {
+                    "default": "#097479",
+                    "value": "#94e3fe",
+                    "edited": true
+                },
+                "page-titlebar-backgroundColor": {
+                    "value": "#94e3fe",
+                    "edited": false
+                },
+                "page-backgroundColor": {
+                    "value": "#111111",
+                    "edited": false
+                },
+                "page-sidebar-backgroundColor": {
+                    "value": "#ffffff",
+                    "edited": false
+                },
+                "group-textColor": {
+                    "value": "#e0f7ff",
+                    "edited": false
+                },
+                "group-borderColor": {
+                    "value": "#555555",
+                    "edited": false
+                },
+                "group-backgroundColor": {
+                    "value": "#333333",
+                    "edited": false
+                },
+                "widget-textColor": {
+                    "value": "#eeeeee",
+                    "edited": false
+                },
+                "widget-backgroundColor": {
+                    "value": "#94e3fe",
+                    "edited": false
+                },
+                "widget-borderColor": {
+                    "value": "#333333",
+                    "edited": false
+                },
+                "base-font": {
+                    "value": "Arial,Arial,Helvetica,sans-serif"
+                }
+            },
+            "angularTheme": {
+                "primary": "indigo",
+                "accents": "blue",
+                "warn": "red",
+                "background": "grey",
+                "palette": "light"
+            }
+        },
+        "site": {
+            "name": "Emitpy Dashboard",
+            "hideToolbar": "false",
+            "allowSwipe": "false",
+            "lockMenu": "false",
+            "allowTempTheme": "true",
+            "dateFormat": "DD/MM/YYYY",
+            "sizes": {
+                "sx": 48,
+                "sy": 48,
+                "gx": 6,
+                "gy": 6,
+                "cx": 6,
+                "cy": 6,
+                "px": 0,
+                "py": 0
+            }
+        }
+    },
+    {
+        "id": "39307e6adaac1d07",
+        "type": "ui_group",
+        "name": "Aircrafts",
+        "tab": "8e2e86d6a27e5877",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "3c7e74736d0584ca",
+        "type": "ui_tab",
+        "name": "Airport Map",
+        "icon": "fa-tower-control",
+        "order": 2,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "96ed74b2249069bb",
+        "type": "ui_group",
+        "name": "Airport",
+        "tab": "3c7e74736d0584ca",
+        "order": 1,
+        "disp": false,
+        "width": "30",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "bb7637f002e52660",
+        "type": "ui_tab",
+        "name": "Area Map",
+        "icon": "map",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "fdd4060e89397960",
+        "type": "ui_group",
+        "name": "Area Map",
+        "tab": "bb7637f002e52660",
+        "order": 1,
+        "disp": false,
+        "width": "30",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "dd06ff6dac595681",
+        "type": "redis-instance",
+        "z": "180a8a3d97d7dc3f",
+        "server": "9240c7042e038827",
+        "name": "",
+        "topic": "redis",
+        "location": "flow",
+        "x": 110,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "e58f89b222dbd7ca",
+        "type": "redis-in",
+        "z": "180a8a3d97d7dc3f",
+        "server": "9240c7042e038827",
+        "command": "subscribe",
+        "name": "Raw",
+        "topic": "emitpy:raw",
+        "obj": true,
+        "timeout": 0,
+        "x": 110,
+        "y": 200,
+        "wires": [
+            [
+                "d96b9a585e8a8e58",
+                "dee46b090cd504ce"
+            ]
+        ]
+    },
+    {
+        "id": "0603b312c0dbc578",
+        "type": "function",
+        "z": "180a8a3d97d7dc3f",
+        "name": "Flight",
+        "func": "\nmsg.payload = {\n    lat: msg.payload.geometry.coordinates[1],\n    lon: msg.payload.geometry.coordinates[0],\n    heading: msg.payload.properties.heading,\n    speed: msg.payload.properties.speed,\n    tooltip: msg.payload.properties.ident,\n    label: msg.payload.properties.flight.callsign,\n    icon: \"plane\",\n    iconColor: \"#00EE00\",\n    name: msg.payload.properties.icao24\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 280,
+        "wires": [
+            [
+                "52cf1aa80496fcd6",
+                "95070f789505afec",
+                "7430d863ff752a27"
+            ]
+        ]
+    },
+    {
+        "id": "d96b9a585e8a8e58",
+        "type": "switch",
+        "z": "180a8a3d97d7dc3f",
+        "name": "is aircraft",
+        "property": "payload.properties",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "hask",
+                "v": "message",
+                "vt": "str"
+            },
+            {
+                "t": "hask",
+                "v": "service",
+                "vt": "str"
+            },
+            {
+                "t": "hask",
+                "v": "mission",
+                "vt": "str"
+            },
+            {
+                "t": "hask",
+                "v": "flight",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 4,
+        "x": 320,
+        "y": 160,
+        "wires": [
+            [
+                "98035f40bf1c3ec8",
+                "05e47a44c83d9367"
+            ],
+            [
+                "a70f6c96d0cfcebc",
+                "7984f525616d5318"
+            ],
+            [
+                "4e4c918648571f07"
+            ],
+            [
+                "0603b312c0dbc578"
+            ]
+        ]
+    },
+    {
+        "id": "4e4c918648571f07",
+        "type": "function",
+        "z": "180a8a3d97d7dc3f",
+        "name": "Mission",
+        "func": "\nmsg.payload = {\n    lat: msg.payload.geometry.coordinates[1],\n    lon: msg.payload.geometry.coordinates[0],\n    heading: msg.payload.properties.heading,\n    tooltip: msg.payload.properties.ident,\n    label: msg.payload.properties.mission.vehicle.callsign,\n    icon: \"car\",\n    iconColor: \"#0000EE\",\n    name: msg.payload.properties.icao24\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 560,
+        "y": 220,
+        "wires": [
+            [
+                "95070f789505afec"
+            ]
+        ]
+    },
+    {
+        "id": "98035f40bf1c3ec8",
+        "type": "debug",
+        "z": "180a8a3d97d7dc3f",
+        "name": "The Wire",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 560,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "dee46b090cd504ce",
+        "type": "debug",
+        "z": "180a8a3d97d7dc3f",
+        "name": "raw input",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 280,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "7984f525616d5318",
+        "type": "debug",
+        "z": "180a8a3d97d7dc3f",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 490,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "a70f6c96d0cfcebc",
+        "type": "function",
+        "z": "180a8a3d97d7dc3f",
+        "name": "Service",
+        "func": "msg.payload = {\n    lat: msg.payload.geometry.coordinates[1],\n    lon: msg.payload.geometry.coordinates[0],\n    heading: msg.payload.properties.heading,\n    tooltip: msg.payload.properties.ident,\n    label: msg.payload.properties.service.vehicle.callsign,\n    icon: \"truck\",\n    iconColor: \"#0000EE\",\n    name: msg.payload.properties.icao24\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 560,
+        "y": 180,
+        "wires": [
+            [
+                "95070f789505afec"
+            ]
+        ]
+    },
+    {
+        "id": "f1288b1d490a9717",
+        "type": "redis-in",
+        "z": "180a8a3d97d7dc3f",
+        "server": "9240c7042e038827",
+        "command": "subscribe",
+        "name": "Test",
+        "topic": "emitpy:test",
+        "obj": true,
+        "timeout": 0,
+        "x": 110,
+        "y": 260,
+        "wires": [
+            [
+                "d96b9a585e8a8e58",
+                "dee46b090cd504ce"
+            ]
+        ]
+    },
+    {
+        "id": "77b85ddde90439df",
+        "type": "ui_chart",
+        "z": "180a8a3d97d7dc3f",
+        "name": "Altitude",
+        "group": "39307e6adaac1d07",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "label": "Altitude",
+        "chartType": "line",
+        "legend": "false",
+        "xformat": "HH:mm:ss",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "",
+        "ymax": "",
+        "removeOlder": 1,
+        "removeOlderPoints": "",
+        "removeOlderUnit": "3600",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1f77b4",
+            "#aec7e8",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "useDifferentColor": false,
+        "className": "",
+        "x": 960,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "05e47a44c83d9367",
+        "type": "ui_toast",
+        "z": "180a8a3d97d7dc3f",
+        "position": "top right",
+        "displayTime": "3",
+        "highlight": "",
+        "sendall": true,
+        "outputs": 0,
+        "ok": "OK",
+        "cancel": "",
+        "raw": false,
+        "className": "",
+        "topic": "",
+        "name": "",
+        "x": 990,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "52cf1aa80496fcd6",
+        "type": "ui_worldmap",
+        "z": "180a8a3d97d7dc3f",
+        "group": "fdd4060e89397960",
+        "order": 0,
+        "width": 0,
+        "height": 0,
+        "name": "area map",
+        "lat": "25.2745",
+        "lon": "51.6077",
+        "zoom": "10",
+        "layer": "OSMC",
+        "cluster": "",
+        "maxage": "",
+        "usermenu": "hide",
+        "layers": "hide",
+        "panit": "false",
+        "panlock": "false",
+        "zoomlock": "false",
+        "hiderightclick": "true",
+        "coords": "none",
+        "showgrid": "false",
+        "allowFileDrop": "false",
+        "path": "/worldmap",
+        "overlist": "DR,AC,HM",
+        "maplist": "OSMG,OSMC,EsriDG",
+        "mapname": "",
+        "mapurl": "",
+        "mapopt": "",
+        "mapwms": false,
+        "x": 960,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "95070f789505afec",
+        "type": "ui_worldmap",
+        "z": "180a8a3d97d7dc3f",
+        "group": "96ed74b2249069bb",
+        "order": 0,
+        "width": "0",
+        "height": "0",
+        "name": "airport map",
+        "lat": "25.2745",
+        "lon": "51.6077",
+        "zoom": "14",
+        "layer": "OSMG",
+        "cluster": "",
+        "maxage": "",
+        "usermenu": "hide",
+        "layers": "hide",
+        "panit": "false",
+        "panlock": "false",
+        "zoomlock": "false",
+        "hiderightclick": "true",
+        "coords": "none",
+        "showgrid": "false",
+        "allowFileDrop": "false",
+        "path": "/worldmap",
+        "overlist": "DR,CO,RA,DN,HM",
+        "maplist": "OSMG,OSMC",
+        "mapname": "",
+        "mapurl": "",
+        "mapopt": "",
+        "mapwms": false,
+        "x": 970,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "7430d863ff752a27",
+        "type": "jsonpath",
+        "z": "180a8a3d97d7dc3f",
+        "expression": "..properties.altitude",
+        "split": false,
+        "name": "select altitude",
+        "x": 760,
+        "y": 360,
+        "wires": [
+            [
+                "77b85ddde90439df"
+            ]
+        ]
+    }
+]

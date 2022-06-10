@@ -384,7 +384,9 @@ class FEATPROP(Enum):
     COUNTRY = "country"
     DELAY = "delay"  # was pause in emitjs
     EMIT_ABS_TIME = "emit-absolute-time"
+    EMIT_ABS_TIME_FMT = "emit-absolute-time-human"
     EMIT_ABSOLUTE_TIME = "emit-absolute-time"
+    EMIT_ABSOLUTE_TIME_FMT = "emit-absolute-time-human"
     EMIT_INDEX = "emit-index"
     EMIT_REASON = "emit-reason"
     EMIT_REL_TIME = "emit-relative-time"

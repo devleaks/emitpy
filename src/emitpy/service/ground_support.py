@@ -75,7 +75,14 @@ class GroundSupport:
             "name": self.name
         }
 
-    def getScheduleHistory(self):
+    def getScheduleHistory(self, as_string: bool = False):
+        if as_string:
+            a = []
+            for f in self.schedule_history:
+                f0 = f[0] if type(f[0]) == str else f[0].isoformat()
+                f2 = f[2] if type(f[2]) == str else f[2].isoformat()
+                a.append((f0, f[1], f2))
+            return a
         return self.schedule_history
 
     def setPTS(self, relstartime: int, duration: int):

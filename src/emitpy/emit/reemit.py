@@ -27,7 +27,6 @@ class ReEmit(Emit):
         """
         Emit.__init__(self, move=None)
         self.redis = redis # this is a local sign we use Redis
-        self.meta = None
         self.managedAirport = None
 
         ret = self.parseKey(ident, REDIS_TYPE.EMIT.value)
@@ -40,7 +39,7 @@ class ReEmit(Emit):
 
 
     def setManagedAirport(self, airport):
-        self.airport = airport
+        self.managedAirport = airport
 
 
     def parseKey(self, emit_key: str, extension: str = None):
@@ -119,27 +118,28 @@ class ReEmit(Emit):
         emit_id = self.getKey(REDIS_TYPE.EMIT_META.value)
         logger.debug(f":loadMetaFromCache: trying to read {emit_id}..")
         if self.redis.exists(emit_id):
-            self.meta = self.redis.json().get(emit_id)
-            logger.debug(f":loadMetaFromCache: ..got {len(self.meta)} meta data")
-            # logger.debug(f":loadMetaFromCache: {self.meta}")
+            self.emit_meta = self.redis.json().get(emit_id)
+            logger.debug(f":loadMetaFromCache: ..got {len(self.emit_meta)} meta data")
+            # logger.debug(f":loadMetaFromCache: {self.emit_meta}")
         else:
             logger.debug(f":loadMetaFromCache: ..no meta for {emit_id}")
         return (True, "ReEmit::loadMetaFromCache loaded")
 
 
     def getMeta(self, path: str = None, return_first_only: bool = True):
-        if self.meta is None:
+        # logger.debug(f":getMeta: from ReEmit")
+        if self.emit_meta is None:
             ret = self.loadMetaFromCache()
             if not ret[0]:
                 logger.warning(f":getMeta: load meta returned error {ret[1]}")
                 return None
         if path is not None:
-            arr = JSONPath(path).parse(self.meta)
+            arr = JSONPath(path).parse(self.emit_meta)
             if arr is not None and len(arr) > 0:
                 return arr if not return_first_only else arr[0]
             return None  # arr is either None or len(arr)==0
         # return entire meta structure
-        return self.meta
+        return self.emit_meta
 
 
     def loadFromFile(self, emit_id):
@@ -173,7 +173,7 @@ class ReEmit(Emit):
     #     Each meta data is carefully extracted from a JSON path.
     #     """
     #     def getData(path: str):
-    #         val = JSONPath(path).parse(self.meta)
+    #         val = JSONPath(path).parse(self.emit_meta)
     #         if val is None:
     #             logger.warning(f":parseMeta: no value for {path}")
     #         return val
@@ -240,15 +240,15 @@ class ReEmit(Emit):
             etinfo = self.getMeta("$.time")
             estat = datetime.now().astimezone()
             if etinfo is not None:
-                    etinfo.append( (et, "ET", estat) )
+                    etinfo.append( (et.isoformat(), "ET", estat.isoformat()) )
             else:
                 logger.debug(f":updateEstimatedTime: {ident} had no estimates, adding")
-                if self.meta is not None:
-                    self.meta["time"] = [et, "ET", estat]
+                if self.emit_meta is not None:
+                    self.emit_meta["time"] = [et.isoformat(), "ET", estat.isoformat()]
             logger.debug(f":updateEstimatedTime: {ident} added ET {et}")
 
-            if self.meta is not None:
-                self.saveMeta()
+            if self.emit_meta is not None:
+                self.saveMeta(self.redis)
             else:
                 logger.warning(f":updateEstimatedTime: {ident} had no meta data")
 
@@ -259,7 +259,7 @@ class ReEmit(Emit):
         return (True, "ReEmit::updateEstimatedTime updated")
 
 
-    def updateResources(self, et: datetime, is_arrival: bool):
+    def updateResources(self, et: datetime):
         """
         Complicated for now. We need to update the in-memory structure.
         1. Make sure it is loaded (especially if redis, what if not found??)
@@ -314,18 +314,33 @@ class ReEmit(Emit):
             else:
                 logger.warning(f":updateResources: count not get flight id for {self.emit_id}")
 
-        else:
-            # 4. For others: update vehicle
-            ident = source.getId()
-            vehicle = source.vehicle
+        elif self.emit_type == MOVE_TYPE.MISSION.value:
+            # 4a. For others: update vehicle
+            ident = self.getMeta("$.move.mission-identifier")
+            vehicle = self.getMeta("move.vehicle.registration")
+            am = self.managedAirport.airport.manager
 
-            svrsc = am.vehicle_allocator.findReservation(vehicle.getResourceId(), ident)
+            svrsc = am.vehicle_allocator.findReservation(vehicle, ident)
             if svrsc is not None:
-                svrsc.setEstimatedTime(et)
-                logger.logger(f":updateResources: updated {vehicle.getResourceId()} for {ident}")
+                svrsc.setEstimatedTime(et, et)
+                logger.debug(f":updateResources: updated {vehicle} for {ident}")
             else:
-                logger.warning(f":updateResources: no reservation found for vehicle {vehicle.getResourceId()}")
+                logger.warning(f":updateResources: no reservation found for vehicle {vehicle}")
 
-        logger.debug(f":updateResources: resources not updated")
+        elif self.emit_type == MOVE_TYPE.SERVICE.value:
+            # 4b. For others: update vehicle
+            ident = self.getMeta("$.move.service-identifier")
+            vehicle = self.getMeta("move.vehicle.registration")
+            am = self.managedAirport.airport.manager
+
+            svrsc = am.vehicle_allocator.findReservation(vehicle, ident)
+            if svrsc is not None:
+                svrsc.setEstimatedTime(et, et)
+                logger.debug(f":updateResources: updated {vehicle} for {ident}")
+            else:
+                logger.warning(f":updateResources: no reservation found for vehicle {vehicle}")
+
+        else:
+            logger.debug(f":updateResources: resources not updated")
 
         return (True, "ReEmit::updateResources updated")

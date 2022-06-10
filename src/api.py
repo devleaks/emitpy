@@ -183,7 +183,7 @@ async def startup():
 async def shutdown():
     logger.info(f":shutdown {emitpy.__version__} «{emitpy.__version_name__}» ..stopping..")
     app.state.emitpy.saveToCache()
-    app.state.hypercaster.terminate_all_queues()
+    app.state.hypercaster.shutdown()
     logger.info(f":shutdown {emitpy.__version__} «{emitpy.__version_name__}» ..stopped")
 
 

@@ -122,7 +122,7 @@ class Emit(Messages):
             "emit-type": self.emit_type if self.emit_type is not None else ty,
             "ident": self.emit_id,
             "frequency": self.frequency,
-            "time-bracket": self.getTimeBracket(),
+            "time-bracket": self.getTimeBracket(as_string=True),
             "version": self.version
         }
 
@@ -138,13 +138,14 @@ class Emit(Messages):
         """
         Emit identifier augmented with data from the movement.
         """
+        # logger.debug(f":getMeta: from Emit")
         self.emit_meta = self.getInfo()
         self.emit_meta["props"] = self.props
         source = self.getSource()
         if source is not None:
             self.emit_meta["move"] = source.getInfo()
-            self.emit_meta["time"] = source.getScheduleHistory()
-        # logger.debug(f":getMeta: {meta_data}")
+            self.emit_meta["time"] = source.getScheduleHistory(as_string=True)
+        # logger.debug(f":getMeta: {self.emit_meta}")
         return self.emit_meta
 
 
@@ -353,7 +354,7 @@ class Emit(Messages):
             # logger.debug(f":emit: new vertex: {curridx}, e={len(self._emit)} s={self.moves[curridx].speed()}")
             next_vtx = self.moves[curridx + 1]
             time_to_next_vtx = time_distance_to_next_vtx(currpos, curridx)
-            # logger.debug(f":emit: >>>> {curridx}: {time_to_next_emit} sec to next emit, {time_to_next_vtx} sec to next vertex")
+            # logger.debug(f":emit: *****: {curridx}: {time_to_next_emit} sec to next emit, {time_to_next_vtx} sec to next vertex")
             ## logger.debug(":emit: START: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
 
             if (time_to_next_emit > 0) and (time_to_next_emit < future_emit) and (time_to_next_emit < time_to_next_vtx):
@@ -607,6 +608,7 @@ class Emit(Messages):
                 if t is not None:
                     when = moment + timedelta(seconds=(t - offset))
                     p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
+                    p.setProp(FEATPROP.EMIT_ABS_TIME_FMT.value, when.isoformat())
                     # logger.debug(f":get: done at {when.timestamp()}")
                 self.scheduled_emit.append(p)
             logger.debug(f":schedule: emit_point finishes at {when} ({when.timestamp()}) ({len(self.scheduled_emit)} positions)")

@@ -2,7 +2,7 @@
 #
 import os
 import logging
-import datetime
+from datetime import datetime
 import json
 
 from .format import Format
@@ -108,9 +108,9 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset.zadd(queue, emit)
         logger.debug(f":enqueue: added {len(oldvalues)} new entries to sorted set {queue}")
 
-        logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+queue} of new data ({NEW_DATA})..")
-        oset.publish(ADM_QUEUE_PREFIX+queue, NEW_DATA)
-        logger.debug(f":enqueue: ..done")
+        # logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+queue} of new data ({NEW_DATA})..")
+        # oset.publish(ADM_QUEUE_PREFIX+queue, NEW_DATA)
+        # logger.debug(f":enqueue: ..done")
 
         logger.debug(f":enqueue: executing..")
         oset.execute()
@@ -167,16 +167,18 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset.sadd(emit_id, *list(emit.keys()))  # #2
 
         minv = min(emit.values())
-        maxv = min(emit.values())
-        logger.debug(f":enqueue: saved {len(emit)} new entries to {emit_id}, from ts={minv} to ts={maxv}")
+        mindt = datetime.fromtimestamp(minv).astimezone().isoformat()
+        maxv = max(emit.values())
+        maxdt = datetime.fromtimestamp(maxv).astimezone().isoformat()
+        logger.debug(f":enqueue: saved {len(emit)} new entries to {emit_id}, from ts={minv}({mindt}) to ts={maxv} ({maxdt})")
 
         # enqueue new values
         oset.zadd(self.queue.name, emit)  # #3
         logger.debug(f":enqueue: added {len(emit)} new entries to sorted set {self.queue.name}")
 
-        logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})..")
-        oset.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)  # #4
-        logger.debug(f":enqueue: ..done")
+        # logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})..")
+        # oset.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)  # #4
+        # logger.debug(f":enqueue: ..done")
 
         retval = oset.execute()
         logger.debug(f":enqueue: pipeline: {retval}")

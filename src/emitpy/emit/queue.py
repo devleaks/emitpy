@@ -6,7 +6,7 @@ from emitpy.utils import make_key, key_path
 
 logger = logging.getLogger("Queue")
 
-
+QUIT = "quit"
 RUN  = "run"
 STOP = "stop"
 NEW_QUEUE = "new-queue"
@@ -34,7 +34,8 @@ class Queue:
             for q in keys:
                 qa = q.decode("UTF-8").split(ID_SEP)
                 qn = qa[-1]
-                queues[qn] = Queue.loadFromDB(redis, qn)
+                if qn != QUIT:
+                    queues[qn] = Queue.loadFromDB(redis, qn)
             logger.debug(f":loadAllQueuesFromDB: loaded {queues.keys()}")
         else:
             logger.debug(f":loadAllQueuesFromDB: no queues")
@@ -62,9 +63,6 @@ class Queue:
     def delete(redis, name):
         if name in INTERNAL_QUEUES.keys() or name == LIVETRAFFIC_QUEUE:
             return (False, "Queue::delete: cannot delete default queue")
-        # 3. Stop broad
-        redis.publish(REDIS_DATABASE.QUEUES.value, DELETE_QUEUE+ID_SEP+name)
-        logger.debug(f"Hypercaster notified for deletion of {name}")
         # 1. Remove definition
         ident = make_key(REDIS_DATABASE.QUEUES.value, name)
         redis.delete(ident)
@@ -102,8 +100,4 @@ class Queue:
             "status": self.status
         }))
         logger.debug(f":save: {ident} saved")
-
-        self.redis.publish(REDIS_DATABASE.QUEUES.value, NEW_QUEUE+ID_SEP+self.name)
-        logger.debug(f"Hypercaster notified for creation of {ident}")
-
         return (True, "Queue::save: saved")
