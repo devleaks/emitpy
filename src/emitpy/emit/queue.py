@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 
 from emitpy.constants import INTERNAL_QUEUES, REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE
 from emitpy.utils import make_key, key_path
@@ -91,7 +92,7 @@ class Queue:
         return self.save()
 
 
-    def save(self, , currtime: datetime = None):
+    def save(self, currtime: datetime = None):
         """
         Saves Queue characteristics in a structure for Broadcaster
         Also saves Queue existence in "list of queues" set ("Queue Database"), to build combo, etc.

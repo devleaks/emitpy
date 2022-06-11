@@ -83,7 +83,7 @@ class Broadcaster:
         self.shutdown_flag = threading.Event()
 
         self.oktoreset = None
-        self.oktorestart = None
+        self.resetcompleted = None
 
 
     def setTimeshift(self):
@@ -119,11 +119,11 @@ class Broadcaster:
         # We need to ask the broadcaster to stop, put poped item back in queue
         logger.debug(f":reset: prepare..")
         self.oktoreset = threading.Event()
-        logger.debug(f":reset: ..ready wake up..")
+        logger.debug(f":reset: ..ready. wake up broadcaster..")
         self.rdv.set()
-        logger.debug(f":reset: ..ready wait..")
-
+        logger.debug(f":reset: ..wait for broadcaster to block..")
         self.oktoreset.wait()
+        self.oktoreset = None
         logger.debug(f":reset: ..freed, resetting..")
         self.speed = speed
         if starttime is not None:
@@ -133,9 +133,9 @@ class Broadcaster:
                 self._starttime = starttime
             self.setTimeshift()
 
-        logger.debug(f":reset: ..reset, ok to continue..")
-        self.oktorestart.set()
-        self.oktoreset = None
+        logger.debug(f":reset: ..reset, tell broadcaster to restart..")
+        self.rdv = threading.Event()
+        self.resetcompleted.set()
         logger.debug(f":reset: ..cleaned, done")
 
 
@@ -312,20 +312,11 @@ class Broadcaster:
 
                 if timetowait < MAXBACKLOGSECS:  # there are things on the queue that don't need to be sent, let's trim:
                     # the item we poped out is older than the queue time, we do not send it
-                    logger.debug(f":broadcast: {self.name}: awake by old event. Trim other old events..")
+                    logger.debug(f":broadcast: {self.name}: popped old event. Trim other old events..")
                     logger.debug(f":broadcast: {self.name}: {currval[2]} vs now={now} ({timetowait})..")
-
-                    if self.shutdown_flag.is_set():
-                        logger.debug(f":broadcast: {self.name}: awake to quit, quitting..")
-                        continue
-
-                    # wait trimming of old events completes
-                    self.trimmingcompleted = threading.Event()
-                    logger.debug(f":broadcast: {self.name}: waiting for trimmer..")
-                    self.rdv.wait()
-                    self.oktotrim.set()
-                    logger.debug(f":broadcast: {self.name}: ..waiting trim completes..")
-                    self.trimmingcompleted.wait()
+                    # It's an old event, we don't need to push it back on the queue, we won't send it.
+                    self._do_trim()
+                    self.rdv = threading.Event() # not really necessary?
                     logger.debug(f":broadcast: {self.name}: ..trim older events completed, restarted listening")
 
                 else:  # we need to send later, let's wait
@@ -339,39 +330,44 @@ class Broadcaster:
                             logger.warning(f":send_data: did not complete successfully (errcode={r})")
                         currval = None  # currval was sent, we don't need to push it back or anything like that
                         logger.debug(f":broadcast: {self.name}: ..done")
+
+                    # Now, there is an external event, either reset() or trim() that need us to
+                    # temporary stop sending while they do their stuff.
                     else:
-                        # we were instructed to not send
-                        # put current event back in queue
+                        # First, we were instructed to not send, so we put the popped event back in the queue
                         if currval is not None:
                             logger.debug(f":broadcast: {self.name}: awake, push current event back on queue..")
                             pushback({currval[1]: currval[2]})
                             currval = None
                             logger.debug(f":broadcast: {self.name}: ..done")
 
+                        # May we we were awake to stop...
                         if self.shutdown_flag.is_set():
                             logger.info(f":broadcast: {self.name}: awake to quit, quitting..")
                             continue
 
-                        if self.oktoreset is not None: # Is it a reset request or a trip request?
+                        if self.oktoreset is not None: # Is it a reset() request?
                             logger.info(f":broadcast: {self.name}: awake to reset, resetting..")
-                            self.oktorestart = threading.Event()
+                            self.resetcompleted = threading.Event()
                             self.oktoreset.set()
                             logger.debug(f":broadcast: {self.name}: ..waiting reset completes..")
-                            self.oktorestart.wait()
-                            self.rdv = threading.Event()
-                            logger.debug(f":broadcast: {self.name}: ..reset completed")
-                            continue
-                        else:
-                            # Else, we assume it is a trimming event
-                            # We could/should test on existence of self.oktotrim.
+                            self.resetcompleted.wait()
+                            # self.rdv = threading.Event()  # done in reset()
+                            logger.info(f":broadcast: {self.name}: ..reset completed")
+
+                        elif self.oktotrim is not None:  # Is it a trim() request?
                             # this is not 100% correct: Some event of nextval array may have already be sent
-                            logger.debug(f":broadcast: {self.name}: awake to trim, ok to trim..")
-                            # wait trimming completed
+                            logger.debug(f":broadcast: {self.name}: awake to trim, trimming..")
                             self.trimmingcompleted = threading.Event()
                             self.oktotrim.set()
                             logger.debug(f":broadcast: {self.name}: ..waiting trim completes..")
                             self.trimmingcompleted.wait()
+                            # self.rdv = threading.Event()  # done in trim()
                             logger.debug(f":broadcast: {self.name}: ..trim completed")
+
+                        else:
+                            self.rdv = threading.Event()
+                            logger.warning(f":broadcast: {self.name}: awaked but don't know why")
 
             logger.info(f":broadcast: {self.name}: ..bye")
 
