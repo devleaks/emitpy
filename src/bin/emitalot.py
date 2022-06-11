@@ -22,7 +22,7 @@ e = EmitApp(MANAGED_AIRPORT)
 
 dohatime = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
 
-filename = os.path.join("..", "..", "data", "managedairport", "OTHH", "flights", "2019_W15_ROTATION_RAW.csv")
+filename = os.path.join("..", "..", "data", "managedairport", "OTHH", "flights", "DEMO.csv")
 
 with open(filename, 'r') as fp:
     numlines = len(fp.readlines())
@@ -39,13 +39,16 @@ print(len(a))
 
 icao = {}
 
-NUM_TURNAROUNDS = 1
+NUM_TURNAROUNDS = numlines - 1
 DO_SERVICE = True
 USE_TURNAROUND = False
 
 cnt = 0
-cnt_begin = random.randint(0, numlines) # random pair of flights
+cnt_begin = 0 # random.randint(0, numlines) # random pair of flights
 cnt_end = cnt_begin + NUM_TURNAROUNDS
+
+queue = "test"
+rate = 30
 
 # for r in csvdata:
 for i in range(cnt_begin, cnt_end):
@@ -65,8 +68,8 @@ for i in range(cnt_begin, cnt_end):
         dtactual = datetime.strptime(r['FLIGHT ACTUAL TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
         movetype = "arrival" if r['IS ARRIVAL_x'] == 'True' else "departure"
 
-        ret = e.do_flight(queue="raw",
-                          emit_rate=30,
+        ret = e.do_flight(queue=queue,
+                          emit_rate=rate,
                           airline=r['AIRLINE CODE_x'],
                           flightnumber=r['FLIGHT NO_x'],
                           scheduled=dt.isoformat(),
@@ -104,8 +107,8 @@ for i in range(cnt_begin, cnt_end):
         dtactual = datetime.strptime(r['FLIGHT ACTUAL TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
         movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
 
-        ret = e.do_flight(queue="raw",
-                          emit_rate=30,
+        ret = e.do_flight(queue=queue,
+                          emit_rate=rate,
                           airline=r['AIRLINE CODE_y'],
                           flightnumber=r['FLIGHT NO_y'],
                           scheduled=dt.isoformat(),

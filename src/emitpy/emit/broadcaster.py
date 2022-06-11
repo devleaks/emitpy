@@ -82,6 +82,9 @@ class Broadcaster:
         self.setTimeshift()
         self.shutdown_flag = threading.Event()
 
+        self.oktoreset = None
+        self.oktorestart = None
+
 
     def setTimeshift(self):
         self.timeshift = datetime.now().astimezone() - self.starttime()  # timedelta
@@ -113,6 +116,15 @@ class Broadcaster:
 
 
     def reset(self, speed: float = 1, starttime: datetime = None):
+        # We need to ask the broadcaster to stop, put poped item back in queue
+        logger.debug(f":reset: prepare..")
+        self.oktoreset = threading.Event()
+        logger.debug(f":reset: ..ready wake up..")
+        self.rdv.set()
+        logger.debug(f":reset: ..ready wait..")
+
+        self.oktoreset.wait()
+        logger.debug(f":reset: ..freed, resetting..")
         self.speed = speed
         if starttime is not None:
             if type(starttime) == str:
@@ -120,6 +132,11 @@ class Broadcaster:
             else:
                 self._starttime = starttime
             self.setTimeshift()
+
+        logger.debug(f":reset: ..reset, ok to continue..")
+        self.oktorestart.set()
+        self.oktoreset = None
+        logger.debug(f":reset: ..cleaned, done")
 
 
     def now(self, format_output: bool = False, verbose: bool = False):
@@ -232,6 +249,8 @@ class Broadcaster:
 
 
     def send_data(self, data: str) -> int:
+        # l = min(30, len(data))
+        # logger.debug(f":send_data: '{data[0:l]}'...")
         self.redis.publish(OUT_QUEUE_PREFIX+self.name, data)
         return 0
 
@@ -333,14 +352,26 @@ class Broadcaster:
                             logger.info(f":broadcast: {self.name}: awake to quit, quitting..")
                             continue
 
-                        # this is not 100% correct: Some event of nextval array may have already be sent
-                        logger.debug(f":broadcast: {self.name}: awake to trim, ok to trim..")
-                        # wait trimming completed
-                        self.trimmingcompleted = threading.Event()
-                        self.oktotrim.set()
-                        logger.debug(f":broadcast: {self.name}: ..waiting trim completes..")
-                        self.trimmingcompleted.wait()
-                        logger.debug(f":broadcast: {self.name}: ..trim completed")
+                        if self.oktoreset is not None: # Is it a reset request or a trip request?
+                            logger.info(f":broadcast: {self.name}: awake to reset, resetting..")
+                            self.oktorestart = threading.Event()
+                            self.oktoreset.set()
+                            logger.debug(f":broadcast: {self.name}: ..waiting reset completes..")
+                            self.oktorestart.wait()
+                            self.rdv = threading.Event()
+                            logger.debug(f":broadcast: {self.name}: ..reset completed")
+                            continue
+                        else:
+                            # Else, we assume it is a trimming event
+                            # We could/should test on existence of self.oktotrim.
+                            # this is not 100% correct: Some event of nextval array may have already be sent
+                            logger.debug(f":broadcast: {self.name}: awake to trim, ok to trim..")
+                            # wait trimming completed
+                            self.trimmingcompleted = threading.Event()
+                            self.oktotrim.set()
+                            logger.debug(f":broadcast: {self.name}: ..waiting trim completes..")
+                            self.trimmingcompleted.wait()
+                            logger.debug(f":broadcast: {self.name}: ..trim completed")
 
             logger.info(f":broadcast: {self.name}: ..bye")
 
@@ -556,10 +587,10 @@ class Hypercaster:
                             self.start_queue(self.queues[qn])
                             hyperlogger.debug(f":admin_queue: ..queue {qn} started")
                         elif oldbr is None and self.queues[qn].status == STOP:
-                            # queue was not working before and is now started
-                            hyperlogger.debug(f":admin_queue: ..queue {qn} added but stopped")
+                            # queue was not working before and does not need to be started
+                            hyperlogger.debug(f":admin_queue: ..queue {qn} added/modified but not started")
                         else:
-                            # queue was working before, will continue to work bbut some parameters are reset
+                            # queue was working before, will continue to work but some parameters are reset
                             self.queues[qn].broadcaster = oldbr
                             oldbr.reset(speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
                             hyperlogger.debug(f":admin_queue: .. queue {qn} speed {self.queues[qn].speed} (was {oldsp}) " +

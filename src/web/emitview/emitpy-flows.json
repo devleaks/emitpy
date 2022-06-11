@@ -292,7 +292,8 @@
         "y": 220,
         "wires": [
             [
-                "95070f789505afec"
+                "95070f789505afec",
+                "61389890749add36"
             ]
         ]
     },
@@ -319,7 +320,7 @@
         "type": "debug",
         "z": "180a8a3d97d7dc3f",
         "name": "raw input",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -362,7 +363,8 @@
         "y": 180,
         "wires": [
             [
-                "95070f789505afec"
+                "95070f789505afec",
+                "61389890749add36"
             ]
         ]
     },
@@ -538,14 +540,14 @@
         "type": "debug",
         "z": "180a8a3d97d7dc3f",
         "name": "",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 810,
+        "x": 830,
         "y": 480,
         "wires": []
     }

@@ -9,6 +9,9 @@ logger = logging.getLogger("Queue")
 QUIT = "quit"
 RUN  = "run"
 STOP = "stop"
+RESET = "reset"
+CONTINUE = "continue"
+
 NEW_QUEUE = "new-queue"
 DELETE_QUEUE = "del-queue"
 
@@ -20,6 +23,7 @@ class Queue:
         self.speed = speed
         self.starttime = starttime
         self.status = RUN if start else STOP
+        self.mode = RESET
         self.redis = redis
 
 
@@ -86,7 +90,8 @@ class Queue:
         self.status = RUN if start else STOP
         return self.save()
 
-    def save(self):
+
+    def save(self, , currtime: datetime = None):
         """
         Saves Queue characteristics in a structure for Broadcaster
         Also saves Queue existence in "list of queues" set ("Queue Database"), to build combo, etc.
@@ -97,6 +102,8 @@ class Queue:
             "formatter_name": self.formatter_name,
             "speed": self.speed,
             "starttime": self.starttime,
+            "currenttime": currtime,
+            "mode": self.mode,
             "status": self.status
         }))
         logger.debug(f":save: {ident} saved")

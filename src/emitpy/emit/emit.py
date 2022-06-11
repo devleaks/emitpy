@@ -192,10 +192,10 @@ class Emit(Messages):
         move_id = self.getKey("")
 
         # 2. Save KML (for flights only)
-        if callable(getattr(self.move, "getKML", None)):
-            kml_id = self.getKey(REDIS_TYPE.EMIT_KML.value)
-            redis.set(kml_id, self.move.getKML())
-            logger.debug(f":save: saved kml")
+        # if callable(getattr(self.move, "getKML", None)):
+        #     kml_id = self.getKey(REDIS_TYPE.EMIT_KML.value)
+        #     redis.set(kml_id, self.move.getKML())
+        #     logger.debug(f":save: saved kml")
 
         # 3. Save messages for broadcast
         if self.move is not None:

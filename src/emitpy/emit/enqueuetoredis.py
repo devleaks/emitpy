@@ -97,24 +97,25 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset = redis.pipeline()
         if oldvalues and len(oldvalues) > 0:
             oset.zrem(queue, *oldvalues)
-            logger.debug(f":enqueue: removed {len(oldvalues)} old entries")
+            logger.debug(f":pias: removed {len(oldvalues)} old entries")
 
         # enqueue new values (the same ones)
         emit = {}
         for f1 in oldvalues:
-            f = json.loads(f1.decode("UTF-8"))
-            emit[str(f)] = f["properties"]["emit-absolute-time"]
+            f2 = f1.decode("UTF-8")
+            f = json.loads(f2)
+            emit[f2] = f["properties"]["emit-absolute-time"]
 
         oset.zadd(queue, emit)
-        logger.debug(f":enqueue: added {len(oldvalues)} new entries to sorted set {queue}")
+        logger.debug(f":pias: added {len(oldvalues)} new entries to sorted set {queue}")
 
         # logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+queue} of new data ({NEW_DATA})..")
         # oset.publish(ADM_QUEUE_PREFIX+queue, NEW_DATA)
         # logger.debug(f":enqueue: ..done")
 
-        logger.debug(f":enqueue: executing..")
+        logger.debug(f":pias: executing..")
         oset.execute()
-        logger.debug(f":enqueue: ..done")
+        logger.debug(f":pias: ..done")
         return (True, f"EnqueueToRedis::pias enqueued {ident}")
 
 
