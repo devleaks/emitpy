@@ -28,6 +28,7 @@ from emitpy.parameters import AODB_DIR, MANAGED_AIRPORT
 
 logger = logging.getLogger("Emit")
 
+DEFAULT_FREQUENCY = 30
 
 class EmitPoint(FeatureWithProps):
     """
@@ -58,7 +59,7 @@ class Emit(Messages):
         self.emit_id = None
         self.emit_type = None
         self.emit_meta = None
-        self.frequency = 30  # seconds
+        self.frequency = DEFAULT_FREQUENCY  # seconds
         self._emit = []  # [ EmitPoint ], time-relative emission of messages
         self.scheduled_emit = []  # [ EmitPoint ], a copy of self._emit but with actual emission time (absolute time)
         self.props = {}  # general purpose properties added to each emit point
@@ -153,16 +154,19 @@ class Emit(Messages):
         db = REDIS_DATABASE.UNKNOWN.value
         if self.emit_type in REDIS_DATABASES.keys():
             db = REDIS_DATABASES[self.emit_type]
-        return key_path(db, self.emit_id, extension)
+        frequency = self.frequency if self.frequency is not None else DEFAULT_FREQUENCY
+        if extension is None:
+            return key_path(db, self.emit_id, f"{frequency}")
+        return key_path(db, self.emit_id, f"{frequency}", extension)
 
 
     def loadMeta(self):
-        emit_id = self.getKey(REDIS_TYPE.EMIT_META.value)
-        if self.redis.exists(emit_id):
-            self.redis = json.loads(redis.get(emit_id))
+        meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
+        if self.redis.exists(meta_id):
+            self.redis = json.loads(redis.get(meta_id))
             logger.debug(f":loadMeta: ..got {len(self.props)} props")
         else:
-            logger.debug(f":loadMeta: ..no meta for {emit_id}")
+            logger.debug(f":loadMeta: ..no meta for {self.emit_type}")
         return (True, "Emit::loadMeta loaded")
 
 
@@ -226,7 +230,7 @@ class Emit(Messages):
         return (True, "Emit::save saved")
 
 
-    def emit(self, frequency: int = 30):
+    def emit(self, frequency: int = DEFAULT_FREQUENCY):
         # Utility subfunctions
         def point_on_line(c, n, d):
             # brng = bearing(c, n)
@@ -434,13 +438,14 @@ class Emit(Messages):
         # @todo: It would be better to not generate the emission at the first place...
         # Somehow, the test has to be made somewhere. Let's assume filter() is efficient.
         if RATE_LIMIT is not None and frequency < RATE_LIMIT and EMIT_RANGE is not None:
-            if self.move is not None and self.move.airport is not None:
-                center = self.move.airport  # yeah, it's a Feature
-                before = len(self._emit)
-                self._emit = list(filter(lambda f: distance(f, center) < EMIT_RANGE, self._emit))
-                logger.debug(f":emit: rate { self.frequency } high, limiting to { EMIT_RANGE }km: before: {before}, after: {len(self._emit)}")
-            else:
-                logger.warning(f":emit: rate { self.frequency } high, cannot locate airport")
+            if self.move is not None:
+                if self.move.airport is not None:
+                    center = self.move.airport  # yeah, it's a Feature
+                    before = len(self._emit)
+                    self._emit = list(filter(lambda f: distance(f, center) < EMIT_RANGE, self._emit))
+                    logger.warning(f":emit: rate { self.frequency } high, limiting to { EMIT_RANGE }km around airport center: before: {before}, after: {len(self._emit)}")
+                else:
+                    logger.warning(f":emit: rate { self.frequency } high, cannot locate airport")
 
         # transfert common data to each emit point for emission
         # (may be should think about a FeatureCollection-level property to avoid repetition.)

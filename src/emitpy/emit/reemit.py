@@ -45,14 +45,19 @@ class ReEmit(Emit):
 
     def parseKey(self, emit_key: str, extension: str = None):
         """
-        Tries to figure out what's being loead (type of move)
+        Tries to figure out what's being loaded (type of move)
         from key root part which should be a well-known database.
+        Extract frequency from key to allow for same move with several emission frequency.
 
         :param      emit_key:    The emit identifier
         :type       emit_key:    str
         :param      extension:  The extension
         :type       extension:  str
         """
+        valid_extensions = set(item.value for item in REDIS_TYPE)
+        if extension not in valid_extensions:
+            logger.warning(f":parseKey: extension {extension} not in set {valid_extensions}.")
+
         arr = emit_key.split(":")
         revtypes = dict([(v, k) for k, v in REDIS_DATABASES.items()])
         if arr[0] in revtypes.keys():
@@ -63,18 +68,19 @@ class ReEmit(Emit):
 
         if extension is not None:
             if extension == arr[-1]:  # if it is the extention we expect
-                self.emit_id = ":".join(arr[1:-1])  # remove extension
-            elif extension == "*" and len(arr[-1]) == 1:
+                self.emit_id = ":".join(arr[1:-2])  # remove extension and frequency
+            elif extension == "*" and arr[-1] in valid_extensions:
                 logger.debug(f":parseKey: removed extension {arr[-1]}.")
-                self.emit_id = ":".join(arr[1:-1])  # remove extension
+                self.emit_id = ":".join(arr[1:-2])  # remove extension and frequency
             else:
-                if len(arr[-1]) == 1:
-                    logger.warning(f":parseKey: {emit_key} seems to have extension {arr[-1]} (not removed).")
-                self.emit_id = ":".join(arr[1:])    # it is not the expected extension, we leave it
+                if arr[-1] in valid_extensions:
+                    logger.warning(f":parseKey: {emit_key} has valid extension {arr[-1]} (not removed).")
+                self.emit_id = ":".join(arr[1:-1])    # it is not the expected extension, we leave it but remove frequency
                 logger.warning(f":parseKey: extension {extension} not found ({emit_key}).")
         else:
-            self.emit_id = ":".join(arr[1:])        # no extension to remove.
-        logger.debug(f":parseKey: {arr}: emit_type={self.emit_type}, emit_id={self.emit_id}")
+            self.emit_id = ":".join(arr[1:-1])        # no extension to remove, remove frequency.
+            self.frequency = int(arr[-1])
+        logger.debug(f":parseKey: {arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}")
         return (True, "ReEmit::parseKey parsed")
 
 

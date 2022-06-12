@@ -118,6 +118,10 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         return (True, f"EnqueueToRedis::pias enqueued {ident}")
 
 
+    def getKey(self, extension):
+        return key_path(self.emit.getKey(None), self.formatter.name, extension)
+
+
     def save(self, overwrite: bool = False):
         """
         Save flight paths to file for emitted positions.
@@ -126,7 +130,8 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             logger.warning(":save: no emission point")
             return (False, "EnqueueToRedis::save: no emission point")
 
-        emit_id = self.emit.getKey(REDIS_TYPE.FORMAT.value)  # ident + REDIS_TYPE.EMIT.value
+        # emit_id = self.emit.getKey(REDIS_TYPE.FORMAT.value)  # ident + REDIS_TYPE.EMIT.value
+        emit_id = self.getKey(REDIS_TYPE.FORMAT.value)  # ident + REDIS_TYPE.EMIT.value
         n = self.redis.scard(emit_id)
         if n > 0 and not overwrite:
             logger.warning(f":save: key {emit_id} already exist, not saved")
@@ -152,7 +157,8 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             logger.warning(":enqueue: no emission point")
             return (False, "FormatToRedis::enqueue: no emission point")
 
-        emit_id = self.emit.getKey(REDIS_TYPE.QUEUE.value)
+        # emit_id = self.emit.getKey(REDIS_TYPE.QUEUE.value)
+        emit_id = self.getKey(REDIS_TYPE.QUEUE.value)
         oldvalues = self.redis.smembers(emit_id)
         oset = self.redis.pipeline()  # set
         if oldvalues and len(oldvalues) > 0:
