@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 
 from emitpy.constants import INTERNAL_QUEUES, REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE
-from emitpy.utils import make_key, key_path
+from emitpy.utils import key_path
 
 logger = logging.getLogger("Queue")
 
@@ -13,8 +13,6 @@ STOP = "stop"
 RESET = "reset"
 CONTINUE = "continue"
 
-NEW_QUEUE = "new-queue"
-DELETE_QUEUE = "del-queue"
 
 class Queue:
 
@@ -41,6 +39,8 @@ class Queue:
                 qn = qa[-1]
                 if qn != QUIT:
                     queues[qn] = Queue.loadFromDB(redis, qn)
+                else:
+                    logger.warning(f":loadAllQueuesFromDB: cannot create queue named '{QUIT}' (reserved queue name)")
             logger.debug(f":loadAllQueuesFromDB: loaded {queues.keys()}")
         else:
             logger.debug(f":loadAllQueuesFromDB: no queues")
@@ -52,7 +52,7 @@ class Queue:
         """
         Instantiate Queue from characteristics saved in Redis
         """
-        ident = make_key(REDIS_DATABASE.QUEUES.value, name)
+        ident = key_path(REDIS_DATABASE.QUEUES.value, name)
         qstr = redis.get(ident)
         if qstr is not None:
             q = json.loads(qstr.decode("UTF-8"))
@@ -69,7 +69,7 @@ class Queue:
         if name in INTERNAL_QUEUES.keys() or name == LIVETRAFFIC_QUEUE:
             return (False, "Queue::delete: cannot delete default queue")
         # 1. Remove definition
-        ident = make_key(REDIS_DATABASE.QUEUES.value, name)
+        ident = key_path(REDIS_DATABASE.QUEUES.value, name)
         redis.delete(ident)
         # 2. Remove preparation queue
         redis.delete(name)
@@ -97,7 +97,7 @@ class Queue:
         Saves Queue characteristics in a structure for Broadcaster
         Also saves Queue existence in "list of queues" set ("Queue Database"), to build combo, etc.
         """
-        ident = make_key(REDIS_DATABASE.QUEUES.value, self.name)
+        ident = key_path(REDIS_DATABASE.QUEUES.value, self.name)
         self.redis.set(ident, json.dumps({
             "name": self.name,
             "formatter_name": self.formatter_name,

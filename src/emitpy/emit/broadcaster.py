@@ -8,11 +8,12 @@ import json
 import socket
 
 from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE
+from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT
 from emitpy.parameters import XPLANE_FEED, XPLANE_HOSTNAME, XPLANE_PORT
-from emitpy.utils import key_path
 
 from .queue import Queue, RUN, STOP, QUIT
+
 
 logger = logging.getLogger("Broadcaster")
 
@@ -39,13 +40,7 @@ LISTEN_TIMEOUT = 10.0
 MAXBACKLOGSECS = -20  # 0 is too critical, but MUST be <=0
 
 # Queue name prefix
-ADM_QUEUE_PREFIX = "adm:"
 OUT_QUEUE_PREFIX = "emitpy:"  # could be ""
-
-
-# Internal keywords
-NEW_DATA = "new-data"
-
 
 
 # ##############################

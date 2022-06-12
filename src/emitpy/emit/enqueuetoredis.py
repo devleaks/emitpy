@@ -7,9 +7,8 @@ import json
 
 from .format import Format
 from .queue import Queue
-from .broadcaster import NEW_DATA, ADM_QUEUE_PREFIX
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, ID_SEP
-from emitpy.utils import make_key
+from emitpy.utils import key_path
 
 logger = logging.getLogger("EnqueueToRedis")
 
@@ -30,7 +29,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
     @staticmethod
     def dequeue(redis, ident: str, queue: str):
         # Remove ident entries from sending queue.
-        enqueued = make_key(ident, REDIS_TYPE.QUEUE.value)
+        enqueued = key_path(ident, REDIS_TYPE.QUEUE.value)
         # 1. Remove queued elements
         oldvalues = redis.smembers(enqueued)
         oset = redis.pipeline()
@@ -63,23 +62,23 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         # 2. Remove formatted
         oset = redis.pipeline()
 
-        emits = make_key(ident, REDIS_TYPE.FORMAT.value)
+        emits = key_path(ident, REDIS_TYPE.FORMAT.value)
         oset.delete(emits)
         logger.debug(f":delete: deleted {emits} format")
         # 3. Remove messages
-        emits = make_key(ident, REDIS_TYPE.EMIT_MESSAGE.value)
+        emits = key_path(ident, REDIS_TYPE.EMIT_MESSAGE.value)
         oset.delete(emits)
         logger.debug(f":delete: deleted {emits} messages")
         # 4. Remove emit meta
-        emits = make_key(ident, REDIS_TYPE.EMIT_META.value)
+        emits = key_path(ident, REDIS_TYPE.EMIT_META.value)
         oset.delete(emits)
         logger.debug(f":delete: deleted {emits} meta data")
         # 6. Remove kml
-        emits = make_key(ident, REDIS_TYPE.EMIT_KML.value)
+        emits = key_path(ident, REDIS_TYPE.EMIT_KML.value)
         oset.delete(emits)
         logger.debug(f":delete: deleted {emits} kml")
         # 5. Remove emit
-        emits = make_key(ident, REDIS_TYPE.EMIT.value)
+        emits = key_path(ident, REDIS_TYPE.EMIT.value)
         oset.delete(emits)
 
         oset.execute()
