@@ -389,12 +389,12 @@ class CIFP:
         self.pairRunways()
 
         ## Print result
-        for k, v in procedures.items():
-            if k == "RWY":
-                logger.debug(f":loadFromFile: {k}: {v.keys()}")
-            else:
-                for r, p in v.items():
-                    logger.debug(f":loadFromFile: {k} {r}: {p.keys()}")
+        # for k, v in procedures.items():
+        #     if k == "RWY":
+        #         logger.debug(f":loadFromFile: {k}: {v.keys()}")
+        #     else:
+        #         for r, p in v.items():
+        #             logger.debug(f":loadFromFile: {k} {r}: {p.keys()}")
 
             # details:
             # for p in procedures[procty]:
