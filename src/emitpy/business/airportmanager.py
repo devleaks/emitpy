@@ -92,7 +92,7 @@ class AirportManager:
         self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
         if redis is not None:
             k = key_path(REDIS_PREFIX.AIRPORT.value, "managed")
-            self.data = rejson(redis, k, db=REDIS_DB.REF.value)
+            self.data = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             logger.debug(f":loadAirport: {k} loaded")
             return (True, "AirportManager::loadFromFile: loaded")
         else:
@@ -177,17 +177,32 @@ class AirportManager:
         return [True, "AirportManager::loadAirRoutes: loaded"]
 
 
-    def getAirlineCombo(self):
-        """
-        Builds a list of (code, description) pairs for all airlines operating at this airport.
-        """
-        return [(a.iata, a.orgId) for a in sorted(self.airlines.values(), key=operator.attrgetter('orgId'))]
-
-
-    def getAirrouteCombo(self, airline = None, airport = None):
+    def getAirrouteCombo(self, airline = None, airport = None, redis = None):
         """
         Builds a list of (code, description) pairs for all routes for the airline operating at this airport.
         """
+        if redis is not None:
+            if airport is not None:
+                key = key_path(REDIS_PREFIX.AIRPORT_ROUTES.value, airport)
+                alns = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+                arr = []
+                for aln in alns:
+                    airline = Airline.findIATA(aln, redis)
+                    arr.append((airline.iata, airline.orgId))
+                return arr
+
+            if airline is not None:
+                key = key_path(REDIS_PREFIX.AIRLINE_ROUTES.value, airline)
+                apts = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+                arr = []
+                for apt in apts:
+                    airport = Airport.findIATA(apt, redis)
+                    arr.append((airport.iata, airport["properties"]["name"]))
+                return arr
+
+            logger.warning(f":getAirrouteCombo: no airline and no airport")
+            return []
+
         routes = set()
         if airline is None:
             for al in self.airline_route_frequencies.values():
@@ -259,7 +274,7 @@ class AirportManager:
         if redis is not None:
             rkeys = rejson_keys(redis, key_path(REDIS_PREFIX.COMPANIES.value, "*"), db=REDIS_DB.REF.value)
             for key in rkeys:
-                c = rejson(redis, key=key, db=REDIS_DB.REF.value)
+                c = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                 if c is not None:
                     k = key.decode("UTF-8").split(ID_SEP)
                     self.companies[k[-1]] =Company(orgId=c["orgId"],
@@ -319,7 +334,7 @@ class AirportManager:
             vehicles = rejson_keys(redis, key_path(REDIS_PREFIX.GSE.value, "*"), db=REDIS_DB.REF.value)
             servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
             for v in vehicles:
-                vdat = rejson(redis, key=v, db=REDIS_DB.REF.value)
+                vdat = rejson(redis=redis, key=v, db=REDIS_DB.REF.value)
                 vname = vdat["registration"]
                 model = vdat["model"].replace("-", "_")  # now model is snake_case
                 mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
@@ -617,7 +632,7 @@ class AirportManager:
         logger.info(f":checkAllocators: vehicles: {len(self.vehicle_allocator.resources.keys())}")
 
     def allFlights(self, redis):
-        keys = redis.keys(key_path(REDIS_DATABASE.FLIGHTS.value, "*"))
+        keys = redis.keys(key_path(REDIS_DATABASE.FLIGHTS.value, "*", REDIS_TYPE.EMIT_META.value))
         items = []
         if items is not None and len(keys) > 0:
             for f in keys:
@@ -627,7 +642,7 @@ class AirportManager:
 
 
     def allMissions(self, redis):
-        keys = redis.keys(key_path(REDIS_DATABASE.MISSIONS.value, "*"))
+        keys = redis.keys(key_path(REDIS_DATABASE.MISSIONS.value, "*", REDIS_TYPE.EMIT_META.value))
         items = []
         if keys is not None and len(keys) > 0:
             for f in keys:
@@ -667,7 +682,7 @@ class AirportManager:
 
         # 2 search for all services at that ramp, "around" supplied ETA/ETD.
         ramp = emit.getMeta("$.move.ramp.name")
-        keys = redis.keys(key_path(REDIS_DATABASE.SERVICES.value, "*", ramp, "*"))
+        keys = redis.keys(key_path(REDIS_DATABASE.SERVICES.value, "*", ramp, "*", REDIS_TYPE.EMIT_META.value))
         for k in keys:
             k = k.decode("UTF-8")
             karr = k.split(ID_SEP)
@@ -682,7 +697,7 @@ class AirportManager:
 
     def allServiceOfType(self, redis, service_type: str):
         service_class = service_type[0].upper() + service_type[1:].lower() + "Service"  # @todo: Hum.
-        ks = key_path(REDIS_DATABASE.SERVICES.value, service_class, "*")
+        ks = key_path(REDIS_DATABASE.SERVICES.value, service_class, "*", REDIS_TYPE.EMIT_META.value)
         # logger.debug(f":allServiceOfType: trying {ks}")
         keys = redis.keys(ks)
         items = []
@@ -694,7 +709,7 @@ class AirportManager:
 
 
     def allServiceForRamp(self, redis, ramp_id: str):
-        ks = key_path(REDIS_DATABASE.SERVICES.value, "*", ramp_id, "*")
+        ks = key_path(REDIS_DATABASE.SERVICES.value, "*", ramp_id, "*", REDIS_TYPE.EMIT_META.value)
         logger.debug(f":allServiceForRamp: trying {ks}")
         keys = redis.keys(ks)
         items = []

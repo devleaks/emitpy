@@ -10,17 +10,17 @@ from emitpy.constants import FEATPROP
 from emitpy.airport import Airport
 from emitpy.utils import FT, NAUTICAL_MILE
 
-from .format import Formatter
+from .formatter import FormatterBase
 
 logger = logging.getLogger("AITFCFormatter")
 
 
-class AITFCFormatter(Formatter):
+class AITFCFormatter(FormatterBase):
 
-    FILE_FORMAT = "csv"
+    NAME = "aitfc"
 
     def __init__(self, feature: "FeatureWithProps"):
-        Formatter.__init__(self, feature=feature)
+        FormatterBase.__init__(self, name=AITFCFormatter.NAME, feature=feature)
         self.name = "lt"
 
     def __str__(self):

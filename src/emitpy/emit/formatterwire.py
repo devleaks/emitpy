@@ -4,7 +4,7 @@ from emitpy.constants import FEATPROP
 
 class FormatterWire:
 
-    FILE_EXTENTION = "json"
+    NAME = "wire"
 
     def __init__(self, message: "Message"):
         self.fileformat = "json"

@@ -1,4 +1,4 @@
-#  Python classes to format features for output to different channel requirements
+#  Python class to format features for output and enqueue for broadcast
 #
 import os
 import logging
@@ -119,7 +119,8 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
 
     def getKey(self, extension):
-        return key_path(self.emit.getKey(None), self.formatter.name, extension)
+        # note: self.formatter is a class
+        return key_path(self.emit.getKey(None), self.formatter.NAME, extension)
 
 
     def save(self, overwrite: bool = False):

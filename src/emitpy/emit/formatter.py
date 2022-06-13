@@ -2,13 +2,14 @@ import json
 from emitpy.constants import FEATPROP
 
 
-class Formatter:
+class FormatterBase:
 
-    FILE_EXTENTION = "json"
+    NAME = "abc"
 
-    def __init__(self, feature: "Feature"):
-        self.name = "raw"
+    def __init__(self, name: str, feature: "Feature"):
         self.feature = feature
+        self.name = name
+
         self.ts = feature.getAbsoluteEmissionTime()
         self.fileformat = "json"
         if "properties" in self.feature:
@@ -28,3 +29,11 @@ class Formatter:
         if "properties" in f and FEATPROP.EMIT_ABSOLUTE_TIME.value in f["properties"]:
             return f["properties"][FEATPROP.EMIT_ABSOLUTE_TIME.value]
         return None
+
+
+class Formatter(FormatterBase):
+
+    NAME = "raw"
+
+    def __init__(self, feature: "Feature"):
+        FormatterBase.__init__(self, name=Formatter.NAME, feature=feature)

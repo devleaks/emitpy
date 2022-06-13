@@ -22,7 +22,7 @@ e = EmitApp(MANAGED_AIRPORT)
 
 dohatime = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
 
-filename = os.path.join("..", "..", "data", "managedairport", "OTHH", "flights", "DEMO.csv")
+filename = os.path.join("..", "..", "data", "managedairport", "OTHH", "flights", "MIN.csv")
 
 with open(filename, 'r') as fp:
     numlines = len(fp.readlines())
@@ -47,7 +47,7 @@ cnt = 0
 cnt_begin = 0 # random.randint(0, numlines) # random pair of flights
 cnt_end = cnt_begin + NUM_TURNAROUNDS
 
-queue = "test"
+queue = "raw"
 rate = 30
 
 # for r in csvdata:

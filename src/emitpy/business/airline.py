@@ -61,7 +61,7 @@ class Airline(Company):
                 k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.ICAO.value), code)
             else:
                 k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.IATA.value), code)
-            ac = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
@@ -80,7 +80,7 @@ class Airline(Company):
         """
         if redis is not None:
             k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.ICAO.value), icao)
-            ac = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
@@ -96,7 +96,7 @@ class Airline(Company):
         """
         if redis is not None:
             k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.IATA.value), iata)
-            ac = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
@@ -112,7 +112,7 @@ class Airline(Company):
         """
         if redis is not None:
             k = key_path(REDIS_DATABASE.LOVS.value, REDIS_LOVS.AIRLINES.value)
-            return rejson(redis, key=k, db=REDIS_DB.REF.value)
+            return rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
 
         l = filter(lambda a: len(a.routes) > 0, Airline._DB_IATA.values())
         a = [(a.iata, a.orgId) for a in sorted(l, key=operator.attrgetter('orgId'))]

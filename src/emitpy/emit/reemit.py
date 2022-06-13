@@ -4,7 +4,7 @@ from jsonpath import JSONPath
 
 from .emit import EmitPoint, Emit
 from emitpy.message import Messages, EstimatedTimeMessage
-from emitpy.constants import FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
+from emitpy.constants import ID_SEP, FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_DATABASES, REDIS_TYPE
 from emitpy.utils import Timezone
 
@@ -30,22 +30,25 @@ class ReEmit(Emit):
         self.redis = redis # this is a local sign we use Redis
         self.managedAirport = None
 
-        ret = self.parseKey(ident, REDIS_TYPE.EMIT.value)
-        if not ret[0]:
+        ret = self.parseKey(ident)
+        if ret[0]:
+            ret1 = self.load()
+            if not ret1[0]:
+                logger.warning(f":init: could not load {ident}")
+        else:
             logger.warning(f":init: could not parse {ident}")
 
-        ret = self.load()
-        if not ret[0]:
-            logger.warning(f":init: could not load {ident}")
+        if self.moves is None:
+            logger.warning(f":__init__: {ident} not loaded")
 
 
     def setManagedAirport(self, airport):
         self.managedAirport = airport
 
 
-    def parseKey(self, emit_key: str, extension: str = None):
+    def parseKey(self, key: str):
         """
-        Tries to figure out what's being loaded (type of move)
+        Figure out what's being loaded (type of move)
         from key root part which should be a well-known database.
         Extract frequency from key to allow for same move with several emission frequency.
 
@@ -55,36 +58,33 @@ class ReEmit(Emit):
         :type       extension:  str
         """
         valid_extensions = set(item.value for item in REDIS_TYPE)
-        if extension not in valid_extensions:
-            logger.warning(f":parseKey: extension {extension} not in set {valid_extensions}.")
+        valid_databases = dict([(v, k) for k, v in REDIS_DATABASES.items()])
 
-        arr = emit_key.split(":")
-        revtypes = dict([(v, k) for k, v in REDIS_DATABASES.items()])
-        if arr[0] in revtypes.keys():
-            self.emit_type = revtypes[arr[0]]
-        else:
-            self.emit_type = REDIS_DATABASE.UNKNOWN.value
-            logger.warning(f":parseKey: database {arr[0]} not found ({emit_key}).")
+        arr = key.split(ID_SEP)
 
-        if extension is not None:
-            if extension == arr[-1]:  # if it is the extention we expect
-                self.emit_id = ":".join(arr[1:-2])  # remove extension and frequency
-            elif extension == "*" and arr[-1] in valid_extensions:
-                logger.debug(f":parseKey: removed extension {arr[-1]}.")
-                self.emit_id = ":".join(arr[1:-2])  # remove extension and frequency
-            else:
-                if arr[-1] in valid_extensions:
-                    logger.warning(f":parseKey: {emit_key} has valid extension {arr[-1]} (not removed).")
-                self.emit_id = ":".join(arr[1:-1])    # it is not the expected extension, we leave it but remove frequency
-                logger.warning(f":parseKey: extension {extension} not found ({emit_key}).")
-        else:
-            self.emit_id = ":".join(arr[1:-1])        # no extension to remove, remove frequency.
-            self.frequency = int(arr[-1])
+        # Do we have an extension?
+        if arr[-1] != REDIS_TYPE.EMIT.value:
+            logger.warning(f":parseKey: invalid emit key {key} (extension={arr[-1]})")
+            return (False, "ReEmit::parseKey invalid emit key")
+
+        if arr[0] not in valid_databases.keys():
+            logger.warning(f":parseKey: invalid emit key {key} (database={arr[0]})")
+            return (False, "ReEmit::parseKey invalid emit key")
+
+        self.emit_type = valid_databases[arr[0]]
+        self.frequency = int(arr[-2])
+        self.emit_id = ID_SEP.join(arr[1:-2])
+
         logger.debug(f":parseKey: {arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}")
         return (True, "ReEmit::parseKey parsed")
 
 
     def load(self):
+        # First load meta in case we need some info
+        status = self.loadMetaFromCache()
+        if not status[0]:
+            return status
+
         status = self.loadFromCache()
         if not status[0]:
             return status
@@ -93,15 +93,19 @@ class ReEmit(Emit):
         if not status[0]:
             return status
 
-        status = self.loadMetaFromCache()
-        if not status[0]:
-            return status
-
-        # status = self.parseMeta()
-        # if not status[0]:
-        #     return status
-
         return (True, "ReEmit::load loaded")
+
+
+    def loadMetaFromCache(self):
+        meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
+        logger.debug(f":loadMetaFromCache: trying to read {meta_id}..")
+        if self.redis.exists(meta_id):
+            self.emit_meta = self.redis.json().get(meta_id)
+            logger.debug(f":loadMetaFromCache: ..got {len(self.emit_meta)} meta data")
+            # logger.debug(f":loadMetaFromCache: {self.emit_meta}")
+        else:
+            logger.debug(f":loadMetaFromCache: ..no meta for {meta_id}")
+        return (True, "ReEmit::loadMetaFromCache loaded")
 
 
     def loadFromCache(self):
@@ -119,18 +123,6 @@ class ReEmit(Emit):
         else:
             logger.debug(f":loadFromCache: ..could not load {emit_id}")
         return (True, "ReEmit::loadFromCache loaded")
-
-
-    def loadMetaFromCache(self):
-        emit_id = self.getKey(REDIS_TYPE.EMIT_META.value)
-        logger.debug(f":loadMetaFromCache: trying to read {emit_id}..")
-        if self.redis.exists(emit_id):
-            self.emit_meta = self.redis.json().get(emit_id)
-            logger.debug(f":loadMetaFromCache: ..got {len(self.emit_meta)} meta data")
-            # logger.debug(f":loadMetaFromCache: {self.emit_meta}")
-        else:
-            logger.debug(f":loadMetaFromCache: ..no meta for {emit_id}")
-        return (True, "ReEmit::loadMetaFromCache loaded")
 
 
     def getMeta(self, path: str = None, return_first_only: bool = True):
@@ -350,3 +342,63 @@ class ReEmit(Emit):
             logger.debug(f":updateResources: resources not updated")
 
         return (True, "ReEmit::updateResources updated")
+
+
+class ReEmitAll:
+    """
+    Convenience wrapper to collect all ReEmits for supplied movement (Emit Meta Data)
+    """
+    def __init__(self, ident: str, redis):
+        self.redis = redis
+        self.ident = ident
+        self.emits = {}
+
+        ret = self.parseKey()
+        if not ret[0]:
+            logger.warning(ret[1])
+
+        ret = self.fetch()
+        if not ret[0]:
+            logger.warning(ret[1])
+
+
+    def parseKey(self, ident):
+        valid_extensions = set(item.value for item in REDIS_TYPE)
+        valid_databases = dict([(v, k) for k, v in REDIS_DATABASES.items()])
+
+        arr = key.split(ID_SEP)
+
+        # Do we have an extension?
+        if arr[-1] != REDIS_TYPE.EMIT_META.value:
+            logger.warning(f":parseKey: ({key} is not valid (extension={arr[-1]})")
+            return (False, "ReEmitAll::parseKey invalid emit meta data key")
+
+        if arr[0] not in valid_databases.keys():
+            logger.warning(f":parseKey: ({key} is not valid (database={arr[0]})")
+            return (False, "ReEmitAll::parseKey invalid emit key")
+
+        self.emit_type = valid_databases[arr[0]]
+        self.emit_id = ID_SEP.join(arr[1:-1])
+
+        logger.debug(f":parseKey: {arr}: emit_type={self.emit_type}, emit_id={self.emit_id}")
+        return (True, "ReEmitAll::parseKey parsed")
+
+
+    def fetch(self):
+        # Find all emit (different rates and queues?)
+        key_base = key_path(self.ident, "*", REDIS_TYPE.EMIT)
+        keys = self.redis.keys(key_base)
+        if len(keys) > 0:
+            for k in keys:
+                key = k.decode("UTF-8")
+                self.emits[key] = ReEmit(ident=key, redis=redis)
+        else:
+            logger.warning(f":fetch: no emission for {key_base}")
+            return (False, "ReEmitAll::fetch no emission")
+
+        # Reschedule each
+        return (True, "ReEmitAll::fetch fetched")
+
+
+    def emits(self):
+        return self.emits

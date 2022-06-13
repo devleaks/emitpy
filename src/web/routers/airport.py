@@ -51,12 +51,12 @@ async def list_airports(request: Request):
 
 @router.get("/airroutes-by-airport/{airport_iata}", tags=["reference"])
 async def list_airroutes_by_airport(request: Request, airport_iata: str):
-    return JSONResponse(content=request.app.state.emitpy.airport.manager.getAirrouteCombo(airport=airport_iata))
+    return JSONResponse(content=request.app.state.emitpy.airport.manager.getAirrouteCombo(airport=airport_iata, redis=request.app.state.emitpy.redis))
 
 
 @router.get("/airroutes-by-airline/{airline_iata}", tags=["reference"])
 async def list_airroutes_by_airline(request: Request, airline_iata: str):
-    return JSONResponse(content=request.app.state.emitpy.airport.manager.getAirrouteCombo(airline=airline_iata))
+    return JSONResponse(content=request.app.state.emitpy.airport.manager.getAirrouteCombo(airline=airline_iata, redis=request.app.state.emitpy.redis))
 
 
 @router.get("/ramps", tags=["reference"])
@@ -80,8 +80,8 @@ async def list_checkpoints(request: Request):
 
 
 @router.get("/aircraft-types", tags=["reference"])
-async def list_aircraft_types():
-    return JSONResponse(content=Aircraft.getCombo())
+async def list_aircraft_types(request: Request):
+    return JSONResponse(content=Aircraft.getCombo(redis=request.app.state.emitpy.redis))
 
 
 @router.get("/service-types", tags=["reference", "services"])

@@ -7,15 +7,13 @@ import json
 from emitpy.constants import FEATPROP
 from emitpy.airport import Airport
 
-from .format import Formatter
+from .formatter import FormatterBase
 
 logger = logging.getLogger("ADSBFormatter")
 
 
-class ADSBFormatter(Formatter):
-
-    FILE_EXTENTION = "csv"
+class ADSBFormatter(FormatterBase):
 
     def __init__(self, feature: "FeatureWithProps"):
-        Formatter.__init__(self, feature=feature)
-        self.name = "adsb"
+        FormatterBase.__init__(self, "adsb", feature=feature)
+        self.fileformat = "csv"

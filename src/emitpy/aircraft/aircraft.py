@@ -120,7 +120,7 @@ class AircraftType(Identity):
         """
         # Aircraft equivalence patch(!)
         if redis is not None:
-            data = rejson(redis, key=REDIS_PREFIX.AIRCRAFT_EQUIS.value, db=REDIS_DB.REF.value)
+            data = rejson(redis=redis, key=REDIS_PREFIX.AIRCRAFT_EQUIS.value, db=REDIS_DB.REF.value)
             if data is not None:
                 AircraftType._DB_EQUIVALENCE = data
             else:
@@ -370,7 +370,7 @@ class AircraftPerformance(AircraftType):
         """
         if redis is not None:
             k = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, icao)
-            ap = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            ap = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if ap is not None:
                 return AircraftPerformance.fromInfo(info=ap)
             else:
@@ -419,12 +419,12 @@ class AircraftPerformance(AircraftType):
         :rtype:     AircraftPerformance
         """
         if redis is not None:
-            k = rejson(redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, actype), db=REDIS_DB.REF.value)
+            k = rejson(redis=redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, actype), db=REDIS_DB.REF.value)
             if k is not None:
                 logger.debug(f":findAircraftByType: found type {actype}")
                 return actype
 
-            k = rejson(redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, acsubtype), db=REDIS_DB.REF.value)
+            k = rejson(redis=redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, acsubtype), db=REDIS_DB.REF.value)
             if k is not None:
                 logger.debug(f":findAircraftByType: found sub type {acsubtype}")
                 return acsubtype
@@ -459,10 +459,14 @@ class AircraftPerformance(AircraftType):
 
 
     @staticmethod
-    def getCombo():
+    def getCombo(redis = None):
         """
         Gets a list of pairs (code, description) for all aircafts in the AircraftPerformance database.
         """
+        if redis is not None:
+            aperfs = rejson(redis=redis, key=REDIS_PREFIX.AIRCRAFT_PERFS.value, db=REDIS_DB.REF.value)
+            return [(ac, ac) for ac in aperfs.keys()]
+
         l = filter(lambda a: a.available, AircraftPerformance._DB_PERF.values())
         a = [(a.typeId, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
         return a

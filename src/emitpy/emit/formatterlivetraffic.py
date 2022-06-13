@@ -10,17 +10,16 @@ from emitpy.constants import FEATPROP
 from emitpy.airport import Airport
 from emitpy.utils import FT, NAUTICAL_MILE
 
-from .format import Formatter
+from .formatter import FormatterBase
 
 logger = logging.getLogger("LiveTrafficFormatter")
 
 
-class LiveTrafficWeather(Formatter):
+class LiveTrafficWeather:
 
-    FILE_FORMAT = "csv"
+    NAME = "ltw"
 
     def __init__(self, metar):
-        Formatter.__init__(self, feature=None)
         self.fileformat = "json"
         self.metar = metar
 
@@ -34,13 +33,13 @@ class LiveTrafficWeather(Formatter):
         return json.dumps(weather)
 
 
-class LiveTrafficFormatter(Formatter):
+class LiveTrafficFormatter(FormatterBase):
 
-    FILE_FORMAT = "csv"
+    NAME = "lt"
 
     def __init__(self, feature: "FeatureWithProps"):
-        Formatter.__init__(self, feature=feature)
-        self.name = "lt"
+        Formatter.__init__(self, name=LiveTrafficFormatter.NAME, feature=feature)
+        self.fileformat = "csv"
 
     def __str__(self):
         # AITFC,hexid   ,lat    ,lon      ,alt  ,vs  ,airborne,hdg,spd,cs     ,type,tail  ,from,to ,timestamp

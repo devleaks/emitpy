@@ -10,9 +10,9 @@ from emitpy.parameters import AODB_DIR
 
 # Formatter for constructor
 from .formatter import Formatter
-from .livetrafficformatter import LiveTrafficFormatter
-from .adsbformatter import ADSBFormatter
-from .viewerformatter import ViewerFormatter
+from .formatterlivetraffic import LiveTrafficFormatter
+# from .formatteradsb import ADSBFormatter
+# from .formatterviewer import ViewerFormatter
 from .formatterflat import FormatterFlat
 
 logger = logging.getLogger("Formatter")
@@ -38,15 +38,15 @@ class Format:
 
     @staticmethod
     def getFormatter(name):
-        if name == "adsb":
-            return ADSBFormatter
+        if name == "flat":
+            return FormatterFlat
+        # elif name == "adsb":
+        #     return ADSBFormatter
+        # elif name == "viewapp":
+        #     return ViewerFormatter
+        # default is raw, i.e. leave as it is
         elif name == "lt":
             return LiveTrafficFormatter
-        elif name == "viewapp":
-            return ViewerFormatter
-        elif name == "flat":
-            return FormatterFlat
-        # default is raw, i.e. leave as it is
         return Formatter
 
     def format(self):

@@ -494,7 +494,7 @@ class XPAirport(AirportBase):
         """
         if redis:
             k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.MISSION.value, name)
-            r = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            r = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             f = FeatureWithProps.new(r)
             return f
         return self.check_pois[name] if name in self.check_pois.keys() else None
@@ -527,7 +527,7 @@ class XPAirport(AirportBase):
         """
         if redis:
             k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RAMPS.value, name)
-            r = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            r = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             f = FeatureWithProps.new(r)
             return Ramp(name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=r["geometry"]["coordinates"], orientation=f.getProp("orientation"), use=f.getProp("use"))
         return self.ramps[name] if name in self.ramps.keys() else None
@@ -661,7 +661,7 @@ class XPAirport(AirportBase):
         """
         if redis:
             k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.GROUNDSUPPORT.value, name)
-            r = rejson(redis, key=k, db=REDIS_DB.REF.value)
+            r = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             f = FeatureWithProps.new(r)
             return f
 

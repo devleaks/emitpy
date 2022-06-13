@@ -31,9 +31,9 @@ def td(ts):
 #
 # Delicate parameters, too dangerous to externalize
 #
-ZPOPMIN_TIMEOUT = 10  # secs
-PING_FREQUENCY  = 6   # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
-LISTEN_TIMEOUT = 10.0
+ZPOPMIN_TIMEOUT = 5.0  # secs
+LISTEN_TIMEOUT = 5.0
+PING_FREQUENCY = 10.0   # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
 
 # MAXBACKLOGSECS is the maximum negative time we tolerate
 # for sending events late (in seconds)
@@ -288,7 +288,17 @@ class Broadcaster:
 
                 currval = self.redis.bzpopmin(self.name, timeout=ZPOPMIN_TIMEOUT)
                 if currval is None:
-                    # logger.debug(f":broadcast: {self.name}: nothing to send, bzpopmin timed out..")
+                    # we may have some reset work to do
+                    if self.oktoreset is not None: # Is it a reset() request?
+                        logger.info(f":broadcast: {self.name}: bzpop timed out, reset requested. resetting..")
+                        self.resetcompleted = threading.Event()
+                        self.oktoreset.set()
+                        logger.debug(f":broadcast: {self.name}: ..waiting reset completes..")
+                        self.resetcompleted.wait()
+                        # self.rdv = threading.Event()  # done in reset()
+                        logger.info(f":broadcast: {self.name}: ..reset completed, restarting")
+                    # else:
+                    #     logger.debug(f":broadcast: {self.name}: nothing to send, bzpopmin timed out..")
                     continue
 
                 numval = self.redis.zcard(self.name)
@@ -348,7 +358,7 @@ class Broadcaster:
                             logger.debug(f":broadcast: {self.name}: ..waiting reset completes..")
                             self.resetcompleted.wait()
                             # self.rdv = threading.Event()  # done in reset()
-                            logger.info(f":broadcast: {self.name}: ..reset completed")
+                            logger.info(f":broadcast: {self.name}: ..reset completed, restarting")
 
                         elif self.oktotrim is not None:  # Is it a trim() request?
                             # this is not 100% correct: Some event of nextval array may have already be sent
@@ -358,7 +368,7 @@ class Broadcaster:
                             logger.debug(f":broadcast: {self.name}: ..waiting trim completes..")
                             self.trimmingcompleted.wait()
                             # self.rdv = threading.Event()  # done in trim()
-                            logger.debug(f":broadcast: {self.name}: ..trim completed")
+                            logger.debug(f":broadcast: {self.name}: ..trim completed, restarting")
 
                         else:
                             self.rdv = threading.Event()

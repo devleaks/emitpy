@@ -8,9 +8,9 @@ from emitpy.constants import FEATPROP
 from emitpy.airport import Airport
 from emitpy.utils import FT, NAUTICAL_MILE
 
-from .format import Formatter
+from .formatter import FormatterBase
 
-logger = logging.getLogger("IATAMessageFormatter")
+logger = logging.getLogger("IATAFormatter")
 
 
 XML_TEMPLATE = f"""
@@ -66,12 +66,12 @@ XML_TEMPLATE = f"""
 </IATA_OperationalAircraftTurnaroundTimestampNotifRQ>
 """
 
-class RTTFCFormatter(Formatter):
+class IATAFormatter(FormatterBase):
 
-    FILE_FORMAT = "csv"
+    NAME = "iata"
 
     def __init__(self, feature: "FeatureWithProps"):
-        Formatter.__init__(self, feature=feature)
+        FormatterBase.__init__(self, name="iata", feature=feature)
         self.name = "rttfc"
 
     def __str__(self):

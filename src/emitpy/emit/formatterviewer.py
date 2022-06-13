@@ -7,12 +7,12 @@ import json
 from emitpy.constants import FEATPROP
 from emitpy.airport import Airport
 
-from .format import Formatter
+from .formatter import FormatterBase
 
 logger = logging.getLogger("ViewerFormatter")
 
 
-class ViewerFormatter(Formatter):
+class ViewerFormatter(FormatterBase):
     """
     Viewer expects messages like these:
 

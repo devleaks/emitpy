@@ -59,7 +59,8 @@ class Emit(Messages):
         self.emit_id = None
         self.emit_type = None
         self.emit_meta = None
-        self.frequency = DEFAULT_FREQUENCY  # seconds
+        self.format = None
+        self.frequency = None  # seconds
         self._emit = []  # [ EmitPoint ], time-relative emission of messages
         self.scheduled_emit = []  # [ EmitPoint ], a copy of self._emit but with actual emission time (absolute time)
         self.props = {}  # general purpose properties added to each emit point
@@ -154,6 +155,10 @@ class Emit(Messages):
         db = REDIS_DATABASE.UNKNOWN.value
         if self.emit_type in REDIS_DATABASES.keys():
             db = REDIS_DATABASES[self.emit_type]
+        else:
+            logger.warning(f":getKey: invalid type {self.emit_type}, database unknown")
+        if extension == REDIS_TYPE.EMIT_META.value:  # DO NOT ADD FREQUENCY
+            return key_path(db, self.emit_id, REDIS_TYPE.EMIT_META.value)
         frequency = self.frequency if self.frequency is not None else DEFAULT_FREQUENCY
         if extension is None:
             return key_path(db, self.emit_id, f"{frequency}")
@@ -174,7 +179,8 @@ class Emit(Messages):
         meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
         redis.delete(meta_id)
         redis.json().set(meta_id, Path.root_path(), self.getMeta())
-        return (True, "Emit::loadMeta saved")
+        logger.debug(f":saveMeta: .. meta saved {meta_id}")
+        return (True, "Emit::saveMeta saved")
 
 
     def save(self, redis):
@@ -600,6 +606,10 @@ class Emit(Messages):
         :param      moment:  The moment
         :type       moment:  datetime
         """
+        if self.emit_id is None:
+            logger.debug(f":schedule: no emit id")
+            return (False, f"Emit::schedule no emit id")
+
         offset = self.getRelativeEmissionTime(sync)
         if offset is not None:
             self.offset_name = sync

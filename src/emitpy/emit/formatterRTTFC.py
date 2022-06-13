@@ -8,17 +8,17 @@ from emitpy.constants import FEATPROP
 from emitpy.airport import Airport
 from emitpy.utils import FT, NAUTICAL_MILE
 
-from .format import Formatter
+from .formatter import FormatterBase
 
 logger = logging.getLogger("RTTFCFormatter")
 
 
-class RTTFCFormatter(Formatter):
+class RTTFCFormatter(FormatterBase):
 
-    FILE_FORMAT = "csv"
+    NAME = "rttfc"
 
     def __init__(self, feature: "FeatureWithProps"):
-        Formatter.__init__(self, feature=feature)
+        FormatterBase.__init__(self, name=RTTFCFormatter.NAME, feature=feature)
         self.name = "rttfc"
 
     def __str__(self):
