@@ -651,7 +651,7 @@ class AirportManager:
         return items
 
 
-    def allServiceForFlight(self, redis, flight_id: str):
+    def allServiceForFlight(self, redis, flight_id: str, redis_type=REDIS_TYPE.EMIT_META.value):
         items = []
         emit = ReEmit(flight_id, redis)
         emit_meta = emit.getMeta()
@@ -682,14 +682,14 @@ class AirportManager:
 
         # 2 search for all services at that ramp, "around" supplied ETA/ETD.
         ramp = emit.getMeta("$.move.ramp.name")
-        keys = redis.keys(key_path(REDIS_DATABASE.SERVICES.value, "*", ramp, "*", REDIS_TYPE.EMIT_META.value))
+        keys = redis.keys(key_path(REDIS_DATABASE.SERVICES.value, "*", ramp, "*", redis_type))
         for k in keys:
             k = k.decode("UTF-8")
             karr = k.split(ID_SEP)
             dt = datetime.fromisoformat(karr[3].replace(".", ":"))
             # logger.debug(f":allServiceForFlight: {k}: testing {dt}..")
             if dt > et_min and dt < et_max:
-                items.append(ID_SEP.join(k.split(ID_SEP)[:-1]))
+                items.append(k)
                 logger.debug(f":allServiceForFlight: added {k}..")
         logger.debug(f":allServiceForFlight: ..done")
         return set(items)

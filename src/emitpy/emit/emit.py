@@ -157,8 +157,8 @@ class Emit(Messages):
             db = REDIS_DATABASES[self.emit_type]
         else:
             logger.warning(f":getKey: invalid type {self.emit_type}, database unknown")
-        if extension == REDIS_TYPE.EMIT_META.value:  # DO NOT ADD FREQUENCY
-            return key_path(db, self.emit_id, REDIS_TYPE.EMIT_META.value)
+        if extension in [REDIS_TYPE.EMIT_META.value, REDIS_TYPE.EMIT_MESSAGE.value]:  # do not add frequency
+            return key_path(db, self.emit_id, extension)
         frequency = self.frequency if self.frequency is not None else DEFAULT_FREQUENCY
         if extension is None:
             return key_path(db, self.emit_id, f"{frequency}")
@@ -236,7 +236,7 @@ class Emit(Messages):
         return (True, "Emit::save saved")
 
 
-    def emit(self, frequency: int = DEFAULT_FREQUENCY):
+    def emit(self, frequency: int):
         # Utility subfunctions
         def point_on_line(c, n, d):
             # brng = bearing(c, n)
@@ -343,6 +343,10 @@ class Emit(Messages):
         #
         # build emission points
         self.frequency = frequency
+
+        if self.frequency is None or self.frequency < 1:
+            return (False, f"Emit::emit: invalid frequency {self.frequency}")
+
         self._emit = []  # reset if called more than once
         total_dist = 0   # sum of distances between emissions
         total_dist_vtx = 0  # sum of distances between vertices
@@ -574,7 +578,7 @@ class Emit(Messages):
             logger.debug(f":pause/serviceTime: found {sync} mark, added {duration} sec. pause")
         # should recompute emit
         if self._emit is not None:  # already computed before...
-           self.emit()
+           self.emit(self.frequency)
 
 
     def addToPause(self, sync, duration: float):
@@ -589,7 +593,7 @@ class Emit(Messages):
             logger.debug(f":pause/serviceTime: found {sync} mark, added {duration} sec. pause for a total of {r.getProp(FEATPROP.PAUSE.value)}")
         # should recompute emit
         if self._emit is not None:  # already computed before...
-           self.emit()
+           self.emit(self.frequency)
 
 
     def serviceTime(self, sync, duration: float):

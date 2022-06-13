@@ -12,7 +12,7 @@ from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, validator
 
 from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES
-from ..models import CreateQueue, ScheduleQueue, PiasEmit
+from ..models import CreateQueue, ScheduleQueue, PiasEmit, EmitAgain
 from emitpy.emitapp import StatusInfo
 from emitpy.emit import Format, Queue
 
@@ -112,4 +112,31 @@ async def pias_emit(
     except Exception as ex:
         ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
     return JSONResponse(content=jsonable_encoder(ret))
+
+
+@router.put("/emitagain", tags=["movements"])
+async def emit_again(
+    request: Request, again_in: EmitAgain
+):
+    ret = StatusInfo(status=1, message="exception", data=None)
+    try:
+        input_d = again_in.sync_date if again_in.sync_date is not None else datetime.now()
+        input_t = again_in.sync_time if again_in.sync_time is not None else datetime.now()
+        dt = datetime(year=input_d.year,
+                      month=input_d.month,
+                      day=input_d.day,
+                      hour=input_t.hour,
+                      minute=input_t.minute)
+        ret = request.app.state.emitpy.do_emit_again(
+                ident=again_in.emit_id,
+                sync=again_in.sync_name,
+                scheduled=dt.isoformat(),
+                new_frequency=again_in.new_emit_rate,
+                queue=again_in.queue)
+    except Exception as ex:
+        ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
+    return JSONResponse(content=jsonable_encoder(ret))
+
+
+
 

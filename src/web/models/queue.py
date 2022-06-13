@@ -59,3 +59,29 @@ class PiasEmit(BaseModel):
         return LOV_Validator(value=queue,
                              valid_values=valid_values,
                              invalid_message=f"Invalid queue name {queue}")
+
+
+class EmitAgain(BaseModel):
+
+    emit_id: str = Field(..., description="Flight IATA identifier")
+    sync_name: str = Field(..., description="Name of sychronization mark for new date time")
+    sync_date: date = Field(..., description="Scheduled new date for flight")
+    sync_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Scheduled time in managed airport local time")
+    new_emit_rate: int = Field(30, description="Emission rate for new emission (sent every ... seconds)")
+    queue: str = Field(..., description="Destination queue")
+
+    @validator('queue')
+    def validate_queue(cls,queue):
+        r = redis.Redis(**REDIS_CONNECT)
+        valid_values = [q[0] for q in Queue.getCombo(r)]
+        return LOV_Validator(value=queue,
+                             valid_values=valid_values,
+                             invalid_message=f"Invalid queue name {queue}")
+
+    @validator('new_emit_rate')
+    def validate_emit_rate(cls,new_emit_rate):
+        valid_values = [int(e[0]) for e in EMIT_RATES]
+        return LOV_Validator(value=new_emit_rate,
+                             valid_values=valid_values,
+                             invalid_message=f"Emit rate value must be in {valid_values} (seconds bytween pushes)")
+

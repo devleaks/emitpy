@@ -59,3 +59,4 @@ src/bin/
 *.rdb
 *.tar
 *.db
+*.py

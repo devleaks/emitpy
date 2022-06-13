@@ -26,29 +26,19 @@ class FlightServices:
         self.services = []
         self.airport = None
 
+
     def setManagedAirport(self, airport):
         self.airport = airport
 
 
-    def save(self):
-        for service in self.services:
-            logger.debug(f"saving {service['type']}..")
-            emit = service["emit"]
-            ret = emit.save()
-            if not ret[0]:
-                return ret
-            logger.debug(f"..done")
-        return (True, "FlightServices::save: completed")
-
-
     def save(self, redis):
         for service in self.services:
-            logger.debug(f"saving to redis {service['type']}..")
+            logger.debug(f":save: saving to redis {service['type']}..")
             emit = service["emit"]
             ret = emit.save(redis)
             if not ret[0]:
                 return ret
-            logger.debug(f"..done")
+            logger.debug(f":save: ..done")
         return (True, "FlightServices::save: completed")
 
 
@@ -63,7 +53,7 @@ class FlightServices:
 
         for svc in svcs:
             sname, sched = list(svc.items())[0]
-            logger.debug(f"creating service {sname}..")
+            logger.debug(f":service: creating service {sname}..")
 
             service_scheduled_dt = self.flight.scheduled_dt + timedelta(minutes=sched[0])
             service_scheduled_end_dt = self.flight.scheduled_dt + timedelta(minutes=(sched[0]+sched[1]))
@@ -102,40 +92,40 @@ class FlightServices:
             # move.move()
             # move.save()
 
-            logger.debug(f".. adding ..")
+            logger.debug(f":service: .. adding ..")
             self.services.append({
                 "type": sname,
                 "service": this_service,
                 "scheduled": sched[0],
                 "duration": sched[1]
             })
-            logger.debug(".. done")
+            logger.debug(":service: .. done")
 
         return (True, "FlightServices::service: completed")
 
 
     def move(self):
         for service in self.services:
-            logger.debug(f"moving {service['type']}..")
+            logger.debug(f":move: moving {service['type']}..")
             move = ServiceMove(service["service"], self.airport)
             ret = move.move()
             if not ret[0]:
                 logger.warning(f"moving {service['type']} returns {ret}")
                 return ret
             service["move"] = move
-            logger.debug(f"..done")
+            logger.debug(f":move: ..done")
         return (True, "FlightServices::move: completed")
 
 
     def emit(self, emit_rate: int):
         for service in self.services:
-            logger.debug(f"emitting {service['type']}..")
+            logger.debug(f":emit: emitting {service['type']}..")
             emit = Emit(service["move"])
             ret = emit.emit(emit_rate)
             if not ret[0]:
                 return ret
             service["emit"] = emit
-            logger.debug(f"..done")
+            logger.debug(f":emit: ..done")
         return (True, "FlightServices::emit: completed")
 
 
@@ -144,17 +134,17 @@ class FlightServices:
         # ONBLOCK time for arrival
         # OFFBLOCK time for departure
         for service in self.services:
-            logger.debug(f"scheduling {service['type']}..")
+            logger.debug(f":schedule: scheduling {service['type']}..")
             stime = scheduled + timedelta(minutes=service["scheduled"])  # nb: service["scheduled"] can be negative
             service["emit"].serviceTime(SERVICE_PHASE.SERVICE_START.value, service["duration"] * 60)  # seconds
             service["emit"].schedule(SERVICE_PHASE.SERVICE_START.value, stime)
-            logger.debug(f"..done")
+            logger.debug(f":schedule: ..done")
         return (True, "FlightServices::schedule: completed")
 
 
     def enqueuetoredis(self, queue):
         for service in self.services:
-            logger.debug(f"enqueuing to redis {service['type']}..")
+            logger.debug(f":enqueuetoredis: enqueuing '{service['type']}'..")
             formatted = EnqueueToRedis(service["emit"], queue)
             ret = formatted.format()
             if not ret[0]:

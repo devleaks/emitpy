@@ -19,7 +19,8 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
     def __init__(self, emit: "Emit", queue: Queue, redis = None):
         r = queue.redis if queue is not None else redis
         if r is None:
-            return (False, f"EnqueueToRedis::__init__ no redis")
+            logger.warning(f":__init__: no redis")
+            return
         formatter = Format.getFormatter(queue.formatter_name)
         Format.__init__(self, emit, formatter)
         self.queue = queue
@@ -29,20 +30,18 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
     @staticmethod
     def dequeue(redis, ident: str, queue: str):
         # Remove ident entries from sending queue.
-        enqueued = key_path(ident, REDIS_TYPE.QUEUE.value)
         # 1. Remove queued elements
-        oldvalues = redis.smembers(enqueued)
+        oldvalues = redis.smembers(ident)
         oset = redis.pipeline()
         if oldvalues and len(oldvalues) > 0:
             oset.zrem(queue, *oldvalues)
-            logger.debug(f":dequeue: deleted {len(oldvalues)} entries for {enqueued}")
+            logger.debug(f":dequeue: deleted {len(oldvalues)} entries for {ident}")  #optimistic
         else:
-            logger.debug(f":dequeue: no enqueued entries for {enqueued}")
+            logger.debug(f":dequeue: no enqueued entries for {ident}")
         # 2. Remove enqueued list
-        oset.delete(enqueued)
+        oset.delete(ident)
         oset.execute()
-        logger.debug(f":dequeue: deleted {enqueued}")
-
+        logger.debug(f":dequeue: deleted {ident}")
         return (True, f"EnqueueToRedis::dequeue dequeued {ident}")
 
 
@@ -54,35 +53,11 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         # If last character in the ID_SEP-separated domain is a REDIS_TYPE, we remove it
         a = ident.split(ID_SEP)
         if len(a[-1]) == 1 and a[-1] in [e.value for e in REDIS_TYPE]:
-            ident = ID_SEP.join(a[0:-1])
-
-        # 1. Dequeue
+            ident = ID_SEP.join(a[:-1])
         if queue is not None:
             EnqueueToRedis.dequeue(redis, ident, queue)
-        # 2. Remove formatted
-        oset = redis.pipeline()
-
-        emits = key_path(ident, REDIS_TYPE.FORMAT.value)
-        oset.delete(emits)
-        logger.debug(f":delete: deleted {emits} format")
-        # 3. Remove messages
-        emits = key_path(ident, REDIS_TYPE.EMIT_MESSAGE.value)
-        oset.delete(emits)
-        logger.debug(f":delete: deleted {emits} messages")
-        # 4. Remove emit meta
-        emits = key_path(ident, REDIS_TYPE.EMIT_META.value)
-        oset.delete(emits)
-        logger.debug(f":delete: deleted {emits} meta data")
-        # 6. Remove kml
-        emits = key_path(ident, REDIS_TYPE.EMIT_KML.value)
-        oset.delete(emits)
-        logger.debug(f":delete: deleted {emits} kml")
-        # 5. Remove emit
-        emits = key_path(ident, REDIS_TYPE.EMIT.value)
-        oset.delete(emits)
-
-        oset.execute()
-        logger.debug(f":delete: deleted {emits} emits")
+        redis.delete(ident)
+        logger.debug(f":delete: deleted {ident}")
         return (True, f"EnqueueToRedis::delete deleted {ident}")
 
 
@@ -120,33 +95,33 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
     def getKey(self, extension):
         # note: self.formatter is a class
-        return key_path(self.emit.getKey(None), self.formatter.NAME, extension)
+        return key_path(self.emit.getKey(None), self.queue.name, extension)
 
 
     def save(self, overwrite: bool = False):
         """
-        Save flight paths to file for emitted positions.
+        Save formatted emission to Redis.
         """
         if self.output is None or len(self.output) == 0:
             logger.warning(":save: no emission point")
             return (False, "EnqueueToRedis::save: no emission point")
 
-        # emit_id = self.emit.getKey(REDIS_TYPE.FORMAT.value)  # ident + REDIS_TYPE.EMIT.value
-        emit_id = self.getKey(REDIS_TYPE.FORMAT.value)  # ident + REDIS_TYPE.EMIT.value
-        n = self.redis.scard(emit_id)
+        # note: self.formatter is a class
+        formatted_id = key_path(self.emit.getKey(None), self.formatter.NAME, REDIS_TYPE.FORMAT.value)
+        n = self.redis.scard(formatted_id)
         if n > 0 and not overwrite:
-            logger.warning(f":save: key {emit_id} already exist, not saved")
+            logger.warning(f":save: key {formatted_id} already exist, not saved")
             return (False, "EnqueueToRedis::save key already exist")
 
         oset = self.redis.pipeline()
         if n > 0:
-            oset.delete(emit_id)
+            oset.delete(formatted_id)
         tosave = []
         for f in self.output:
             tosave.append(str(f))  # str applies the formatting
-        oset.sadd(emit_id, *tosave)
+        oset.sadd(formatted_id, *tosave)
         oset.execute()
-        logger.debug(f":save: key {emit_id} saved {len(tosave)} entries")
+        logger.debug(f":save: key {formatted_id} saved {len(tosave)} entries")
         return (True, "EnqueueToRedis::save completed")
 
 
@@ -158,26 +133,25 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             logger.warning(":enqueue: no emission point")
             return (False, "FormatToRedis::enqueue: no emission point")
 
-        # emit_id = self.emit.getKey(REDIS_TYPE.QUEUE.value)
-        emit_id = self.getKey(REDIS_TYPE.QUEUE.value)
-        oldvalues = self.redis.smembers(emit_id)
+        enq_id = self.getKey(REDIS_TYPE.QUEUE.value)
+        oldvalues = self.redis.smembers(enq_id)
         oset = self.redis.pipeline()  # set
         if oldvalues and len(oldvalues) > 0:
             # dequeue old values
             oset.zrem(self.queue.name, *oldvalues)  # #0
-            oset.delete(emit_id)  # #1
+            oset.delete(enq_id)  # #1
             logger.debug(f":enqueue: removed old entries (count below, after execution of pipeline)")
 
         emit = {}
         for f in self.output:
             emit[str(f)] = f.ts
-        oset.sadd(emit_id, *list(emit.keys()))  # #2
+        oset.sadd(enq_id, *list(emit.keys()))  # #2
 
         minv = min(emit.values())
         mindt = datetime.fromtimestamp(minv).astimezone().isoformat()
         maxv = max(emit.values())
         maxdt = datetime.fromtimestamp(maxv).astimezone().isoformat()
-        logger.debug(f":enqueue: saved {len(emit)} new entries to {emit_id}, from ts={minv}({mindt}) to ts={maxv} ({maxdt})")
+        logger.debug(f":enqueue: saved {len(emit)} new entries to {enq_id}, from ts={minv}({mindt}) to ts={maxv} ({maxdt})")
 
         # enqueue new values
         oset.zadd(self.queue.name, emit)  # #3

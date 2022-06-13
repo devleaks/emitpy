@@ -47,8 +47,8 @@ cnt = 0
 cnt_begin = 0 # random.randint(0, numlines) # random pair of flights
 cnt_end = cnt_begin + NUM_TURNAROUNDS
 
-queue = "raw"
-rate = 30
+queue = "test"
+rate = 20
 
 # for r in csvdata:
 for i in range(cnt_begin, cnt_end):

@@ -165,25 +165,28 @@ async def root():
         "/docs",
         status_code=status.HTTP_302_FOUND)
 
+APP_NAME = f"{emitpy.__version__} «{emitpy.__version_name__}»"
 
 @app.on_event("startup")
 async def startup():
-    logger.info(f":startup {emitpy.__version__} «{emitpy.__version_name__}» starting..")
+    logger.info(f":startup {APP_NAME} starting..")
     # should collect and display:
     # git describe --tags
     # git log -1 --format=%cd --relative-date
     # + redis_connect info
+    logger.info(f":startup managed airport is «{MANAGED_AIRPORT['name']}»")
     app.state.emitpy = EmitApp(MANAGED_AIRPORT)
     app.state.hypercaster = Hypercaster()
-    logger.log(5, f":startup {emitpy.__version__} «{emitpy.__version_name__}» ..started")
+    logger.log(5, f":startup {APP_NAME} ..started")
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    logger.info(f":shutdown {emitpy.__version__} «{emitpy.__version_name__}» ..stopping..")
+    logger.info(f":shutdown {APP_NAME} ..stopping..")
     app.state.emitpy.shutdown()
-    app.state.hypercaster.shutdown()
-    logger.info(f":shutdown {emitpy.__version__} «{emitpy.__version_name__}» ..stopped")
+    app.state.hypercaster.shutdown()  # shutdown last as it might not terminate properly...
+    logger.info(f":shutdown {APP_NAME} ..stopped")
+    logger.info(f":shutdown kiss landed at «{MANAGED_AIRPORT['name']}»")
 
 
 if __name__ == "__main__":

@@ -120,6 +120,7 @@ class Broadcaster:
         self.oktoreset.wait()
         self.oktoreset = None
         logger.debug(f":reset: ..freed, resetting..")
+        ## _do_reset():
         self.speed = speed
         if starttime is not None:
             if type(starttime) == str:
@@ -127,7 +128,7 @@ class Broadcaster:
             else:
                 self._starttime = starttime
             self.setTimeshift()
-
+        ##
         logger.debug(f":reset: ..reset, tell broadcaster to restart..")
         self.rdv = threading.Event()
         self.resetcompleted.set()
@@ -160,12 +161,13 @@ class Broadcaster:
         return newnow.timestamp() if not format_output else newnow.isoformat(timespec='seconds')
 
 
-    def _do_trim(self):
+    def _do_trim(self, ident=None):
         """
         Removes elements in sortedset that are outdated for this queue's time.
         """
         now = self.now()
-        logger.debug(f":_do_trim: {self.name}: {df(now)}: trimming..")
+        msg = "" if ident is None else f"{ident}:"
+        logger.debug(f":_do_trim: {self.name}:{msg} {df(now)}: trimming..")
         oldones = self.redis.zrangebyscore(self.name, min=0, max=now)
         if oldones and len(oldones) > 0:
             self.redis.zrem(self.name, *oldones)
@@ -180,8 +182,11 @@ class Broadcaster:
         """
         pattern = "__keyspace@0__:"+self.name
         self.pubsub.subscribe(pattern)
-        logger.debug(f":trim: {self.name}: listening..")
+
+        logger.info(f":trim: {self.name}: starting..")
+
         while not self.shutdown_flag.is_set():
+
             if self.heartbeat:
                 logger.debug(f":trim: {self.name}: listening..")
 
@@ -230,17 +235,17 @@ class Broadcaster:
                     logger.debug(f":trim: {self.name}: wait sender has stopped..")
                     self.oktotrim.wait()
                     self.oktotrim = None
-                    self._do_trim()
+                    self._do_trim(ident=2)
                     logger.debug(f":trim: {self.name}: tell sender to restart, provide new blocking event..")
                     self.rdv = threading.Event()
                     self.trimmingcompleted.set()
-                    logger.debug(f":trim: {self.name}: listening again..")
+                    logger.info(f":trim: {self.name}: listening again..")
 
                 else:
                     logger.debug(f":trim: {self.name}: ignoring '{msg}'")
 
         self.pubsub.unsubscribe(pattern)
-        logger.debug(f":trim: {self.name}: ..bye")
+        logger.info(f":trim: {self.name}: ..bye")
 
 
     def send_data(self, data: str) -> int:
@@ -278,15 +283,32 @@ class Broadcaster:
         currval = None
         ping = 0
         last_sent = datetime.now() - timedelta(seconds=1)
+
+        logger.info(f":broadcast: {self.name}: starting..")
+
         # Wrapped in a big try:/except: to catch errors and keyboard interrupts.
         try:
             while not self.shutdown_flag.is_set():
                 dummy = self.now(format_output=True)
 
+                if self.oktotrim is not None:
+                    if not self.oktotrim.is_set():
+                        logger.warning(f":broadcast: {self.name}: trimmer is waiting, releasing..")
+                        self.trimmingcompleted = threading.Event()
+                        self.oktotrim.set()
+                        logger.warning(f":broadcast: {self.name}: ..waiting trim completes..")
+                        self.trimmingcompleted.wait()
+                        # self.rdv = threading.Event()  # done in trim()
+                        logger.warning(f":broadcast: {self.name}: ..trim completed, restarting")
+                        continue
+                    else:
+                        logger.error(f":broadcast: {self.name}: trimmer is waiting but not set")
+
                 if self.heartbeat: # and last_sent < datetime.now()
                     logger.debug(f":broadcast: {self.name}: listening..")
 
                 currval = self.redis.bzpopmin(self.name, timeout=ZPOPMIN_TIMEOUT)
+
                 if currval is None:
                     # we may have some reset work to do
                     if self.oktoreset is not None: # Is it a reset() request?
@@ -374,9 +396,8 @@ class Broadcaster:
                             self.rdv = threading.Event()
                             logger.warning(f":broadcast: {self.name}: awaked but don't know why")
 
-            logger.info(f":broadcast: {self.name}: ..bye")
-
         except KeyboardInterrupt:
+            logger.warning(f":broadcast: {self.name}: interrupted")
             if currval is not None:
                 logger.debug(f":broadcast: {self.name}: keyboard interrupt, push current event back on queue..")
                 pushback({currval[1]: currval[2]})
@@ -518,11 +539,14 @@ class Hypercaster:
         self.redis.delete(key_path(REDIS_DATABASE.QUEUES.value, QUIT))
         pattern = "__key*__:queues:*"
         self.pubsub.psubscribe(pattern)
-        hyperlogger.debug(":admin_queue: listening..")
+
+        hyperlogger.info(":admin_queue: starting..")
 
         while not self.shutdown_flag.is_set():
+
             if self.heartbeat: # and last_sent < datetime.now()
                 logger.debug(f":admin_queue: listening..")
+
             message = self.pubsub.get_message(timeout=LISTEN_TIMEOUT)
             if message is not None and type(message) != str and "data" in message:
 
@@ -559,6 +583,7 @@ class Hypercaster:
 
                 # hyperlogger.debug(f":admin_queue: received {msg}")
                 if action == "set" and qn == QUIT:
+                    hyperlogger.warning(":admin_queue: instructed to quit")
                     hyperlogger.info(":admin_queue: quitting..")
                     self.redis.delete(key_path(REDIS_DATABASE.QUEUES.value, QUIT))
                     self.shutdown_flag.set()

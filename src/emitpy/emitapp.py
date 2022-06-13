@@ -337,9 +337,10 @@ class EmitApp(ManagedAirport):
             ret = emit.saveFile()
             if not ret[0]:
                 return StatusInfo(106, f"problem during schedule", ret[1])
+
         ret = emit.save(redis=self.redis)
         if not ret[0]:
-            return StatusInfo(110, f"problem during schedule", ret[1])
+            return StatusInfo(110, f"problem during save", ret[1])
 
         logger.debug(":do_flight: .. broadcasting positions ..")
         formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
@@ -507,8 +508,7 @@ class EmitApp(ManagedAirport):
 
 
     def do_flight_services(self, emit_rate, queue, operator, flight_id, estimated = None):
-        # @todo: take estimated into account, reschedule accordingly.
-        emit_ident = key_path(REDIS_DATABASE.FLIGHTS.value, flight_id, REDIS_TYPE.EMIT.value)
+        emit_ident = flight_id
         logger.debug(f":do_flight_services: servicing {emit_ident}..")
         # Get flight data
         logger.debug(":do_flight_services: ..retrieving flight..")
@@ -757,12 +757,13 @@ class EmitApp(ManagedAirport):
         logger.debug(":do_schedule: .. done.")
 
         self.airport.manager.saveAllocators(self.redis)
-
         if not do_services:
             return StatusInfo(0, "scheduled successfully", ident)
 
-        logger.debug(f":do_schedule: doing scheduling of associated services..")
-        services = self.airport.manager.allServiceForFlight(redis=self.redis, flight_id=ident)
+        logger.debug(f":do_schedule: scheduling associated services..")
+        services = self.airport.manager.allServiceForFlight(redis=self.redis,
+                                                            flight_id=ident,
+                                                            redis_type=REDIS_TYPE.EMIT.value)
 
         is_arrival = emit.getMeta("$.move.is_arrival")
         logger.debug(f":do_schedule: ..is {'arrival' if is_arrival else 'departure'}..")
@@ -777,39 +778,131 @@ class EmitApp(ManagedAirport):
         logger.debug(f":do_schedule: scheduling..")
         for service in services:
             logger.debug(f":do_schedule: ..doing service {service}..")
-            k = key_path(service, REDIS_TYPE.EMIT.value)
-            se = ReEmit(k, self.redis)
+            se = ReEmit(service, self.redis)
             se.setManagedAirport(self)
             se_relstart = se.getMeta("$.move.ground-support.schedule")
             se_absstart = blocktime + timedelta(minutes=se_relstart)
             logger.debug(f":do_schedule: ..service {service} will start at {se_absstart} {se_relstart}min relative to blocktime {blocktime}..")
-            self.do_schedule(queue=queue, ident=k, sync=SERVICE_PHASE.START.value,
-                             scheduled=se_absstart.isoformat(), do_services=False)
+            self.do_schedule(queue=queue,
+                             ident=service,
+                             sync=SERVICE_PHASE.START.value,
+                             scheduled=se_absstart.isoformat(),
+                             do_services=False)
             # we could cut'n paste code from begining of this function as well...
             # I love recursion.
 
         self.airport.manager.saveAllocators(self.redis)
-
         logger.debug(f":do_schedule: ..done")
-
         return StatusInfo(0, "scheduled successfully (with services)", ident)
 
 
-    def do_delete(self, queue, ident, do_services:bool = False):
-        # 1. Delete associated servicse if requested
-        if do_services:
-            services = self.airport.manager.allServiceForFlight(redis=self.redis, flight_id=ident)
-            logger.debug(f":do_delete: deleting services..")
-            for service in services:
-                logger.debug(f":do_delete: ..{service}..")
-                si = self.do_delete(queue, service)
-                if si.status != 0:
-                    return StatusInfo(501, f"problem during deletion of associated services {service} of {ident} ", si)
-            logger.debug(f":do_delete: ..done")
+    def do_emit_again(self, ident, sync, scheduled, new_frequency, queue):
+        emit = ReEmit(ident, self.redis)
+        emit.setManagedAirport(self)
 
-        ret = EnqueueToRedis.delete(ident=ident, queue=queue, redis=self.redis)
+        if new_frequency == emit.frequency:
+            logger.debug(f":do_emit_again: not a new frequency {new_frequency}")
+            return StatusInfo(651, "not a new frequency", ident)
+
+        ret = emit.emit(new_frequency)
         if not ret[0]:
-            return StatusInfo(500, f"problem during deletion of {ident} ", ret)
+            return StatusInfo(654, f"problem during emit", ret[1])
+        # emit.save()
+
+        ret = emit.save(redis=self.redis)
+        if not ret[0]:
+            return StatusInfo(655, f"problem during save", ret[1])
+
+        # logger.debug(f":do_flight_services: do_schedule:mark list: {emit.getMarkList()}")
+        emit_time = datetime.fromisoformat(scheduled)
+        if emit_time.tzname() is None:  # has no time zone, uses local one
+            emit_time = emit_time.replace(tzinfo=self.timezone)
+            logger.debug(":do_emit_again: scheduled time has no time zone, added managed airport local time zone")
+
+        logger.debug(":do_emit_again: scheduling ..")
+        ret = emit.schedule(sync, emit_time)
+        if not ret[0]:
+            return StatusInfo(656, f"problem during rescheduling", ret[1])
+
+        logger.debug(":do_emit_again: .. broadcasting positions ..")
+        formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
+        ret = formatted.format()
+        if not ret[0]:
+            return StatusInfo(657, f"problem during rescheduled formatting", ret[1])
+
+        # logger.debug(":do_emit_again: .. saving ..")
+        # ret = formatted.save(overwrite=True)
+        # if not ret[0]:
+        #     return StatusInfo(402, f"problem during rescheduled save", ret[1])
+
+        logger.debug(":do_emit_again: .. enqueueing for broadcast ..")
+        ret = formatted.enqueue()
+        if not ret[0]:
+            return StatusInfo(658, f"problem during rescheduled enqueing", ret[1])
+        logger.debug(":do_emit_again: .. done.")
+
+        self.airport.manager.saveAllocators(self.redis)
+
+        return StatusInfo(0, "emitted successfully", emit.getKey(REDIS_TYPE.EMIT.value))
+
+
+    def do_delete(self, queue, ident, do_services:bool = False):
+        """ WARNING ** WARNING ** WARNING ** WARNING ** WARNING **
+        do_delete is hierarchical. If you delete a key,
+        it recursively logically deletes all keys underneath.
+        """
+        if ident.startswith(REDIS_DATABASE.FLIGHTS.value) and ident.endswith(REDIS_TYPE.EMIT_META.value):
+            if do_services:
+                services = self.airport.manager.allServiceForFlight(redis=self.redis, flight_id=ident)
+                logger.debug(f":do_delete: deleting services..")
+                for service in services:
+                    logger.debug(f":do_delete: ..{service}..")
+                    si = self.do_delete(queue, service)
+                    if si.status != 0:
+                        return StatusInfo(501, f"problem during deletion of associated services {service} of {ident} ", si)
+                logger.debug(f":do_delete: ..done")
+
+        arr = ident.split(ID_SEP)
+        what = arr[-1]
+        logger.debug(f":do_delete: to delete {ident}, ext={what}")
+
+        if what == REDIS_TYPE.QUEUE.value:
+            logger.debug(f":do_delete: deleting enqueue {ident}..")
+            ret = EnqueueToRedis.dequeue(ident=ident, queue=queue, redis=self.redis)  # dequeue and delete
+            if not ret[0]:
+                return StatusInfo(502, f"problem during deletion of {ident} ", ret)
+            self.redis.delete(ident)
+            logger.debug(f":do_delete: {ident} ..done")
+
+        elif what == REDIS_TYPE.EMIT.value:
+            logger.debug(f":do_delete: deleting emit {ident}")
+            subkeys = self.redis.keys(key_path(ID_SEP.join(arr[:-1]), "*"))
+            for k in subkeys:
+                key = k.decode("UTF-8")
+                if key != ident:
+                    si = self.do_delete(queue=queue, ident=key)
+                    if si.status != 0:
+                        return StatusInfo(503, f"problem during deletion of associated enqueue {key} of {ident} ", si)
+            self.redis.delete(ident)
+            logger.debug(f":do_delete: {ident} ..done")
+
+        elif what == REDIS_TYPE.EMIT_META.value:
+            logger.debug(f":do_delete: deleting META {ident}")
+            subkeys = self.redis.keys(key_path(ID_SEP.join(arr[:-1]), "*"))
+            for k in subkeys:
+                key = k.decode("UTF-8")
+                if key != ident:
+                    si = self.do_delete(queue=queue, ident=key)
+                    if si.status != 0:
+                        return StatusInfo(503, f"problem during deletion of associated emit {key} of {ident} ", si)
+            self.redis.delete(ident)
+            logger.debug(f":do_delete: {ident} ..done")
+
+        else:
+            logger.debug(f":do_delete: deleting {ident}")
+            if what not in set(item.value for item in REDIS_TYPE):
+                logger.debug(f":do_delete: invalid type '{what}' for {ident}")
+            self.redis.delete(ident)
 
         if do_services:
             return StatusInfo(0, "deleted successfully (with services)", None)
@@ -863,7 +956,7 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "queue delete successfully", None)
 
 
-    def do_list_emit(self):
+    def do_list_emit(self):  # from, to
         keys = self.redis.keys(key_path("*", REDIS_TYPE.QUEUE.value))
         karr = [(k.decode("UTF-8"), k.decode("UTF-8")) for k in sorted(keys)]
         return karr

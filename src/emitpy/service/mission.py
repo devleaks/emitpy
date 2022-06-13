@@ -6,7 +6,7 @@ import logging
 import random
 from datetime import datetime
 
-from emitpy.constants import FEATPROP, REDIS_DATABASE
+from emitpy.constants import FEATPROP, REDIS_DATABASE, ID_SEP
 from .ground_support import GroundSupport
 from .servicevehicle import ServiceVehicle
 from emitpy.geo import FeatureWithProps
@@ -20,7 +20,8 @@ class Mission(GroundSupport):
     def __init__(self, operator: "Company", checkpoints: [str], name: str):
         GroundSupport.__init__(self, operator=operator)
         self.checkpoints = checkpoints
-        self.mission = f"{name}-{datetime.now().strftime('%y%j-%f')}"  # -{round(random.random()*10000):05}
+        # Avoid ID_SEP characters in mission name
+        self.mission = f"{name.replace(ID_SEP, '-')}-{datetime.now().strftime('%y%j-%f')}"  # -{round(random.random()*10000):05}
         self.checkpoint_control_time = 120  # seconds, could be a param
 
     @staticmethod
