@@ -14,12 +14,12 @@ from .utils import LOV_Validator
 
 class CreateQueue(BaseModel):
 
-    name: str = Field(..., description="Queue identifier")
-    formatter: str = Field(..., description="Name of internal data formatter")
-    queue_date: Optional[date] = Field(..., description="Start date of queue, use current time if not supplied")
-    queue_time: Optional[time] = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Start time of queue, use current time if not supplied")
+    name: str = Field(..., description="Queue name")
+    formatter: str = Field(..., description="Name of data formatter")
+    queue_date: Optional[date] = Field(..., description="Start date of queue, uses current time if not supplied")
+    queue_time: Optional[time] = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Start time of queue, uses current time if not supplied")
     speed: float = Field(1.0, description="Speed of replay of queue")
-    start: bool = Field(True, description="Queue is enabled or disabled")
+    start: bool = Field(True, description="Queue is enabled or disabled (started or not)")
 
     @validator('formatter')
     def validate_formatter(cls,formatter):
@@ -36,7 +36,7 @@ class ScheduleQueue(BaseModel):
     queue_date: Optional[date] = Field(..., description="Start date of queue, use current time if not supplied")
     queue_time: Optional[time] = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Start time of queue, use current time if not supplied")
     speed: float = Field(1.0, description="Speed of replay of queue")
-    start: bool = Field(True, description="Queue is enabled or disabled")
+    start: bool = Field(True, description="Queue is enabled or disabled (started or not)")
 
     @validator('name')
     def validate_queue(cls,name):
@@ -65,10 +65,10 @@ class EmitAgain(BaseModel):
 
     emit_id: str = Field(..., description="Flight IATA identifier")
     sync_name: str = Field(..., description="Name of sychronization mark for new date time")
-    sync_date: date = Field(..., description="Scheduled new date for flight")
-    sync_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Scheduled time in managed airport local time")
-    new_emit_rate: int = Field(30, description="Emission rate for new emission (sent every ... seconds)")
-    queue: str = Field(..., description="Destination queue")
+    sync_date: date = Field(..., description="Esimated new date for flight")
+    sync_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Esimated time in managed airport local time")
+    new_emit_rate: int = Field(30, description="Emission rate for emission of positions (sent every ... seconds)")
+    queue: str = Field(..., description="Destination queue for positions")
 
     @validator('queue')
     def validate_queue(cls,queue):

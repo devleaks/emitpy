@@ -27,8 +27,9 @@ class FlightServices:
         self.airport = None
 
 
-    def setManagedAirport(self, airport):
-        self.airport = airport
+    def setManagedAirport(self, managedAirport):
+        self.app = managedAirport
+        self.airport = managedAirport.airport
 
 
     def save(self, redis):
@@ -44,10 +45,16 @@ class FlightServices:
 
     def service(self):
         # From dict, make append appropriate service to list
-        svcs = self.flight.aircraft.actype.getTurnaroundProfile(move=self.flight.get_move(),
-                                                                ramp=self.ramp.getProp("sub-type"))
-        if svcs is None:
+        tarprofile = self.flight.aircraft.actype.getTurnaroundProfile(move=self.flight.get_move(),
+                                                                      ramp=self.ramp.getProp("sub-type"),
+                                                                      redis=self.app.use_redis())
+        if tarprofile is None:
             return (False, f"FlightServices::run: no turnaround profile for {self.flight.aircraft.actype}")
+
+        if "services" not in tarprofile:
+            return (False, f"FlightServices::run: no services in turnaround profile for {self.flight.aircraft.actype}")
+
+        svcs = tarprofile["services"]
 
         am = self.airport.manager
 
@@ -58,8 +65,8 @@ class FlightServices:
             service_scheduled_dt = self.flight.scheduled_dt + timedelta(minutes=sched[0])
             service_scheduled_end_dt = self.flight.scheduled_dt + timedelta(minutes=(sched[0]+sched[1]))
             this_service = Service.getService(sname)(scheduled=service_scheduled_dt,
-                                                       ramp=self.flight.ramp,
-                                                       operator=self.operator)
+                                                     ramp=self.flight.ramp,
+                                                     operator=self.operator)
 
             duration = sched[1]
             if self.flight.load_factor != 1.0:  # Wow

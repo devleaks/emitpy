@@ -16,20 +16,20 @@ from .utils import LOV_Validator, REDISLOV_Validator, ICAO24_Validator
 
 class CreateService(BaseModel):
 
+    handler: str = Field(..., description="Service handler or operator code name")
     ramp: str = Field(..., description="Managed airport ramp name")
     aircraft_type: str = Field(..., description="IATA or ICAO aircraft model code")
-    handler: str = Field(..., description="Operator code name")
     service_type: str = Field(..., description="Type of service")
-    quantity: float = Field(..., description="Quantity of service, used to determine service duration")
+    quantity: float = Field(..., description="Quantity of service (float number, meaning varies with service), used to determine service duration")
     service_vehicle_model: str = Field(..., description="Model of service vehicle used")
     service_vehicle_reg: str = Field(..., description="Registration of service vehicle used")
     icao24: Optional[constr(min_length=6, max_length=6)] = Field(..., description="Hexadecimal number of ADS-B broadcaster MAC address, exactly 6 hexadecimal digits")
-    previous_position: str = Field(..., description="Position where the vehicle is coming from")
-    next_position: str = Field(..., description="Position where the vehicle is going to after servicing this")
-    service_date: date = Field(..., description="Service scheduled date")
-    service_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Service scheduled time")
-    emit_rate: int = Field(30, description="Emission rate (sent every ... seconds)")
-    queue: str = Field(..., description="Name of emission broadcast queue")
+    previous_position: str = Field(..., description="Position where the vehicle is coming from before this service")
+    next_position: str = Field(..., description="Position where the vehicle is going to after this service")
+    service_date: date = Field(..., description="Service scheduled date in managed airport local time")
+    service_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Service scheduled time in managed airport local time")
+    emit_rate: int = Field(30, description="Emission rate for position of service vehicle (sent every ... seconds)")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions of service vehicle")
 
     @validator('handler')
     def validate_handler(cls,handler):
@@ -110,9 +110,9 @@ class ScheduleService(BaseModel):
 
     service_id: str = Field(..., description="Service identifier")
     sync_name: str = Field(..., description="Name of synchronization mark for new date/time schedule")
-    service_date: date = Field(..., description="Scheduled new date for the service")
-    service_time: time = Field(..., description="Scheduled new time for the service")
-    queue: str = Field(..., description="Name of emission broadcast queue")
+    service_date: date = Field(..., description="Scheduled new date for the service in managed airport local time")
+    service_time: time = Field(..., description="Scheduled new time for the service in managed airport local time")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions")
 
     @validator('queue')
     def validate_queue(cls,queue):
@@ -126,7 +126,7 @@ class ScheduleService(BaseModel):
 class DeleteService(BaseModel):
 
     service_id: str = Field(..., description="Mission identifier")
-    queue: str = Field(..., description="Name of queue where emission is located")
+    queue: str = Field(..., description="Name of queue where positions are emitted")
 
     @validator('queue')
     def validate_queue(cls,queue):
@@ -141,8 +141,8 @@ class CreateFlightServices(BaseModel):
 
     flight_id: str = Field(..., description="Flight IATA identifier")
     handler: str = Field(..., description="Operator code name")
-    emit_rate: int = 30
-    queue: str = Field(..., description="Name of emission broadcast queue")
+    emit_rate: int = Field(30, description="Position emission rate for service vehicles")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions of service vehicle")
 
     @validator('handler')
     def validate_handler(cls,handler):
@@ -170,10 +170,9 @@ class CreateFlightServices(BaseModel):
 
 class ScheduleFlightServices(BaseModel):
     flight_id: str = Field(..., description="Flight IATA identifier")
-    sync_name: str = Field(..., description="Name of sychronization mark for new date time")
-    flight_date: date = Field(..., description="Flight date in managed airport local time")
-    flight_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Flight time in managed airport local time")
+    sync_name: str = Field(..., description="Name of sychronization mark for estimated date time")
+    flight_date: date = Field(..., description="Estimatated flight date in managed airport local time in managed airport local time")
+    flight_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Estimatated flight time in managed airport local time")
     # flight_date: datetime = Field(..., description="Scheduled date time for flight (arrival or departure), services will be scheduled according to PTS")
-    queue: str = Field(..., description="Name of emission broadcast queue")
-
+    queue: str = Field(..., description="Name of emission broadcast queue for positions of aicraft and service vehicle")
 

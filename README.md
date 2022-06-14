@@ -22,8 +22,10 @@ Gépès Cidesimal, geospatial specialist,
 
 
 Future releases tags:
-Evergreen
+Felicity Ace
+Tricolor
 Titanic
+
 
 ===
 Limitation

@@ -16,18 +16,18 @@ from .utils import LOV_Validator, REDISLOV_Validator, ICAO24_Validator
 
 class CreateMission(BaseModel):
 
-    operator: str = Field(..., description="Operator code name")
+    operator: str = Field(..., description="Mission operator code name")
     mission: str = Field(..., description="Mission identifier or name")
     mission_type: str = Field(..., description="Mission type")
     mission_vehicle_type: str = Field(..., description="Mission vehicle type")
     mission_vehicle_reg: str = Field(..., description="Mission vehicle registration")
     icao24: str = Field(..., description="Hexadecimal number of ADS-B broadcaster MAC address, exactly 6 hexadecimal digits")
     previous_position: str = Field(..., description="Position where the vehicle is coming from")
-    next_position: str = Field(..., description="Position where the vehicle is going to after servicing this")
-    mission_date: date = Field(..., description="Service scheduled date")
-    mission_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Service scheduled time")
-    emit_rate: int = Field(30, description="Emission rate (sent every ... seconds)")
-    queue: str = Field(..., description="Name of emission broadcast queue")
+    next_position: str = Field(..., description="Position where the vehicle is going to after this mission is terminated")
+    mission_date: date = Field(..., description="Service scheduled date in managed airport local time")
+    mission_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Service scheduled time in managed airport local time")
+    emit_rate: int = Field(30, description="Emission rate for positions of mission vehicle (sent every ... seconds)")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions")
 
     @validator('operator')
     def validate_operator(cls, operator):
@@ -92,9 +92,9 @@ class ScheduleMission(BaseModel):
 
     mission_id: str = Field(..., description="Mission identifier")
     sync_name: str = Field(..., description="Name of synchronization mark for new date/time schedule")
-    mission_date: date = Field(..., description="Scheduled new date for the mission")
-    mission_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Scheduled new time for the mission")
-    queue: str = Field(..., description="Destination queue of mission emission")
+    mission_date: date = Field(..., description="Scheduled new date for the mission in managed airport local time")
+    mission_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Scheduled new time for the mission in managed airport local time")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions")
 
     @validator('queue')
     def validate_queue(cls, queue):
@@ -108,7 +108,7 @@ class ScheduleMission(BaseModel):
 class DeleteMission(BaseModel):
 
     mission_id: str = Field(..., description="Mission identifier")
-    queue: str = Field(..., description="Destination queue")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions")
 
     @validator('queue')
     def validate_queue(cls, queue):

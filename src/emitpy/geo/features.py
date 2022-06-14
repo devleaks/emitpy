@@ -357,7 +357,7 @@ class Ramp(FeatureWithProps):
             return pos
         return None
 
-    def makeServicePOIs(self, aircraft: "AircraftType"):
+    def makeServicePOIs(self, aircraft: "AircraftType", redis=None):
         def sign(x):
             return -1 if x < 0 else (0 if x == 0 else 1)
 
@@ -400,7 +400,8 @@ class Ramp(FeatureWithProps):
         # for each service
         # 1=dist along axis, 2=dist away from axis, left or right, 3=heading of vehicle,
         # optional 4=height to match ac reference point.
-        positions = aircraft.gseprofile["services"]
+        gseprofile = aircraft.getGSEProfile(redis=redis)
+        positions = gseprofile["services"]
         for svc in positions:
             poiaxe = destination(self,   positions[svc][0]/1000, antiheading, {"units": "km"})
             poilat = destination(poiaxe, positions[svc][1]/1000, antiheading + 90, {"units": "km"})

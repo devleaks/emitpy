@@ -17,18 +17,18 @@ class CreateFlight(BaseModel):
 
     airline: str = Field(..., description="Airline IATA identifier; must be operating at managed airport")
     flight_number: Optional[constr(max_length=5)] = Field(..., description="Flight IATA number, 1 to 5 characters maximum")
-    flight_date: date = Field(..., description="Flight date in managed airport local time")
-    flight_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Flight time in managed airport local time")
-    movement: Literal[ARRIVAL, DEPARTURE] = Field(..., description="Movement direction, arrival or departure")
+    flight_date: date = Field(..., description="Flight scheduled date in managed airport local time")
+    flight_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Flight scheduled time in managed airport local time")
+    movement: Literal[ARRIVAL, DEPARTURE] = Field(..., description="Movement, arrival or departure")
     airport: str = Field(..., description="Airport IATA identifier; must be connected with managed airport")
-    ramp: str = Field(..., description="Managed airport ramp name")
-    aircraft_type: str = Field(..., description="IATA or ICAO aircraft model code")
+    ramp: str = Field(..., description="Managed airport ramp name for aircraft")
+    aircraft_type: str = Field(..., description="IATA or ICAO aircraft model code (will do best effort to guess proper type)")
     aircraft_reg: str = Field(..., description="Aircraft registration (tail number)")
     call_sign: str = Field(..., description="Aircraft call sign for this flight, usually ICAO airline code and flight number")
     icao24: Optional[constr(min_length=6, max_length=6)] = Field(..., description="Hexadecimal number of ADS-B broadcaster MAC address, exactly 6 hexadecimal digits")
     runway: str = Field(..., description="Managed airport runway used for movement")
-    emit_rate: int = Field(30, description="Emission rate (sent every ... seconds)")
-    queue: str = Field(..., description="Name of emission broadcast queue")
+    emit_rate: int = Field(30, description="Emission rate for positions (sent every ... seconds)")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions; also determine emission data format")
     create_services: bool = False
 
     @validator('airline')
@@ -87,10 +87,10 @@ class CreateFlight(BaseModel):
 class ScheduleFlight(BaseModel):
 
     flight_id: str = Field(..., description="Flight IATA identifier")
-    sync_name: str = Field(..., description="Name of sychronization mark for new date time")
-    flight_date: date = Field(..., description="Scheduled new date for flight")
-    flight_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Scheduled time in managed airport local time")
-    queue: str = Field(..., description="Destination queue")
+    sync_name: str = Field(..., description="Name of sychronization mark for new date time estimate")
+    flight_date: date = Field(..., description="Estimated date for flight in managed airport local time")
+    flight_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Estimated time in managed airport local time")
+    queue: str = Field(..., description="Destination queue for positions")
 
     @validator('queue')
     def validate_queue(cls,queue):
@@ -104,8 +104,8 @@ class ScheduleFlight(BaseModel):
 class DeleteFlight(BaseModel):
 
     flight_id: str = Field(..., description="Flight IATA identifier")
-    delete_services: bool = False
-    queue: str = Field(..., description="Queue where flight was scheduled")
+    delete_services: bool = Field(False, description="Whether to delete associated services")
+    queue: str = Field(..., description="Queue used for positions of flight")
 
     @validator('queue')
     def validate_queue(cls,queue):
@@ -114,3 +114,4 @@ class DeleteFlight(BaseModel):
         return LOV_Validator(value=queue,
                              valid_values=valid_values,
                              invalid_message=f"Invalid queue name {queue}")
+

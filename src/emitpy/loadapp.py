@@ -5,6 +5,7 @@ sys.path.append(os.path.join(HOME_DIR, "src"))
 
 import logging
 import json
+import yaml
 
 import redis
 from redis.commands.json.path import Path
@@ -22,7 +23,7 @@ from emitpy.airspace import ControlledPoint, CPIDENT, AirwaySegment
 from emitpy.airport import Airport, AirportBase
 
 from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path
-from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED
+from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE
 
 from emitpy.utils import NAUTICAL_MILE
 from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR
@@ -64,7 +65,7 @@ class LoadApp(ManagedAirport):
         logger.debug(":init: initialized. ready to cache. caching..")
 
         # Caching emitpy data into Redis
-        self.load()
+        self.load(["actaprof"])
 
         # Caching emitpy lists of values Redis
         self.cache_lovs()
@@ -111,6 +112,11 @@ class LoadApp(ManagedAirport):
 
         if "*" in what or "acequiv" in what:
             status = self.loadAircraftEquivalences()
+            if not status[0]:
+                return status
+
+        if "*" in what or "actaprof" in what:
+            status = self.loadTurnaroundProfiles()
             if not status[0]:
                 return status
 
@@ -290,6 +296,53 @@ class LoadApp(ManagedAirport):
 
         logger.debug(f":loadAircraftEquivalences: loaded {len(AircraftPerformance._DB_EQUIVALENCE)} aircraft equivalences")
         return (True, f"LoadApp::loadAircraftEquivalences: loaded aircraft equivalences")
+
+
+    def loadTurnaroundProfiles(self):
+
+        def loadProfile(actype):
+
+            def loadFromFile(fn):
+                filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, fn)
+                data = None
+                if os.path.exists(filename):
+                    with open(filename, "r") as file:
+                        if filename[-5:] == ".yaml":
+                            data = yaml.safe_load(file)
+                        else:  # JSON or GeoJSON
+                            data = json.load(file)
+                    return data
+                else:
+                    logger.warning(f":loadFromFile: file not found {filename}")
+                return None
+
+            tarprofile = {
+                RAMP_TYPE.JETWAY.value: {},
+                RAMP_TYPE.TIE_DOWN.value: {}
+            }
+            at_least_one = False
+            for move in ["arrival", "departure"]:
+                for rt in RAMP_TYPE:
+                    tarprofile[rt.value][move] = loadFromFile(f"{actype}-{move}-{rt.value}-tarprf.yaml")
+                    if tarprofile[rt.value][move] is not None:
+                        logger.debug(f":loadTurnaroundProfile: loaded for aircraft class {actype}, {move}, ramp type {rt.value}")
+            if len(tarprofile[RAMP_TYPE.JETWAY.value]) > 0 or len(RAMP_TYPE.TIE_DOWN.value) > 0:
+                self.redis.json().set(key_path(REDIS_PREFIX.AIRCRAFT_TARPROFILES.value, actype), Path.root_path(), tarprofile)
+                logger.debug(f":loadTurnaroundProfiles: loaded service data for aircraft class {actype}")
+            else:
+                logger.debug(f":loadTurnaroundProfiles: no service data for aircraft class {actype}")
+
+            gseprofile = loadFromFile(f"{actype}-gseprf.yaml")
+            if gseprofile is not None:
+                self.redis.json().set(key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, actype), Path.root_path(), gseprofile)
+                logger.debug(f":loadTurnaroundProfiles: loaded GSE profile for aircraft class {actype}")
+            else:
+                logger.debug(f":loadTurnaroundProfiles: no GSE profile for aircraft class {actype}")
+
+        for acclass in "ABCDEF":  # one day, we'll loop over each ac type...
+            loadProfile(acclass)
+
+        return (True, f"LoadApp::loadTurnaroundProfiles: loaded turnaround profile for aircraft classes")
 
 
     def loadAirports(self):

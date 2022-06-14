@@ -17,7 +17,7 @@ import sys
 sys.path.append(HOME_DIR)
 
 from emitpy.business import Identity, Company
-from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB
+from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB, RAMP_TYPE
 from emitpy.parameters import DATA_DIR
 from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, key_path, rejson
 
@@ -348,9 +348,9 @@ class AircraftPerformance(AircraftType):
                 acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name, actype.rawdata)
                 acperf.display_name = acperf.orgId + " " + acperf.name
                 acperf.perfraw = jsondata[ac]
+                acperf.setClass()
                 if acperf.check_availability():  # sets but also returns availability
                     acperf.toSI()
-                    acperf.setClass()
                 AircraftPerformance._DB_PERF[ac] = acperf
             else:
                 logger.warning(f":loadAll: AircraftType {ac} not found")
@@ -516,23 +516,23 @@ class AircraftPerformance(AircraftType):
         return str(iata).split("/") if iata else []
 
 
-    def load(self):
+    def load(self, redis = None):
         """
         Loads additional aircraft performance or characteristic data
         necessary for the application.
         It loads Ground Support Vehicle Profile (how GSE vehicle arrange around the aircraft on the apron).
         It also loads Turnaround Profile, a typical service schedule pattern for arrival or departure service scheduling.
         """
-        status = self.loadPerformance()
+        status = self.loadPerformance(redis=redis)
 
         if not status[0]:
             return status
 
-        status = self.loadTurnaroundProfile()
+        status = self.loadTurnaroundProfiles(redis=redis)
         if not status[0]:
             return status
 
-        status = self.loadGSEProfile()
+        status = self.loadGSEProfile(redis=redis)
         if not status[0]:
             return status
 
@@ -582,44 +582,84 @@ class AircraftPerformance(AircraftType):
         return data
 
 
-    def loadPerformance(self):
+    def loadPerformance(self, redis = None):
         """
         Loads a performance data file for a single aircraft type.
         """
         if self.perfraw is None:
-            data = self.loadFromFile(".json")
-            if data is not None:
-                self.perfraw = data
-                if self.check_availability():
-                    self.toSI()
+            if redis is not None:
+                key = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, self.typeId.upper())
+                r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+                if r is None:
+                    logger.debug(f":loadPerformance: no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})")
+                    key = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, self._ac_class)
+                    r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+                    if r is None:
+                        logger.warning(f":loadPerformance: no turnaround profile data file for class {self._ac_class} ({key})")
+                        return (False, "AircraftPerformance::loadPerformance: no profile found in Redis")
             else:
-                logger.warning(f":loadPerformance: no performance data file for {self.typeId.upper()}")
+                data = self.loadFromFile(".json")
+                if data is not None:
+                    self.perfraw = data
+                    if self.check_availability():
+                        self.toSI()
+                else:
+                    logger.warning(f":loadPerformance: no performance data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadPerformance: loaded"]
 
 
-    def loadTurnaroundProfile(self):
+    def loadTurnaroundProfiles(self, redis = None):
         """
         Loads a turnaround profile data file for a single aircraft type.
         """
         if self.tarprofile is None:
-            data = self.loadFromFile("-tarpro.yaml")
-            if data is not None:
-                self.tarprofile = data
-                logger.debug(f":loadTurnaroundProfile: loaded for {self.typeId.upper()}")
+            if redis is not None:
+                key = key_path(REDIS_PREFIX.AIRCRAFT_TARPROFILES.value, self.typeId.upper())
+                r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+                if r is None:
+                    logger.debug(f":loadTurnaroundProfile: no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})")
+                    key = key_path(REDIS_PREFIX.AIRCRAFT_TARPROFILES.value, self._ac_class)
+                    r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+                    if r is None:
+                        logger.warning(f":loadTurnaroundProfile: no turnaround profile data file for class {self._ac_class} ({key})")
+                        return (False, "AircraftPerformance::loadTurnaroundProfile: no profile found in Redis")
             else:
-                logger.warning(f":loadTurnaroundProfile: no turnaround profile data file for {self.typeId.upper()}")
-        return [True, "AircraftPerformance::loadTurnaroundProfile: not implemented"]
+                self.tarprofile = {
+                    RAMP_TYPE.JETWAY.value: {},
+                    RAMP_TYPE.TIE_DOWN.value: {}
+                }
+                for move in ["arrival", "departure"]:
+                    for rt in RAMP_TYPE:
+                        self.tarprofile[rt.value][move] = self.loadFromFile(f"-{move}-{rt.value}-tarprf.yaml")
+                    if self.tarprofile[rt.value][move] is not None:
+                        logger.debug(f":loadTurnaroundProfile: loaded for {self.typeId.upper()}, {move}, ramp type {rt.value}")
+                    else:
+                        logger.warning(f":loadTurnaroundProfile: no turnaround profile data file for {self.typeId.upper()}, {move}, ramp type {rt.value}")
+        return (True, "AircraftPerformance::loadTurnaroundProfile: loaded")
 
 
-    def loadGSEProfile(self):
+    def loadGSEProfile(self, redis = None):
         """
         Loads a ground support vehicle arrangement data file for a single aircraft type.
         """
-        data = self.loadFromFile("-gsepro.yaml")
-        if data is not None:
-            self.gseprofile = data
-        else:
-            logger.warning(f":loadGSEProfile: no GSE profile data file for {self.typeId.upper()}")
+        if self.gseprofile is None:
+            if redis is not None:
+                key = key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, self.typeId.upper())
+                r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+                if r is None:
+                    logger.debug(f":loadGSEProfile: no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})")
+                    key = key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, self._ac_class)
+                    r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+                    if r is None:
+                        logger.warning(f":loadGSEProfile: no turnaround profile data file for class {self._ac_class} ({key})")
+                        return (False, "AircraftPerformance::loadGSEProfile: no profile found in Redis")
+
+            else:
+                data = self.loadFromFile("-gseprf.yaml")
+                if data is not None:
+                    self.gseprofile = data
+                else:
+                    logger.warning(f":loadGSEProfile: no GSE profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadGSEProfile: not implemented"]
 
 
@@ -628,6 +668,10 @@ class AircraftPerformance(AircraftType):
         Check whether all perfomance data is available for this aircraft type.
         If not, the aircraft cannot be used in the application (insufficient data available).
         """
+        if self._ac_class is None:
+            logger.warning(f":check_availability: {self.typeId} has no class")
+            return False
+
         max_ceiling = self.get("max_ceiling")  # this is a FL
         if max_ceiling is None:
             logger.warning(f":check_availability: no max ceiling for: {self.typeId}")
@@ -948,24 +992,33 @@ class AircraftPerformance(AircraftType):
         """
         return self.climb(altstart, altend, - self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.landing_speed))
 
-    def getTurnaroundProfile(self, move: str, ramp: str):
+    def getTurnaroundProfile(self, move: str, ramp: str, redis = None):
         if self.tarprofile is None:
-            self.loadTurnaroundProfile()
+            self.loadTurnaroundProfiles(redis=redis)
+
+        print(">>>", self.tarprofile)
 
         if self.tarprofile is None:
-            logger.warning(":getTurnaroundProfile: no turnaround profile")
+            logger.warning(f":getTurnaroundProfile: no turnaround profile for {self.typeId}")
             return None
-        if not move in self.tarprofile:
+
+        ramptype = RAMP_TYPE.TIE_DOWN.value  # default
+        if ramp in ["gate"]:  # 1300: “gate”, “hangar”, “misc” or “tie-down”
+            ramptype = RAMP_TYPE.JETWAY.value
+
+        if not ramptype in self.tarprofile:
+            logger.warning(f":getTurnaroundProfile: no turnaround profile for {ramptype}")
+            return None
+
+        preselect = self.tarprofile[ramptype]
+        if not move in preselect.keys():
             logger.warning(f":getTurnaroundProfile: no turnaround profile for {move}")
             return None
-        return self.tarprofile[move]
-        # if not ramp in self.flight.aircraft.actype.tarprofile[move]:
-        #     logger.warning(f":getTurnaroundProfile: no turnaround profile for {move}/{ramp}")
-        #     return None
-        # return self.flight.aircraft.actype.tarprofile[move][ramp]
 
+        return preselect[move]
 
-
+    def getGSEProfile(self, redis = None):
+        return self.gseprofile
 
 
 class AircraftClass(AircraftPerformance):

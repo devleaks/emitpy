@@ -220,7 +220,7 @@ class EmitApp(ManagedAirport):
 
         prevdb = self.redis.client_info()["db"]
         self._app.redis.select(1)
-        remote_apt.save("airports", self._app.redis)
+        remote_apt.save("airports", self.use_redis())
         self._app.redis.select(prevdb)
         logger.debug(f":do_flight: other airport saved")
 
@@ -244,7 +244,7 @@ class EmitApp(ManagedAirport):
 
         logger.debug(":do_flight: loading aircraft ..")
         actype, acsubtype = acarr
-        ac = AircraftPerformance.findAircraftByType(actype, acsubtype, self.redis)
+        ac = AircraftPerformance.findAircraftByType(actype, acsubtype, self.use_redis())
         if ac is None:
             return StatusInfo(100, f"aircraft performance not found for {actype} or {acsubtype}", None)
         acperf = AircraftPerformance.find(icao=ac, redis=self.use_redis())
@@ -375,7 +375,7 @@ class EmitApp(ManagedAirport):
         # operator = self.airport.manager.getCompany(operator)
 
         flight_service = FlightServices(flight, operator)
-        flight_service.setManagedAirport(self.airport)
+        flight_service.setManagedAirport(self)
         ret = flight_service.service()
         if not ret[0]:
             return StatusInfo(150, f"problem during flight service", ret[1])
@@ -597,7 +597,7 @@ class EmitApp(ManagedAirport):
         logger.debug(f":do_flight_services: got flight: {flight.getInfo()}")
 
         flight_service = FlightServices(flight, operator)
-        flight_service.setManagedAirport(self.airport)
+        flight_service.setManagedAirport(self)
         ret = flight_service.service()
         if not ret[0]:
             return StatusInfo(150, f"problem during flight service", ret[1])
@@ -863,6 +863,9 @@ class EmitApp(ManagedAirport):
                 logger.debug(f":do_delete: ..done")
 
         arr = ident.split(ID_SEP)
+        if len(arr) < 2:
+            return StatusInfo(502, f"insufficient information to delete entity", ident)
+
         what = arr[-1]
         logger.debug(f":do_delete: to delete {ident}, ext={what}")
 

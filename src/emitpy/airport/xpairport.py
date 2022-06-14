@@ -15,7 +15,8 @@ from .airport import AirportBase
 from emitpy.graph import Vertex, Edge, USAGE_TAG
 from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
 from emitpy.parameters import DATA_DIR
-from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, REDIS_PREFIX, REDIS_DB, ID_SEP, POI_COMBO
+from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE
+from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP
 from emitpy.utils import key_path, rejson
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
@@ -188,7 +189,10 @@ class XPAirport(AirportBase):
             if aptline.linecode() == 1300: # ramp  name: str, ramptype: str, position: [float], orientation: float, size: str
                 args = aptline.content().split()
                 name = " ".join(args[5:])
-                ramp = Ramp(name=name, ramptype=args[3], position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[4])
+                ramptype = RAMP_TYPE.TIE_DOWN.value  # default
+                if args[3] in ["gate"]:  # 1300: “gate”, “hangar”, “misc” or “tie-down”
+                    ramptype = RAMP_TYPE.JETWAY.value
+                ramp = Ramp(name=name, ramptype=ramptype, position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[4])
                 ramps[name] = ramp
             elif ramp is not None and aptline.linecode() == 1301: # ramp details
                 args = aptline.content().split()

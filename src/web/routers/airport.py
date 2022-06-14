@@ -115,12 +115,12 @@ async def list_service_handlers(request: Request):
 
 
 @router.get("/mission-types", tags=["reference", "missions"])
-async def list_services():
+async def list_missions():
     return JSONResponse(content=Mission.getCombo())
 
 
 @router.get("/mission-vehicle-models/", tags=["reference", "missions"])
-async def list_service_vehicle_models():
+async def list_mission_vehicle_models():
     return JSONResponse(content=MissionVehicle.getCombo())
 
 
@@ -143,7 +143,7 @@ async def list_runways(request: Request):
     return JSONResponse(content=t)
 
 @router.get("/allocation/runways-viewer", tags=["allocations"], include_in_schema=False)
-async def allocation_ramps(request: Request):
+async def allocation_runways(request: Request):
     return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "runways"})
 
 

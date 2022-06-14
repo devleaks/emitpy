@@ -190,6 +190,8 @@ class REDIS_PREFIX(Enum):
     AIRWAYS  = "aeroways"
     AIRCRAFT_EQUIS = key_path("aircraft", "equivalences")
     AIRCRAFT_PERFS = key_path("aircraft", "performances")
+    AIRCRAFT_TARPROFILES = key_path("aircraft", "service-profiles")
+    AIRCRAFT_GSEPROFILES = key_path("aircraft", "gse-profiles")
     AIRCRAFT_TYPES = key_path("aircraft", "types")
     AIRLINE_ROUTES = key_path("business", "airroutes", "airlines")
     AIRLINES = key_path("business", "airlines")
@@ -352,9 +354,9 @@ class POI_TYPE(Enum):
 
 
 class RAMP_TYPE(Enum):
-    GATE = "gate"
-    TIE_DOWN = "tie-down"
-    HANGAR = "hangar"
+    JETWAY = "jetway"
+    TIE_DOWN = "tiedown"
+#   HANGAR = "hangar"
 
 
 class ARRIVAL_DELAY(IntEnum):
