@@ -5,11 +5,12 @@ from typing import Optional, Literal, List
 
 from pydantic import BaseModel, Field, validator
 
-from emitpy.constants import EMIT_RATES
+from emitpy.constants import EMIT_RATES, REDIS_TYPE
+from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT
 from emitpy.emit import Format, Queue
 
-from .utils import LOV_Validator
+from .utils import LOV_Validator, REDISKEY_Validator
 
 
 class CreateQueue(BaseModel):
@@ -47,9 +48,9 @@ class ScheduleQueue(BaseModel):
                              invalid_message=f"Invalid queue name {name}")
 
 
-class PiasEmit(BaseModel):
+class PiasEnqueue(BaseModel):
 
-    emit_id: str = Field(..., description="Emitpy enqueued data identifier")
+    enqueue_id: str = Field(..., description="Emitpy enqueued data identifier")
     queue: str = Field(..., description="Destination queue")
 
     @validator('queue')
@@ -60,10 +61,17 @@ class PiasEmit(BaseModel):
                              valid_values=valid_values,
                              invalid_message=f"Invalid queue name {queue}")
 
+    @validator('enqueue_id')
+    def validate_enqueue(cls, enqueue_id):
+        r = redis.Redis(**REDIS_CONNECT)
+        return REDISKEY_Validator(redis=r,
+                                  value=enqueue_id,
+                                  key_pattern=key_path("*", REDIS_TYPE.QUEUE.value),
+                                  invalid_message=f"no enqueue {enqueue_id}")
 
-class EmitAgain(BaseModel):
+class EmitDifferent(BaseModel):
 
-    emit_id: str = Field(..., description="Flight IATA identifier")
+    emit_id: str = Field(..., description="Emitpy emit data identifier")
     sync_name: str = Field(..., description="Name of sychronization mark for new date time")
     sync_date: date = Field(..., description="Esimated new date for flight")
     sync_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Esimated time in managed airport local time")
@@ -84,4 +92,12 @@ class EmitAgain(BaseModel):
         return LOV_Validator(value=new_emit_rate,
                              valid_values=valid_values,
                              invalid_message=f"Emit rate value must be in {valid_values} (seconds bytween pushes)")
+
+    @validator('emit_id')
+    def validate_enqueue(cls, emit_id):
+        r = redis.Redis(**REDIS_CONNECT)
+        return REDISKEY_Validator(redis=r,
+                                  value=emit_id,
+                                  key_pattern=key_path("*", REDIS_TYPE.EMIT.value),
+                                  invalid_message=f"no enqueue {emit_id}")
 

@@ -801,7 +801,7 @@ class EmitApp(ManagedAirport):
         emit.setManagedAirport(self)
 
         if new_frequency == emit.frequency:
-            logger.debug(f":do_emit_again: not a new frequency {new_frequency}")
+            logger.debug(f":do_emit_again: not different")
             return StatusInfo(651, "not a new frequency", ident)
 
         ret = emit.emit(new_frequency)
@@ -959,8 +959,13 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "queue delete successfully", None)
 
 
-    def do_list_emit(self):  # from, to
-        keys = self.redis.keys(key_path("*", REDIS_TYPE.QUEUE.value))
+    def do_list(self, mtype = None, rtype = None):  # from, to
+        keypattern = "*"
+        if mtype is not None:
+            keypattern = key_path(mtype, keypattern)
+        if rtype is not None:
+            keypattern = key_path(keypattern, rtype)
+        keys = self.redis.keys(keypattern)
         karr = [(k.decode("UTF-8"), k.decode("UTF-8")) for k in sorted(keys)]
         return karr
 

@@ -25,6 +25,8 @@ from emitpy.emit import ReEmit
 
 MANAGED_AIRPORT_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 
+DEFAULT_VEHICLE_SHORT = "SV"
+
 
 logger = logging.getLogger("AirportManager")
 
@@ -368,7 +370,7 @@ class AirportManager:
                     if len(names) > 1 and names[1] != "":
                         vname_root = vname_root + names[1][0:2].upper()
                     else:
-                        vname_root = vname_root + "SV"  # "standard vehicle"
+                        vname_root = vname_root + DEFAULT_VEHICLE_SHORT  # "standard vehicle"
                     if hasattr(servicevehicleclasses, vcl):
                         for idx in range(int(vqty)):
                             vname = f"{vname_root}{idx:03d}"
@@ -446,7 +448,7 @@ class AirportManager:
             logger.warning(f":selectServiceVehicle: invalid service {type(service).__name__}")
 
         if is_default_model(model):
-            vcl_short = vcl_short + "SV"  # Standard Vehicle
+            vcl_short = vcl_short + DEFAULT_VEHICLE_SHORT  # Standard Vehicle
             logger.debug(f":selectServiceVehicle: standard model is {vcl}, {vcl_short}")
         else:
             model = model.replace("-", "_")  # now model is snake_case

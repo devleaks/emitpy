@@ -2,8 +2,7 @@ import re
 from typing import List
 
 from emitpy.emitapp import StatusInfo
-
-dbid = 1
+from emitpy.constants import REDIS_DB
 
 
 def LOV_Validator(
@@ -30,12 +29,26 @@ def REDISLOV_Validator(
     valid_key: str,
     invalid_message: str) -> str:
     prevdb = redis.client_info()["db"]
-    redis.select(dbid)
+    redis.select(REDIS_DB.REF.value)
     valid_values = redis.json().get(valid_key)
     redis.select(prevdb)
     if valid_values is not None:
         return LOV_Validator(value, valid_values.keys(), invalid_message)
     raise ValueError(f"no key {valid_key} value for validation")
+
+
+def REDISKEY_Validator(
+    redis,
+    value: str,
+    key_pattern: str,
+    invalid_message: str) -> str:
+    prevdb = redis.client_info()["db"]
+    redis.select(REDIS_DB.APP.value)
+    valid_values = redis.keys(key_pattern)
+    redis.select(prevdb)
+    if valid_values is not None:
+        return LOV_Validator(value, [f.decode("UTF-8") for f in valid_values], invalid_message)
+    raise ValueError(f"no key for '{key_pattern}' for validation")
 
 
 def ICAO24_Validator(value):

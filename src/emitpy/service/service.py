@@ -103,47 +103,53 @@ class Service(GroundSupport):
 # Specific ground handling services
 #
 #
-class CleaningService(Service):
+# PAX
+#
+class PassengerService(Service):
 
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
+# ARRIVAL
+#
+class CleaningService(Service):
+
+    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
+        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
 class SewageService(Service):
 
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
-
+# DEPARTURE
+#
 class CateringService(Service):
 
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
-
 
 class WaterService(Service):
 
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
-
 class FuelService(Service):
 
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
-
+# BOTH
+#
 class CargoService(Service):
 
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
-
 class BaggageService(Service):
 
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
-
 
 class AircraftService(Service):
 

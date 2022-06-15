@@ -14,7 +14,7 @@ from typing import Optional, Literal, List
 
 from pydantic import BaseModel, Field, validator
 
-from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES
+from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES, REDIS_DATABASE, REDIS_TYPE
 from emitpy.aircraft import AircraftPerformance as Aircraft
 from emitpy.airport import Airport
 from emitpy.business import Airline
@@ -85,7 +85,7 @@ async def list_aircraft_types(request: Request):
 
 
 @router.get("/service-types", tags=["reference", "services"])
-async def list_services():
+async def list_service_types():
     return JSONResponse(content=Service.getCombo())
 
 
@@ -115,7 +115,7 @@ async def list_service_handlers(request: Request):
 
 
 @router.get("/mission-types", tags=["reference", "missions"])
-async def list_missions():
+async def list_mission_types():
     return JSONResponse(content=Mission.getCombo())
 
 
@@ -129,9 +129,40 @@ async def list_mission_handlers(request: Request):
     return JSONResponse(content=request.app.state.emitpy.airport.manager.getCompaniesCombo(classId="Mission"))
 
 
-@router.get("/pias", tags=["flights", "services", "missions"])
+# ###############################
+# Emits and Enqueues
+#
+@router.get("/pias", tags=["reference"])
 async def list_enqueues(request: Request):
-    return JSONResponse(content=request.app.state.emitpy.do_list_emit())
+    return JSONResponse(content=request.app.state.emitpy.do_list())
+
+@router.get("/pias/flights", tags=["flights"])
+async def list_flight_enqueues(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.QUEUE.value, mtype=REDIS_DATABASE.FLIGHTS.value))
+
+@router.get("/pias/services", tags=["services"])
+async def list_service_enqueues(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.QUEUE.value, mtype=REDIS_DATABASE.SERVICES.value))
+
+@router.get("/pias/missions", tags=["missions"])
+async def list_mission_enqueues(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.QUEUE.value, mtype=REDIS_DATABASE.MISSIONS.value))
+
+@router.get("/pias", tags=["reference"])
+async def list_emits(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.do_list())
+
+@router.get("/emit/flights", tags=["flights"])
+async def list_flight_emits(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.EMIT.value, mtype=REDIS_DATABASE.FLIGHTS.value))
+
+@router.get("/emit/services", tags=["services"])
+async def list_service_emits(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.EMIT.value, mtype=REDIS_DATABASE.SERVICES.value))
+
+@router.get("/emit/missions", tags=["missions"])
+async def list_mission_emits(request: Request):
+    return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.EMIT.value, mtype=REDIS_DATABASE.MISSIONS.value))
 
 
 # ###############################

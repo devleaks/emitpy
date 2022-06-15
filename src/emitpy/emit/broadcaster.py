@@ -550,7 +550,7 @@ class Hypercaster:
             message = self.pubsub.get_message(timeout=LISTEN_TIMEOUT)
             if message is not None and type(message) != str and "data" in message:
 
-                logger.debug(f":admin_queue: analyzing {message}..")
+                # logger.debug(f":admin_queue: analyzing {message}..")
 
                 ty = message["type"]
                 if type(ty) == bytes:

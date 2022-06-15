@@ -48,18 +48,15 @@ PARCEL = "parcel"
 
 # 3. GSE types
 class SERVICE(Enum):
+    PASSENGER = "pasenger"
     CLEANING = "cleaning"
+    SEWAGE = "sewage"
     CATERING = "catering"
+    WATER = "water"
     FUEL = "fuel"
     CARGO = "cargo"
-    ULD = "uld"
     BAGGAGE = "baggage"
-    MARSHALL = "marshall"
-    PUSHBACK = "pushback"
-    WATER = "water"
-    APU = "apu"
-    SEWAGE = "sewage"
-    STANDBY = "standby"
+    AIRCRAFT = "aircraft"
 
 
 ########################################
