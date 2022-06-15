@@ -20,7 +20,7 @@ from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE, LIVETRAFFIC_QUEUE
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED
-from emitpy.parameters import DATA_IN_REDIS, REDIS_CONNECT, METAR_HISTORICAL, XPLANE_FEED
+from emitpy.parameters import REDIS_CONNECT, METAR_HISTORICAL, XPLANE_FEED
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
@@ -46,6 +46,16 @@ class StatusInfo:
 SAVE_TO_FILE = False  # for debugging purpose
 
 
+def BOOTSTRAP_REDIS():
+    r = redis.Redis(**REDIS_CONNECT)
+    prevdb = r.client_info()["db"]
+    r.select(REDIS_DB.REF.value)
+    k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
+    a = r.json().get(k)
+    r.select(prevdb)
+    return a is not None and MANAGED_AIRPORT_LAST_UPDATED in a
+
+
 class EmitApp(ManagedAirport):
 
     def __init__(self, airport):
@@ -53,16 +63,18 @@ class EmitApp(ManagedAirport):
         ManagedAirport.__init__(self, airport=airport, app=self)
 
         self.local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
-        self._use_redis = False
 
         self.redis_pool = None
         self.redis = None
         self.gas = None
 
+        self._use_redis = BOOTSTRAP_REDIS()
+
         # If Redis is defined before calling init(), it will use it.
         # Otherwise, it will use the data files.
-        if not DATA_IN_REDIS:  # If caching data we MUST preload them from files
-            ret = self.init()  # call init() here to use data from data files
+        if not self._use_redis:  # If caching data we MUST preload them from files
+            logger.info(f":init: not using Redis for data")
+            ret = self.init()    # call init() here to use data from data files
             if not ret[0]:
                 logger.warning(ret[1])
 
@@ -92,7 +104,7 @@ class EmitApp(ManagedAirport):
             return
 
 
-        if DATA_IN_REDIS:
+        if self._use_redis:
             ret = self.check_data()
             if not ret[0]:
                 logger.error(ret[1])
@@ -104,8 +116,7 @@ class EmitApp(ManagedAirport):
             # self.gas["managed-airport"] = airport
             # print(self.gas)
             # self.redis.select(REDIS_DB.APP.value)
-        logger.debug(f":init: data last loaded on {ret[1]}")
-
+            logger.info(f":init: using Redis for data, last loaded on {ret[1]}")
 
         # Default queue(s)
         self.redis.select(REDIS_DB.APP.value)
@@ -142,7 +153,7 @@ class EmitApp(ManagedAirport):
         If true, we return a redis connection instance ready to be used.
         If false, we return None and the function that called us can choose another path.
         """
-        if DATA_IN_REDIS:
+        if self._use_redis:
             return redis.Redis(connection_pool=self.redis_pool)
         return None
 

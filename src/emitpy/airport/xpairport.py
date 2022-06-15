@@ -14,12 +14,10 @@ from turfpy.measurement import distance, destination, bearing
 from .airport import AirportBase
 from emitpy.graph import Vertex, Edge, USAGE_TAG
 from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
-from emitpy.parameters import DATA_DIR
+from emitpy.parameters import DATA_DIR, XPLANE_DIRECTORY
 from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE
 from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP
 from emitpy.utils import key_path, rejson
-
-SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
 logger = logging.getLogger("XPAirport")
 
@@ -96,7 +94,7 @@ class XPAirport(AirportBase):
         Scans scenery_packs collection for apt.dat files.
         Tries to locate manage airport ICAO. If match is found, data lines are loaded.
         """
-        SCENERY_PACKS = os.path.join(SYSTEM_DIRECTORY, "Custom Scenery", "scenery_packs.ini")
+        SCENERY_PACKS = os.path.join(XPLANE_DIRECTORY, "Custom Scenery", "scenery_packs.ini")
         scenery_packs = open(SCENERY_PACKS, "r")
         scenery = scenery_packs.readline()
         scenery = scenery.strip()
@@ -105,7 +103,7 @@ class XPAirport(AirportBase):
             if re.match("^SCENERY_PACK", scenery, flags=0):
                 logger.debug("SCENERY_PACK %s", scenery.rstrip())
                 scenery_pack_dir = scenery[13:-1]
-                scenery_pack_apt = os.path.join(SYSTEM_DIRECTORY, scenery_pack_dir, "Earth nav data", "apt.dat")
+                scenery_pack_apt = os.path.join(XPLANE_DIRECTORY, scenery_pack_dir, "Earth nav data", "apt.dat")
                 logger.debug("APT.DAT %s", scenery_pack_apt)
 
                 if os.path.isfile(scenery_pack_apt):
