@@ -143,6 +143,7 @@ class Emit(Messages):
         # logger.debug(f":getMeta: from Emit")
         self.emit_meta = self.getInfo()
         self.emit_meta["props"] = self.props
+        self.emit_meta["marks"] = self.getTimedMarkList()
         source = self.getSource()
         if source is not None:
             self.emit_meta["move"] = source.getInfo()
@@ -560,10 +561,18 @@ class Emit(Messages):
 
 
     def getTimedMarkList(self):
-        l = set()
-        [l.add(f.getProp(FEATPROP.MARK.value)) for f in self._emit]
-        if None in l:
-            l.remove(None)
+        l = dict()
+        for f in self.scheduled_emit:
+            m = f.getProp(FEATPROP.MARK.value)
+            if m is not None:
+                if m in l:
+                    l[m]["count"] = l[m]["count"] + 1 if "count" in l[m] else 2
+                else:
+                    l[m] = {
+                        "rel": f.getProp(FEATPROP.EMIT_REL_TIME.value),
+                        "ts": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
+                        "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)
+                    }
         return l
 
 
@@ -613,6 +622,8 @@ class Emit(Messages):
         if self.emit_id is None:
             logger.debug(f":schedule: no emit id")
             return (False, f"Emit::schedule no emit id")
+
+        logger.debug(f":schedule: mark list: {self.getMarkList()}")
 
         offset = self.getRelativeEmissionTime(sync)
         if offset is not None:

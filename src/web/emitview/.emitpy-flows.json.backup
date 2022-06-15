@@ -209,7 +209,7 @@
         "type": "function",
         "z": "180a8a3d97d7dc3f",
         "name": "Flight",
-        "func": "\nmsg.payload = {\n    lat: msg.payload.geometry.coordinates[1],\n    lon: msg.payload.geometry.coordinates[0],\n    heading: msg.payload.properties.heading,\n    speed: msg.payload.properties.speed,\n    tooltip: msg.payload.properties.ident,\n    label: msg.payload.properties.flight.callsign,\n    icon: \"plane\",\n    iconColor: \"#00EE00\",\n    name: msg.payload.properties.icao24\n}\n\nreturn msg;",
+        "func": "\nmsg.payload = {\n    lat: msg.payload.geometry.coordinates[1],\n    lon: msg.payload.geometry.coordinates[0],\n    heading: msg.payload.properties.heading,\n    speed: msg.payload.properties.speed/10.0,\n    tooltip: msg.payload.properties.ident,\n    label: msg.payload.properties.flight.callsign,\n    icon: \"plane\",\n    iconColor: msg.payload.properties.flight.is_arrival ? \"#00DD00\" : \"#FF85FF\",\n    ttl: 60*60*2,\n    name: msg.payload.properties.icao24\n}\n\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -221,7 +221,6 @@
             [
                 "52cf1aa80496fcd6",
                 "95070f789505afec",
-                "7430d863ff752a27",
                 "61389890749add36",
                 "3e441f196f8c1a0e"
             ]
@@ -271,10 +270,13 @@
                 "7984f525616d5318"
             ],
             [
-                "4e4c918648571f07"
+                "4e4c918648571f07",
+                "7984f525616d5318"
             ],
             [
-                "0603b312c0dbc578"
+                "0603b312c0dbc578",
+                "7984f525616d5318",
+                "9ea682a830cf1b4b"
             ]
         ]
     },
@@ -283,7 +285,7 @@
         "type": "function",
         "z": "180a8a3d97d7dc3f",
         "name": "Mission",
-        "func": "\nmsg.payload = {\n    lat: msg.payload.geometry.coordinates[1],\n    lon: msg.payload.geometry.coordinates[0],\n    heading: msg.payload.properties.heading,\n    tooltip: msg.payload.properties.ident,\n    label: msg.payload.properties.mission.vehicle.callsign,\n    icon: \"car\",\n    iconColor: \"#0000EE\",\n    name: msg.payload.properties.icao24\n}\n\nreturn msg;",
+        "func": "\nmsg.payload = {\n    lat: msg.payload.geometry.coordinates[1],\n    lon: msg.payload.geometry.coordinates[0],\n    heading: msg.payload.properties.heading,\n    tooltip: msg.payload.properties.mission.vehicle.callsign,\n    label: msg.payload.properties.service.vehicle.callsign,\n    icon: \"fa-car\",\n    iconColor: \"#FF0000\",\n    name: msg.payload.properties.icao24\n}\n\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -329,8 +331,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 340,
-        "y": 440,
+        "x": 320,
+        "y": 480,
         "wires": []
     },
     {
@@ -345,8 +347,8 @@
         "complete": "false",
         "statusVal": "",
         "statusType": "auto",
-        "x": 530,
-        "y": 340,
+        "x": 570,
+        "y": 480,
         "wires": []
     },
     {
@@ -354,7 +356,7 @@
         "type": "function",
         "z": "180a8a3d97d7dc3f",
         "name": "Service",
-        "func": "msg.payload = {\n    lat: msg.payload.geometry.coordinates[1],\n    lon: msg.payload.geometry.coordinates[0],\n    heading: msg.payload.properties.heading,\n    tooltip: msg.payload.properties.ident,\n    label: msg.payload.properties.service.vehicle.callsign,\n    icon: \"truck\",\n    iconColor: \"#0000EE\",\n    name: msg.payload.properties.icao24\n}\n\nreturn msg;",
+        "func": "msg.payload = {\n    lat: msg.payload.geometry.coordinates[1],\n    lon: msg.payload.geometry.coordinates[0],\n    heading: msg.payload.properties.heading,\n    tooltip: msg.payload.properties.service.vehicle.callsign,\n    icon: \"fa-truck\",\n    iconColor: \"#0000AA\",\n    name: msg.payload.properties.icao24\n}\n\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -522,21 +524,6 @@
         "wires": []
     },
     {
-        "id": "7430d863ff752a27",
-        "type": "jsonpath",
-        "z": "180a8a3d97d7dc3f",
-        "expression": "..properties.altitude",
-        "split": false,
-        "name": "select altitude",
-        "x": 760,
-        "y": 360,
-        "wires": [
-            [
-                "77b85ddde90439df"
-            ]
-        ]
-    },
-    {
         "id": "61389890749add36",
         "type": "debug",
         "z": "180a8a3d97d7dc3f",
@@ -582,5 +569,42 @@
         "x": 1100,
         "y": 320,
         "wires": []
+    },
+    {
+        "id": "216297d666d0a2ad",
+        "type": "debug",
+        "z": "180a8a3d97d7dc3f",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 970,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "9ea682a830cf1b4b",
+        "type": "function",
+        "z": "180a8a3d97d7dc3f",
+        "name": "Flight",
+        "func": "msg.topic = msg.payload.properties.icao24\nmsg.payload = msg.payload.properties.altitude\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 340,
+        "wires": [
+            [
+                "216297d666d0a2ad",
+                "77b85ddde90439df"
+            ]
+        ]
     }
 ]

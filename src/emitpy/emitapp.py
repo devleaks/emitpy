@@ -327,7 +327,6 @@ class EmitApp(ManagedAirport):
             emit_time = emit_time.replace(tzinfo=self.timezone)
             logger.debug(":do_flight: scheduled time has no time zone, added managed airport local time zone")
 
-        logger.debug(emit.getMarkList())
         ret = emit.schedule(sync, emit_time)
         if not ret[0]:
             return StatusInfo(105, f"problem during schedule", ret[1])

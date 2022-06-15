@@ -48,11 +48,12 @@ description = """
  - Vehicles executing « _missions_ » (surveillance, emergency, fire...)
 
 Emission of those vehicle positions is done on "output queues".
+
 For each queue, it is possible to choose
- - the format of data
- - the rate of emissions
- - the start date time of the queue
- - the speed of emission, either slower or fater than actual time
+ - the format of data that is produced
+ - the rate of emissions (from 1 per second to 1 per hour)
+ - the start date and time of the queue
+ - the speed of emission, either slower or faster (up to 10 times) than actual time
 
 The generator allows you to create, reset, start or stop output queues,
 and precise its start date time, its speed of emission, and the data format of the emission.
@@ -60,17 +61,18 @@ and precise its start date time, its speed of emission, and the data format of t
 
 ## Flights
 
-- Create a new flight
-- Re-schedule a flight
+- Create a new flight (optionally with all its associated services)
+- Re-schedule a flight (optionally with all its associated services)
 - Suppress a flight
-- Create its handling services during flight creation
+
 
 ## Ground Services
 
 - Create a single service
-- Create all services for a given flight (single movement) —— Not implemented yet
+- Create services for a given flight
 - Reschedule an existing service
 - Suppress a service
+
 
 ## Missions
 
@@ -78,24 +80,31 @@ and precise its start date time, its speed of emission, and the data format of t
 - Reschedule a mission
 - Suppress a mission
 
+
+## All Movments
+
+- Create another emission with different emission rate and enqueue to a different queue _(emit different)_
+- Re-enqueued (restart) an emission _(pias)_
+
+
 ## Queues
 
 - Create a queue
-- Reset a queue
-- Start or stop a queue
+- Change queue timing parameters, reset, start or stop a queue
 - Delete a queue
 
 
 ## Airport utility functions
 
 - List all flights
-- List all services, service vehicles
-- List all missions
-- Show allocations for runways, ramps, and service vehicles
+- List all services, service vehicles, service vehicle types
+- List all missions, mission types and mission vehicles
+- Show allocations for runways, ramps, and all vehicles
 - Helper functions to ease use interface building and selection by returning
-lists of pairs (internal_name, display_name) for combo boxes and form validation.
+  lists of pairs (internal_name, display_name) for combo boxes and form validation.
 
 
+You're cleared for take off. Have a nice day.
 """
 
 tags_metadata = [
@@ -113,13 +122,15 @@ tags_metadata = [
     },
     {
         "name": "queues",
-        "description": "Queue operations: Creating, reset, etc."
+        "description": "Queue operations: Creation, modification, reset, etc."
     },
     {
         "name": "airport",
-        "description": "General airport queries: Allocations, etc."
+        "description": "General airport queries: Allocations, flights, missions, etc. " +
+        "but also airlines operating at the airport, connected airports, operators, handlers..."
     }
 ]
+
 
 app = FastAPI(
     title="Emitpy REST API",
@@ -165,28 +176,30 @@ async def root():
         "/docs",
         status_code=status.HTTP_302_FOUND)
 
+
 APP_NAME = f"{emitpy.__version__} «{emitpy.__version_name__}»"
+
 
 @app.on_event("startup")
 async def startup():
-    logger.info(f":startup {APP_NAME} starting..")
+    logger.info(f":startup: {APP_NAME} cleared for take off..")
     # should collect and display:
     # git describe --tags
     # git log -1 --format=%cd --relative-date
     # + redis_connect info
-    logger.info(f":startup managed airport is «{MANAGED_AIRPORT['name']}»")
+    logger.info(f":startup: {APP_NAME} taking off from «{MANAGED_AIRPORT['name']}»..")
     app.state.emitpy = EmitApp(MANAGED_AIRPORT)
     app.state.hypercaster = Hypercaster()
-    logger.log(5, f":startup {APP_NAME} ..started")
+    logger.log(5, f":startup: {APP_NAME} ..positive climb. gear up. AP 1 on.")
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    logger.info(f":shutdown {APP_NAME} ..stopping..")
+    logger.info(f":shutdown {APP_NAME} ..cleared for landing..")
     app.state.emitpy.shutdown()
     app.state.hypercaster.shutdown()  # shutdown last as it might not terminate properly...
-    logger.info(f":shutdown {APP_NAME} ..stopped")
-    logger.info(f":shutdown kiss landed at «{MANAGED_AIRPORT['name']}»")
+    logger.info(f":shutdown {APP_NAME} ..landed. taxiing to gate")
+    logger.info(f":shutdown kiss landed at «{MANAGED_AIRPORT['name']}». Have a nice day.")
 
 
 if __name__ == "__main__":

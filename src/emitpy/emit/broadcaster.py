@@ -324,7 +324,8 @@ class Broadcaster:
                     continue
 
                 numval = self.redis.zcard(self.name)
-                logger.debug(f":broadcast: {self.name}: {numval} items left in queue")
+                # logger.debug(f":broadcast: {self.name}: {numval} items left in queue")
+                pretxt = f"{numval} items left in queue,"
                 now = self.now()
                 # logger.debug(f":broadcast: {self.name}: it is now {df(now)}")
                 # logger.debug(f":broadcast: {self.name}: at {df(now)}: {numval} in queue")
@@ -347,16 +348,16 @@ class Broadcaster:
                     logger.debug(f":broadcast: {self.name}: ..trim older events completed, restarted listening")
 
                 else:  # we need to send later, let's wait
-                    logger.debug(f":broadcast: {self.name}: need to send at {df(currval[2])}, waiting {td(timetowait)}, speed={self.speed}, waiting={round(realtimetowait, 1)}")
+                    logger.debug(f":broadcast: {self.name}: {pretxt} need to send at {df(currval[2])}, waiting {td(timetowait)}, speed={self.speed}, waiting={round(realtimetowait, 1)}")
 
                     if not self.rdv.wait(timeout=realtimetowait):
                         # we timed out, we need to send
-                        logger.debug(f":broadcast: {self.name}: sending..")
+                        # logger.debug(f":broadcast: {self.name}: sending..")
                         r = self.send_data(currval[1].decode('UTF-8'))
                         if r != 0:
                             logger.warning(f":send_data: did not complete successfully (errcode={r})")
                         currval = None  # currval was sent, we don't need to push it back or anything like that
-                        logger.debug(f":broadcast: {self.name}: ..done")
+                        # logger.debug(f":broadcast: {self.name}: ..done")
 
                     # Now, there is an external event, either reset() or trim() that need us to
                     # temporary stop sending while they do their stuff.
