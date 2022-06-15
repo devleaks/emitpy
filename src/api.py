@@ -163,6 +163,7 @@ app.include_router(flights.router, dependencies=dependencies)
 app.include_router(services.router, dependencies=dependencies)
 app.include_router(missions.router, dependencies=dependencies)
 app.include_router(airport.router, dependencies=dependencies)
+app.include_router(airport.router2, dependencies=[])  # temporarily no security on allocation viewer
 
 app.include_router(queues.router2, dependencies=dependencies)
 app.include_router(queues.router, dependencies=dependencies)

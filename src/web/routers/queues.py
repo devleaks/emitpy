@@ -100,7 +100,7 @@ async def delete_queue(
     return JSONResponse(content=jsonable_encoder(ret))
 
 
-@router.put("/pias", tags=["queues"])
+@router.put("/pias")
 async def pias_enqueue(
     request: Request, enqueue_in: PiasEnqueue
 ):

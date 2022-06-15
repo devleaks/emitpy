@@ -24,7 +24,17 @@ from ..models import NotAvailable
 
 router = APIRouter(
     prefix="/airport",
-    tags=["airport"],
+#    tags=["airport"],
+    responses={
+        404: {
+            "description": "Not found"
+        }
+    }
+)
+
+router2 = APIRouter(
+    prefix="/allocation",
+    tags=["allocations"],
     responses={
         404: {
             "description": "Not found"
@@ -39,7 +49,7 @@ templates = Jinja2Templates(directory="web/templates")
 # ###############################
 # Special lists for UI
 #
-@router.get("/airlines", tags=["reference"])
+@router.get("/airlines", tags=["reference", "airport"])
 async def list_airlines(request: Request):
     return JSONResponse(content=Airline.getCombo(request.app.state.emitpy.redis))
 
@@ -132,7 +142,7 @@ async def list_mission_handlers(request: Request):
 # ###############################
 # Emits and Enqueues
 #
-@router.get("/pias", tags=["reference"])
+@router.get("/pias", tags=["movements"])
 async def list_enqueues(request: Request):
     return JSONResponse(content=request.app.state.emitpy.do_list())
 
@@ -148,19 +158,15 @@ async def list_service_enqueues(request: Request):
 async def list_mission_enqueues(request: Request):
     return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.QUEUE.value, mtype=REDIS_DATABASE.MISSIONS.value))
 
-@router.get("/pias", tags=["reference"])
-async def list_emits(request: Request):
-    return JSONResponse(content=request.app.state.emitpy.do_list())
-
-@router.get("/emit/flights", tags=["flights"])
+@router.get("/emit/flights", tags=["flights", "movements"])
 async def list_flight_emits(request: Request):
     return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.EMIT.value, mtype=REDIS_DATABASE.FLIGHTS.value))
 
-@router.get("/emit/services", tags=["services"])
+@router.get("/emit/services", tags=["services", "movements"])
 async def list_service_emits(request: Request):
     return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.EMIT.value, mtype=REDIS_DATABASE.SERVICES.value))
 
-@router.get("/emit/missions", tags=["missions"])
+@router.get("/emit/missions", tags=["missions", "movements"])
 async def list_mission_emits(request: Request):
     return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.EMIT.value, mtype=REDIS_DATABASE.MISSIONS.value))
 
@@ -168,61 +174,62 @@ async def list_mission_emits(request: Request):
 # ###############################
 # Display allocations
 #
-@router.get("/allocation/runways", tags=["allocations"])
-async def list_runways(request: Request):
-    t = request.app.state.emitpy.airport.manager.runway_allocator.table()
-    return JSONResponse(content=t)
+def reformat_allocations(alloc):
+    def reformat(d):
+        td = datetime.fromisoformat(d)
+        return td.strftime("%Y-%m-%d %H:%M:00")
 
-@router.get("/allocation/runways-viewer", tags=["allocations"], include_in_schema=False)
+    table = {}
+    for r in alloc:
+        for a in alloc[r]:
+            if r not in table.keys():
+                table[r] = {
+                    "measure": r,
+                    "data": [],
+                    "description": [],
+                    "categories": {
+                        "11": { "class": "delay11" },
+                        "00": { "class": "delay00" },
+                        "10": { "class": "delay10" },
+                        "01": { "class": "delay01" }
+                    }
+                }
+            ontimec = "11"
+            table[r]["data"].append([reformat(a[0]), ontimec, reformat(a[1])])
+            table[r]["description"].append(a[2])
+    table = dict(sorted(table.items()))  # sort by key=r
+    return list(table.values())
+
+
+@router2.get("/runways")
+async def list_runways(request: Request):
+    r0 = request.app.state.emitpy.airport.manager.runway_allocator.table()
+    r1 = reformat_allocations(r0)
+    return JSONResponse(content=r1)
+
+@router2.get("/runways-viewer", include_in_schema=False)
 async def allocation_runways(request: Request):
     return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "runways"})
 
 
-# @router.get("/allocation/ramps", tags=["allocations"])
-# async def list_ramps():
-#     filename = os.path.join("..", "data", "managedairport", "OTHH", "flights", "2019_W15_ROTATION_RAW.csv")
-#     file = open(filename, "r")
-#     csvdata = csv.DictReader(file)
-#     bays = {}
-#     for r in csvdata:
-#         bay = r["BAY_x"]
-#         if bay not in bays.keys():
-#             bays[bay] = {
-#                 "measure": bay,
-#                 "data": [],
-#                 "description": [],
-#                 "categories": {
-#                     "11": { "class": "delay11" },
-#                     "00": { "class": "delay00" },
-#                     "10": { "class": "delay10" },
-#                     "01": { "class": "delay01" }
-#                 }
-#             }
-#         ontime  = float(r['FLIGHT TOTAL DELAY_x']) < 20
-#         ontime2 = float(r['FLIGHT TOTAL DELAY_x']) < 20
-#         ontimec = f"{1 if ontime else 0}{1 if ontime2 else 0}"
-#         bays[bay]["data"].append([r['FLIGHT SCHEDULED TIME_x'], ontimec, r['FLIGHT SCHEDULED TIME_y']])
-#         bays[bay]["description"].append(f"{r['AIRLINE CODE_x']}{r['FLIGHT NO_x']} ({r['AIRPORT_x']})"
-#                                       + f" -> {r['AIRLINE CODE_y']}{r['FLIGHT NO_y']} ({r['AIRPORT_y']})")
-#     bays = dict(sorted(bays.items()))  # sort by key=bay
-#     return JSONResponse(content=list(bays.values()))
-
-@router.get("/allocation/ramps", tags=["allocations"])
+@router2.get("/ramps")
 async def list_ramps(request: Request):
-    t = request.app.state.emitpy.airport.manager.ramp_allocator.table()
-    return JSONResponse(content=t)
+    r0 = request.app.state.emitpy.airport.manager.ramp_allocator.table()
+    r1 = reformat_allocations(r0)
+    return JSONResponse(content=r1)
 
-@router.get("/allocation/ramps-viewer", tags=["allocations"], include_in_schema=False)
+@router2.get("/ramps-viewer", include_in_schema=False)
 async def allocation_ramps(request: Request):
     return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "ramps"})
 
 
-@router.get("/allocation/vehicles", tags=["allocations"])
+@router2.get("/vehicles")
 async def list_vehicles(request: Request):
-    t = request.app.state.emitpy.airport.manager.vehicle_allocator.table()
-    return JSONResponse(content=t)
+    r0 = request.app.state.emitpy.airport.manager.vehicle_allocator.table()
+    r1 = reformat_allocations(r0)
+    return JSONResponse(content=r1)
 
-@router.get("/allocation/vehicles-viewer", tags=["allocations"], include_in_schema=False)
+@router2.get("/vehicles-viewer", include_in_schema=False)
 async def allocation_vehicles(request: Request):
     return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "vehicles"})
 
@@ -230,7 +237,7 @@ async def allocation_vehicles(request: Request):
 # ###############################
 # Other general lists
 #
-@router.get("/flights", tags=["movements"])
+@router.get("/flights", tags=["movements", "airport"])
 async def list_flights(request: Request):
     t = request.app.state.emitpy.airport.manager.allFlights(request.app.state.emitpy.redis)
     return JSONResponse(content=list(t))

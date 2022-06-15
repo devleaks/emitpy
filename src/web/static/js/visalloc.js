@@ -1,8 +1,10 @@
 function show_allocations(resource) {
     console.log("show_allocations", resource)
-    fetch("/airport/allocation/"+resource)
+    fetch("/allocation/"+resource)
         .then(response => response.json())
         .then(function(dataset) {
+
+            console.log(dataset)
 
             var options = {
                 id_div_container: "visavail_container",
