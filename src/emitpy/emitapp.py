@@ -52,7 +52,7 @@ def BOOTSTRAP_REDIS():
     while not_connected and attempts < 10:
         r = redis.Redis(**REDIS_CONNECT)
         try:
-            pong = self.redis.ping()
+            pong = r.ping()
             not_connected = False
             logger.info("BOOTSTRAP_REDIS: connected")
         except redis.RedisError:
@@ -64,6 +64,7 @@ def BOOTSTRAP_REDIS():
         logger.error("BOOTSTRAP_REDIS: cannot connect")
         return False
 
+    prevdb = r.client_info()["db"]
     r.select(REDIS_DB.REF.value)
     k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
     a = r.json().get(k)
