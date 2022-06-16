@@ -54,7 +54,7 @@ for r in csvdata:
                           scheduled=dt.isoformat(),
                           apt=r['AIRPORT'],
                           movetype=move,
-                          acarr=(r['AC TYPE'], r['AC TYPE IATA']),
+                          actype=(r['AC TYPE'], r['AC TYPE IATA']),
                           acreg=r['REGISTRATION NO'],
                           icao24=icao[r['REGISTRATION NO']],
                           ramp=r['RAMP'],

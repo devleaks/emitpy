@@ -65,4 +65,4 @@ XPLANE_FEED = False
 
 XPLANE_HOSTNAME = "<x-plane-host-ip-address>"
 XPLANE_PORT = 49003
-XPLANE_DIRECTORY = os.path.join("<x-plane-home-directory>")
+XPLANE_DIR = os.path.join("<x-plane-home-directory>")

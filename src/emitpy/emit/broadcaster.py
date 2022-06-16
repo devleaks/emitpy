@@ -19,8 +19,8 @@ logger = logging.getLogger("Broadcaster")
 
 
 # Utility functions for debugging time and printing timestamp nicely
-def df(ts):
-    return f"{datetime.fromtimestamp(ts).astimezone().isoformat(timespec='seconds')} (ts={round(ts, 1)})"
+def df(ts, tz = None):
+    return f"{datetime.fromtimestamp(ts).astimezone(tz=tz).isoformat(timespec='seconds')} (ts={round(ts, 1)})"
 
 def td(ts):
     return f"{timedelta(seconds=round(ts))} ({round(ts, 1)})"
@@ -32,12 +32,12 @@ def td(ts):
 # Delicate parameters, too dangerous to externalize
 #
 ZPOPMIN_TIMEOUT = 5.0  # secs
-LISTEN_TIMEOUT = 5.0
-PING_FREQUENCY = 10.0   # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
+LISTEN_TIMEOUT  = 5.0
+PING_FREQUENCY  = 10.0 # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
 
 # MAXBACKLOGSECS is the maximum negative time we tolerate
 # for sending events late (in seconds)
-MAXBACKLOGSECS = -20  # 0 is too critical, but MUST be <=0
+MAXBACKLOGSECS  = -20  # 0 is too critical, but MUST be <=0
 
 # Queue name prefix
 OUT_QUEUE_PREFIX = "emitpy:"  # could be ""
@@ -270,6 +270,8 @@ class Broadcaster:
         if MAXBACKLOGSECS > 0:
             MAXBACKLOGSECS = - MAXBACKLOGSECS  # MUST be <=0 I said
 
+        tz = self._starttime.tzinfo if hasattr(self._starttime, "tzinfo") else None
+
         logger.debug(f":broadcast: {self.name}: pre-start trimming..")
         self._do_trim()
         logger.debug(f":broadcast: {self.name}: ..done")
@@ -348,7 +350,7 @@ class Broadcaster:
                     logger.debug(f":broadcast: {self.name}: ..trim older events completed, restarted listening")
 
                 else:  # we need to send later, let's wait
-                    logger.debug(f":broadcast: {self.name}: {pretxt} need to send at {df(currval[2])}, waiting {td(timetowait)}, speed={self.speed}, waiting={round(realtimetowait, 1)}")
+                    logger.debug(f":broadcast: {self.name}: {pretxt} need to send at {df(currval[2], tz)}, waiting {td(timetowait)}, speed={self.speed}, waiting={round(realtimetowait, 1)}")
 
                     if not self.rdv.wait(timeout=realtimetowait):
                         # we timed out, we need to send
@@ -529,9 +531,6 @@ class Hypercaster:
         self.redis.set(key_path(REDIS_DATABASE.QUEUES.value, QUIT), QUIT)
         hyperlogger.debug(f":terminate_all_queues: ..done")
 
-    def shutdown(self):
-        self.terminate_all_queues()
-
     def admin_queue(self):
         # redis events:
         # {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'del'}
@@ -639,17 +638,5 @@ class Hypercaster:
         self.pubsub.unsubscribe(pattern)
         hyperlogger.info(":admin_queue: ..bye")
 
-
-    def run(self):
-        try:
-            self.admin_queue_thread.start()
-            hyperlogger.debug(f":run: running..")
-        except KeyboardInterrupt:
-            hyperlogger.debug(f":run: terminate all queues..")
-            self.terminate_all_queues()
-            self.shutdown_flag.set()  # reminder to self!
-            hyperlogger.debug(f":run: ..done")
-        finally:
-            hyperlogger.debug(f":run: waiting all threads to finish..")
-            self.admin_queue_thread.join()
-            hyperlogger.debug(f":run: ..done. Bye")
+    def shutdown(self):
+        self.terminate_all_queues()

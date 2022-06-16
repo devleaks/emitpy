@@ -206,7 +206,7 @@ class EmitApp(ManagedAirport):
         logger.debug(":shutdown: .. done")
 
 
-    def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, acarr, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
+    def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
         logger.debug(":do_flight: Airline, airport ..")
         # Add pure commercial stuff
         airline = Airline.find(airline, self.redis)
@@ -254,6 +254,7 @@ class EmitApp(ManagedAirport):
         logger.debug(":do_flight: ..done")
 
         logger.debug(":do_flight: loading aircraft ..")
+        acarr = (actype, actype) if type(actype) == str else actype
         actype, acsubtype = acarr
         ac = AircraftPerformance.findAircraftByType(actype, acsubtype, self.use_redis())
         if ac is None:

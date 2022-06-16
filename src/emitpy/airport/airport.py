@@ -46,7 +46,7 @@ class Airport(Location):
         self.icao = icao
         self.iata = iata
         self.region = region
-        self.display_name = None
+        self.display_name = name
 
         self._rawdata = {}
         self.airlines = {}
@@ -174,7 +174,8 @@ class Airport(Location):
             return rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
 
         l = filter(lambda a: len(a.airlines) > 0, Airport._DB_IATA.values())
-        return [(a.iata, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
+        m = [(a.iata, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
+        return m
 
 
     @classmethod

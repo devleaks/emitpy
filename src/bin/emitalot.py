@@ -8,7 +8,7 @@ from datetime import datetime, tzinfo, timedelta
 import logging
 
 import sys
-sys.path.append('/Users/pierre/Developer/oscars/emitpy/src')
+sys.path.append('..')
 
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT
@@ -39,16 +39,16 @@ print(len(a))
 
 icao = {}
 
-NUM_TURNAROUNDS = numlines - 1
-DO_SERVICE = False
+NUM_TURNAROUNDS = 2
+DO_SERVICE = True
 USE_TURNAROUND = False
 
-cnt = NUM_TURNAROUNDS-43
-cnt_begin = 43 # random.randint(0, numlines) # random pair of flights
+cnt = NUM_TURNAROUNDS
+cnt_begin = 0 # random.randint(0, numlines) # random pair of flights
 cnt_end = cnt_begin + NUM_TURNAROUNDS - 1
 
 queue = "test"
-rate = 20
+rate = 30
 
 # for r in csvdata:
 for i in range(cnt_begin, cnt_end):
@@ -75,7 +75,7 @@ for i in range(cnt_begin, cnt_end):
                           scheduled=dt.isoformat(),
                           apt=r['AIRPORT_x'],
                           movetype=movetype,
-                          acarr=(r['AC TYPE_x'], r['AC SUB TYPE_x']),
+                          actype=(r['AC TYPE_x'], r['AC SUB TYPE_x']),
                           ramp=r['BAY_x'],
                           icao24=icao[r['REGISTRATION NO_x']],
                           acreg=r['REGISTRATION NO_x'],
@@ -114,7 +114,7 @@ for i in range(cnt_begin, cnt_end):
                           scheduled=dt.isoformat(),
                           apt=r['AIRPORT_y'],
                           movetype="departure",
-                          acarr=(r['AC TYPE_y'], r['AC SUB TYPE_y']),
+                          actype=(r['AC TYPE_y'], r['AC SUB TYPE_y']),
                           ramp=r['BAY_y'],
                           icao24=icao[r['REGISTRATION NO_y']],
                           acreg=r['REGISTRATION NO_y'],

@@ -13,7 +13,7 @@ from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 from emitpy.geo import FeatureWithProps
 from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
-from emitpy.parameters import DATA_DIR, XPLANE_DIRECTORY
+from emitpy.parameters import DATA_DIR, XPLANE_DIR
 
 
 logger = logging.getLogger("XPAirspace")
@@ -65,7 +65,7 @@ class XPAirspace(Airspace):
     """
     def __init__(self, bbox=None, load_airways: bool = False):
         Airspace.__init__(self, bbox, load_airways=load_airways)
-        self.basename = os.path.join(XPLANE_DIRECTORY, "Resources", "default data")
+        self.basename = os.path.join(XPLANE_DIR, "Resources", "default data")
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
         self.simairspacetype = "X-Plane"
@@ -81,7 +81,7 @@ class XPAirspace(Airspace):
         """
         startLen = len(self.vert_dict.keys())
         count = 0
-        filename = os.path.join(XPLANE_DIRECTORY, "GlobalAirportDatabase.txt")
+        filename = os.path.join(XPLANE_DIR, "GlobalAirportDatabase.txt")
         file = open(filename, "r")
         logger.info(":loadAirports: from %s.", filename)
         line = file.readline()

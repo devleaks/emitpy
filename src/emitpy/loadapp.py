@@ -64,11 +64,13 @@ class LoadApp(ManagedAirport):
         logger.debug("=" * 90)
         logger.debug(":init: initialized. ready to cache. caching..")
 
+        # Caching emitpy lists of values Redis
+        # We need to cache lov first because we will reset
+        # some collections and loose some data/links
+        self.cache_lovs()
+
         # Caching emitpy data into Redis
         self.load()
-
-        # Caching emitpy lists of values Redis
-        self.cache_lovs()
 
         logger.debug(":init: .. done")
         logger.debug("=" * 90)
@@ -96,6 +98,9 @@ class LoadApp(ManagedAirport):
 
 
     def load(self, what = ["*"]):
+
+        if type(what) == str:
+            what = [ what ]
 
         # #############################
         # GENERIC
@@ -196,6 +201,11 @@ class LoadApp(ManagedAirport):
             if not status[0]:
                 return status
 
+        if "*" in what or "gsefleet" in what:
+            status = self.loadGSEFleet()
+            if not status[0]:
+                return status
+
         # #############################
         # MANAGED AIRPORT
         #
@@ -259,7 +269,8 @@ class LoadApp(ManagedAirport):
     # GENERIC
     #
     def loadAircraftTypes(self):
-        AircraftType.loadAll()
+        if len(AircraftType._DB) == 0:
+            AircraftType.loadAll()
         for a in AircraftType._DB.values():
             a.save(REDIS_PREFIX.AIRCRAFT_TYPES.value, self.redis)
         logger.debug(f":loadAircraftTypes: loaded {len(AircraftType._DB)} aircraft types")
@@ -267,8 +278,10 @@ class LoadApp(ManagedAirport):
 
 
     def loadAircraftPerformances(self):
-        AircraftType.loadAll()
-        AircraftPerformance.loadAll()
+        if len(AircraftType._DB) == 0:
+            AircraftType.loadAll()
+        if len(AircraftPerformance._DB_PERF) == 0:
+            AircraftPerformance.loadAll()
         for a in AircraftPerformance._DB_PERF.values():
             a.save(REDIS_PREFIX.AIRCRAFT_PERFS.value, self.redis)
 
@@ -280,21 +293,30 @@ class LoadApp(ManagedAirport):
         g2 = filter(lambda a: a.check_availability(), g1)
         gdict = dict([(v.save_id, v.getInfo()) for v in g2])
         self.redis.json().set(REDIS_PREFIX.AIRCRAFT_PERFS.value, Path.root_path(), gdict)
-        a = list(gdict.values())
-        self.redis.json().set(REDIS_PREFIX.AIRCRAFT_PERFS.value + "2", Path.root_path(), a)
+        # a = list(gdict.values())
+        # self.redis.json().set(REDIS_PREFIX.AIRCRAFT_PERFS.value + "2", Path.root_path(), a)
 
         logger.debug(f":loadAircraftPerformances: loaded {len(gdict)}/{len(AircraftPerformance._DB_PERF)} aircraft performances")
         return (True, f"LoadApp::loadAircraftPerformances: loaded aircraft performances")
 
 
     def loadAircraftEquivalences(self):
-        AircraftType.loadAircraftEquivalences()
-        self.redis.json().set(REDIS_PREFIX.AIRCRAFT_EQUIS.value, Path.root_path(), AircraftPerformance._DB_EQUIVALENCE)
-        for k, v in AircraftPerformance._DB_EQUIVALENCE.items():
-            self.redis.json().set(key_path(REDIS_PREFIX.AIRCRAFT_EQUIS.value, k), Path.root_path(), v)
-        self.redis.json().set(REDIS_PREFIX.AIRCRAFT_EQUIS.value, Path.root_path(), AircraftPerformance._DB_EQUIVALENCE)
-
-        logger.debug(f":loadAircraftEquivalences: loaded {len(AircraftPerformance._DB_EQUIVALENCE)} aircraft equivalences")
+        if len(AircraftType._DB) == 0:
+            AircraftType.loadAll()
+        if len(AircraftPerformance._DB_PERF) == 0:
+            AircraftPerformance.loadAll()
+        EQUIVALENCES = "equivalences"
+        cnt = 0
+        for k, v in AircraftPerformance._DB_PERF.items():
+            if EQUIVALENCES in v.perfraw.keys():
+                equivs = v.perfraw[EQUIVALENCES]
+                self.redis.sadd(key_path(REDIS_PREFIX.AIRCRAFT_EQUIS.value, k), *equivs)
+                cnt = cnt + 1
+                # Add reverse equivalence
+                for v1 in equivs:
+                    cnt = cnt + 1
+                    self.redis.sadd(key_path(REDIS_PREFIX.AIRCRAFT_EQUIS.value, v1), k)
+        logger.debug(f":loadAircraftEquivalences: loaded {cnt} aircraft equivalences")
         return (True, f"LoadApp::loadAircraftEquivalences: loaded aircraft equivalences")
 
 
@@ -346,7 +368,12 @@ class LoadApp(ManagedAirport):
 
 
     def loadAirports(self):
-        Airport.loadAll()
+        if len(Airport._DB) == 0:
+            Airport.loadAll()
+
+        for v in Airport._DB.values():  # Airline does not serialize
+            v.airlines = [(a.iata, a.orgId) for a in v.airlines.values()]
+
         errcnt = 0
         for a in Airport._DB.values():
             a.save(REDIS_PREFIX.AIRPORTS.value, self.redis)
@@ -362,7 +389,8 @@ class LoadApp(ManagedAirport):
 
 
     def loadAirlines(self):
-        Airline.loadAll()
+        if len(Airline._DB) == 0:
+            Airline.loadAll()
         for a in Airline._DB.values():
             a.save(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.ICAO.value), self.redis, mode=REDIS_PREFIX.ICAO.value)
         for a in Airline._DB_IATA.values():
@@ -427,6 +455,16 @@ class LoadApp(ManagedAirport):
             for v1 in v:
                 self.redis.json().set(key_path(REDIS_PREFIX.GSE.value, k, v1.getKey()), Path.root_path(), v1.getInfo())
         return (True, f"LoadApp::loadGSE: loaded GSE")
+
+
+    def loadGSEFleet(self):
+        fn = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT["ICAO"], "services", "servicevehiclefleet.yaml")
+        with open(fn, "r") as file:
+            data = yaml.safe_load(file)
+            for f in data["ServiceVehicleFleet"]:
+                for k, v in f.items():
+                    self.redis.set("business:services:fleet:"+k, v)
+        return (True, f"LoadApp::loadGSEFleet: loaded fleet")
 
 
     # #############################

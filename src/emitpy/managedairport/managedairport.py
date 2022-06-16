@@ -56,7 +56,6 @@ class ManagedAirport:
             logger.debug("loading aircrafts..")
             AircraftType.loadAll()
             AircraftPerformance.loadAll()
-            AircraftType.loadAircraftEquivalences()
             logger.debug("..done")
 
         logger.debug("loading managed airport..")

@@ -108,7 +108,7 @@ class AircraftType(Identity):
 
 
     @staticmethod
-    def loadAircraftEquivalences(redis = None):
+    def loadAircraftEquivalences():
         """
         Loads aircraft type equivalences. Be aware ICAO aircraft type name often
         does not discriminate from models: Ex. ICAO A350, IATA 350, 359, 358, 35K...
@@ -118,17 +118,9 @@ class AircraftType(Identity):
         :param      icao:  The icao
         :type       icao:  str
         """
-        # Aircraft equivalence patch(!)
-        if redis is not None:
-            data = rejson(redis=redis, key=REDIS_PREFIX.AIRCRAFT_EQUIS.value, db=REDIS_DB.REF.value)
-            if data is not None:
-                AircraftType._DB_EQUIVALENCE = data
-            else:
-                logger.warning(f":loadAircraftEquivalences: cannot find {REDIS_PREFIX.AIRCRAFT_EQUIS.value}")
-        else:
-            ae = files('data.aircraft_types').joinpath('aircraft-equivalence.yaml').read_text()
-            data = yaml.safe_load(ae)
-            AircraftType._DB_EQUIVALENCE = data
+        ae = files('data.aircraft_types').joinpath('aircraft-equivalence.yaml').read_text()
+        data = yaml.safe_load(ae)
+        AircraftType._DB_EQUIVALENCE = data
         logger.debug(f":loadAircraftEquivalences: loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences")
 
 
@@ -142,8 +134,27 @@ class AircraftType(Identity):
         :param      ac:   { parameter_description }
         :type       ac:   { type_description }
         """
+        if redis is not None:
+            prevdb = redis.client_info()["db"]
+            redis.select(REDIS_DB.REF.value)
+            k = key_path(REDIS_PREFIX.AIRCRAFT_EQUIS.value, ac)
+            v = redis.smembers(k)
+            redis.select(prevdb)
+            if v is not None:
+                for e in [a.decode("UTF-8") for a in v]:
+                    ke = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, e)
+                    ve = rejson(redis=redis, key=ke, db=REDIS_DB.REF.value)
+                    if ve is not None:
+                        redis.select(prevdb)
+                        return e
+                logger.warning(f":getEquivalence: no equivalence for {ac} ({v})")
+                return None
+            else:
+                logger.warning(f":getEquivalence: no equivalence for {ac}")
+                return None
+
         if len(AircraftType._DB_EQUIVALENCE) == 0:
-            AircraftType.loadAircraftEquivalences(redis)
+            AircraftType.loadAircraftEquivalences()
         for k, v in AircraftType._DB_EQUIVALENCE.items():
             if ac in v:
                 return k

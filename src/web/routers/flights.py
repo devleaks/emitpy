@@ -38,6 +38,13 @@ async def create_flight(
                       day=input_d.day,
                       hour=input_t.hour,
                       minute=input_t.minute)
+        at = None
+        if flight_in.flight_actual_date is not None and flight_in.flight_actual_time is not None:
+            at = datetime(year=flight_in.flight_actual_date.year,
+                          month=flight_in.flight_actual_date.month,
+                          day=flight_in.flight_actual_date.day,
+                          hour=flight_in.flight_actual_time.hour,
+                          minute=flight_in.flight_actual_time.minute).isoformat()
         ret = request.app.state.emitpy.do_flight(
                 queue=flight_in.queue,
                 emit_rate=int(flight_in.emit_rate),
@@ -46,12 +53,13 @@ async def create_flight(
                 scheduled=dt.isoformat(),
                 apt=flight_in.airport,
                 movetype=flight_in.movement,
-                acarr=(flight_in.aircraft_type, flight_in.aircraft_type),
+                actype=flight_in.aircraft_type,
                 ramp=flight_in.ramp,
                 icao24=flight_in.icao24,
                 acreg=flight_in.aircraft_reg,
                 runway=flight_in.runway,
-                do_services=flight_in.create_services)
+                do_services=flight_in.create_services,
+                actual_datetime=at)
     except Exception as ex:
         ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())
 

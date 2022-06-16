@@ -348,7 +348,7 @@ class CargoVehicleUld(CargoVehicle):
         self.setup_time = 4
         self.flow = 1
 
-class CargoVehicleTrain(CargoVehicle):
+class CargoVehicleUldTrain(CargoVehicle):
 
     def __init__(self, registration: str, operator: Company):
         CargoVehicle.__init__(self, registration=registration,  operator=operator)

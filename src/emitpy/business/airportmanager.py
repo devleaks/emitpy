@@ -720,3 +720,23 @@ class AirportManager:
                 items.append(ID_SEP.join(f.decode("UTF-8").split(ID_SEP)[:-1]))
             return set(items)
         return items
+
+
+    def addAircraft(self, aircraft):
+        self.flights[aircraft.getId()] = aircraft
+
+    def updateAircraft(self, aircraft):
+        self.flights[aircraft.getId()] = aircraft
+
+    def getAircrafts(self):
+        return self.aircrafts
+
+    def addFlight(self, flight):
+        self.flights[flight.getId()] = flight
+
+    def updateFlight(self, flight):
+        self.flights[flight.getId()] = flight
+
+    def getFlights(self):
+        return self.flights
+
