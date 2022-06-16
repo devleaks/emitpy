@@ -7,7 +7,7 @@ import logging
 import json
 import socket
 
-from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE
+from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE, QUEUE_PREFIX, QUEUE_DATA
 from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT
 from emitpy.parameters import XPLANE_FEED, XPLANE_HOSTNAME, XPLANE_PORT
@@ -38,9 +38,6 @@ PING_FREQUENCY  = 10.0 # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
 # MAXBACKLOGSECS is the maximum negative time we tolerate
 # for sending events late (in seconds)
 MAXBACKLOGSECS  = -20  # 0 is too critical, but MUST be <=0
-
-# Queue name prefix
-OUT_QUEUE_PREFIX = "emitpy:"  # could be ""
 
 
 # ##############################
@@ -251,7 +248,7 @@ class Broadcaster:
     def send_data(self, data: str) -> int:
         # l = min(30, len(data))
         # logger.debug(f":send_data: '{data[0:l]}'...")
-        self.redis.publish(OUT_QUEUE_PREFIX+self.name, data)
+        self.redis.publish(QUEUE_PREFIX+self.name, data)
         return 0
 
 
@@ -261,8 +258,9 @@ class Broadcaster:
         """
         def pushback(item):
             # Trick to NOT zadd on self.name
-            self.redis.zadd(self.name+"-TMP", item)
-            self.redis.zunionstore(self.name, [self.name, self.name+"-TMP"])
+            kn = key_path(QUEUE_DATA, self.name)
+            self.redis.zadd(kn+"-TMP", item)
+            self.redis.zunionstore(kn, [kn, kn+"-TMP"])
             self.redis.delete(self.name+"-TMP")
             # self.redis.zadd(self.name, {currval[1]: currval[2]})
 

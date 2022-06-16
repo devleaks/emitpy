@@ -7,7 +7,7 @@ import json
 
 from .format import Format
 from .queue import Queue
-from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, ID_SEP
+from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, ID_SEP, QUEUE_DATA
 from emitpy.utils import key_path
 
 logger = logging.getLogger("EnqueueToRedis")
@@ -80,7 +80,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             f = json.loads(f2)
             emit[f2] = f["properties"]["emit-absolute-time"]
 
-        oset.zadd(queue, emit)
+        oset.zadd(key_path(QUEUE_DATA, queue), emit)
         logger.debug(f":pias: added {len(oldvalues)} new entries to sorted set {queue}")
 
         # logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+queue} of new data ({NEW_DATA})..")
@@ -154,7 +154,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         logger.debug(f":enqueue: saved {len(emit)} new entries to {enq_id}, from ts={minv}({mindt}) to ts={maxv} ({maxdt})")
 
         # enqueue new values
-        oset.zadd(self.queue.name, emit)  # #3
+        oset.zadd(key_path(QUEUE_DATA, self.queue.name), emit)  # #3
         logger.debug(f":enqueue: added {len(emit)} new entries to sorted set {self.queue.name}")
 
         # logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})..")

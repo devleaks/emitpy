@@ -571,3 +571,6 @@ INTERNAL_QUEUES = {
     "wire": "wire"
 }
 LIVETRAFFIC_QUEUE = "lt"
+
+QUEUE_PREFIX = "emitpy:"
+QUEUE_DATA   = key_path("queues","data")
