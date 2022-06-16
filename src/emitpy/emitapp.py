@@ -47,8 +47,23 @@ SAVE_TO_FILE = False  # for debugging purpose
 
 
 def BOOTSTRAP_REDIS():
-    r = redis.Redis(**REDIS_CONNECT)
-    prevdb = r.client_info()["db"]
+    not_connected = True
+    attempts = 0
+    while not_connected and attempts < 10:
+        r = redis.Redis(**REDIS_CONNECT)
+        try:
+            pong = self.redis.ping()
+            not_connected = False
+            logger.info("BOOTSTRAP_REDIS: connected")
+        except redis.RedisError:
+            logger.warning("BOOTSTRAP_REDIS: cannot connect, retrying...")
+            attempts = attempts + 1
+            time.sleep(2)
+
+    if not_connected:
+        logger.error("BOOTSTRAP_REDIS: cannot connect")
+        return False
+
     r.select(REDIS_DB.REF.value)
     k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
     a = r.json().get(k)
