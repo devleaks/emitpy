@@ -32,8 +32,10 @@ REDIS_CONNECT = {
     "db": 0
 }
 
-SECURE_API = True
-ALLOW_KEYGEN = True
+# See https://github.com/mrtolkien/fastapi_simple_security
+SECURE_API   = True  # Whether to use api-key for all requests
+ALLOW_KEYGEN = True  # Whether to mount api to generate keys, should be false in production
+
 # ######################
 # Application options and parameters
 #

@@ -1,14 +1,16 @@
-function show_allocations(resource) {
-    console.log("show_allocations", resource)
-    fetch("/allocation/"+resource)
+function show_allocations(resource, api_key) {
+    // console.log("show_allocations", resource, api_key)
+
+    fetch("/airport/allocation/"+resource, {headers: new Headers({"api-key": api_key})})
+
         .then(response => response.json())
+
         .then(function(dataset) {
 
-            console.log(dataset)
-
-            var options = {
-                id_div_container: "visavail_container",
+            // console.log(dataset)
+            let options = {
                 id_div_graph: "visavail_graph",
+                id_div_container: "visavail_container",
                 line_spacing: 8,
                 zoom: {
                     enabled: true,
@@ -33,6 +35,6 @@ function show_allocations(resource) {
                 date_plus_time: true
             };
 
-            var chart = visavail.generate(options, dataset)
+            let chart = visavail.generate(options, dataset);
         })
 }

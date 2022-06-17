@@ -15,6 +15,7 @@ from typing import Optional, Literal, List
 from pydantic import BaseModel, Field, validator
 
 from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES, REDIS_DATABASE, REDIS_TYPE
+from emitpy.private import API_KEY
 from emitpy.aircraft import AircraftPerformance as Aircraft
 from emitpy.airport import Airport
 from emitpy.business import Airline
@@ -200,38 +201,37 @@ def reformat_allocations(alloc):
     table = dict(sorted(table.items()))  # sort by key=r
     return list(table.values())
 
-
-@router2.get("/runways")
+@router.get("/allocation/runways")
 async def list_runways(request: Request):
     r0 = request.app.state.emitpy.airport.manager.runway_allocator.table()
     r1 = reformat_allocations(r0)
     return JSONResponse(content=r1)
 
-@router2.get("/runways-viewer", include_in_schema=False)
-async def allocation_runways(request: Request):
-    return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "runways"})
-
-
-@router2.get("/ramps")
-async def list_ramps(request: Request):
-    r0 = request.app.state.emitpy.airport.manager.ramp_allocator.table()
-    r1 = reformat_allocations(r0)
-    return JSONResponse(content=r1)
-
-@router2.get("/ramps-viewer", include_in_schema=False)
-async def allocation_ramps(request: Request):
-    return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "ramps"})
-
-
-@router2.get("/vehicles")
+@router.get("/allocation/vehicles")
 async def list_vehicles(request: Request):
     r0 = request.app.state.emitpy.airport.manager.vehicle_allocator.table()
     r1 = reformat_allocations(r0)
     return JSONResponse(content=r1)
 
+@router.get("/allocation/ramps")
+async def list_ramps(request: Request):
+    r0 = request.app.state.emitpy.airport.manager.ramp_allocator.table()
+    r1 = reformat_allocations(r0)
+    return JSONResponse(content=r1)
+
+
+# No API key for these pages:
+@router2.get("/runways-viewer", include_in_schema=False)
+async def allocation_runways(request: Request):
+    return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "runways", "api_key": API_KEY})
+
+@router2.get("/ramps-viewer", include_in_schema=False)
+async def allocation_ramps(request: Request):
+    return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "ramps", "api_key": API_KEY})
+
 @router2.get("/vehicles-viewer", include_in_schema=False)
 async def allocation_vehicles(request: Request):
-    return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "vehicles"})
+    return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "vehicles", "api_key": API_KEY})
 
 
 # ###############################
