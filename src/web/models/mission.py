@@ -9,7 +9,7 @@ from emitpy.constants import EMIT_RATES, REDIS_DATABASE, REDIS_LOVS
 from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT
 from emitpy.service import Mission, MissionVehicle
-from emitpy.emit import Queue
+from emitpy.broadcast import Queue
 
 from .utils import LOV_Validator, REDISLOV_Validator, ICAO24_Validator
 

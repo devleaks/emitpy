@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, validator
 from emitpy.constants import EMIT_RATES, REDIS_TYPE
 from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT
-from emitpy.emit import Format, Queue
+from emitpy.broadcast import Format, Queue
 
 from .utils import LOV_Validator, REDISKEY_Validator
 

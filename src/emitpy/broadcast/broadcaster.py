@@ -269,6 +269,8 @@ class Broadcaster:
         if MAXBACKLOGSECS > 0:
             MAXBACKLOGSECS = - MAXBACKLOGSECS  # MUST be <=0 I said
 
+        queue_key = Queue.mkDataKey(self.name)
+
         tz = self._starttime.tzinfo if hasattr(self._starttime, "tzinfo") else None
 
         logger.debug(f":broadcast: {self.name}: pre-start trimming..")
@@ -308,7 +310,7 @@ class Broadcaster:
                 if self.heartbeat: # and last_sent < datetime.now()
                     logger.debug(f":broadcast: {self.name}: listening..")
 
-                currval = self.redis.bzpopmin(Queue.mkDataKey(self.name), timeout=ZPOPMIN_TIMEOUT)
+                currval = self.redis.bzpopmin(queue_key, timeout=ZPOPMIN_TIMEOUT)
 
                 if currval is None:
                     # we may have some reset work to do
@@ -324,7 +326,7 @@ class Broadcaster:
                     #     logger.debug(f":broadcast: {self.name}: nothing to send, bzpopmin timed out..")
                     continue
 
-                numval = self.redis.zcard(self.name)
+                numval = self.redis.zcard(queue_key)
                 # logger.debug(f":broadcast: {self.name}: {numval} items left in queue")
                 pretxt = f"{numval} items left in queue,"
                 now = self.now()
@@ -524,7 +526,8 @@ class Hypercaster:
             hyperlogger.debug(f":terminate_all_queues: notifying {k}..")
             self.terminate_queue(k)
         hyperlogger.debug(f":terminate_all_queues: notifying admin..")
-        # Trick/convention: We set a queue named QUIT to have the admin_queue to quit
+        # Trick/convention: We set a queue named QUIT to have the admin_queue to quit.
+        # This provoke a Redis keyspace notification that we capture to terminate the admin queue.
         # Alternative: Set a ADMIN_QUEUE queue/value to some value meaning the action to take.
         self.shutdown_flag.set()
         self.redis.set(QUIT_KEY, QUIT)
@@ -581,7 +584,7 @@ class Hypercaster:
                 logger.debug(f":admin_queue: processing {action} {qn}..")
 
                 # hyperlogger.debug(f":admin_queue: received {msg}")
-                if action == "set" and qn == QUIT:
+                if action == "set" and qn == QUIT:  # this was provoked by self.redis.set(QUIT_KEY, QUIT)
                     hyperlogger.warning(":admin_queue: instructed to quit")
                     hyperlogger.info(":admin_queue: quitting..")
                     self.redis.delete(QUIT_KEY)
@@ -635,6 +638,7 @@ class Hypercaster:
                     hyperlogger.warning(f":admin_queue: ignoring '{message}'")
 
         self.pubsub.unsubscribe(pattern)
+        self.redis.delete(QUIT_KEY)
         hyperlogger.info(":admin_queue: ..bye")
 
     def shutdown(self):

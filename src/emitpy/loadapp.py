@@ -17,7 +17,8 @@ from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
-from emitpy.emit import Emit, ReEmit, EnqueueToRedis, Queue
+from emitpy.emit import Emit, ReEmit
+from emitpy.broadcast import EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.airspace import ControlledPoint, CPIDENT, AirwaySegment
 from emitpy.airport import Airport, AirportBase

@@ -10,8 +10,9 @@ from .servicemovement import ServiceMove
 import emitpy.service
 
 from emitpy.flight import Flight
-from emitpy.emit import Emit, EnqueueToRedis
-from emitpy.constants import SERVICE_PHASE, ARRIVAL, DEPARTURE
+from emitpy.emit import Emit, ReEmit
+from emitpy.broadcast import EnqueueToRedis
+from emitpy.constants import SERVICE_PHASE, ARRIVAL, DEPARTURE, REDIS_TYPE
 
 logger = logging.getLogger("FlightServices")
 
@@ -25,6 +26,51 @@ class FlightServices:
         self.actype = flight.aircraft.actype
         self.services = []
         self.airport = None
+
+
+    @staticmethod
+    def allServicesForFlight(redis, flight_id: str, redis_type=REDIS_TYPE.EMIT_META.value):
+        items = []
+        emit = ReEmit(flight_id, redis)
+        emit_meta = emit.getMeta()
+
+        is_arrival = emit.getMeta("$.move.is_arrival")
+        if is_arrival is None:
+            logger.warning(f":allServicesForFlight: cannot get flight movement")
+            return ()
+
+        before = None
+        if is_arrival:
+            before = 60
+            after = 180
+        else:
+            before = 180
+            after = 60
+
+        scheduled = emit.getMeta("$.move.scheduled")
+        if scheduled is None:
+            logger.warning(f":do_flight_services: cannot get flight scheduled time {emit.getMeta()}")
+            return ()
+        scheduled = datetime.fromisoformat(scheduled)
+
+        et_min = scheduled - timedelta(minutes=before)
+        et_max = scheduled + timedelta(minutes=after)
+        logger.debug(f":allServicesForFlight: {ARRIVAL if is_arrival else DEPARTURE} at {scheduled}")
+        logger.debug(f":allServicesForFlight: trying services between {et_min} and {et_max}")
+
+        # 2 search for all services at that ramp, "around" supplied ETA/ETD.
+        ramp = emit.getMeta("$.move.ramp.name")
+        keys = redis.keys(key_path(REDIS_DATABASE.SERVICES.value, "*", ramp, "*", redis_type))
+        for k in keys:
+            k = k.decode("UTF-8")
+            karr = k.split(ID_SEP)
+            dt = datetime.fromisoformat(karr[3].replace(".", ":"))
+            # logger.debug(f":allServicesForFlight: {k}: testing {dt}..")
+            if dt > et_min and dt < et_max:
+                items.append(k)
+                logger.debug(f":allServicesForFlight: added {k}..")
+        logger.debug(f":allServicesForFlight: ..done")
+        return set(items)
 
 
     def setManagedAirport(self, managedAirport):

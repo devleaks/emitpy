@@ -15,7 +15,7 @@ from fastapi_simple_security import api_key_router, api_key_security
 import emitpy
 from emitpy.parameters import MANAGED_AIRPORT, SECURE_API, ALLOW_KEYGEN
 from emitpy.emitapp import EmitApp
-from emitpy.emit import Hypercaster
+from emitpy.broadcast import Hypercaster
 
 
 # #########################

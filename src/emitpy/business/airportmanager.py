@@ -16,6 +16,7 @@ from .airline import Airline
 from .company import Company
 from emitpy.airport import Airport
 from emitpy.resource import AllocationTable
+# from emitpy.service import FlightServices
 
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB
 from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT

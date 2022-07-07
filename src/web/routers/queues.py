@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, validator
 from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES
 from ..models import CreateQueue, ScheduleQueue, PiasEnqueue, EmitDifferent
 from emitpy.emitapp import StatusInfo
-from emitpy.emit import Format, Queue
+from emitpy.broadcast import Format, Queue
 
 
 
