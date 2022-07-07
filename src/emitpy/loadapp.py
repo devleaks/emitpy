@@ -20,10 +20,10 @@ from emitpy.service import Service, ServiceMove, FlightServices, Mission, Missio
 from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.airspace import ControlledPoint, CPIDENT, AirwaySegment
+from emitpy.airspace import ControlledPoint, NavAid, CPIDENT, AirwaySegment
 from emitpy.airport import Airport, AirportBase
 
-from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path
+from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE
 
 from emitpy.utils import NAUTICAL_MILE
@@ -36,6 +36,9 @@ logger = logging.getLogger("LoadApp")
 logging.basicConfig(level=logging.DEBUG)
 
 
+DATA_TO_LOAD = ["info"] # ["airway"]
+
+
 class LoadApp(ManagedAirport):
 
     def __init__(self, airport):
@@ -45,7 +48,7 @@ class LoadApp(ManagedAirport):
         self.redis_pool = None
         self.redis = None
 
-        ret = self.init(load_airways=False)  # call init() here to use data from data files (no Redis supplied)
+        ret = self.init(load_airways=("*" in DATA_TO_LOAD or "airway" in DATA_TO_LOAD))  # call init() here to use data from data files (no Redis supplied)
         if not ret[0]:
             logger.warning(ret[1])
 
@@ -71,7 +74,7 @@ class LoadApp(ManagedAirport):
         self.cache_lovs()
 
         # Caching emitpy data into Redis
-        self.load()
+        self.load(DATA_TO_LOAD)
 
         logger.debug(":init: .. done")
         logger.debug("=" * 90)
@@ -149,7 +152,7 @@ class LoadApp(ManagedAirport):
             if not status[0]:
                 return status
 
-        if "apt" in what:
+        if "*" in what or "apt" in what:
             status = self.loadAirport()
             if not status[0]:
                 return status
@@ -257,6 +260,7 @@ class LoadApp(ManagedAirport):
 
         if "*" in what or "info" in what:
             self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
+            self._this_airport[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), self._this_airport)
 
         logger.debug(f":load: loaded")

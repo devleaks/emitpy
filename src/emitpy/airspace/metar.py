@@ -114,7 +114,7 @@ class Metar:
         logger.debug(f":load: trying {fn}")
         if os.path.exists(fn):
             with open(fn, "r") as fp:
-                self.raw = read(fp)
+                self.raw = json.load(fp)
             if self.raw is not None:
                 logger.debug(f":load: found {fn}")
                 return self.parse(self.raw["METAR"])

@@ -186,7 +186,7 @@ class Broadcaster:
         while not self.shutdown_flag.is_set():
 
             if self.heartbeat:
-                logger.debug(f":trim: {self.name}: listening..")
+                logger.debug(f":trim: {self.name}: queue time: {self.now(format_output)} listening..")
 
             # logger.debug(f":trim: {self.name}: waiting for message (with timeout {LISTEN_TIMEOUT} secs.)..")
             # "pmessage","__key*__:*","__keyspace@0__:test","zadd"
@@ -258,11 +258,13 @@ class Broadcaster:
         Pop elements from the sortedset at requested time and publish them on pubsub queue.
         """
         def pushback(item):
-            # Trick to NOT zadd on self.name
+            # Trick to NOT zadd on self.name: We add one another key, then merge keys.
             kn = key_path(QUEUE_DATA, self.name)
-            self.redis.zadd(kn+"-TMP", item)
-            self.redis.zunionstore(kn, [kn, kn+"-TMP"])
-            self.redis.delete(self.name+"-TMP")
+            oset = redis.pipeline()
+            oset.zadd(kn+"-TMP", item)
+            oset.zunionstore(kn, [kn, kn+"-TMP"])
+            oset.delete(self.name+"-TMP")
+            ret = oset.execute()
             # self.redis.zadd(self.name, {currval[1]: currval[2]})
 
         global MAXBACKLOGSECS  # ??

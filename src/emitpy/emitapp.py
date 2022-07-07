@@ -20,7 +20,7 @@ from emitpy.broadcast import EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE, LIVETRAFFIC_QUEUE
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
-from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED
+from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, AIRAC_CYCLE
 from emitpy.parameters import REDIS_CONNECT, METAR_HISTORICAL, XPLANE_FEED
 from emitpy.airport import Airport, AirportBase
 from emitpy.airspace import Metar
@@ -70,7 +70,7 @@ def BOOTSTRAP_REDIS():
     k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
     a = r.json().get(k)
     r.select(prevdb)
-    return a is not None and MANAGED_AIRPORT_LAST_UPDATED in a
+    return a is not None and MANAGED_AIRPORT_LAST_UPDATED in a and AIRAC_CYCLE in a
 
 
 class EmitApp(ManagedAirport):
@@ -133,7 +133,7 @@ class EmitApp(ManagedAirport):
             # self.gas["managed-airport"] = airport
             # print(self.gas)
             # self.redis.select(REDIS_DB.APP.value)
-            logger.info(f":init: using Redis for data, last loaded on {ret[1]}")
+            logger.info(f":init: using Redis for data, {ret[1]}")
 
         # Default queue(s)
         self.redis.select(REDIS_DB.APP.value)
@@ -181,8 +181,8 @@ class EmitApp(ManagedAirport):
         k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
         a = self.redis.json().get(k)
         self.redis.select(prevdb)
-        if a is not None and MANAGED_AIRPORT_LAST_UPDATED in a:
-            return (True, a[MANAGED_AIRPORT_LAST_UPDATED])
+        if a is not None and MANAGED_AIRPORT_LAST_UPDATED in a and AIRAC_CYCLE in a:
+            return (True, f"last loaded on {a[MANAGED_AIRPORT_LAST_UPDATED]}, nav data airac cycle {a[AIRAC_CYCLE]}")
         return (False, f"EmitApp::check_data: key '{k}' not found, data not available in Redis")
 
 

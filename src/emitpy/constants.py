@@ -94,7 +94,7 @@ TERMINATED = "terminated"
 ID_SEP = ":"
 TAG_SEP = "|"
 FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
-
+AIRAC_CYCLE = "AIRAC"
 
 class POI_COMBO(Enum):
     RAMP = "ramp"

@@ -54,6 +54,10 @@ FIX_TYPE = {
 
 LOCAL_HOLDS_ONLY = False
 
+DEFAULT_DATA_DIR = os.path.join(XPLANE_DIR, "Resources", "default data")
+CUSTOM_DATA_DIR  = os.path.join(XPLANE_DIR, "Custom Data")
+
+
 ##########################
 #
 # A I R   S P A C E   D A T A   I S S U E D   F R O M   X -P L A N E
@@ -65,12 +69,31 @@ class XPAirspace(Airspace):
     """
     def __init__(self, bbox=None, load_airways: bool = False):
         Airspace.__init__(self, bbox, load_airways=load_airways)
-        self.basename = os.path.join(XPLANE_DIR, "Resources", "default data")
+
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
         self.simairspacetype = "X-Plane"
         self.airports_icao = {}
         self.airports_iata = {}
+
+        self.basename = os.path.join(XPLANE_DIR, "Resources", "default data")
+
+        fn = os.path.join(CUSTOM_DATA_DIR, "earth_nav.dat")
+        if os.path.exists(fn):
+            logger.info(f":init: custom data directory exist, using it")
+            self.basename = CUSTOM_DATA_DIR
+
+
+    def getAiracCycle(self):
+        """
+        Attempts to find Airac Cycle from either navdata cycle_info.txt file
+        or X-Plane earth_nav.dat I line (information)
+        @todo
+        """
+        cycle = "1802"
+        if self.basename == CUSTOM_DATA_DIR:
+            cycle = "2206"
+        return cycle
 
 
     def loadAirports(self):
