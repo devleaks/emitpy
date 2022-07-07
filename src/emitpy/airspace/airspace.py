@@ -492,6 +492,7 @@ class Airspace(Graph):
         self.loaded = False
         self.redis = None
         self.simairspacetype = "Generic"
+        self.airac_cycle = None
         self.load_airways = load_airways
         self.airways_loaded = False
 
@@ -543,6 +544,7 @@ class Airspace(Graph):
 
     def loadHolds(self):
         return [False, "no load implemented"]
+
 
     def findHolds(self, name):
         validholds = list(filter(lambda x: x.fix.id == name, self.holds.values()))

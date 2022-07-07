@@ -13,7 +13,7 @@ from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 from emitpy.geo import FeatureWithProps
 from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
-from emitpy.parameters import DATA_DIR, XPLANE_DIR
+from emitpy.parameters import XPLANE_DIR
 
 
 logger = logging.getLogger("XPAirspace")

@@ -149,7 +149,7 @@ app.add_middleware(CORSMiddleware,
                    allow_methods=["*"],
                    allow_headers=["*"])
 
-if SECURE_API:
+if SECURE_API:  # See https://github.com/mrtolkien/fastapi_simple_security on how to use
     if ALLOW_KEYGEN:
         logger.warning(f":init {emitpy.__version__} «{emitpy.__version_name__}» key generation permitted")
         app.include_router(api_key_router, prefix="/auth", include_in_schema=False)

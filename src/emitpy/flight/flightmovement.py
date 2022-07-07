@@ -66,7 +66,6 @@ class FlightMovement(Movement):
             "flight": self.flight.getInfo(),
             "icao24": self.flight.getInfo()["icao24"]
         }
-        return
 
 
     def getSource(self):

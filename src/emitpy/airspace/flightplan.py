@@ -45,6 +45,7 @@ class FlightPlan(FlightPlanBase):
     def toAirspace(self, airspace: Airspace):
         """
         Transform [<Feature<Point>>] from FlightPlanDatabase into [<<Vertex>>] where Vertex is in Airspace.
+        (Also possible to start from fpdb "nodes", since our <Feature<Point>> is actually built from it.)
         """
         def isPoint(f):
             return ("geometry" in f) and ("type" in f["geometry"]) and (f["geometry"]["type"] == "Point")
@@ -52,6 +53,14 @@ class FlightPlan(FlightPlanBase):
         wpts = []
         errs = 0
         last = None
+
+        # From nodes in route:
+        # for n in self.flight_plan["route"]["nodes"]:
+        #     if isNodePoint(n):
+        #         fty = n["type"] if "type" in n else None
+        #         fid = n["ident"] if "ident" in n else None
+
+        # From Features in collection:
         for f in self.route.features:
             if isPoint(f):
                 fty = f["properties"]["type"] if "type" in f["properties"] else None

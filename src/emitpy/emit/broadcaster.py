@@ -14,6 +14,7 @@ from emitpy.parameters import XPLANE_FEED, XPLANE_HOSTNAME, XPLANE_PORT
 
 from .queue import Queue, RUN, STOP, QUIT
 
+QUIT_KEY = key_path(REDIS_DATABASE.QUEUES.value, QUIT)
 
 logger = logging.getLogger("Broadcaster")
 
@@ -307,7 +308,7 @@ class Broadcaster:
                 if self.heartbeat: # and last_sent < datetime.now()
                     logger.debug(f":broadcast: {self.name}: listening..")
 
-                currval = self.redis.bzpopmin(self.name, timeout=ZPOPMIN_TIMEOUT)
+                currval = self.redis.bzpopmin(Queue.mkDataKey(self.name), timeout=ZPOPMIN_TIMEOUT)
 
                 if currval is None:
                     # we may have some reset work to do
@@ -526,7 +527,7 @@ class Hypercaster:
         # Trick/convention: We set a queue named QUIT to have the admin_queue to quit
         # Alternative: Set a ADMIN_QUEUE queue/value to some value meaning the action to take.
         self.shutdown_flag.set()
-        self.redis.set(key_path(REDIS_DATABASE.QUEUES.value, QUIT), QUIT)
+        self.redis.set(QUIT_KEY, QUIT)
         hyperlogger.debug(f":terminate_all_queues: ..done")
 
     def admin_queue(self):
@@ -534,7 +535,7 @@ class Hypercaster:
         # {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'del'}
         # {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues:test', 'data': b'del'}
 
-        self.redis.delete(key_path(REDIS_DATABASE.QUEUES.value, QUIT))
+        self.redis.delete(QUIT_KEY)
         pattern = "__key*__:queues:*"
         self.pubsub.psubscribe(pattern)
 
@@ -583,7 +584,7 @@ class Hypercaster:
                 if action == "set" and qn == QUIT:
                     hyperlogger.warning(":admin_queue: instructed to quit")
                     hyperlogger.info(":admin_queue: quitting..")
-                    self.redis.delete(key_path(REDIS_DATABASE.QUEUES.value, QUIT))
+                    self.redis.delete(QUIT_KEY)
                     self.shutdown_flag.set()
 
                 elif action == "set":

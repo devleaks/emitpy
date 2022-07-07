@@ -294,6 +294,7 @@ class CIFP:
 
     def __init__(self, icao: str):
         self.icao = icao
+        self.airac_cycle = None
         self.available = False
 
         self.SIDS = {}

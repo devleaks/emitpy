@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime
 
-from emitpy.constants import INTERNAL_QUEUES, REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE
+from emitpy.constants import INTERNAL_QUEUES, REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE, QUEUE_DATA
 from emitpy.utils import key_path
 
 logger = logging.getLogger("Queue")
@@ -27,15 +27,23 @@ class Queue:
 
 
     @staticmethod
+    def getAllQueues(redis):
+        keys = redis.keys(key_path(REDIS_DATABASE.QUEUES.value, "*"))
+        if keys is not None:
+            return list(filter(lambda x: not x.startswith(QUEUE_DATA), [k.decode("UTF-8") for k in keys]))
+        return None
+
+
+    @staticmethod
     def loadAllQueuesFromDB(redis):
         """
         Instantiate Queue from characteristics saved in Redis
         """
         queues = {}
-        keys = redis.keys(key_path(REDIS_DATABASE.QUEUES.value, "*"))
+        keys = Queue.getAllQueues(redis)
         if keys is not None and len(keys) > 0:
             for q in keys:
-                qa = q.decode("UTF-8").split(ID_SEP)
+                qa = q.split(ID_SEP)
                 qn = qa[-1]
                 if qn != QUIT:
                     queues[qn] = Queue.loadFromDB(redis, qn)
@@ -52,7 +60,7 @@ class Queue:
         """
         Instantiate Queue from characteristics saved in Redis
         """
-        ident = key_path(REDIS_DATABASE.QUEUES.value, name)
+        ident = Queue.mkKey(name)
         qstr = redis.get(ident)
         if qstr is not None:
             q = json.loads(qstr.decode("UTF-8"))
@@ -69,10 +77,11 @@ class Queue:
         if name in INTERNAL_QUEUES.keys() or name == LIVETRAFFIC_QUEUE:
             return (False, "Queue::delete: cannot delete default queue")
         # 1. Remove definition
-        ident = key_path(REDIS_DATABASE.QUEUES.value, name)
+        ident = Queue.mkKey(name)
         redis.delete(ident)
         # 2. Remove preparation queue
-        redis.delete(name)
+        data = Queue.mkDataKey(name)
+        redis.delete(data)
         logger.debug(f":delete: deleted {name}")
         return (True, "Queue::delete: deleted")
 
@@ -80,9 +89,27 @@ class Queue:
     @staticmethod
     def getCombo(redis):
         redis.select(0)
-        keys = redis.keys(key_path(REDIS_DATABASE.QUEUES.value, "*"))
-        qns = [k.decode("utf-8").split(ID_SEP)[-1] for k in keys]
+        keys = Queue.getAllQueues(redis)
+        qns = [k.split(ID_SEP)[-1] for k in keys]
         return [(k, k) for k in sorted(qns)]
+
+
+    @staticmethod
+    def mkKey(name):
+        return key_path(REDIS_DATABASE.QUEUES.value, name)
+
+
+    @staticmethod
+    def mkDataKey(name):
+        return key_path(QUEUE_DATA, name)
+
+
+    def getKey(self):
+        return Queue.mkKey(self.name)
+
+
+    def getDataKey(self):
+        return Queue.mkDataKey(self.name)
 
 
     def reset(self, speed: float = 1, starttime: str = None, start: bool = True):
@@ -97,7 +124,7 @@ class Queue:
         Saves Queue characteristics in a structure for Broadcaster
         Also saves Queue existence in "list of queues" set ("Queue Database"), to build combo, etc.
         """
-        ident = key_path(REDIS_DATABASE.QUEUES.value, self.name)
+        ident = self.getKey()
         self.redis.set(ident, json.dumps({
             "name": self.name,
             "formatter_name": self.formatter_name,

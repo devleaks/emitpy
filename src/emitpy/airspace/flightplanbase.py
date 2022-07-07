@@ -47,6 +47,7 @@ class FlightPlanBase:
         self.useAWYHI = useAWYHI
         self.force = force
         self.flight_plan = None
+        self.airac_cycle = None
         self.route = None
         self.routeLS = None
         self.redis = managedAirport.redis
