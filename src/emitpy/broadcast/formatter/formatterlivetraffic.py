@@ -24,6 +24,9 @@ class LiveTrafficWeather:
         self.metar = metar
 
     def __str__(self):
+        # Sample messages as sent to LiveTraffic >3.0.0
+        # {"ICAO": "OTHH","QNH": "1001", "METAR": "OTHH 120700Z 14009KT 9999 FEW025 35/27 Q1001 NOSIG", "NAME": "OTHH"}
+        # {"ICAO": "OTBD","QNH": "1001", "METAR": "OTBD 120630Z 10006KT 9999 FEW025 36/28 Q1001 NOSIG", "NAME": "OTBD"}
         weather = {
             "ICAO": self.metar.station_id,
             "QNH": self.metar.pressure("MB"),
