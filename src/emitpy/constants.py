@@ -199,7 +199,7 @@ class REDIS_PREFIX(Enum):
     AIRPORT_GEO_INDEX = key_path("airport", "_geo_index")
     AIRSPACE = "airspace"
     AIRSPACE_AIRWAYS = key_path("airspace", "airways")
-    # AIRSPACE_ALL_INDEX = key_path("airspace", "idents")
+    AIRSPACE_ALL_INDEX = key_path("airspace", "idents")
     # AIRSPACE_FIXES = key_path("airspace", "fixes")
     # AIRSPACE_FIXES_INDEX = key_path("airspace", "fixes", "_index")
     # AIRSPACE_GEO_INDEX = key_path("airspace", "_geo_index")
@@ -208,7 +208,7 @@ class REDIS_PREFIX(Enum):
     # AIRSPACE_NAVAIDS = key_path("airspace", "navaids")
     # AIRSPACE_NAVAIDS_INDEX = key_path("airspace", "navaids", "_index")
     # AIRSPACE_RESTRICTIONS = key_path("airspace", "restrictions")
-    # AIRSPACE_TERMINALS = key_path("airspace", "terminals")
+    AIRSPACE_TERMINALS = key_path("airspace", "terminals")
     AIRSPACE_WAYPOINTS_GEO_INDEX = key_path("airspace", "waypoints", "_geo_index")
     AIRSPACE_WAYPOINTS_INDEX = key_path("airspace", "waypoints", "_index")
     AIRSPACE_WAYPOINTS = key_path("airspace", "waypoints")

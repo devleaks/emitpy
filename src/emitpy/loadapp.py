@@ -20,7 +20,7 @@ from emitpy.service import Service, ServiceMove, FlightServices, Mission, Missio
 from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.airspace import ControlledPoint, NavAid, CPIDENT, AirwaySegment
+from emitpy.airspace import ControlledPoint, NavAid, CPIDENT, AirwaySegment, Terminal
 from emitpy.airport import Airport, AirportBase
 
 from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
@@ -36,7 +36,7 @@ logger = logging.getLogger("LoadApp")
 logging.basicConfig(level=logging.DEBUG)
 
 
-DATA_TO_LOAD = ["info"] # ["airway"]
+DATA_TO_LOAD = ["airport", "info"] # ["vertex", "apt", "hold", "airway"] ["info"]
 
 
 class LoadApp(ManagedAirport):
@@ -152,8 +152,8 @@ class LoadApp(ManagedAirport):
             if not status[0]:
                 return status
 
-        if "*" in what or "apt" in what:
-            status = self.loadAirport()
+        if "apt" in what:
+            status = self.loadTerminals()
             if not status[0]:
                 return status
 
@@ -590,18 +590,23 @@ class LoadApp(ManagedAirport):
         logger.debug(f":loadVertices: loaded {cnt}, {errcnt} errors")
         return (True, f"LoadApp::loadVertices: loaded")
 
-    def loadAirport(self):
+    def loadTerminals(self):
         # Airports = Terminals
         cnt = 0
+        errcnt = 0
         for k, v in self.airport.airspace.vert_dict.items():
             if isinstance(v, Terminal):
                 a = ControlledPoint.parseId(ident=k)
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRSPACE_TERMINALS.value, k), Path.root_path(), v.getInfo())
                 self.redis.sadd(key_path(REDIS_PREFIX.AIRSPACE_ALL_INDEX.value, a[CPIDENT.IDENT]), k)
-                self.redis.geoadd(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, (v.lon(), v.lat(), k))
-                cnt = cnt + 1
-        logger.debug(f":loadAirport: loaded {cnt}")
-        return (True, f"LoadApp::loadAirport: loaded airports")
+                try:  # we noticed, experimentally, abs(lon) > 85 is not good...
+                    self.redis.geoadd(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, (v.lon(), v.lat(), k))
+                    cnt = cnt + 1
+                except:
+                    logger.debug(f":loadTerminals: cannot load {v.icao} (lat={v.lat()}, lon={v.lon()})")
+                    errcnt = errcnt + 1
+        logger.debug(f":loadTerminals: loaded {cnt}")
+        return (True, f"LoadApp::loadTerminals: loaded terminals")
 
     def loadNavaids(self):
         cnt = 0
