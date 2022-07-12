@@ -81,19 +81,27 @@ class Airport(Location):
         file = open(filename, "r")
         csvdata = csv.DictReader(file)
         for row in csvdata:
-            if row["longitude_deg"] != "" and row["elevation_ft"] != "":
-                a = Airport(icao=row["ident"],
-                            iata=row["iata_code"],
-                            name=row["name"],
-                            city=row["municipality"],
-                            country=row["iso_country"],
-                            region=row["iso_region"],
-                            lat=float(row["latitude_deg"]),
-                            lon=float(row["longitude_deg"]),
-                            alt=float(row["elevation_ft"])*FT)
-                a.display_name = row["name"]
-                Airport._DB[row["ident"]] = a
-                Airport._DB_IATA[row["iata_code"]] = a
+            lat = float(row["latitude_deg"]) if row["latitude_deg"] != "" else 0.0
+            lon = float(row["longitude_deg"]) if row["longitude_deg"] != "" else 0.0
+            if lat != 0.0 or lon != 0.0:
+                alt = 0
+                if row["elevation_ft"]  != "":
+                    alt = float(row["elevation_ft"])*FT
+                apt = Airport(icao=row["ident"],
+                              iata=row["iata_code"],
+                              name=row["name"],
+                              city=row["municipality"],
+                              country=row["iso_country"],
+                              region=row["iso_region"],
+                              lat=lat,
+                              lon=lon,
+                              alt=alt)
+                apt.display_name = row["name"]
+                Airport._DB[row["ident"]] = apt
+                Airport._DB_IATA[row["iata_code"]] = apt
+            else:
+                logger.warning(":loadAll: invalid airport data %s.", row)
+
         file.close()
         logger.debug(f":loadAll: loaded {len(Airport._DB)} airports")
 
@@ -262,14 +270,14 @@ class Airport(Location):
 
 
 # ################################
-# AIRPORT BASE
+# AIRPORT + FLIGHT PROCEDURES
 #
 #
 class AirportWithProcedures(Airport):
     """
-    An AirportBase is a more complete version of an airport.
-    It is used as the basis of a ManagedAirport and can be used for origin and destination airport
-    if we use procedures.
+    An AirportWithProcedures is an airport with CIFP procedures.
+    AirportWithProcedures can be used as departure and/or arrival airport in flight plan.
+    AirportWithProcedures also is the parent of BaseAirport.
     """
 
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
@@ -474,9 +482,12 @@ class AirportWithProcedures(Airport):
 #
 class AirportBase(AirportWithProcedures):
     """
-    An AirportBase is a more complete version of an airport.
-    It is used as the basis of a ManagedAirport and can be used for origin and destination airport
-    if we use procedures.
+    An AirportBase the abstract class of a ManagedAirport. It defines all data and procedures
+    necessary for the ManagedAirport but does not implement them.
+    There are numerous ways to define a ManagedAirport and find necessary data.
+    The loading of ManagedAirport data in performed in implementation specific ManagedAirport,
+    collecting data from X-Plane, OSM or user-provided GeoJSON files for example, or
+    any combination of the above providers.
     """
 
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
