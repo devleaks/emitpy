@@ -27,6 +27,17 @@ class RTTFCFormatter(FormatterBase):
         #       track_rate, roll, mag_heading, true_heading, geom_rate, emergency, category,
         #       nav_qnh, nav_altitude_mcp, nav_altitude_fms, nav_heading, nav_modes, seen, rssi,
         #       winddir, windspd, OAT, TAT, isICAOhex,augmentation_status,authentication
+        #
+        # RTTFC,7389381,25.290900,51.590000,0,0,1,245,4,QTR1399,A333,A4O-DI,OTHH,DTTA,249,OpenSky Live Online,QTR1399,lt_export,0,-1,-1,-1,-1,-1,-1,244.69,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,7389381,25.290900,51.590000,0,0,1,245,4,QTR1399,A333,A4O-DI,OTHH,DTTA,249,OpenSky Live Online,QTR1399,lt_export,0,-1,-1,-1,-1,-1,-1,244.69,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,434334,25.282000,51.593700,0,0,1,158,34,QTR209,A320,A7-AHW,,,250,OpenSky Live Online,QTR209,lt_export,0,-1,-1,-1,-1,-1,-1,157.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9004093,25.175100,51.675200,3450,13,0,115,139,ETD394,A321,A6-AEG,,,256,OpenSky Live Online,ETD394,lt_export,3092,-1,-1,-1,-1,-1,-1,114.67,13,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9004049,25.283200,51.614600,375,0,0,159,52,ABY136,A320,A6-AOE,,,256,OpenSky Live Online,ABY136,lt_export,17,-1,-1,-1,-1,-1,-1,158.51,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,434505,25.288900,51.606700,0,0,1,338,0,QTR76R,A388,A7-APH,,,302,OpenSky Live Online,QTR76R,lt_export,0,-1,-1,-1,-1,-1,-1,337.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,4949106,25.281200,51.610000,0,0,1,248,1,QTR8409,B744,TC-ACR,VHHH,OTHH,308,OpenSky Live Online,QTR8409,lt_export,0,-1,-1,-1,-1,-1,-1,247.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9004093,25.160500,51.749900,5975,12,0,101,141,ETD394,A321,A6-AEG,,,311,OpenSky Live Online,ETD394,lt_export,5617,-1,-1,-1,-1,-1,-1,101.39,12,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9004049,25.245300,51.630900,1525,4,0,157,91,ABY136,A320,A6-AOE,,,311,OpenSky Live Online,ABY136,lt_export,1167,-1,-1,-1,-1,-1,-1,157.36,4,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        #
         def getprop(path: str):
             r = JSONPath(path).parse(self.feature.properties)
             if len(r) == 1:
