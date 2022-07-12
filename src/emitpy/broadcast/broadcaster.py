@@ -164,11 +164,12 @@ class Broadcaster:
         Removes elements in sortedset that are outdated for this queue's time.
         """
         now = self.now()
+        queue_key = Queue.mkDataKey(self.name)
         msg = "" if ident is None else f"{ident}:"
         logger.debug(f":_do_trim: {self.name}:{msg} {df(now)}: trimming..")
-        oldones = self.redis.zrangebyscore(self.name, min=0, max=now)
+        oldones = self.redis.zrangebyscore(queue_key, min=0, max=now)
         if oldones and len(oldones) > 0:
-            self.redis.zrem(self.name, *oldones)
+            self.redis.zrem(queue_key, *oldones)
             logger.debug(f":_do_trim: {self.name}: ..removed {len(oldones)} messages..done")
         else:
             logger.debug(f":_do_trim: {self.name}: nothing to remove ..done")
@@ -178,7 +179,8 @@ class Broadcaster:
         Wrapper to prevent new "pop" while trimming the queue.
         If new elements are added while, it does not matter because they will be trimmed at the end of their insertion.
         """
-        pattern = "__keyspace@0__:"+self.name
+        queue_key = Queue.mkDataKey(self.name)
+        pattern = "__keyspace@0__:"+queue_key
         self.pubsub.subscribe(pattern)
 
         logger.info(f":trim: {self.name}: starting..")
@@ -206,7 +208,7 @@ class Broadcaster:
                 if type(ty) == bytes:
                     ty = ty.decode("UTF-8")
                 if ty != None:
-                    # logger.debug(f":trim: pattern is not as expected ({ty} vs {pattern}), ignoring")
+                    logger.warning(f":trim: pattern is not as expected ({ty} vs {pattern}), ignoring")
                     continue
 
                 action = message["data"]
@@ -258,14 +260,17 @@ class Broadcaster:
         Pop elements from the sortedset at requested time and publish them on pubsub queue.
         """
         def pushback(item):
-            # Trick to NOT zadd on self.name: We add one another key, then merge keys.
-            kn = key_path(QUEUE_DATA, self.name)
-            oset = redis.pipeline()
-            oset.zadd(kn+"-TMP", item)
-            oset.zunionstore(kn, [kn, kn+"-TMP"])
-            oset.delete(self.name+"-TMP")
-            ret = oset.execute()
-            # self.redis.zadd(self.name, {currval[1]: currval[2]})
+            if item is not None:
+                # Trick to NOT zadd on self.name: We add one another key, then merge keys.
+                queue_key = Queue.mkDataKey(self.name)
+                temporary_key = queue_key + "-TMP"
+                oset = self.redis.pipeline()
+                oset.zadd(temporary_key, item)
+                oset.zunionstore(queue_key, [queue_key, temporary_key])
+                oset.delete(temporary_key)
+                ret = oset.execute()
+                logger.debug(f":broadcast: {self.name}: last item pushed back")
+                # self.redis.zadd(self.name, {currval[1]: currval[2]})
 
         global MAXBACKLOGSECS  # ??
         if MAXBACKLOGSECS > 0:
@@ -644,4 +649,5 @@ class Hypercaster:
         hyperlogger.info(":admin_queue: ..bye")
 
     def shutdown(self):
+        # Convenience synonym
         self.terminate_all_queues()
