@@ -5,6 +5,7 @@ import re
 import logging
 import time
 import json
+import csv
 from math import inf
 from turfpy.measurement import distance
 
@@ -13,8 +14,8 @@ from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 from emitpy.geo import FeatureWithProps
 from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
-from emitpy.parameters import XPLANE_DIR
-
+from emitpy.parameters import XPLANE_DIR, DATA_DIR
+from emitpy.utils import FT
 
 logger = logging.getLogger("XPAirspace")
 
@@ -72,7 +73,6 @@ class XPAirspace(Airspace):
 
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
-        self.simairspacetype = "X-Plane"
         self.airports_icao = {}
         self.airports_iata = {}
 
@@ -84,41 +84,72 @@ class XPAirspace(Airspace):
             self.basename = CUSTOM_DATA_DIR
 
 
-    def getAiracCycle(self):
+    def setAiracCycle(self, str_in: str):
         """
         Attempts to find Airac Cycle from either navdata cycle_info.txt file
         or X-Plane earth_nav.dat I line (information)
-        @todo
+
+        earth_awy.dat:1100 Version - data cycle 1802, build 20200426, metadata AwyXP1100. Copyright (c) 2020 Navigraph, Datasource Jeppesen
+        earth_fix.dat:1101 Version - data cycle 1802, build 20200426, metadata FixXP1101. Copyright (c) 2020 Navigraph, Datasource Jeppesen
+        earth_hold.dat:1140 Version - data cycle 1802, build 20200426, metadata HoldXP1140. Copyright (c) 2020 Navigraph, Datasource Jeppesen
+        earth_mora.dat:1150 Version - data cycle 1802, build 20200426, metadata MORAXP1150. Copyright (c) 2020 Navigraph, Datasource Jeppesen
+        earth_msa.dat:1150 Version - data cycle 1802, build 20200426, metadata MSAXP1150. Copyright (c) 2020 Navigraph, Datasource Jeppesen
+        earth_nav.dat:1150 Version - data cycle 1802, build 20200623, metadata NavXP1150. Copyright (c) 2020 Navigraph, Datasource Jeppesen
+
         """
-        cycle = "1802"
-        if self.basename == CUSTOM_DATA_DIR:
-            cycle = "2206"
+        m = re.findall("data cycle ([0-9]{4})", str_in)
+        cycle = None
+        if len(m) == 1:
+            cycle = m[0]
+        elif len(m) > 1:
+            cycle = m[0]
+            logger.warning(f":setAiracCycle: ambiguous data cycle '{str_in}'")
+        else:
+            logger.debug(f":setAiracCycle: no airac cycle in '{str_in}'")
+            return None
+
+        if self.airac_cycle is None:
+            self.airac_cycle = cycle
+            logger.info(f":setAiracCycle: airac cycle {cycle} set")
+        elif cycle != self.airac_cycle:
+            logger.warning(f":setAiracCycle: multiple data cycle airspace={self.airac_cycle}, found={cycle}")
+        else:
+            logger.debug(f":setAiracCycle: airac cycle {cycle} ok")
+
         return cycle
 
 
-    def loadAirports(self):
+    def getAiracCycle(self):
+        if self.airac_cycle is None:
+            logger.warning(f":getAiracCycle: airact cycle not set")
+        return self.airac_cycle
+
+
+    def loadAirports_alt(self):
         """
         Loads all airports from a csv file.
         (From https://www.partow.net/miscellaneous/airportdatabase/index.html#Downloads)
         Source can be changed as needed.
+        (Old version, not updated, missing airport. Left as reference but no longer used.)
         """
         startLen = len(self.vert_dict.keys())
         count = 0
-        filename = os.path.join(XPLANE_DIR, "GlobalAirportDatabase.txt")
+        filename = os.path.join(DATA_DIR, "GlobalAirportDatabase.txt")
         file = open(filename, "r")
         logger.info(":loadAirports: from %s.", filename)
         line = file.readline()
         line.strip()
 
         while line:
+            # GlobalAirportDatabase
             # EBBR:BRU:BRUSSELS NATL:BRUSSELS:BELGIUM:050:054:008:N:004:029:055:E:00057:50.902:4.499
             args = line.split(":")
-            if len(args) == 16:       # name, lat, lon, alt, IATA, name, country, city
+            if len(args) == 16:
                 lat = float(args[14])
                 lon = float(args[15])
                 alt = int(args[13])
                 if lat != 0.0 or lon != 0.0:
-                    apt = Terminal(args[0], lat, lon, alt, args[1], args[2], args[3], args[4])
+                    apt = Terminal(name=args[0], lat=lat, lon=lon, alt=alt, iata=args[1], longname=args[2], country=args[3], city=args[4])
                     self.airports_iata[args[1]] = apt
                     self.airports_icao[args[0]] = apt
                     self.add_vertex(apt)
@@ -132,6 +163,62 @@ class XPAirspace(Airspace):
 
         logger.debug(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPAirspace::Airport loaded"]
+
+
+    def loadAirports(self):
+        """
+        Loads all airports from a csv file.
+        (From https://ourairports.com/data/)
+        Source can be changed as needed.
+        """
+        startLen = len(self.vert_dict.keys())
+        count = 0
+        filename = os.path.join(DATA_DIR, "airports", "airports.csv")
+        file = open(filename, "r")
+        logger.info(":loadAirports: from %s.", filename)
+        self.setAiracCycle(filename)
+        csvdata = csv.DictReader(file)
+
+        for r in csvdata:
+            # Our Airport:
+            # {
+            #     "id": 2155,
+            #     "ident": "EBBR",
+            #     "type": "large_airport",
+            #     "name": "Brussels Airport",
+            #     "latitude_deg": 50.901401519800004,
+            #     "longitude_deg": 4.48443984985,
+            #     "elevation_ft": 184,
+            #     "continent": "EU",
+            #     "iso_country": "BE",
+            #     "iso_region": "BE-BRU",
+            #     "municipality": "Brussels",
+            #     "scheduled_service": "yes",
+            #     "gps_code": "EBBR",
+            #     "iata_code": "BRU",
+            #     "local_code": "",
+            #     "home_link": "http://www.brusselsairport.be/en/",
+            #     "wikipedia_link": "https://en.wikipedia.org/wiki/Brussels_Airport",
+            #     "keywords": ""
+            # }
+            #
+            lat = float(r["latitude_deg"]) if r["latitude_deg"] != "" else 0.0
+            lon = float(r["longitude_deg"]) if r["longitude_deg"] != "" else 0.0
+            if lat != 0.0 or lon != 0.0:
+                alt = float(r["elevation_ft"])*FT if r["elevation_ft"] != "" else None
+                apt = Terminal(name=r["ident"], lat=lat, lon=lon, alt=alt, iata=r["iata_code"], longname=r["name"], country=r["iso_country"], city=r["municipality"])
+                self.airports_iata[r["iata_code"]] = apt
+                self.airports_icao[r["ident"]] = apt
+                self.add_vertex(apt)
+                count += 1
+            else:
+                logger.warning(":loadAirports: invalid airport data %s.", line)
+
+        file.close()
+
+        logger.debug(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
+        return [True, "XPAirspace::Airport loaded"]
+
 
     def getAirportIATA(self, iata):
         """
@@ -169,7 +256,9 @@ class XPAirspace(Airspace):
             if re.match("^I", line, flags=0):
                 pass
             elif re.match("^1101 Version", line, flags=0):
-                logger.info(line.strip())
+                str_in = line.strip()
+                logger.info(str_in)
+                self.setAiracCycle(str_in)
             elif re.match("^99", line, flags=0):
                 pass
             else:
@@ -210,7 +299,9 @@ class XPAirspace(Airspace):
             if re.match("^I", line, flags=0):
                 pass
             elif re.match("^1150 Version", line, flags=0):
-                logger.info(line.strip())
+                str_in = line.strip()
+                logger.info(str_in)
+                self.setAiracCycle(str_in)
             elif re.match("^99", line, flags=0):
                 pass
             else:
@@ -437,7 +528,9 @@ class XPAirspace(Airspace):
             if re.match("^I", line, flags=0):
                 pass
             elif re.match("^1100 Version", line, flags=0):
-                logger.info(line.strip())
+                str_in = line.strip()
+                logger.info(str_in)
+                self.setAiracCycle(str_in)
             elif re.match("^99", line, flags=0):
                 pass
             else:
@@ -499,7 +592,9 @@ class XPAirspace(Airspace):
             if re.match("^I", line, flags=0):
                 pass
             elif re.match("^1140 Version", line, flags=0):
-                logger.info(line.strip())
+                str_in = line.strip()
+                logger.info(str_in)
+                self.setAiracCycle(str_in)
             elif re.match("^99", line, flags=0):
                 pass
             else:

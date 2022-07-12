@@ -20,7 +20,7 @@ logger = logging.getLogger("OSMAirport")
 
 
 # ################################
-# GEOJSON AIRPORT
+# OSM AIRPORT
 #
 #
 class OSMAirport(AirportBase):
