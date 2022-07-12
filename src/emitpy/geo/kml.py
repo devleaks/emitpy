@@ -1,5 +1,4 @@
-import os
-
+# Creates KML 3D flight path for visualisation in Google Earth or alike
 from geojson import Feature
 
 
@@ -37,7 +36,7 @@ def footer():
 
 
 def toKML(path: [Feature]):
-    kml = header("Flight Path", "Test Flight Path")
+    kml = header("Flight Path", "Emitpy Flight Path")
 
     for f in path:
         # -117.184650,34.627964,980

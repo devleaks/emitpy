@@ -1,5 +1,5 @@
+#
 import logging
-from datetime import timedelta
 
 from turfpy.measurement import distance, bearing
 from emitpy.constants import FEATPROP

@@ -2,15 +2,16 @@
 Airport Manager is a container for business and operations.
 """
 import os
-import yaml
-import json
-import csv
+from datetime import datetime, timedelta
+
 import logging
 import random
 import importlib
 import operator
+import json
+import csv
+import yaml
 
-from datetime import datetime, timedelta, timezone
 
 from .airline import Airline
 from .company import Company

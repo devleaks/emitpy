@@ -1,7 +1,11 @@
+# Special timezone handling for Python
 from datetime import tzinfo, timedelta
-import logging
+
 
 class Timezone(tzinfo):
+    """
+    Creates a named Timezone
+    """
     def __init__(self, offset:float, name: str):
         self.offset = offset
         self.name = name

@@ -1,12 +1,13 @@
+# Resource and allocation management
 import logging
-import json
 from datetime import datetime, timedelta
-from enum import Enum, IntEnum, Flag
+
+from enum import Enum
 
 from redis.commands.json.path import Path
 
 from emitpy.constants import REDIS_DATABASE, ID_SEP
-from emitpy.constants import SCHEDULED, ESTIMATED, ACTUAL, TERMINATED
+from emitpy.constants import SCHEDULED, ESTIMATED, ACTUAL
 from emitpy.utils import key_path
 
 logger = logging.getLogger("Resource")

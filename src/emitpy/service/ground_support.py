@@ -2,14 +2,9 @@
 A Service  is a maintenance operation performed on an aircraft during a turn-around.
 
 """
-import sys
 import logging
 from datetime import datetime
-from typing import Union
-from types import NoneType
 
-from emitpy.constants import SERVICE, ID_SEP
-from emitpy.utils import key_path
 from .servicevehicle import ServiceVehicle
 
 logger = logging.getLogger("GroundSupport")

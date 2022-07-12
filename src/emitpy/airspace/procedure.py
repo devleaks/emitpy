@@ -6,15 +6,13 @@ A couple of helper classes help deal with CIFP file parsing.
 import os
 import logging
 import random
-import json
 from enum import Enum
 
 from turfpy.measurement import distance, bearing
 
-from .airspace import Airspace, RestrictedControlledPoint
 from emitpy.utils import ConvertDMSToDD, FT
-
 from emitpy.parameters import DATA_DIR
+from .airspace import Airspace, RestrictedControlledPoint
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 

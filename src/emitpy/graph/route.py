@@ -5,7 +5,7 @@ import logging
 from networkx import shortest_path, exception
 
 # from geojson import Point, Feature
-# from turfpy.measurement import distance
+from turfpy.measurement import distance
 
 logger = logging.getLogger("Route")
 
@@ -44,8 +44,8 @@ class Route:
             logger.debug(":find: .. found")
             # logger.debug(":find: .. found %s", self.route)
             return self.route
-        except (exception.NetworkXNoPath):
-                logger.debug(":find: .. not found")
+        except exception.NetworkXNoPath:
+            logger.debug(":find: .. not found")
 
         logger.debug(":find: trying local AStar..")
         atry = self.graph.AStar(self.src, self.dst)

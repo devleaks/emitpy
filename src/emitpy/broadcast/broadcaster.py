@@ -1,13 +1,11 @@
+#
+import logging
 from datetime import datetime, timedelta
 import threading
-import signal
-import time
-import redis
-import logging
-import json
 import socket
+import redis
 
-from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE, QUEUE_PREFIX, QUEUE_DATA
+from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE, QUEUE_PREFIX
 from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT
 from emitpy.parameters import XPLANE_FEED, XPLANE_HOSTNAME, XPLANE_PORT

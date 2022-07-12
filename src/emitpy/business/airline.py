@@ -2,11 +2,11 @@
 Definition if Airline and Airroute operated by Airlines
 """
 import os
-import yaml
 import random
 import logging
 import csv
 import operator
+import yaml
 
 from turfpy import measurement
 

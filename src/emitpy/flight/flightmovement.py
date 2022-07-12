@@ -14,7 +14,7 @@ from emitpy.flight import Flight
 from emitpy.airport import AirportBase
 from emitpy.aircraft import ACPERF
 from emitpy.geo import MovePoint, Movement
-from emitpy.geo import moveOn, cleanFeatures, printFeatures, findFeatures, asLineString, toKML
+from emitpy.geo import moveOn, cleanFeatures, findFeatures, asLineString, toKML
 from emitpy.graph import Route
 from emitpy.utils import FT, NAUTICAL_MILE
 from emitpy.constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
@@ -22,8 +22,8 @@ from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT, MOVE_TY
 from emitpy.parameters import AODB_DIR
 from emitpy.message import MovementMessage
 
-from .standardturn import standard_turn_flyby
 from emitpy.utils import interpolate as doInterpolation, compute_time as doTime
+from .standardturn import standard_turn_flyby
 
 logger = logging.getLogger("FlightMovement")
 

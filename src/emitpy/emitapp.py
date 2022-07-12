@@ -1,24 +1,23 @@
+#
 import logging
 import json
 import random
-import redis
 import time
-
-from redis.commands.json.path import Path
-
-# from pottery import RedisDict
-
 from datetime import datetime, timedelta, timezone
+
+import redis
+# from pottery import RedisDict
 
 from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company
-from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
+from emitpy.aircraft import AircraftPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis, Queue
+# pylint: disable=W0611
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE, SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, DEPARTURE, LIVETRAFFIC_QUEUE
+from emitpy.constants import SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, LIVETRAFFIC_QUEUE
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, AIRAC_CYCLE
 from emitpy.parameters import REDIS_CONNECT, METAR_HISTORICAL, XPLANE_FEED

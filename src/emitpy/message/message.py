@@ -8,10 +8,10 @@ EmitPy Messages are limited to the ManagedAirport scope.
 import uuid
 import json
 from datetime import datetime, timedelta
-from enum import Enum, IntEnum, Flag
+from enum import Enum
 
 from emitpy.utils import key_path
-from emitpy.constants import MESSAGE_COLOR, ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT
+from emitpy.constants import MESSAGE_COLOR, FLIGHT_TIME_FORMAT
 
 
 class MESSAGE_CATEGORY(Enum):

@@ -4,18 +4,17 @@ import os.path
 import re
 import logging
 import time
-import json
 import csv
 from math import inf
 from turfpy.measurement import distance
 
-from .airspace import Airspace, Terminal, Fix, ControlledPoint, AirwaySegment, CPIDENT
-from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 from emitpy.geo import FeatureWithProps
 from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
 from emitpy.parameters import XPLANE_DIR, DATA_DIR
 from emitpy.utils import FT
+from .airspace import Airspace, Terminal, Fix, ControlledPoint, AirwaySegment, CPIDENT
+from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 
 logger = logging.getLogger("XPAirspace")
 

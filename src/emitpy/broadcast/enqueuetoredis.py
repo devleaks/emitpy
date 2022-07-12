@@ -1,14 +1,13 @@
 #  Python class to format features for output and enqueue for broadcast
 #
-import os
 import logging
 from datetime import datetime
 import json
 
+from emitpy.constants import REDIS_TYPE, ID_SEP, QUEUE_DATA
+from emitpy.utils import key_path
 from .format import Format
 from .queue import Queue
-from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, ID_SEP, QUEUE_DATA
-from emitpy.utils import key_path
 
 logger = logging.getLogger("EnqueueToRedis")
 

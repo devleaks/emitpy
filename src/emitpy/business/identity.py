@@ -1,9 +1,17 @@
+#
 import json
 from enum import Enum
-from emitpy.constants import ID_SEP
+
+from emitpy.constants import ID_SEP, REDIS_DATABASE
+from emitpy.utils import key_path
 import emitpy
 
+
 class IDENTIFIER(Enum):
+    """
+    Base class for all things identified in the system, in particular aircrafts and vehicles,
+    and all reolocalized objects.
+    """
     orgId = "orgId"
     classId = "classId"
     typeId = "typeId"

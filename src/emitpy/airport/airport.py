@@ -13,7 +13,6 @@ import csv
 import logging
 import random
 import operator
-import json
 
 import geojson
 

@@ -9,7 +9,7 @@ import copy
 
 from geojson import Point, LineString, FeatureCollection, Feature
 
-from emitpy.geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, asLineString
+from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, asLineString
 from emitpy.constants import FLIGHT_DATABASE, FEATPROP
 from emitpy.parameters import AODB_DIR
 from emitpy.message import Messages

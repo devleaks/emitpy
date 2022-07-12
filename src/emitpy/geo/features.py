@@ -2,13 +2,12 @@
 GeoJSON Features with special meaning or type (class).
 """
 import copy
-from geojson import Polygon, Point, Feature
-from geojson.geometry import Geometry
-from turfpy.measurement import bearing, destination
-from .utils import printFeatures
-from emitpy.constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
-import emitpy
 import inspect
+from geojson import Polygon, Point, Feature
+from turfpy.measurement import bearing, destination
+
+import emitpy
+from emitpy.constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
 
 # from emitpy.business.identity import Identity
 

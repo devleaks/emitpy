@@ -1,18 +1,11 @@
 """
 Build movement of a service vehicle
 """
-import os
-import json
 import logging
-from math import pi, inf
-import copy
-
-from geojson import Point, LineString, FeatureCollection, Feature
-from turfpy.measurement import distance, destination, bearing
 
 from emitpy.airport import AirportBase
 from emitpy.geo import MovePoint, Movement
-from emitpy.service import Mission, ServiceVehicle
+from emitpy.service import Mission
 from emitpy.graph import Route
 from emitpy.utils import compute_time as doTime
 from emitpy.constants import FEATPROP, MISSION_PHASE, MISSION_COLOR, MOVE_TYPE
@@ -228,6 +221,12 @@ class MissionMove(Movement):
                                         info=self.getInfo()))
 
         logger.debug(f":move: end added")
+
+        # No interpolation necessary:
+        # Each point should have speed set, altitude and vspeed irrelevant.
+        ret = doTime(self.moves)
+        if not ret[0]:
+            return ret
 
         # Sets unique index on mission movement features
         idx = 0

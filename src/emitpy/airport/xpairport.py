@@ -6,18 +6,19 @@ import re
 import logging
 import random
 
-from enum import Enum
 from math import inf
-from geojson import Point, Polygon, Feature
+from geojson import Point, Feature
 from turfpy.measurement import distance, destination, bearing
 
-from .airport import AirportBase
 from emitpy.graph import Vertex, Edge, USAGE_TAG
-from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, findFeatures, FeatureWithProps
+from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, FeatureWithProps
 from emitpy.parameters import DATA_DIR, XPLANE_DIR
 from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE
 from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP
 from emitpy.utils import key_path, rejson
+
+from .airport import AirportBase
+
 
 logger = logging.getLogger("XPAirport")
 

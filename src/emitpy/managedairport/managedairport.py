@@ -1,16 +1,12 @@
+# Assembly class to collect airport, airport manager, airspace...
 import logging
-
-import json
-from redis.commands.json.path import Path
-from fastapi.encoders import jsonable_encoder
 
 from emitpy.airspace import XPAirspace, Metar
 from emitpy.business import Airline, Company
-from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
-from emitpy.airport import Airport, AirportBase, XPAirport
+from emitpy.aircraft import AircraftType, AircraftPerformance
+from emitpy.airport import Airport, XPAirport
 from emitpy.business import AirportManager
-from emitpy.constants import REDIS_DATABASE, ID_SEP
-from emitpy.utils import Timezone, key_path
+from emitpy.utils import Timezone
 
 logger = logging.getLogger("ManagedAirport")
 

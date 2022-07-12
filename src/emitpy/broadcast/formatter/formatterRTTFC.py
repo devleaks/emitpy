@@ -27,7 +27,10 @@ class RTTFCFormatter(FormatterBase):
         #       track_rate, roll, mag_heading, true_heading, geom_rate, emergency, category,
         #       nav_qnh, nav_altitude_mcp, nav_altitude_fms, nav_heading, nav_modes, seen, rssi,
         #       winddir, windspd, OAT, TAT, isICAOhex,augmentation_status,authentication
-        #
+
+        # RTTFC,hexid,  lat,      lon,      baro_alt, baro_rate, gnd, track, gsp, cs_icao, ac_type, ac_tailno,from_iata, to_iata, timestamp,              source, cs_iata,  msg_type, alt_geom, IAS, TAS, Mach,track_rate, roll, mag_heading, true_heading, geom_rate, emergency, category,nav_qnh, nav_altitude_mcp, nav_altitude_fms, nav_heading, nav_modes, seen, rssi, winddir, windspd, OAT, TAT, isICAOhex, augmentation_status, authentication
+        # RTTFC,9004093,25.175100,51.675200,3450    ,13        , 0  ,115   , 139,  ETD394,    A321,    A6-AEG,         ,        ,       256, OpenSky Live Online,  ETD394, lt_export,     3092,  -1,  -1,   -1,        -1,   -1,          -1,       114.67,        13,      none,         ,     -1,               -1,               -1,          -1,        -1,   -1,   -1,      -1,      -1,  -1,  -1,         1,                    ,
+
         # RTTFC,7389381,25.290900,51.590000,0,0,1,245,4,QTR1399,A333,A4O-DI,OTHH,DTTA,249,OpenSky Live Online,QTR1399,lt_export,0,-1,-1,-1,-1,-1,-1,244.69,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
         # RTTFC,7389381,25.290900,51.590000,0,0,1,245,4,QTR1399,A333,A4O-DI,OTHH,DTTA,249,OpenSky Live Online,QTR1399,lt_export,0,-1,-1,-1,-1,-1,-1,244.69,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
         # RTTFC,434334,25.282000,51.593700,0,0,1,158,34,QTR209,A320,A7-AHW,,,250,OpenSky Live Online,QTR209,lt_export,0,-1,-1,-1,-1,-1,-1,157.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
@@ -37,6 +40,18 @@ class RTTFCFormatter(FormatterBase):
         # RTTFC,4949106,25.281200,51.610000,0,0,1,248,1,QTR8409,B744,TC-ACR,VHHH,OTHH,308,OpenSky Live Online,QTR8409,lt_export,0,-1,-1,-1,-1,-1,-1,247.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
         # RTTFC,9004093,25.160500,51.749900,5975,12,0,101,141,ETD394,A321,A6-AEG,,,311,OpenSky Live Online,ETD394,lt_export,5617,-1,-1,-1,-1,-1,-1,101.39,12,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
         # RTTFC,9004049,25.245300,51.630900,1525,4,0,157,91,ABY136,A320,A6-AOE,,,311,OpenSky Live Online,ABY136,lt_export,1167,-1,-1,-1,-1,-1,-1,157.36,4,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        #
+        # RTTFC,9004338,25.185500,55.485600,2150,-4,0,301,97,FDB866,B38M,A6-FMM,,,102,OpenSky Live Online,FDB866,lt_export,1792,-1,-1,-1,-1,-1,-1,301.49,-4,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,4958674,25.259500,55.359800,325,3,0,301,86,THY2YH,A333,TC-JNR,,,103,OpenSky Live Online,THY2YH,lt_export,-33,-1,-1,-1,-1,-1,-1,301.32,3,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9004023,25.252300,55.378200,0,0,1,121,5,A6EOZ,A388,A6-EOZ,,,103,OpenSky Live Online,A6EOZ,lt_export,0,-1,-1,-1,-1,-1,-1,120.94,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,7389446,25.254600,55.364900,0,0,1,121,9,OMA604,B38M,A4O-MK,,,103,OpenSky Live Online,OMA604,lt_export,0,-1,-1,-1,-1,-1,-1,120.94,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9003829,25.426700,55.310500,5700,11,0,23,141,FDB5DA,B738,A6-FED,,,109,OpenSky Live Online,FDB5DA,lt_export,5342,-1,-1,-1,-1,-1,-1,23.20,11,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9006849,25.253300,55.351300,0,0,1,31,1,SW10,ZZZC,,,,124,OpenSky Live Online,SW10,lt_export,0,-1,-1,-1,-1,-1,-1,30.94,0,none,C2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9006794,25.264100,55.347900,0,0,1,174,3,CM4,ZZZC,,,,126,OpenSky Live Online,CM4,lt_export,0,-1,-1,-1,-1,-1,-1,174.38,0,none,C2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,8392033,25.256000,55.349000,0,0,1,31,1,IGO064,A20N,VT-IZU,,,129,OpenSky Live Online,IGO064,lt_export,0,-1,-1,-1,-1,-1,-1,30.94,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9006778,25.250900,55.363700,0,0,1,253,4,,,,,,135,OpenSky Live Online,,lt_export,0,-1,-1,-1,-1,-1,-1,253.12,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,9006778,25.250900,55.363700,0,0,1,253,4,,ZZZC,,,,135,OpenSky Live Online,,lt_export,0,-1,-1,-1,-1,-1,-1,253.12,0,none,C2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+        # RTTFC,3949968,25.262900,55.360000,0,0,1,42,1,BOX513,,,,,137,OpenSky Live Online,BOX513,lt_export,0,-1,-1,-1,-1,-1,-1,42.19,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
         #
         def getprop(path: str):
             r = JSONPath(path).parse(self.feature.properties)

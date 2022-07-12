@@ -3,11 +3,12 @@ Flight plans are generated  by the flightplandatabase.com site and cached in thi
 Origin and destination airport details data is also cached.
 (We suspect flightplan database uses the same X-Plane Arinc cycle 1802 dataset.)
 """
-import copy
-from geojson import Feature, FeatureCollection
-from emitpy.airspace import Airspace, FlightPlanBase
-from emitpy.aircraft import AircraftPerformance
 import logging
+import copy
+
+from geojson import Feature, FeatureCollection
+
+from emitpy.airspace import Airspace, FlightPlanBase
 
 
 logger = logging.getLogger("FlightPlan")

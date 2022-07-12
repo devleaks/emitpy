@@ -5,20 +5,18 @@ information.
 """
 import os
 import json
-import flatdict
 import logging
 
 from datetime import datetime, timedelta
 from random import randrange
-from typing import Mapping
-from geojson import Feature, FeatureCollection, Point, LineString
+from geojson import Feature, FeatureCollection
 from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
 
 from redis.commands.json.path import Path
 
-from emitpy.geo import FeatureWithProps, cleanFeatures, printFeatures, findFeatures, Movement, asLineString
-from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, FT, Timezone
+from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, Movement, asLineString
+from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, Timezone
 from emitpy.message import Messages, EstimatedTimeMessage
 
 from emitpy.constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
@@ -29,6 +27,7 @@ from emitpy.parameters import AODB_DIR, MANAGED_AIRPORT
 logger = logging.getLogger("Emit")
 
 DEFAULT_FREQUENCY = 30
+
 
 class EmitPoint(FeatureWithProps):
     """

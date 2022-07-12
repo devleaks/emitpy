@@ -2,9 +2,9 @@
 ManagedAirport loaded from GeoJSON files
 """
 import os.path
+import logging
 import json
 import yaml
-import logging
 
 from .airport import AirportBase
 from emitpy.parameters import DATA_DIR

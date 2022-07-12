@@ -1,18 +1,15 @@
 """
 Build movement of a service vehicle
 """
-import os
-import json
 import logging
-from math import pi, inf
-import copy
+from math import inf
 
-from geojson import Point, LineString, FeatureCollection, Feature
-from turfpy.measurement import distance, destination, bearing
+
+from geojson import Feature
 
 from emitpy.airport import AirportBase
 from emitpy.geo import MovePoint, Movement, printFeatures, asLineString
-from emitpy.service import Service, ServiceVehicle
+from emitpy.service import Service
 from emitpy.graph import Route
 from emitpy.utils import compute_time as doTime
 from emitpy.constants import FEATPROP, SERVICE_PHASE, MOVE_TYPE

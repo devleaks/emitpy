@@ -1,14 +1,16 @@
+#
+import logging
 import json
 from datetime import datetime, timedelta
 from jsonpath import JSONPath
 
 from .emit import EmitPoint, Emit
-from emitpy.message import Messages, EstimatedTimeMessage
+# pylint: disable=C0411
+from emitpy.message import EstimatedTimeMessage
 from emitpy.constants import ID_SEP, FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
-from emitpy.constants import REDIS_DATABASE, REDIS_DATABASES, REDIS_TYPE
+from emitpy.constants import REDIS_DATABASES, REDIS_TYPE
 from emitpy.utils import Timezone
 
-import logging
 
 logger = logging.getLogger("ReEmit")
 

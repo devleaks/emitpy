@@ -1,3 +1,4 @@
+# Everything Flight
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -56,7 +57,7 @@ class Flight(Messages):
             self.flight_type = PAYLOAD.PAX
 
         if linked_flight is not None and linked_flight.linked_flight is None:
-            linked_flight.setLinkedFlight(self)
+            linked_flight.setLinkedFlight(self) # will do self.setLinkedFlight(linked_flight)
 
 
     def __str__(self):
@@ -191,6 +192,7 @@ class Flight(Messages):
 
 
     def setLinkedFlight(self, linked_flight: 'Flight') -> None:
+        # Should check if already defined and different
         self.linked_flight = linked_flight
         if linked_flight.linked_flight is None:
             linked_flight.linked_flight = self

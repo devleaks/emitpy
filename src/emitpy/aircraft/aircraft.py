@@ -1,29 +1,28 @@
 """
 Everything related to aircrafts, their codes, classes, performmances.
 """
-import os
-import csv
-import json
-import yaml
+import sys
 import logging
 import operator
+import os
+import json
 from math import inf
+# pylint: disable=W0611
+import csv
+
+import yaml
 
 from importlib_resources import files
 
-from emitpy.parameters import HOME_DIR
-
-import sys
-sys.path.append(HOME_DIR)
-
+from emitpy.parameters import HOME_DIR, DATA_DIR
 from emitpy.business import Identity, Company
 from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB, RAMP_TYPE
-from emitpy.parameters import DATA_DIR
 from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, key_path, rejson
 
 
 logger = logging.getLogger("Aircraft")
 
+sys.path.append(HOME_DIR)
 
 _STD_CLASS = "C"
 

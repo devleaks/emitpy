@@ -1,3 +1,4 @@
+# Utility functions to smooth turns in flight path
 import logging
 
 from math import pi

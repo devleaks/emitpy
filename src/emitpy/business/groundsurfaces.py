@@ -4,8 +4,8 @@ Entities for aircraft parking on the ground.
 """
 from typing import Union
 
-from emitpy.identity import Identity
-from emitpy.constants import PAX, CARGO
+from emitpy.business import Identity
+from emitpy.constants import PASSENGER, CARGO
 
 
 class Terminal(Identity):
@@ -49,7 +49,7 @@ class Parking(Identity):
     """
     def __init__(self, orgId: str, classId: str, typeId: str, name: str, size: str, shared: Union[[str], [Parking]] = None):
         Identity.__init__(self, orgId, classId, typeId, name)
-        self.usage = [CARGO, PAX]  # PAX or CARGO or both
+        self.usage = [CARGO, PASSENGER]  # PASSENGER or CARGO or both
         self.type = None  # {JETWAY|TIEDOWN}
         self.size = size  # A-F code
         self.shared = shared    # List of overlaping parking to mark as busy when this one is busy. NB

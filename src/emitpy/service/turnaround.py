@@ -21,12 +21,12 @@ class Turnaround:
         self.arrival = FlightServices(arrival, operator)
         self.departure = FlightServices(departure, operator)
         self.airport = None
-        self.arrival.setLinkedFlight(self.departure)  # will do the reverse as well
+        self.arrival.setLinkedFlight(linked_flight=self.departure)  # will do the reverse as well
         if self.towed():
             logger.warning(":init: aircraft towed between linked flights")
 
     def towed(self):
-        return self.arrival.getRamp() != self.departure.getRamp()
+        return self.arrival.ramp != self.departure.ramp
 
     def setManagedAirport(self, airport):
         self.airport = airport

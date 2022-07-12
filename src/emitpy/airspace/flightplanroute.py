@@ -2,7 +2,6 @@
 A FlightPlanRoute is a route from origin to destination using airways in Airspace.
 The Flight Route is computed from airports, navaids, fixes, and airways.
 """
-import os
 import logging
 
 from emitpy.graph import Route

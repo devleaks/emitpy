@@ -1,12 +1,12 @@
 """
 Miscellanerous general functions
 """
-from datetime import datetime, timedelta
 import logging
-logger = logging.getLogger("Utils/Time")
+from datetime import datetime, timedelta
 
 from emitpy.constants import FLIGHT_PHASE
 
+logger = logging.getLogger("Utils/Time")
 
 
 class EstimatedTime:

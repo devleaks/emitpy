@@ -18,6 +18,7 @@ logger = logging.getLogger("Graph")
 
 USAGE_TAG = "usage"
 
+
 class Vertex(FeatureWithProps):
 
     def __init__(self, node: str, point: Point, usage: [str] = [], name: str = None):

@@ -6,12 +6,12 @@ import pathlib
 import re
 import json
 import logging
-import requests_cache
-import urllib.request
 import importlib
+from datetime import datetime, timedelta, timezone
+
+import requests_cache
 import requests
 
-from datetime import datetime, timedelta, timezone
 from metar import Metar as MetarLib
 
 import flightplandb as fpdb

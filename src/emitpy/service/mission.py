@@ -1,15 +1,12 @@
 """
 A Mission is a trip of a vehicle around the airport through a list of checkpoints.
 """
-import sys
 import logging
-import random
 from datetime import datetime
 
 from emitpy.constants import FEATPROP, REDIS_DATABASE, ID_SEP
-from .ground_support import GroundSupport
-from .servicevehicle import ServiceVehicle
 from emitpy.geo import FeatureWithProps
+from .ground_support import GroundSupport
 
 
 logger = logging.getLogger("Mission")

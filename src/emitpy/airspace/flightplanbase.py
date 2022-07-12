@@ -4,6 +4,7 @@ A FlightPlanBase is a route from origin to destination using airways.
 """
 # curl -u vMzb5J3qtRnIo4CgdCqiGUsRhWEXpAHLMJj04Rds: -i https://api.flightplandatabase.com/
 import os
+import logging
 import json
 import requests_cache
 
@@ -17,8 +18,6 @@ from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import FT, key_path, rejson
 from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 from emitpy.parameters import DEVELOPMENT, PRODUCTION, DATA_DIR
-
-import logging
 
 
 logger = logging.getLogger("FlightPlanBase")

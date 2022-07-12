@@ -2,9 +2,7 @@
 #
 import os
 import logging
-from datetime import datetime
 
-from emitpy.geo import printFeatures
 from emitpy.constants import FEATPROP, FLIGHT_DATABASE
 from emitpy.parameters import AODB_DIR
 
