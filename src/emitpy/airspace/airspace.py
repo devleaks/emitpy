@@ -101,15 +101,17 @@ class Restriction:
         return self.speedmin is not None or self.speedmax is not None
 
 
-class RestrictedAirspace(FeatureWithProps):
+class ControlledAirspace(FeatureWithProps):
     """
     This class describes a restricted airspace.
     @todo: we'll deal with the airspace restricted volumes later.
     @see: Little Navmap for "inspiration".
     """
-    def __init__(self, name, region, restriction):
+    def __init__(self, name, region, airspace_class, restriction):
         default_polygon = [ [0,0], [0,1], [1, 1], [0, 0] ]
         FeatureWithProps.__init__(self, geometry=Polygon(default_polygon), properties={})
+
+        self.airspace_class = airspace_class
 
 
 ################################
@@ -473,6 +475,7 @@ class AirwayRoute(FeatureWithProps):
             "via": via
         })
 
+
 ##########################
 #
 # A I R   S P A C E
@@ -487,14 +490,17 @@ class Airspace(Graph):
     def __init__(self, bbox=None, load_airways: bool = False):
         Graph.__init__(self)
         self.bbox = bbox
+        self.load_airways = load_airways
+
+        self.redis = None
+
+        self.loaded = False
+        self.airways_loaded = False
+
+        self.airac_cycle = None
+
         self.all_points = {}
         self.holds = {}
-        self.loaded = False
-        self.redis = None
-        self.simairspacetype = "Generic"
-        self.airac_cycle = None
-        self.load_airways = load_airways
-        self.airways_loaded = False
 
 
     def load(self, redis = None):
@@ -523,7 +529,7 @@ class Airspace(Graph):
         if not status[0]:
             return status
 
-        return [True, f"Airspace loaded ({self.simairspacetype})"]
+        return [True, f"Airspace loaded ({type(self).__name__})"]
 
 
     def loadAirports(self):
