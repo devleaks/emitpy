@@ -4,6 +4,7 @@ import logging
 
 from geojson import Point, LineString, Polygon, Feature, FeatureCollection
 from turfpy.measurement import distance, destination, bearing, bbox
+from .features import FeatureWithProps
 
 logger = logging.getLogger("geoutils")
 
@@ -121,6 +122,28 @@ def asLineString(features):
         coords.append(x["geometry"]["coordinates"])
     # coords = reduce(lambda x, coords: coords + x["geometry"]["coordinates"], self.moves, [])
     return LineString(coords)
+
+
+def asFeatureLineStringWithTimestamps(features: [FeatureWithProps]):
+    ls = []
+    rt = []
+    at = []
+
+    for f in features:
+        if f["geometry"]["type"] == "Point":
+            ls.append(f["geometry"]["coordinates"])
+            rt.append(f.getRelativeEmissionTime())
+            at.append(f.getAbsoluteEmissionTime())
+
+    props = features[0]["properties"]
+    props["time"] = at
+    props["reltime"] = rt
+
+    return Feature(geometry=LineString(ls), properties=props)
+
+
+def toTraffic(features: ["EmitPoint"]):
+    return asFeatureLineStringWithTimestamps(features)
 
 
 def ls_length(ls):

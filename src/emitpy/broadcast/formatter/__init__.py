@@ -4,3 +4,4 @@ from .formatterlivetraffic import LiveTrafficFormatter
 # from .formatterviewer import ViewerFormatter
 from .formatterflat import FormatterFlat
 # from .formatterwire import FormatterWire
+from .traffic import TrafficFormatter

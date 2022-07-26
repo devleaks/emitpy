@@ -84,9 +84,22 @@ class FlightServices:
             emit = service["emit"]
             ret = emit.save(redis)
             if not ret[0]:
-                return ret
-            logger.debug(f":save: ..done")
+                logger.warning(f":save: {service['type']} returned {ret[1]}")
+            else:
+                logger.debug(f":save: ..done")
         return (True, "FlightServices::save: completed")
+
+
+    def saveFile(self):
+        for service in self.services:
+            logger.debug(f":saveFile: saving to file {service['type']}..")
+            emit = service["emit"]
+            ret = emit.saveFile()
+            if not ret[0]:
+                logger.warning(f":saveFile: {service['type']} returned {ret[1]}")
+            else:
+                logger.debug(f":saveFile: ..done")
+        return (True, "FlightServices::saveFile: completed")
 
 
     def service(self):
@@ -191,6 +204,7 @@ class FlightServices:
             stime = scheduled + timedelta(minutes=service["scheduled"])  # nb: service["scheduled"] can be negative
             service["emit"].serviceTime(SERVICE_PHASE.SERVICE_START.value, service["duration"] * 60)  # seconds
             service["emit"].schedule(SERVICE_PHASE.SERVICE_START.value, stime)
+            logger.debug(f":schedule: there are {len(service['emit'].scheduled_emit)} scheduled emit points")
             logger.debug(f":schedule: ..done")
         return (True, "FlightServices::schedule: completed")
 

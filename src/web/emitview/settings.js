@@ -418,6 +418,7 @@ module.exports = {
      */
     functionGlobalContext: {
         // os:require('os'),
+        h3:require('h3-js')
     },
 
     /** The maximum number of messages nodes will buffer internally as part of their

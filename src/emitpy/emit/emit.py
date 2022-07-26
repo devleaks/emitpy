@@ -15,7 +15,7 @@ from turfpy.measurement import distance, bearing, destination
 
 from redis.commands.json.path import Path
 
-from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, Movement, asLineString
+from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, Movement, asLineString, toTraffic
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, Timezone
 from emitpy.message import Messages, EstimatedTimeMessage
 
@@ -217,23 +217,42 @@ class Emit(Messages):
         logger.debug(f":save: saved {move_id}")
         return self.saveMeta(redis)
 
+
     def saveFile(self):
         """
         Save flight paths to file for emitted positions.
         """
-        ident = self.getId()
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, ident)
 
+        ident = self.getId()
+        db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
+        basename = os.path.join(AODB_DIR, db, ident)
+
+        # 1. Save "raw emits"
         # filename = os.path.join(basename + "-5-emit.json")
         # with open(filename, "w") as fp:
         #     json.dump(self._emit, fp, indent=4)
-        ls = Feature(geometry=asLineString(self._emit))
-        filename = os.path.join(basename + "-5-emit_ls.geojson")
-        with open(filename, "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self._emit)+ [ls]), fp, indent=4)
 
-        logger.debug(f":save: saved {ident}")
-        return (True, "Emit::save saved")
+        # 2. Save "raw emits" and linestring
+        # ls = Feature(geometry=asLineString(self._emit))
+        # filename = os.path.join(basename + "-5-emit_ls.geojson")
+        # with open(filename, "w") as fp:
+        #     json.dump(FeatureCollection(features=cleanFeatures(self._emit)+ [ls]), fp, indent=4)
+
+        # 3. Save linestring with timestamp
+        # Save for traffic analysis
+        if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
+            logger.warning(":saveFile: no scheduled emission point for traffic")
+            return (False, "Emit::saveFile: no scheduled emission point for traffic")
+
+        logger.debug(f":saveFile: ***** there are {len(self.scheduled_emit)} points")
+
+        ls = toTraffic(self.scheduled_emit)
+        filename = os.path.join(basename + "-traffic.geojson")
+        with open(filename, "w") as fp:
+            json.dump(FeatureCollection(features=[ls]), fp, indent=4)
+
+        logger.debug(f":saveFile: saved {ident}")
+        return (True, "Emit::saveFile saved")
 
 
     def emit(self, frequency: int):
@@ -461,6 +480,7 @@ class Emit(Messages):
         # (may be should think about a FeatureCollection-level property to avoid repetition.)
         if len(self.props) > 0:
             # p = dict(flatdict.FlatDict(self.props))
+            self.props["emit"] = self.getInfo() # update meta data about this emission
             p = self.props
             for f in self._emit:
                 f.addProps(p)

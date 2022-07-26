@@ -44,6 +44,7 @@ class StatusInfo:
 
 
 SAVE_TO_FILE = False  # for debugging purpose
+SAVE_TRAFFIC = True
 
 
 def BOOTSTRAP_REDIS():
@@ -360,10 +361,10 @@ class EmitApp(ManagedAirport):
             return StatusInfo(105, f"problem during schedule", ret[1])
 
         logger.debug(":do_flight: .. saving ..")
-        if SAVE_TO_FILE:
+        if SAVE_TO_FILE or SAVE_TRAFFIC:
             ret = emit.saveFile()
             if not ret[0]:
-                return StatusInfo(106, f"problem during schedule", ret[1])
+                return StatusInfo(106, f"problem during save to file", ret[1])
 
         ret = emit.save(redis=self.redis)
         if not ret[0]:
@@ -375,10 +376,11 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(107, f"problem during formatting", ret[1])
 
-        # logger.debug(":do_flight: .. saving ..")
-        # ret = formatted.save()
-        # if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
-        #     return StatusInfo(108, f"problem during formatted output save", ret[1])
+        if SAVE_TO_FILE:
+            logger.debug(":do_flight: .. saving ..")
+            ret = formatted.save()
+            if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
+                return StatusInfo(108, f"problem during formatted output save", ret[1])
 
         ret = formatted.enqueue()
         if not ret[0]:
@@ -423,7 +425,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(153, f"problem during flight service scheduling", ret[1])
 
         logger.debug(":do_flight: .. saving service vehicle ..")
-        if SAVE_TO_FILE:
+        if SAVE_TO_FILE or SAVE_TRAFFIC:
             ret = flight_service.saveFile()
             if not ret[0]:
                 return StatusInfo(154, f"problem during flight service scheduling", ret[1])
@@ -719,7 +721,7 @@ class EmitApp(ManagedAirport):
         ret = emit.schedule(MISSION_PHASE.START.value, mission_time)
         if not ret[0]:
             return StatusInfo(305, f"problem during mission scheduling", ret[1])
-        if SAVE_TO_FILE:
+        if SAVE_TO_FILE or SAVE_TRAFFIC:
             ret = emit.saveFile()
             if not ret[0]:
                 return StatusInfo(306, f"problem during mission emission save", ret[1])

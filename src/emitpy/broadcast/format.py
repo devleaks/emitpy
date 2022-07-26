@@ -6,10 +6,16 @@ import logging
 from emitpy.constants import FEATPROP, FLIGHT_DATABASE
 from emitpy.parameters import AODB_DIR
 
-from .formatter import Formatter, FormatterFlat, LiveTrafficFormatter
+from .formatter import Formatter, FormatterFlat, TrafficFormatter, LiveTrafficFormatter
 
 logger = logging.getLogger("Formatter")
 
+FORMATTERS = {
+    "flat": ("Flattened JSON", FormatterFlat),
+    "lt": ("X-Plane LiveTraffic", LiveTrafficFormatter),
+    "traffic": ("Traffic.py Library", TrafficFormatter),
+    "raw": ("Raw JSON", Formatter)
+}
 
 class Format:
 
@@ -19,28 +25,16 @@ class Format:
         self.output = []
         self.version = 0
 
+
     @staticmethod
     def getCombo():
-        return [
-            # ("adsb", "ADS-B"),
-            # ("view", "Viewer"),
-            # ("lt", "X-Plane LiveTraffic"),
-            ("raw", "Raw"),
-            ("flat", "Flatten JSON")
-        ]
+        return [(k, v[0]) for k,v in FORMATTERS.items()]
+
 
     @staticmethod
     def getFormatter(name):
-        if name == "flat":
-            return FormatterFlat
-        # elif name == "adsb":
-        #     return ADSBFormatter
-        # elif name == "viewapp":
-        #     return ViewerFormatter
-        # default is raw, i.e. leave as it is
-        elif name == "lt":
-            return LiveTrafficFormatter
-        return Formatter
+        return FORMATTERS[name][1] if name in FORMATTERS.keys() else Formatter
+
 
     def format(self):
         if self.emit.scheduled_emit is None or len(self.emit.scheduled_emit) == 0:

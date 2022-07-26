@@ -112,6 +112,7 @@ class ControlledAirspace(FeatureWithProps):
         FeatureWithProps.__init__(self, geometry=Polygon(default_polygon), properties={})
 
         self.airspace_class = airspace_class
+        self.restriction = restriction
 
 
 ################################

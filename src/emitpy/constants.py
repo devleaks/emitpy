@@ -101,6 +101,7 @@ class POI_COMBO(Enum):
     SERVICE = "svc"
     CHECKPOINT = "ckpt"
 
+
 ########################################
 # Redis databases and keys
 #
@@ -120,6 +121,7 @@ class FILE_FORMAT(Enum):
     EMIT = "4-emit"
     BROADCAST = "5-broadcast"
     KML = "kml"
+    TRAFFIC = "trf"
 
 
 # "Categories" of data stored, used as domain separator
@@ -139,6 +141,7 @@ class REDIS_DATABASE(Enum):
     EMIT_METAS = "emit-meta"
     UNKNOWN = "unknowndb"
 
+
 class REDIS_DB(IntEnum):
     APP = 0    # App data, dynamic
     REF = 1    # App data, static
@@ -155,10 +158,12 @@ REDIS_DATABASES = {
     "unknowndb": REDIS_DATABASE.UNKNOWN.value  # should be symmetric to avoid issues
 }
 
+
 # Redis key builder with domains
 def key_path(*args):  # difficult to "import" without circular issues
     a = map(lambda x: x if x is not None else "", args)
     return ID_SEP.join(a)
+
 
 # Type of data stored into keys
 class REDIS_TYPE(Enum):
