@@ -13,7 +13,7 @@ from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
 from emitpy.parameters import XPLANE_DIR, DATA_DIR
 from emitpy.utils import FT
-from .airspace import Airspace, Terminal, Fix, ControlledPoint, AirwaySegment, CPIDENT
+from .airspace import Airspace, Terminal, Fix, SignificantPoint, AirwaySegment, CPIDENT
 from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 
 logger = logging.getLogger("XPAirspace")
@@ -380,7 +380,7 @@ class XPAirspace(Airspace):
             self._cached_vectex_ids["VHF"] = 0
             self._cached_vectex_ids["IDENT"] = 0
             for v in self.vert_dict.keys():
-                a = ControlledPoint.parseId(ident=v)
+                a = SignificantPoint.parseId(ident=v)
                 if not a[CPIDENT.REGION] in self._cached_vectex_ids.keys():
                     self._cached_vectex_ids[a[CPIDENT.REGION]] = {}
                 if not a[CPIDENT.IDENT] in self._cached_vectex_ids[a[CPIDENT.REGION]].keys():
@@ -414,7 +414,7 @@ class XPAirspace(Airspace):
         logger.debug(":dropIndex: done")
 
 
-    def findControlledPoint(self, region, ident, navtypeid):
+    def findSignificantPoint(self, region, ident, navtypeid):
         """
         Find fix or navaid from region, identifier, and navigation aid "gross" type.
 
@@ -436,7 +436,7 @@ class XPAirspace(Airspace):
         return None
 
 
-    def getControlledPoint(self, k):
+    def getSignificantPoint(self, k):
         """
         Finds terminal, navaid, or fix its identifier, returns a Vertex or None.
         """
@@ -447,15 +447,15 @@ class XPAirspace(Airspace):
             ret = self.redis.json().get(kr)
             self.redis.select(prevdb)
             if ret is not None:
-                # logger.debug(f":getControlledPoint: found {kr}")
+                # logger.debug(f":getSignificantPoint: found {kr}")
                 return FeatureWithProps.new(ret)
-            logger.warning(f":getControlledPoint:  {kr} not found")
+            logger.warning(f":getSignificantPoint:  {kr} not found")
             return None
         else:
             return self.get_vertex(k)
 
 
-    def findControlledPointByIdent(self, ident):
+    def findSignificantPointByIdent(self, ident):
         """
         Finds terminal, navaid, or fix its identifier, returns an array of Vertex ids.
         """
@@ -466,7 +466,7 @@ class XPAirspace(Airspace):
             k = key_path(REDIS_PREFIX.AIRSPACE_WAYPOINTS_INDEX.value, ident)
             ret = self.redis.smembers(k)
             self.redis.select(prevdb)
-            # logger.debug(f":findControlledPointByIdent: {k}=>{ret}..")
+            # logger.debug(f":findSignificantPointByIdent: {k}=>{ret}..")
             return [] if ret is None else [k.decode("UTF-8") for k in ret]
         else:
             self.createIndex()
@@ -477,13 +477,13 @@ class XPAirspace(Airspace):
         # candidates = [key for key in self.vert_dict.keys() if key.startswith(s)]
         # if len(candidates) > 0:
         #     # if len(candidates) > 1:
-        #     #    logger.warning(":findControlledPoint: %d matches on '%s': %s" % (len(candidates), s, candidates))
+        #     #    logger.warning(":findSignificantPoint: %d matches on '%s': %s" % (len(candidates), s, candidates))
         #     return self.vert_dict[candidates[0]]
-        # logger.debug(":findControlledPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
+        # logger.debug(":findSignificantPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
         # return None
 
 
-    def findClosestControlledPoint(self, reference, vertlist):
+    def findClosestSignificantPoint(self, reference, vertlist):
         """
         Finds closest navigation aid or fix to reference vertex.
         """
@@ -495,7 +495,7 @@ class XPAirspace(Airspace):
                 prevdb = self.redis.client_info()["db"]
                 self.redis.select(REDIS_DB.REF.value)
                 d = self.redis.geodist(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, reference, v)
-                logger.debug(f":findClosestControlledPoint:Redis: {v}: {d}")
+                logger.debug(f":findClosestSignificantPoint:Redis: {v}: {d}")
                 self.redis.select(prevdb)
             else:
                 vtx = self.get_vertex(v)
@@ -504,6 +504,23 @@ class XPAirspace(Airspace):
                 dist = d
                 closest = v
         return [closest, dist]
+
+
+    def distance(self, reference, v):
+        """
+        Finds distance between two vertices.
+        """
+        refvtx = self.get_vertex(reference)
+
+        if self.redis is not None:
+            prevdb = self.redis.client_info()["db"]
+            self.redis.select(REDIS_DB.REF.value)
+            d = self.redis.geodist(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, reference, v)
+            self.redis.select(prevdb)
+        else:
+            vtx = self.get_vertex(v)
+            d = distance(refvtx, vtx)
+        return d
 
 
     def loadAirwaySegments(self):
@@ -535,9 +552,9 @@ class XPAirspace(Airspace):
             else:
                 args = line.split()
                 if len(args) == 11:  # names, start, end, direction, lowhigh, fl_floor, fl_ceil
-                    src = self.findControlledPoint(region=args[1], ident=args[0], navtypeid=args[2])
+                    src = self.findSignificantPoint(region=args[1], ident=args[0], navtypeid=args[2])
                     if src:
-                        dst = self.findControlledPoint(region=args[4], ident=args[3], navtypeid=args[5])
+                        dst = self.findSignificantPoint(region=args[4], ident=args[3], navtypeid=args[5])
                         if dst:
                             if args[6] == DIRECTION["FORWARD"]:
                                 self.add_edge(AirwaySegment(args[10], src, dst, True, args[7], args[8], args[9]))
@@ -602,12 +619,12 @@ class XPAirspace(Airspace):
                 # 0      1       2        3        4         5         6           7        8       9       10
                 args = line.split()
                 if len(args) >= 6:
-                    fix = self.findControlledPoint(region=args[1], ident=args[0], navtypeid=args[3])
+                    fix = self.findSignificantPoint(region=args[1], ident=args[0], navtypeid=args[3])
                     if fix is None:
                         logger.warning(":loadHolds: fix not found %s.", line)
                     else:
                         if inBbox(fix):
-                            hid = ControlledPoint.mkId(region=args[1], airport=args[2], ident=args[0], pointtype="HLD")
+                            hid = SignificantPoint.mkId(region=args[1], airport=args[2], ident=args[0], pointtype="HLD")
                             self.holds[hid] = Hold(fix=fix, altmin=float(args[8]), altmax=float(args[9]),
                                                    course=float(args[4]), turn=args[7], leg_time=float(args[5]), leg_length=float(args[6]), speed=float(args[10]))
                 else:

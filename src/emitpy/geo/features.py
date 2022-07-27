@@ -221,6 +221,7 @@ class FeatureWithProps(Feature):
             return alt
         return default
 
+
     def setSpeed(self, speed):
         self.setProp(name=FEATPROP.SPEED.value, value=speed)
 
@@ -236,6 +237,16 @@ class FeatureWithProps(Feature):
 
     def vspeed(self, default=None):
         a = self.getProp(FEATPROP.VERTICAL_SPEED.value)
+        if a is None or a == "None":
+            return default
+        return float(a)
+
+
+    def setHeading(self, heading):
+        self.setProp(FEATPROP.HEADING.value, heading)
+
+    def heading(self, default=None):
+        a = self.getProp(FEATPROP.HEADING.value)
         if a is None or a == "None":
             return default
         return float(a)

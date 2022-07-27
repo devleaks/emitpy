@@ -120,15 +120,15 @@ class ControlledAirspace(FeatureWithProps):
 # CONTROLLED POINTS (ABSTRACT CLASSES)
 #
 #
-class ControlledPoint(Vertex):
+class SignificantPoint(Vertex):
 
     identsep = ":"
 
     """
-    A ControlledPoint is a named point in a controlled airspace region.
+    A SignificantPoint is a named point in a controlled airspace region.
     """
     def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
-        name = ControlledPoint.mkId(region, airport, ident, pointtype)
+        name = SignificantPoint.mkId(region, airport, ident, pointtype)
         Vertex.__init__(self, node=name, point=Point((lon, lat)))
         self.ident = ident
         self.region = region
@@ -136,11 +136,11 @@ class ControlledPoint(Vertex):
 
     @staticmethod
     def mkId(region: str, airport: str, ident: str, pointtype: str = None) -> str:
-        return region + ControlledPoint.identsep + ident + ControlledPoint.identsep + ("" if pointtype is None else pointtype) + ControlledPoint.identsep + airport
+        return region + SignificantPoint.identsep + ident + SignificantPoint.identsep + ("" if pointtype is None else pointtype) + SignificantPoint.identsep + airport
 
     @staticmethod
     def parseId(ident: str):
-        arr = ident.split(ControlledPoint.identsep)
+        arr = ident.split(SignificantPoint.identsep)
         return {
             CPIDENT.REGION: arr[0],
             CPIDENT.IDENT: arr[1],
@@ -167,11 +167,11 @@ class ControlledPoint(Vertex):
             return FeatureWithProps.new(self)
 
 
-class RestrictedControlledPoint(ControlledPoint, Restriction):
+class RestrictedSignificantPoint(SignificantPoint, Restriction):
     """
     """
     def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
-        ControlledPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
+        SignificantPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
         Restriction.__init__(self)
 
 
@@ -180,11 +180,11 @@ class RestrictedControlledPoint(ControlledPoint, Restriction):
 # N A V A I D S
 #
 #
-class NavAid(ControlledPoint):
+class NavAid(SignificantPoint):
     # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
         # for marker beacons, we use their "name"/type (OM/MM/IM) rather than a generic MB (marker beacon)
-        ControlledPoint.__init__(self, ident, region, airport, type(self).__name__ if type(self).__name__ != "MB" else name, lat, lon)
+        SignificantPoint.__init__(self, ident, region, airport, type(self).__name__ if type(self).__name__ != "MB" else name, lat, lon)
         self.elev = elev
         self.freq = freq
         self.ndb_class = ndb_class
@@ -257,10 +257,10 @@ class LTPFTP(NavAid):  # 16
 # F I X E S
 #
 #
-class Fix(ControlledPoint):
+class Fix(SignificantPoint):
     # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
     def __init__(self, ident, region, airport, lat, lon, waypoint_type: str):
-        ControlledPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
+        SignificantPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.waypoint_type = waypoint_type
 
 
@@ -269,14 +269,14 @@ class Fix(ControlledPoint):
 # A I R P O R T S
 #
 #
-class Terminal(ControlledPoint):
+class Terminal(SignificantPoint):
     """
-    This Terminam is a ControlledPoint airport.
+    This Terminam is a SignificantPoint airport.
     """
     AS_WAYPOINTS = {}
 
     def __init__(self, name: str, lat: float, lon: float, alt: int, iata: str, longname: str, country: str, city: str):
-        ControlledPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)
+        SignificantPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)
         self.iata = iata
         self.icao = name
         self.country = country
@@ -317,13 +317,13 @@ class Terminal(ControlledPoint):
 #
 # AND OTHER SPECIAL POINTS
 #
-class Waypoint(ControlledPoint):  # same as fix
+class Waypoint(SignificantPoint):  # same as fix
     """
     A Waypoint is a fix materialised by a VHF beacon of type navtype.
     """
     def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float, navtype: str):
         # we may be should use navtype instead of "Waypoint" as point type
-        ControlledPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
+        SignificantPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.navtype = navtype
 
 
@@ -336,7 +336,7 @@ class Hold(Restriction):
         Leg length is the length of the leg for DME leg or 0 for timed leg.
         Speed is the holding speed.
     """
-    def __init__(self, fix: ControlledPoint, altmin: float, altmax: float, course: float, turn: str, leg_time: float, leg_length: float, speed: float):
+    def __init__(self, fix: SignificantPoint, altmin: float, altmax: float, course: float, turn: str, leg_time: float, leg_length: float, speed: float):
         Restriction.__init__(self)
         self.fix = fix
         self.course = course
@@ -429,9 +429,9 @@ class Hold(Restriction):
 #
 class AirwaySegment(Edge):
     """
-    An AirwaySegment is a pair of ControlledPoints, directed, with optional altitude information.
+    An AirwaySegment is a pair of SignificantPoints, directed, with optional altitude information.
     """
-    def __init__(self, names: str, start: ControlledPoint, end: ControlledPoint, direction: bool, lowhigh: int, fl_floor: int, fl_ceil: int):
+    def __init__(self, names: str, start: SignificantPoint, end: SignificantPoint, direction: bool, lowhigh: int, fl_floor: int, fl_ceil: int):
         dist = distance(start, end)
         Edge.__init__(self, src=start, dst=end, directed=direction, weight=dist)
         self.names = names.split("-")

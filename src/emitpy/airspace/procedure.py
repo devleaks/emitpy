@@ -12,7 +12,7 @@ from turfpy.measurement import distance, bearing
 
 from emitpy.utils import ConvertDMSToDD, FT
 from emitpy.parameters import DATA_DIR
-from .airspace import Airspace, RestrictedControlledPoint
+from .airspace import Airspace, RestrictedSignificantPoint
 
 SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
 
@@ -149,7 +149,7 @@ class SID(Procedure):
                 # logger.debug(":getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
-                    a.append(airspace.getControlledPoint(vtxs[0]))
+                    a.append(airspace.getSignificantPoint(vtxs[0]))
                 else:
                     logger.warning(":getRoute: vertex not found %s", vid)
         return a
@@ -174,7 +174,7 @@ class STAR(Procedure):
                 # logger.debug(":getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
-                    a.append(airspace.getControlledPoint(vtxs[0]))
+                    a.append(airspace.getSignificantPoint(vtxs[0]))
                 else:
                     logger.warning(":getRoute: vertex not found %s", vid)
         return a
@@ -200,7 +200,7 @@ class APPCH(Procedure):
                 # logger.debug(":getRoute: searching %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) == 1:
-                    a.append(airspace.getControlledPoint(vtxs[0]))
+                    a.append(airspace.getSignificantPoint(vtxs[0]))
                     # logger.debug(":getRoute: added %s" % vtxs[0])
                 else:
                     logger.warning(":getRoute: vertex not found %s", vid)
@@ -246,7 +246,7 @@ class RWY(Procedure):
 
         self.route[0] = line
         if self.has_latlon():
-            self.point = RestrictedControlledPoint(
+            self.point = RestrictedSignificantPoint(
                 ident=line.params[0],
                 region=self.airport[0:2],
                 airport=self.airport,
@@ -442,7 +442,7 @@ class CIFP:
             # else:
             #     apt = Airport.findICAO(self.icao)
             #     if apt is not None:
-            #         r.point = RestrictedControlledPoint(
+            #         r.point = RestrictedSignificantPoint(
             #             ident=line.params[0],
             #             region=self.icao[0:2],
             #             airport=self.icao,

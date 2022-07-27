@@ -54,6 +54,8 @@ class FlightPlan(FlightPlanBase):
         wpts = []
         errs = 0
         last = None
+        largest = 0
+        TOO_FAR = 3000000 # 3000km between points?
 
         # From nodes in route:
         # for n in self.flight_plan["route"]["nodes"]:
@@ -67,12 +69,21 @@ class FlightPlan(FlightPlanBase):
                 fty = f["properties"]["type"] if "type" in f["properties"] else None
                 fid = f["properties"]["ident"] if "ident" in f["properties"] else None
                 if fid is not None:
-                    wid = airspace.findControlledPointByIdent(fid)
+                    wid = airspace.findSignificantPointByIdent(fid)
                     if len(wid) == 1:
                         if wid[0] != last:
-                            v = airspace.getControlledPoint(wid[0])
-                            wpts.append(v)
-                            last = wid[0]
+                            d = 0
+                            if last is not None:
+                                d = airspace.distance(wid[0], last)
+                            if d > TOO_FAR:  # this is caused when using different airac cycles and waypoints have disappeared
+                                logger.warning(f":toAirspace: waypoint {wid[0]} too far at {round(d/1000, 3)}km, not added")
+                            else:
+                                v = airspace.getSignificantPoint(wid[0])
+                                wpts.append(v)
+                                last = wid[0]
+                                if d > largest and d < TOO_FAR:
+                                    largest = d
+                                logger.debug(f":toAirspace: added {wid[0]} at {round(d/1000, 3)}km")
                         else:
                             logger.debug(f":toAirspace: {last} same as previous")
                         # logger.debug(":toAirspace: added %s %s as %s" % (fty, fid, v.id))
@@ -84,9 +95,9 @@ class FlightPlan(FlightPlanBase):
                         # @todo use proximity to previous point, choose closest. Use navaid rather than fix.
                         if len(wpts) > 0:
                             logger.debug(f":toAirspace: will search for closest to previous {wpts[-1].id}")
-                            wid2 = airspace.findClosestControlledPoint(reference=wpts[-1].id, vertlist=wid)  # returns (wpt, dist)
+                            wid2 = airspace.findClosestSignificantPoint(reference=wpts[-1].id, vertlist=wid)  # returns (wpt, dist)
                             if wid2[0] != last:
-                                v = airspace.getControlledPoint(wid2[0])
+                                v = airspace.getSignificantPoint(wid2[0])
                                 wpts.append(v)
                                 last = wid2[0]
                             else:
@@ -98,4 +109,18 @@ class FlightPlan(FlightPlanBase):
                 else:
                     errs = errs + 1
                     logger.warning(f":toAirspace: no ident for feature {fid}")
+
+        # debug
+        logger.debug(f":toAirspace: ----------route summary")
+        last = None
+        total = 0
+        for v in wpts:
+            d = 0
+            if last is not None:
+                d = airspace.distance(v.id, last)
+                total = total + d
+            logger.debug(f":toAirspace: {v.id} at {round(d/1000, 3)}km")
+            last = v.id
+        logger.debug(f":toAirspace: ----------route summary, total={round(total/1000, 3)}km, largest={round(largest/1000, 3)}km")
+
         return (copy.deepcopy(wpts), errs)
