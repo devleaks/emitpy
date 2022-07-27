@@ -20,7 +20,7 @@ from emitpy.service import Service, ServiceMove, FlightServices, Mission, Missio
 from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.airspace import ControlledPoint, NavAid, CPIDENT, AirwaySegment, Terminal
+from emitpy.airspace import SignificantPoint, NavAid, CPIDENT, AirwaySegment, Terminal
 from emitpy.airport import Airport, AirportBase
 
 from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
@@ -575,7 +575,7 @@ class LoadApp(ManagedAirport):
         cnt = 0
         errcnt = 0
         for k, v in self.airport.airspace.vert_dict.items():
-            a = ControlledPoint.parseId(ident=k)
+            a = SignificantPoint.parseId(ident=k)
             self.redis.json().set(key_path(REDIS_PREFIX.AIRSPACE_WAYPOINTS.value, k), Path.root_path(), v.getFeature())
             kr = key_path(REDIS_PREFIX.AIRSPACE_WAYPOINTS_INDEX.value, a[CPIDENT.IDENT])
             self.redis.sadd(kr, k)
@@ -596,7 +596,7 @@ class LoadApp(ManagedAirport):
         errcnt = 0
         for k, v in self.airport.airspace.vert_dict.items():
             if isinstance(v, Terminal):
-                a = ControlledPoint.parseId(ident=k)
+                a = SignificantPoint.parseId(ident=k)
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRSPACE_TERMINALS.value, k), Path.root_path(), v.getInfo())
                 self.redis.sadd(key_path(REDIS_PREFIX.AIRSPACE_ALL_INDEX.value, a[CPIDENT.IDENT]), k)
                 try:  # we noticed, experimentally, abs(lon) > 85 is not good...
@@ -613,7 +613,7 @@ class LoadApp(ManagedAirport):
         for k, v in self.airport.airspace.vert_dict.items():
             if isinstance(v, NavAid):
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRSPACE_NAVAIDS.value, k), Path.root_path(), v.getInfo())
-                a = ControlledPoint.parseId(ident=k)
+                a = SignificantPoint.parseId(ident=k)
                 # self.redis.sadd(key_path(REDIS_PREFIX.AIRSPACE_NAVAIDS_INDEX.value, a[CPIDENT.REGION], a[CPIDENT.IDENT]), k)
                 self.redis.sadd(key_path(REDIS_PREFIX.AIRSPACE_ALL_INDEX.value, a[CPIDENT.IDENT]), k)
                 self.redis.geoadd(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, (v.lon(), v.lat(), k))
@@ -628,7 +628,7 @@ class LoadApp(ManagedAirport):
         for k, v in self.airport.airspace.vert_dict.items():
             if isinstance(v, Fix):
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRSPACE_FIXES.value, k), Path.root_path(), v.getInfo())
-                a = ControlledPoint.parseId(ident=k)
+                a = SignificantPoint.parseId(ident=k)
                 self.redis.sadd(key_path(REDIS_PREFIX.AIRSPACE_FIXES_INDEX.value, a[CPIDENT.REGION], a[CPIDENT.IDENT]), k)
                 self.redis.sadd(key_path(REDIS_PREFIX.AIRSPACE_ALL_INDEX.value, a[CPIDENT.IDENT]), k)
                 try:  # we noticed, experimentally, abs(lon) > 85 is not good...
