@@ -52,6 +52,12 @@ class Service(GroundSupport):
         r = self.ramp.getName() if self.ramp is not None else "noramp"
         s = self.scheduled.isoformat().replace(":", ".") if self.scheduled is not None else "noschedule"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
+        if self.ramp is None:
+            logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no ramp")
+        if self.scheduled is None:
+            logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no schedule")
+        if self.vehicle is None:
+            logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no vehicle")
         return key_path(type(self).__name__, r, s, v)
 
     def getInfo(self):
