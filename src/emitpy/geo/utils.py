@@ -1,6 +1,7 @@
 # Geographic utility functions
 import random
 import logging
+import json
 
 from geojson import Point, LineString, Polygon, Feature, FeatureCollection
 from turfpy.measurement import distance, destination, bearing, bbox
@@ -139,11 +140,63 @@ def asFeatureLineStringWithTimestamps(features: [FeatureWithProps]):
     props["time"] = at
     props["reltime"] = rt
 
-    return Feature(geometry=LineString(ls), properties=props)
+    return json.dumps(FeatureCollection(features=[Feature(geometry=LineString(ls), properties=props)]), indent=4)
+
+
+def asTrafficJSON(features: [FeatureWithProps]):
+    # {
+    #   "timestamp": 1527693698000,
+    #   "icao24": "484506",
+    #   "latitude": 52.3239704714,
+    #   "longitude": 4.7394234794,
+    #   "groundspeed": 155,
+    #   "track": 3,
+    #   "vertical_rate": 2240,
+    #   "callsign": "TRA051",
+    #   "altitude": 224
+    # }
+    js = []
+
+    c = features[0]  # constants
+    icao24 = c.getProp("icao24")
+    callsign = c.getProp("callsign")
+
+    for f in features:
+        if f["geometry"]["type"] == "Point":
+            js.append({
+                "timestamp": f.getAbsoluteEmissionTime(),
+                "icao24": icao24,
+                "latitude": f.lat(),
+                "longitude": f.lon(),
+                "groundspeed": f.speed(),
+                "track": f.heading(),
+                "vertical_rate": f.vspeed(),
+                "callsign": callsign,
+                "altitude": f.altitude()
+            })
+    return json.dumps(js)
+
+
+def asTrafficCSV(features: [FeatureWithProps], header:bool = True):
+    # mandatory: timestamp, icao24, latitude, longitude, groundspeed, track, vertical_rate, callsign, altitude
+    csv = ""
+    if header:
+        csv = "icao24,callsign,timestamp,latitude,longitude,altitude,speed,track,vertical_rate\n"
+
+    c = features[0]  # constants
+    icao24 = c.getProp("icao24")
+    callsign = c.getProp("callsign")
+
+    for f in features:
+        if f["geometry"]["type"] == "Point":
+            s = f"{icao24},{callsign},{f.getAbsoluteEmissionTime()},{f.lat()},{f.lon()},{f.altitude()},{f.speed()},{f.heading()},{f.vspeed()}\n"
+            csv = csv + s
+
+    return csv
 
 
 def toTraffic(features: ["EmitPoint"]):
-    return asFeatureLineStringWithTimestamps(features)
+    return asTrafficCSV(features) # asTrafficCSV, asTrafficJSON, asFeatureLineStringWithTimestamps,
 
 
 def ls_length(ls):

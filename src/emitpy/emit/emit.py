@@ -249,7 +249,7 @@ class Emit(Messages):
         ls = toTraffic(self.scheduled_emit)
         filename = os.path.join(basename + "-traffic.geojson")
         with open(filename, "w") as fp:
-            json.dump(FeatureCollection(features=[ls]), fp, indent=4)
+            fp.write(ls)
 
         logger.debug(f":saveFile: saved {ident}")
         return (True, "Emit::saveFile saved")
