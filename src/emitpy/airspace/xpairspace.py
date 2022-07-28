@@ -75,8 +75,7 @@ class XPAirspace(Airspace):
         self.airports_icao = {}
         self.airports_iata = {}
 
-        self.basename = os.path.join(XPLANE_DIR, "Resources", "default data")
-
+        self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "earth_nav.dat")
         if os.path.exists(fn):
             logger.info(f":init: custom data directory exist, using it")

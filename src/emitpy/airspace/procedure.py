@@ -11,10 +11,12 @@ from enum import Enum
 from turfpy.measurement import distance, bearing
 
 from emitpy.utils import ConvertDMSToDD, FT
-from emitpy.parameters import DATA_DIR
+from emitpy.parameters import XPLANE_DIR
 from .airspace import Airspace, RestrictedSignificantPoint
 
-SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "x-plane")
+DEFAULT_DATA_DIR = os.path.join(XPLANE_DIR, "Resources", "default data")
+CUSTOM_DATA_DIR  = os.path.join(XPLANE_DIR, "Custom Data")
+
 
 logger = logging.getLogger("Procedure")
 
@@ -142,16 +144,18 @@ class SID(Procedure):
 
     def getRoute(self, airspace: Airspace):
         a = []
-        for v in self.route.keys():
-            fid = self.route[v].param(PROC_DATA.FIX_IDENT).strip()
+        for v in self.route.values():
+            fid = v.param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
-                vid = self.route[v].param(PROC_DATA.ICAO_CODE) + ":" + self.route[v].param(PROC_DATA.FIX_IDENT)
-                # logger.debug(":getRoute: searching %s" % vid)
+                vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
+                logger.debug("SID:getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
-                if len(vtxs) == 1:
+                if len(vtxs) < 3:  # there often is both a VOR and a DME at same location, we keep either one
                     a.append(airspace.getSignificantPoint(vtxs[0]))
+                elif len(vtxs) > 2:
+                    logger.warning("SID:getRoute: vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
                 else:
-                    logger.warning(":getRoute: vertex not found %s", vid)
+                    logger.warning("SID:getRoute: vertex not found %s", vid)
         return a
 
 
@@ -167,16 +171,18 @@ class STAR(Procedure):
 
     def getRoute(self, airspace: Airspace):
         a = []
-        for v in self.route.keys():
-            fid = self.route[v].param(PROC_DATA.FIX_IDENT).strip()
+        for v in self.route.values():
+            fid = v.param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
-                vid = self.route[v].param(PROC_DATA.ICAO_CODE) + ":" + self.route[v].param(PROC_DATA.FIX_IDENT)
-                # logger.debug(":getRoute: searching %s" % vid)
+                vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
+                logger.debug("STAR:getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
-                if len(vtxs) == 1:
+                if len(vtxs) < 3:  # there often is both a VOR and a DME at same location
                     a.append(airspace.getSignificantPoint(vtxs[0]))
+                elif len(vtxs) > 2:
+                    logger.warning("STAR:getRoute: vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
                 else:
-                    logger.warning(":getRoute: vertex not found %s", vid)
+                    logger.warning("STAR:getRoute: vertex not found %s", vid)
         return a
 
 
@@ -193,20 +199,21 @@ class APPCH(Procedure):
     def getRoute(self, airspace: Airspace):
         interrupted = False
         a = []
-        for v in self.route.keys():
-            code = self.route[v].param(PROC_DATA.DESC_CODE)[0]
+        for v in self.route.values():
+            code = v.param(PROC_DATA.DESC_CODE)[0]
             if code == "E" and not interrupted:
-                vid = self.route[v].param(PROC_DATA.ICAO_CODE) + ":" + self.route[v].param(PROC_DATA.FIX_IDENT)
-                # logger.debug(":getRoute: searching %s" % vid)
+                vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
+                logger.debug(":getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
-                if len(vtxs) == 1:
+                if len(vtxs) < 3:  # there often is both a VOR and a DME at same location
                     a.append(airspace.getSignificantPoint(vtxs[0]))
-                    # logger.debug(":getRoute: added %s" % vtxs[0])
+                elif len(vtxs) > 2:
+                    logger.warning("APPCH:getRoute: vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
                 else:
-                    logger.warning(":getRoute: vertex not found %s", vid)
+                    logger.warning("APPCH:getRoute: vertex not found %s", vid)
             else:
                 if not interrupted:
-                    logger.debug(":getRoute: interrupted%s", "" if len(self.route[v].param(PROC_DATA.FIX_IDENT).strip()) == 0 else (f" at {self.route[v].param(PROC_DATA.FIX_IDENT)} "))
+                    logger.debug("APPCH:getRoute: interrupted %s", "" if len(v.param(PROC_DATA.FIX_IDENT).strip()) == 0 else (f" at {v.param(PROC_DATA.FIX_IDENT)} "))
                 interrupted = True
 
             # print("%s %s: %d: %s [%s], A: %s [%s,%s], S: %s %s " % (type(self).__name__, self.name, v,
@@ -300,6 +307,12 @@ class CIFP:
         self.APPCHS = {}
         self.RWYS = {}
 
+        self.basename = DEFAULT_DATA_DIR
+        fn = os.path.join(CUSTOM_DATA_DIR, "earth_nav.dat")
+        if os.path.exists(fn):
+            logger.info(f":init: custom data directory exist, using it")
+            self.basename = CUSTOM_DATA_DIR
+
         self.loadFromFile()
 
 
@@ -326,10 +339,10 @@ class CIFP:
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        cipf_filename = os.path.join(SYSTEM_DIRECTORY, "Resources", "default data", "CIFP", self.icao + ".dat")
+        cipf_filename = os.path.join(self.basename, "CIFP", self.icao + ".dat")
         if not os.path.exists(cipf_filename):
             logger.warning(f"no procedure file for {self.icao}")
-            return
+            return (False, f"CIFP:loadFromFile: file not found {cipf_filename}")
 
         self.available = True
         cifp_fp = open(cipf_filename, "r")
@@ -398,7 +411,7 @@ class CIFP:
             # details:
             # for p in procedures[procty]:
             #    logger.debug(":CIFP: %s: %s %s" % (procty, procedures[procty][p].runway, p))
-
+        return (True, "CIFP:loadFromFile: loaded")
 
     def pairRunways(self):
         if len(self.RWYS) == 2:
