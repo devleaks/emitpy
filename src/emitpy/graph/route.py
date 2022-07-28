@@ -47,14 +47,13 @@ class Route:
         except exception.NetworkXNoPath:
             logger.debug(":find: .. not found")
 
-        logger.debug(":find: trying local AStar..")
-        atry = self.graph.AStar(self.src, self.dst)
-        if atry is not None:
-            logger.debug(":find: .. found")
-            self.route = atry
-            return
+        # logger.debug(":find: trying local AStar..")
+        # atry = self.graph.AStar(self.src, self.dst)
+        # if atry is not None:
+        #     logger.debug(":find: .. found")
+        #     self.route = atry
+        #     return
 
-        logger.warning(":find: route not found")
         # logger.debug(":find: trying AStar.. (reverse)")
         # atry = self.graph.AStar(self.dst, self.src)
         # if atry is not None:
@@ -62,18 +61,22 @@ class Route:
         #     atry.reverse()
         #     self.route = atry
         #     return
+
         # logger.debug(":find: trying Dijkstra..")
         # atry = self.graph.Dijkstra(self.src, self.dst)
         # if atry is not None and len(atry) > 2:
         #     logger.debug(":find: .. found (%d)", len(atry))
         #     self.route = atry
         #     return
+
         # logger.debug(":find: trying Dijkstra.. (reverse)")
         # atry = self.graph.Dijkstra(self.dst, self.src)
         # if atry is not None and len(atry) > 2:
         #     logger.debug(":find: .. found (%d)", len(atry))
         #     atry.reverse()
         #     self.route = atry
+
+        logger.warning(":find: route not found")
 
 
     def found(self):
