@@ -323,7 +323,9 @@ class EmitApp(ManagedAirport):
         aircraft.setCallsign(airline.icao+flightnumber)
 
         logger.debug(":do_flight: .. planning ..")
-        flight.plan()
+        ret = flight.plan()
+        if not ret[0]:
+            return StatusInfo(110, f"problem during flight planning", ret[1])
 
         logger.debug(":do_flight: .. flying ..")
         move = None
