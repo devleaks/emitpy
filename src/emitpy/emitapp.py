@@ -153,7 +153,7 @@ class EmitApp(ManagedAirport):
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                 self.queues[k].save()
 
-        ret = self.init()  # call init() here to use data from Redis
+        ret = self.init(load_airways=True)  # call init() here to use data from Redis
         if not ret[0]:
             logger.warning(ret[1])
             return
@@ -286,10 +286,10 @@ class EmitApp(ManagedAirport):
         logger.debug(":do_flight: ..done")
 
         logger.info("*" * 90)
-        logger.info("*** (%s, %dnm) %s-%s AC %s at FL%d" % (
+        logger.info("***** (%s, %dnm) %s-%s AC %s at FL%d" % (
                     remote_apt.getProp(FEATPROP.CITY.value), aptrange/NAUTICAL_MILE, remote_apt.iata, self._this_airport["IATA"],
                     acperf.typeId, reqfl))
-        logger.debug("*" * 90)
+        logger.debug("*" * 89)
 
         logger.debug(":do_flight: creating flight ..")
         flight = None

@@ -1,5 +1,7 @@
 # Assembly class to collect airport, airport manager, airspace...
 import logging
+import pickle
+import os
 
 from emitpy.airspace import XPAirspace, Metar
 from emitpy.business import Airline, Company
@@ -7,6 +9,10 @@ from emitpy.aircraft import AircraftType, AircraftPerformance
 from emitpy.airport import Airport, XPAirport
 from emitpy.business import AirportManager
 from emitpy.utils import Timezone
+
+from emitpy.parameters import AODB_DIR
+
+CACHE_DIR = os.path.join(AODB_DIR, "cache")
 
 logger = logging.getLogger("ManagedAirport")
 
@@ -31,13 +37,24 @@ class ManagedAirport:
         if self._inited:
             return (False, "ManagedAirport::init already inited")
 
-        airspace = XPAirspace(load_airways=load_airways)
-        logger.debug("loading airspace..")
-        ret = airspace.load(self._app.redis)
-        if not ret[0]:
-            logger.warning("Airspace not loaded")
-            return ret
-        logger.debug("..done")
+        # Now caching Airspace with pickle (~ 100MB)
+        airspace_cache = os.path.join(CACHE_DIR, "airspace.pickle")
+        if os.path.exists(airspace_cache):
+            logger.debug("loading airspace from pickle..")
+            with open(airspace_cache, "rb") as fp:
+                airspace = pickle.load(fp)
+            logger.debug("..done")
+        else:
+            airspace = XPAirspace(load_airways=load_airways)
+            logger.debug("loading airspace..")
+            ret = airspace.load(self._app.redis)
+            if not ret[0]:
+                logger.warning("Airspace not loaded")
+                return ret
+            logger.debug("..pickling..")
+            with open(airspace_cache, "wb") as fp:
+                pickle.dump(airspace, fp)
+            logger.debug("..done")
 
         if self._app.redis is None:  # load from data files
 

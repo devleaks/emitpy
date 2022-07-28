@@ -336,7 +336,7 @@ class AircraftPerformance(AircraftType):
 
     def __init__(self, orgId: str, classId: str, typeId: str, name: str, data = None):
         AircraftType.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name, data=data)
-        self.perfraw = None
+        self.perfraw = None     # Also used as a flag to see if loaded
         self.gseprofile = None  # relative position of ground vehicle around the aircraft
         self.tarprofile = None  # relative scheduled time of services
         self.display_name = None
@@ -382,6 +382,7 @@ class AircraftPerformance(AircraftType):
             k = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, icao)
             ap = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if ap is not None:
+                logger.debug(f"AircraftPerformance::find: loaded {icao} from redis")
                 return AircraftPerformance.fromInfo(info=ap)
             else:
                 logger.warning(f"AircraftPerformance::find: no such key {k}")
@@ -533,18 +534,18 @@ class AircraftPerformance(AircraftType):
         It loads Ground Support Vehicle Profile (how GSE vehicle arrange around the aircraft on the apron).
         It also loads Turnaround Profile, a typical service schedule pattern for arrival or departure service scheduling.
         """
-        status = self.loadPerformance(redis=redis)
+        if self.perfraw is None:
+            status = self.loadPerformance(redis=redis)
+            if not status[0]:
+                return status
 
-        if not status[0]:
-            return status
+            status = self.loadTurnaroundProfiles(redis=redis)
+            if not status[0]:
+                return status
 
-        status = self.loadTurnaroundProfiles(redis=redis)
-        if not status[0]:
-            return status
-
-        status = self.loadGSEProfile(redis=redis)
-        if not status[0]:
-            return status
+            status = self.loadGSEProfile(redis=redis)
+            if not status[0]:
+                return status
 
         return (True, f"AircraftPerformance loaded ({self.typeId})")
 
@@ -607,6 +608,7 @@ class AircraftPerformance(AircraftType):
                     if r is None:
                         logger.warning(f":loadPerformance: no turnaround profile data file for class {self._ac_class} ({key})")
                         return (False, "AircraftPerformance::loadPerformance: no profile found in Redis")
+                logger.debug(f":loadPerformance: loaded from redis for {self.typeId.upper()}")
             else:
                 data = self.loadFromFile(".json")
                 if data is not None:
@@ -615,6 +617,7 @@ class AircraftPerformance(AircraftType):
                         self.toSI()
                 else:
                     logger.warning(f":loadPerformance: no performance data file for {self.typeId.upper()}")
+        logger.debug(f":loadPerformance: loaded for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadPerformance: loaded"]
 
 
@@ -1071,7 +1074,7 @@ class AircraftClass(AircraftPerformance):
                             acperf.toSI()
                         AircraftClass._DB_AC_CLASS[ac_class] = acperf
                     else:
-                        logger.warning(f":loadFromFile: AircraftClass {ac_class} not found")
+                        logger.warning(f":loadAll: AircraftClass {ac_class} not found")
 
         logger.debug(f":loadAll: loaded {len(AircraftClass._DB_AC_CLASS)} aircraft classes with their performances")
 

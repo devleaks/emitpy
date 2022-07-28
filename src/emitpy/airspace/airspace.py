@@ -505,7 +505,7 @@ class Airspace(Graph):
 
 
     def load(self, redis = None):
-        if redis is not None:
+        if redis is not None and not self.load_airways:
             self.redis = redis
             return [True, "Airspace::load: Redis ready"]
 

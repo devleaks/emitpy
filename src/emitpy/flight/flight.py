@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from emitpy.airspace import FlightPlan, FlightPlanRoute
+from emitpy.airspace import FlightRoute
 from emitpy.airport import Airport
 from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
@@ -58,6 +58,12 @@ class Flight(Messages):
 
         if linked_flight is not None and linked_flight.linked_flight is None:
             linked_flight.setLinkedFlight(self) # will do self.setLinkedFlight(linked_flight)
+
+
+    @staticmethod
+    def setProp(arr: list, propname: str, value: str):
+        for a in arr:
+            a.setProp(propname, value)
 
 
     def __str__(self):
@@ -287,43 +293,17 @@ class Flight(Messages):
             logger.warning(f":_setRunway: no RWY, runway unchanged")
 
 
-    def loadFlightPlan(self):
-        self.flightplan = FlightPlan(managedAirport=self.managedAirport, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
+    def makeFlightRoute(self):
+        self.flightplan = FlightRoute(managedAirport=self.managedAirport, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
 
-        if not self.flightplan.has_plan():
-            logger.warning(":loadFlightPlan: no flight plan in database")
-
-            if self.managedAirport is not None and self.managedAirport.airspace.airways_loaded:  # we loaded airways, we try to build our route
-                logger.debug(":loadFlightPlan: trying to build route..")
-                self.flightplan = FlightPlanRoute(managedAirport=self.managedAirport.icao, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
-                if self.flightplan is not None:
-                    if self.flightplan.has_plan():
-                        logger.debug(":loadFlightPlan: ..found")
-                    else:
-                        logger.warning(":loadFlightPlan: ..no route for flight, no plan")
-
-        if not self.flightplan.has_plan():
-            logger.warning(":loadFlightPlan: no flight plan, cannot proceed.")
+        if not self.flightplan.has_route():
+            logger.warning(":makeFlightRoute: no flight route, cannot proceed.")
             return
 
         fplen = len(self.flightplan.nodes())
-        logger.debug(":loadFlightPlan: loaded %d waypoints" % fplen)
-
         if fplen < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
-            logger.warning(":loadFlightPlan: flight_plan is too short %d" % fplen)
-
-
-    def toAirspace(self):
-        fpcp = self.flightplan.toAirspace(self.managedAirport.airport.airspace)
-        if fpcp[1] > 0:
-            logger.warning(":toAirspace: unidentified %d waypoints" % fpcp[1])
-        # Sets unique index on flight plan features
-        idx = 0
-        for f in fpcp[0]:
-            f.setProp(FEATPROP.FLIGHT_PLANDB_INDEX.value, idx)
-            idx = idx + 1
-        logger.debug(f":toAirspace: identified {len(fpcp[0])} waypoints")
-        return fpcp[0]
+            logger.warning(":makeFlightRoute: flight route is too short %d" % fplen)
+        logger.debug(":makeFlightRoute: loaded %d waypoints" % fplen)
 
 
     def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):
@@ -338,13 +318,13 @@ class Flight(Messages):
 
     def plan(self):
         if self.flightplan is None:  # not loaded, trying to load
-            self.loadFlightPlan()
+            self.makeFlightRoute()
 
-        if not self.flightplan.has_plan():  # not found... stops
-            logger.warning(":plan: no flight plan")
-            return (False, "Flight::plan: no flight plan")
+        if not self.flightplan.has_route():  # not found... stops
+            logger.warning(":plan: no flight route")
+            return (False, "Flight::plan: no flight route")
 
-        normplan = self.toAirspace()
+        normplan = self.flightplan.route()
         planpts = []
 
         self.addMessage(FlightboardMessage(flight_id=self.getId(),
@@ -471,11 +451,6 @@ class Flight(Messages):
         # printFeatures(self.flightplan_cp, "plan")
         logger.debug(f":plan: generated {len(self.flightplan_cp)} points")
         return (True, "Flight::plan: planned")
-
-    @staticmethod
-    def setProp(arr: list, propname: str, value: str):
-        for a in arr:
-            a.setProp(propname, value)
 
 
 class Arrival(Flight):

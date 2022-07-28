@@ -260,7 +260,7 @@ class FlightMovement(Movement):
         ac = self.flight.aircraft
         actype = ac.actype
         # actype.perfs()
-        logger.debug((":vnav: %s: %d points in flight plan " + "*" * 50) % (type(self).__name__, len(fc)))
+        logger.debug(f":vnav: {'*' * 30} {type(self).__name__}: {len(fc)} points in flight plan {'*' * 30}")
 
         # for f in self.flight.flightplan_cp:
         #     logger.debug(":vnav: flight plan: %s" % (f.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
@@ -268,7 +268,7 @@ class FlightMovement(Movement):
         # PART 1: FORWARD: From takeoff to top of ascent
         #
         #
-        logger.debug(":vnav: departure " + "=" * 30)
+        logger.debug(f":vnav: departure from {self.flight.departure.icao} " + "=" * 30)
         TOH_BLASTOFF = 0.2  # km, distance of take-off hold position from runway threshold
         groundmv = 0
         fcidx = 0
@@ -514,7 +514,7 @@ class FlightMovement(Movement):
         # PART 2: REVERSE: From brake on runway (end of roll out) to top of descent
         #
         #
-        logger.debug(":vnav: arrival " + "=" * 30)
+        logger.debug(f":vnav: arrival to {self.flight.arrival.icao} " + "=" * 30)
         FINAL_ALT = 1000*FT     # Altitude ABG at which we start final
         APPROACH_ALT = 3000*FT  # Altitude ABG at which we perform approach path before final
         STAR_ALT = 6000*FT      # Altitude ABG at which we perform STAR path before approach
@@ -909,6 +909,8 @@ class FlightMovement(Movement):
 
         logger.debug(f":vnav: descent added (+{len(revmoves)} {len(self._premoves)})")
         # printFeatures(self._premoves, "holding")
+
+        logger.debug(":vnav: terminated " + "=" * 30)
         return (True, "Movement::vnav completed without restriction")
 
 
