@@ -10,9 +10,7 @@ from emitpy.airport import Airport, XPAirport
 from emitpy.business import AirportManager
 from emitpy.utils import Timezone
 
-from emitpy.parameters import AODB_DIR
-
-CACHE_DIR = os.path.join(AODB_DIR, "cache")
+from emitpy.parameters import CACHE_DIR
 
 logger = logging.getLogger("ManagedAirport")
 

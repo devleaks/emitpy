@@ -11,7 +11,7 @@ from geojson import Point, LineString, FeatureCollection, Feature
 
 from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, asLineString
 from emitpy.constants import FLIGHT_DATABASE, FEATPROP
-from emitpy.parameters import AODB_DIR
+from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.message import Messages
 
 logger = logging.getLogger("Movement")
@@ -46,7 +46,7 @@ class Movement(Messages):
         @todo should save file format version number.
         """
         ident = self.getId()
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, ident)
+        basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE, ident)
 
         def saveMe(arr, name):
             # filename = os.path.join(basename + "-" + name + ".json")
@@ -69,7 +69,7 @@ class Movement(Messages):
         Load flight paths from 3 files for flight plan, detailed movement, and taxi path.
         File must be saved by above saveFile() function.
         """
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, ident)
+        basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE, ident)
 
         filename = os.path.join(basename, "-moves.json")
         with open(filename, "r") as fp:

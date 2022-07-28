@@ -10,11 +10,9 @@ from geojson import Point, Feature
 from turfpy.measurement import distance, bearing
 
 from .airport import AirportBase
-from emitpy.parameters import DATA_DIR
+from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.graph import Vertex, Edge
 from emitpy.geo import Runway, Ramp
-
-SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 
 logger = logging.getLogger("OSMAirport")
 
@@ -39,7 +37,7 @@ class OSMAirport(AirportBase):
         self.loaded = False
 
     def loadFromFile(self):
-        self.airport_base = os.path.join(SYSTEM_DIRECTORY, self.icao)
+        self.airport_base = MANAGED_AIRPORT_DIR
         return [True, "do nothing"]
 
     def loadJSONOrYAMLFromFile(self, name):

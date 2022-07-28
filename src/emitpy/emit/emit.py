@@ -22,7 +22,7 @@ from emitpy.message import Messages, EstimatedTimeMessage
 from emitpy.constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
 from emitpy.constants import RATE_LIMIT, EMIT_RANGE, MOVE_TYPE
-from emitpy.parameters import AODB_DIR, MANAGED_AIRPORT
+from emitpy.parameters import MANAGED_AIRPORT_AODB, MANAGED_AIRPORT
 
 logger = logging.getLogger("Emit")
 
@@ -225,7 +225,7 @@ class Emit(Messages):
 
         ident = self.getId()
         db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
-        basename = os.path.join(AODB_DIR, db, ident)
+        basename = os.path.join(MANAGED_AIRPORT_AODB, db, ident)
 
         # 1. Save "raw emits"
         # filename = os.path.join(basename + "-5-emit.json")

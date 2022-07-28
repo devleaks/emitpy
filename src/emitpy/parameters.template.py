@@ -17,10 +17,9 @@ HOME_DIR = os.path.join("<application-home-directory>")  # should work even on w
 
 # DATA is a database of *static* data, definitions, etc. (read-only)
 DATA_DIR = os.path.join(HOME_DIR, "data")
-LOAD_AIRWAYS=False  # to speedup developments
 
 # AODB is a database of working data (read-write). Mostly replaced by Redis
-AODB_DIR = os.path.join(HOME_DIR, "db")
+TEMP_DIR = os.path.join(HOME_DIR, "db")
 
 
 # ######################
@@ -55,6 +54,8 @@ MANAGED_AIRPORT = {
     "tzname": "Doha",
     "operator": "MATAR"
 }
+
+MANAGED_AIRPORT_DIR = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT["ICAO"])
 
 BROADCASTER_HEARTBEAT = False
 

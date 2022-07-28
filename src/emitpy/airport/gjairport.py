@@ -1,5 +1,8 @@
 """
 ManagedAirport loaded from GeoJSON files
+HISTORICAL. NOT MAINTAINED. AS USED IN JAVASCRIPT VERSION OF EMITJS (circa 2019)
+References where loaded from (mostly handcrafted) GeoJSON files.
+Could still be used, but needs adaptation.
 """
 import os.path
 import logging
@@ -7,9 +10,7 @@ import json
 import yaml
 
 from .airport import AirportBase
-from emitpy.parameters import DATA_DIR
-
-SYSTEM_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
+from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 
 logger = logging.getLogger("GeoJSONAirport")
 
@@ -33,7 +34,7 @@ class GeoJSONAirport(AirportBase):
         self.loaded = False
 
     def loadFromFile(self):
-        self.airport_base = os.path.join(SYSTEM_DIRECTORY, self.icao)
+        self.airport_base = MANAGED_AIRPORT_DIR
         airport_df = os.path.join(self.airport_base, "airport.yaml")
         if os.path.exists(airport_df):
             self.data = yaml.safe_load(airport_df)

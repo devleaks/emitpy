@@ -19,14 +19,14 @@ import flightplandb as fpdb
 # from metar import Metar as MetarLib
 
 from emitpy.constants import METAR_DATABASE, REDIS_DATABASE, REDIS_DB
-from emitpy.parameters import AODB_DIR, REDIS_CONNECT
+from emitpy.parameters import MANAGED_AIRPORT_AODB, REDIS_CONNECT
 from emitpy.utils import key_path
 
 from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 
 logger = logging.getLogger("Metar")
 
-METAR_DIR = os.path.join(AODB_DIR, METAR_DATABASE)
+METAR_DIR = os.path.join(MANAGED_AIRPORT_AODB, METAR_DATABASE)
 
 # pathlib.Path("/tmp/path/to/desired/directory").mkdir(parents=True, exist_ok=True)
 

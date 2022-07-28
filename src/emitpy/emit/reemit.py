@@ -145,7 +145,7 @@ class ReEmit(Emit):
 
     def loadFromFile(self, emit_id):
         # load output of Movement file.
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, emit_id)
+        basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE, emit_id)
 
         filename = os.path.join(basename, "-4-move.json")
         if os.path.exists(filename):

@@ -21,11 +21,9 @@ from emitpy.resource import AllocationTable
 
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB
 from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT
-from emitpy.parameters import DATA_DIR
+from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.utils import key_path, rejson, rejson_keys, Timezone
 from emitpy.emit import ReEmit
-
-MANAGED_AIRPORT_DIRECTORY = os.path.join(DATA_DIR, "managedairport")
 
 DEFAULT_VEHICLE_SHORT = "SV"
 
@@ -62,7 +60,6 @@ class AirportManager:
         self.aircrafts = {}   # container for aircrafts encountered during simulation, key is registration.
         self.flights = {}     # container for flights created during simalation, can be used to build flight board.
 
-        self.airport_base_path = None
         self.data = None
 
 
@@ -93,14 +90,13 @@ class AirportManager:
         """
         Loads an airport's data file and place its content in self.data
         """
-        self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
         if redis is not None:
             k = key_path(REDIS_PREFIX.AIRPORT.value, "managed")
             self.data = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             logger.debug(f":loadAirport: {k} loaded")
             return (True, "AirportManager::loadFromFile: loaded")
         else:
-            business = os.path.join(self.airport_base_path, "airport.yaml")
+            business = os.path.join(MANAGED_AIRPORT_DIR, "airport.yaml")
             if os.path.exists(business):
                 with open(business, "r") as fp:
                     self.data = yaml.safe_load(fp)
@@ -133,7 +129,7 @@ class AirportManager:
                         logger.warning(f":loadAirRoutes: airline {k[-2]} not found")
             logger.debug(":loadAirRoutes: loaded (Redis)")
         else:
-            routes = os.path.join(self.airport_base_path, "airlines", "airline-routes.csv")
+            routes = os.path.join(MANAGED_AIRPORT_DIR, "airlines", "airline-routes.csv")
             file = open(routes, "r")
             csvdata = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
             cnt = 0
@@ -154,7 +150,7 @@ class AirportManager:
             file.close()
             logger.debug(":loadAirRoutes: loaded %d airline routes for %d airlines" % (cnt, len(self.airlines)))
 
-            fn = os.path.join(self.airport_base_path, "airlines", "airline-frequencies.csv")
+            fn = os.path.join(MANAGED_AIRPORT_DIR, "airlines", "airline-frequencies.csv")
             if os.path.exists(fn):
                 self.airline_frequencies = {}
                 with open(fn, "r") as file:
@@ -163,7 +159,7 @@ class AirportManager:
                         self.airline_frequencies[row["AIRLINE CODE"]] = int(row["COUNT"])
                     logger.debug(":loadAirRoutes: airline-frequencies loaded")
 
-            fn = os.path.join(self.airport_base_path, "airlines", "airline-route-frequencies.csv")
+            fn = os.path.join(MANAGED_AIRPORT_DIR, "airlines", "airline-route-frequencies.csv")
             if os.path.exists(fn):
                 self.airline_route_frequencies = {}
                 with open(fn, "r") as file:
@@ -290,8 +286,7 @@ class AirportManager:
             logger.debug(":loadCompanies: loaded (Redis)")
             return (True, f"AirportManager::loadCompanies loaded")
         else:
-            self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
-            companies = os.path.join(self.airport_base_path, "services", "companies.yaml")
+            companies = os.path.join(MANAGED_AIRPORT_DIR, "services", "companies.yaml")
             if os.path.exists(companies):
                 with open(companies, "r") as fp:
                     self.data = yaml.safe_load(fp)
@@ -357,8 +352,7 @@ class AirportManager:
             self.setServiceVehicles(self.service_vehicles)
             return (True, "AirportManager::loadServiceVehicles: loaded")
         else:
-            self.airport_base_path = os.path.join(MANAGED_AIRPORT_DIRECTORY, self.icao)
-            business = os.path.join(self.airport_base_path, "services", "servicevehiclefleet.yaml")
+            business = os.path.join(MANAGED_AIRPORT_DIR, "services", "servicevehiclefleet.yaml")
             if os.path.exists(business):
                 with open(business, "r") as fp:
                     self.data = yaml.safe_load(fp)

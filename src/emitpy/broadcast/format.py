@@ -4,7 +4,7 @@ import os
 import logging
 
 from emitpy.constants import FEATPROP, FLIGHT_DATABASE
-from emitpy.parameters import AODB_DIR
+from emitpy.parameters import MANAGED_AIRPORT_AODB
 
 from .formatter import Formatter, FormatterFlat, TrafficFormatter, LiveTrafficFormatter
 
@@ -51,7 +51,7 @@ class Format:
 
 
     def saveFile(self, overwrite: bool = False):
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE)
+        basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE)
         fileformat = self.formatter.FILE_EXTENTION
         ident = self.emit.getId()
         fn = f"{ident}-6-broadcast.{fileformat}"

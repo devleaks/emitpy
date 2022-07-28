@@ -140,42 +140,43 @@ class LoadApp(ManagedAirport):
                 return status
 
         if "*" in what or "airroute" in what:
-            status = self.loadAirlineRoutes()
+            status = self.loadAirRoutes()
             if not status[0]:
                 return status
 
         # #############################
         # AIRSPACE
         #
-        if "*" in what or "vertex" in what:
-            status = self.loadVertices()
-            if not status[0]:
-                return status
+        # it is no longer necessary to load airspace in Redis, it is pickle cached (faster)
+        # if "*" in what or "vertex" in what:
+        #     status = self.loadVertices()
+        #     if not status[0]:
+        #         return status
 
-        if "apt" in what:
-            status = self.loadTerminals()
-            if not status[0]:
-                return status
+        # if "apt" in what:
+        #     status = self.loadTerminals()
+        #     if not status[0]:
+        #         return status
 
-        if "navaid" in what:
-            status = self.loadNavaids()
-            if not status[0]:
-                return status
+        # if "navaid" in what:
+        #     status = self.loadNavaids()
+        #     if not status[0]:
+        #         return status
 
-        if "fix" in what:
-            status = self.loadFixes()
-            if not status[0]:
-                return status
+        # if "fix" in what:
+        #     status = self.loadFixes()
+        #     if not status[0]:
+        #         return status
 
-        if "*" in what or "hold" in what:
-            status = self.loadHolds()
-            if not status[0]:
-                return status
+        # if "*" in what or "hold" in what:
+        #     status = self.loadHolds()
+        #     if not status[0]:
+        #         return status
 
-        if "*" in what or "airway" in what:
-            status = self.loadAirways()
-            if not status[0]:
-                return status
+        # if "*" in what or "airway" in what:
+        #     status = self.loadAirways()
+        #     if not status[0]:
+        #         return status
 
         # #############################
         # AIRPORT MANAGER
@@ -213,10 +214,12 @@ class LoadApp(ManagedAirport):
         # #############################
         # MANAGED AIRPORT
         #
-        if "*" in what or "fpdb" in what:
-            status = self.loadFlightPlans()
-            if not status[0]:
-                return status
+
+        # it no longer is necessary to load flight plans/routes
+        # if "*" in what or "fpdb" in what:
+        #     status = self.loadFlightPlans()
+        #     if not status[0]:
+        #         return status
 
         if "*" in what or "ramp" in what:
             status = self.loadRamps()
@@ -248,15 +251,17 @@ class LoadApp(ManagedAirport):
             if not status[0]:
                 return status
 
-        if "taxiways" in what:
-            status = self.loadGraph("taxiways", self.airport.taxiways)
-            if not status[0]:
-                return status
+        # it no longer is necessary to load graphs, they are pickled
+        # if "taxiways" in what:
+        #     status = self.loadGraph("taxiways", self.airport.taxiways)
+        #     if not status[0]:
+        #         return status
 
-        if "serviceroads" in what:
-            status = self.loadGraph("serviceroads", self.airport.service_roads)
-            if not status[0]:
-                return status
+        # it no longer is necessary to load graphs, they are pickled
+        # if "serviceroads" in what:
+        #     status = self.loadGraph("serviceroads", self.airport.service_roads)
+        #     if not status[0]:
+        #         return status
 
         if "*" in what or "info" in what:
             self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
@@ -414,8 +419,8 @@ class LoadApp(ManagedAirport):
         return (True, f"LoadApp::loadAirlines: loaded airlines")
 
 
-    def loadAirlineRoutes(self):
-        return (False, f"LoadApp::loadAirlineRoutes: no free global feed for airline routes")
+    def loadAirRoutes(self):
+        return (False, f"LoadApp::loadAirRoutes: no free global feed for airline routes")
 
 
     # #############################

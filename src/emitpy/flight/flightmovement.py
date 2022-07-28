@@ -19,7 +19,7 @@ from emitpy.graph import Route
 from emitpy.utils import FT, NAUTICAL_MILE
 from emitpy.constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
 from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT, MOVE_TYPE
-from emitpy.parameters import AODB_DIR
+from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.message import MovementMessage
 
 from emitpy.utils import interpolate as doInterpolation, compute_time as doTime
@@ -123,7 +123,7 @@ class FlightMovement(Movement):
         Save a technical json file which can be loaded later, and GeoJSON files for display.
         @todo should save file format version number.
         """
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.flight_id)
+        basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE, self.flight_id)
         LINESTRING_EXTENSION = "_ls"
 
         def saveMe(arr, name):
@@ -165,7 +165,7 @@ class FlightMovement(Movement):
         Load flight paths from 3 files for flight plan, detailed movement, and taxi path.
         File must be saved by above saveFile() function.
         """
-        basename = os.path.join(AODB_DIR, FLIGHT_DATABASE, self.flight_id)
+        basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE, self.flight_id)
 
         filename = os.path.join(basename, FILE_FORMAT.FLIGHT_PLAN.value)
         with open(filename, "r") as fp:
