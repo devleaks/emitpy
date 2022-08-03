@@ -11,7 +11,7 @@ from geojson import Point, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from emitpy.graph import Vertex, Edge, USAGE_TAG
-from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, FeatureWithProps
+from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, FeatureWithProps, ls_length, ls_point_at
 from emitpy.parameters import DATA_DIR, XPLANE_DIR
 from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE
 from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP
@@ -554,25 +554,48 @@ class XPAirport(AirportBase):
         def makeQueue(line):
             # place TAKE_OFF_QUEUE_SIZE points on line
             name = line.getProp(FEATPROP.RUNWAY.value)
-            q0 = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
-            q1 = Feature(geometry=Point(line["geometry"]["coordinates"][-1]))
+            self.takeoff_queues[name] = []
+
+            qb = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
+            qe = Feature(geometry=Point(line["geometry"]["coordinates"][-1]))
             rwy = self.procedures.RWYS[name]
             rwypt = rwy.getPoint()
-            d0 = distance(q0, rwypt)
-            d1 = distance(q1, rwypt)
-            (start, end) = (q1, q0) if d0 < d1 else (q0, q1)
-            brng = bearing(start, Feature(geometry=Point(line["geometry"]["coordinates"][1])))
-            length = distance(start, end)  # approximately
-            segment = length / TAKE_OFF_QUEUE_SIZE
-            self.takeoff_queues[name] = []
-            for i in range(TAKE_OFF_QUEUE_SIZE):
-                f = destination(start, i * segment, brng, {"units": "km"})
-                p = FeatureWithProps.new(f)
-                p.setProp(FEATPROP.RUNWAY.value, name)
-                p.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.QUEUE_POSITION.value)
-                p.setProp(FEATPROP.NAME.value, i)
-                self.takeoff_queues[name].append(p)
-            # logger.debug(":makeQueue: added %d queue points for %s" % (len(self.takeoff_queues[name]), name))
+            db = distance(qb, rwypt)
+            de = distance(qe, rwypt)
+            if de < db:  # need to inverse coordinates, we start from the TAKE-OFF HOLD position (=queue id 0)
+                line["geometry"]["coordinates"].reverse()
+
+            QUEUE_GAP = 200  # meters
+
+            maxlen = ls_length(line["geometry"])
+            logger.debug(f":makeQueue: {name} takeoff queue is {round(maxlen, 0)}m")
+            currlen = 0
+            qid = 0
+
+            # First add the takeoff hold position, last (and mandatory) queue position
+            f = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
+            p = FeatureWithProps.new(f)
+            p.setProp(FEATPROP.RUNWAY.value, name)
+            p.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.QUEUE_POSITION.value)
+            p.setProp(FEATPROP.NAME.value, qid)
+            self.takeoff_queues[name].append(p)
+            logger.debug(f":makeQueue: takeoff hold {name} queue position 0 added")
+            currlen = currlen + QUEUE_GAP
+            qid = qid + 1
+
+            while currlen < maxlen and qid < TAKE_OFF_QUEUE_SIZE:
+                f = ls_point_at(line["geometry"], currlen)
+                if f is not None:
+                    p = FeatureWithProps.new(f)
+                    p.setProp(FEATPROP.RUNWAY.value, name)
+                    p.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.QUEUE_POSITION.value)
+                    p.setProp(FEATPROP.NAME.value, qid)
+                    self.takeoff_queues[name].append(p)
+                    logger.debug(f":makeQueue: queue position {qid} for {name} added at {currlen}")
+                    currlen = currlen + QUEUE_GAP
+                    qid = qid + 1
+                else:
+                    logger.debug(f":makeQueue: no room for position {qid} for {name}")
 
 
         def makeRunwayExits(exitpt):
@@ -593,7 +616,7 @@ class XPAirport(AirportBase):
 
         for k in self.aeroway_pois.values():
             pt = k.getProp(FEATPROP.POI_TYPE.value)
-            if TAKE_OFF_QUEUE_SIZE > 0 and  pt == POI_TYPE.TAKE_OFF_QUEUE.value:
+            if pt == POI_TYPE.TAKE_OFF_QUEUE.value and TAKE_OFF_QUEUE_SIZE > 0:
                 makeQueue(k)
             if pt == POI_TYPE.RUNWAY_EXIT.value:
                 makeRunwayExits(k)
@@ -606,6 +629,22 @@ class XPAirport(AirportBase):
             #     logger.debug(":makeRunwayExits: added %d runway exits for %s at %f" % (len(self.runway_exits[name]), name, f["properties"]["length"]))
 
         return [True, ":XPAirport::makeAdditionalAerowayPOIS: loaded"]
+
+
+    def has_takeoff_queue(self, runway):
+        return runway in self.takeoff_queues and len(self.takeoff_queues[runway]) > 0
+
+
+    def takeoff_queue_points(self, runway):
+        return self.takeoff_queues[runway] if runway in self.takeoff_queues else None
+
+
+    def queue_point(self, runway, qid):
+        """
+        Returns the takeoff queue position from the runway name and the position in the queue.
+        """
+        res = list(filter(lambda f: f["properties"][FEATPROP.NAME.value] == qid, self.takeoff_queues[runway]))
+        return res[0]
 
 
     def closest_runway_exit(self, runway, dist):
@@ -632,13 +671,6 @@ class XPAirport(AirportBase):
         logger.debug(f":closest_runway_exit: runway {runway}, landing: {dist:f}, runway exit at {closest['properties']['length']:f}")
         return closest
 
-
-    def queue_point(self, runway, qid):
-        """
-        Returns the takeoff queue position from the runway name and the position in the queue.
-        """
-        res = list(filter(lambda f: f["properties"][FEATPROP.NAME.value] == qid, self.takeoff_queues[runway]))
-        return res[0]
 
     """
     In Service POI Feature<Point>, property "service" is a list of | separated services, and "poi" is {depot|rest}.

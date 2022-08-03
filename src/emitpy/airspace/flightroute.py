@@ -20,7 +20,7 @@ class FlightRoute:
                  cruiseAlt: float = 35000, cruiseSpeed: float = 420,
                  ascentRate: float = 2500, ascentSpeed: float = 250,
                  descentRate: float = 1500, descentSpeed: float = 250,
-                 force: bool = False, auto_flightroute: bool = True):
+                 force: bool = False, autoroute: bool = True):
 
         self.managedAirport = managedAirport
         self.fromICAO = fromICAO
@@ -43,8 +43,8 @@ class FlightRoute:
 
         self.filename = f"{fromICAO.lower()}-{toICAO.lower()}"
 
-        if auto_flightroute:
-            self.getFlightRoute()
+        if autoroute:
+            self.makeFlightRoute()
 
 
     def getAirspace(self):
@@ -53,51 +53,52 @@ class FlightRoute:
 
     def nodes(self):
         if self.flight_plan is None:
-            self.getFlightRoute()
+            self.makeFlightRoute()
 
         return self.flight_plan.route if self.flight_plan is not None else None
 
 
     def has_route(self):
-        return self.flight_plan is not None
+        return self.flight_plan is not None and self.flight_plan.found()
 
 
-    def getFlightRoute(self):
+    def makeFlightRoute(self):
         a = self.getAirspace()
 
         if a is None:  # force fetch from flightplandb
-            logger.warning(":getFlightRoute: no airspace")
+            logger.warning(":makeFlightRoute: no airspace")
             return None
 
         # Resolving airports
         origin = a.getAirportICAO(self.fromICAO)
         if origin is None:
-            logger.warning(f":getFlightRoute: cannot get airport {self.fromICAO}")
+            logger.warning(f":makeFlightRoute: cannot get airport {self.fromICAO}")
             return None
         destination = a.getAirportICAO(self.toICAO)
         if destination is None:
-            logger.warning(f":getFlightRoute: cannot get airport {self.toICAO}")
+            logger.warning(f":makeFlightRoute: cannot get airport {self.toICAO}")
             return None
 
         # Resolving network
         s = a.nearest_vertex(point=origin, with_connection=True)
         if s is None or s[0] is None:
-            logger.warning(f":getFlightRoute: cannot get nearest point to {self.fromICAO}")
+            logger.warning(f":makeFlightRoute: cannot get nearest point to {self.fromICAO}")
             return None
         e = a.nearest_vertex(point=destination, with_connection=True)
         if e is None or e[0] is None:
-            logger.warning(f":getFlightRoute: cannot get nearest point to {self.toICAO}")
+            logger.warning(f":makeFlightRoute: cannot get nearest point to {self.toICAO}")
             return None
 
         # Routing
-        logger.debug(f":getFlightRoute: from {s[0].id} to {e[0].id}..")
+        logger.debug(f":makeFlightRoute: from {s[0].id} to {e[0].id}..")
         if s[0] is not None and e[0] is not None:
             self.flight_plan = Route(a, s[0].id, e[0].id) # self.flight_plan.find()  # auto route
             if self.flight_plan is not None and self.flight_plan.found():
                 self._convertToGeoJSON()
+            else:
+                logger.warning(f":makeFlightRoute: !!!!! no route from {self.fromICAO} to {self.toICAO} !!!!!")
 
-        logger.debug(f":getFlightRoute: ..done")
-        return self.flight_plan
+        logger.debug(f":makeFlightRoute: ..done")
 
 
     def _convertToGeoJSON(self):
