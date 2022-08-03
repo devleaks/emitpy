@@ -150,7 +150,7 @@ class SID(Procedure):
                 vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
                 logger.debug("SID:getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
-                if len(vtxs) < 3:  # there often is both a VOR and a DME at same location, we keep either one
+                if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location, we keep either one
                     a.append(airspace.getSignificantPoint(vtxs[0]))
                 elif len(vtxs) > 2:
                     logger.warning("SID:getRoute: vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
@@ -177,7 +177,7 @@ class STAR(Procedure):
                 vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
                 logger.debug("STAR:getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
-                if len(vtxs) < 3:  # there often is both a VOR and a DME at same location
+                if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location
                     a.append(airspace.getSignificantPoint(vtxs[0]))
                 elif len(vtxs) > 2:
                     logger.warning("STAR:getRoute: vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
@@ -205,7 +205,7 @@ class APPCH(Procedure):
                 vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
                 logger.debug(":getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
-                if len(vtxs) < 3:  # there often is both a VOR and a DME at same location
+                if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location
                     a.append(airspace.getSignificantPoint(vtxs[0]))
                 elif len(vtxs) > 2:
                     logger.warning("APPCH:getRoute: vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
@@ -310,7 +310,7 @@ class CIFP:
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "earth_nav.dat")
         if os.path.exists(fn):
-            logger.info(f":init: custom data directory exist, using it")
+            logger.debug(f":init: custom data directory exist, using it")
             self.basename = CUSTOM_DATA_DIR
 
         self.loadFromFile()
@@ -449,9 +449,11 @@ class CIFP:
                         logger.warning(f":pairRunways: {self.icao}: {rw} ont found to pair {r.name}")
         # bearing and length
         for k, r in self.RWYS.items():
-            if r.end is not None:
+            if r.end is not None and r.getPoint() is not None and r.end.getPoint() is not None:
                 r.bearing = bearing(r.getPoint(), r.end.getPoint())
                 r.length = distance(r.getPoint(), r.end.getPoint(), "m")
+            else:
+                logger.warning(f":pairRunways: runway {k} for {self.icao} has missing threshold")
             # else:
             #     apt = Airport.findICAO(self.icao)
             #     if apt is not None:
