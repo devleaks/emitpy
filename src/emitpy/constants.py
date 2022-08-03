@@ -289,6 +289,9 @@ TAXIWAY_ACTIVE_ILS = "ils"
 ARRIVAL = "arrival"
 DEPARTURE = "departure"
 
+RWY_DEPARTURE_SLOT = 180  # seconds
+RWY_ARRIVAL_SLOT   = 180  # seconds (note: possible issues if not symmetric)
+
 class FLIGHT_PHASE(Enum):
     OFFBLOCK = "OFFBLOCK"
     PUSHBACK = "PUSHBACK"
@@ -399,6 +402,7 @@ class FEATPROP(Enum):
     FLIGHT_PLANDB_INDEX = "fpdb-index"
     GROUNDED = "grounded"
     HEADING = "heading"
+    TRACK = "track"
     ICAO24 = "icao24"
     MARK = "_mark"
     MESSAGE_ID = "message-id"
@@ -430,7 +434,7 @@ class FEATPROP(Enum):
 ########################################
 # Simulation
 #
-TAKE_OFF_QUEUE_SIZE = 1  # DO NOT CHANGE
+TAKE_OFF_QUEUE_SIZE = 4  # DO NOT CHANGE
 
 # Average default speeds
 TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed

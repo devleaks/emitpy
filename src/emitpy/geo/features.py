@@ -89,6 +89,9 @@ class FeatureWithProps(Feature):
     def coords(self):
         return self["geometry"]["coordinates"] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
 
+    def props(self):
+        return self["properties"] if properties in self else None
+
     def lat(self):
         return self["geometry"]["coordinates"][1] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
 
@@ -144,13 +147,13 @@ class FeatureWithProps(Feature):
             self.setProp(name, value)
 
         # For historical reasons, tags are kept in |-separated strings like tag1|tag2.
-    def setTag(self, tagname, tagvalue):
+    def setTag(self, tagname: str, tagvalue: str):
         tags = self.getTags(tagname)
         if tagvalue not in tags:
             tags.append(tagvalue)
         self.setTags(tagname, tags)
 
-    def unsetTag(self, tagname, tagvalue):
+    def unsetTag(self, tagname:str, tagvalue: str):
         tags = self.getTags(tagname)
         ndx = -1
         try:
@@ -161,16 +164,16 @@ class FeatureWithProps(Feature):
             del tags[ndx]
         self.setTags(tagname, tags)
 
-    def hasTag(self, tagname, tagvalue):
+    def hasTag(self, tagname: str, tagvalue: str):
         tags = self.getTags(tagname)
         return tagvalue in tags
 
-    def getTags(self, tagname, sep=TAG_SEP):
+    def getTags(self, tagname: str, sep=TAG_SEP):
         # If tagname does not exist, returns empty array, not None
         tags = self.getProp(tagname)
         return tags.split(sep) if tags is not None else []
 
-    def setTags(self, tagname, tags, sep=TAG_SEP):
+    def setTags(self, tagname: str, tags, sep=TAG_SEP):
         self.setProp(tagname, sep.join(tags))
 
     def hasColor(self):
@@ -199,14 +202,17 @@ class FeatureWithProps(Feature):
             "fill-opacity": 0.5
         })
 
-    def setAltitude(self, alt):
+    def setAltitude(self, alt: float, ref: str = None):
+        # ref could be ASL, AGL, BARO
+        # Altitude should be in meters
         if len(self["geometry"]["coordinates"]) > 2:
             self["geometry"]["coordinates"][2] = alt
         else:
             self["geometry"]["coordinates"].append(alt)
         self["properties"][FEATPROP.ALTITUDE.value] = alt
+        self["properties"][FEATPROP.ALTITUDE.value + "-reference"] = ref
 
-    def altitude(self, default=None):
+    def altitude(self, default: float = None):
         # Altitude can be stored at two places
         # Assumes Feature is <Point>
         if len(self["geometry"]["coordinates"]) > 2:
@@ -222,50 +228,67 @@ class FeatureWithProps(Feature):
         return default
 
 
-    def setSpeed(self, speed):
+    def setSpeed(self, speed: float):
+        # Speed should be in meters per second
         self.setProp(name=FEATPROP.SPEED.value, value=speed)
 
-    def speed(self, default=None):
+    def speed(self, default: float = None):
         a = self.getProp(FEATPROP.SPEED.value)
         if a is None or a == "None":
             return default
         return float(a)
 
 
-    def setVSpeed(self, vspeed):
+    def setVSpeed(self, vspeed: float):
+        # Vertical speed should be in meters per second
         self.setProp(FEATPROP.VERTICAL_SPEED.value, vspeed)
 
-    def vspeed(self, default=None):
+    def vspeed(self, default: float = None):
         a = self.getProp(FEATPROP.VERTICAL_SPEED.value)
         if a is None or a == "None":
             return default
         return float(a)
 
 
-    def setHeading(self, heading):
+    def setHeading(self, heading: float):
+        # Heading should be in decimal degrees, if possible confined to [0, 360[. (@todo)
         self.setProp(FEATPROP.HEADING.value, heading)
 
-    def heading(self, default=None):
+    def heading(self, default: float = None):
         a = self.getProp(FEATPROP.HEADING.value)
         if a is None or a == "None":
             return default
         return float(a)
 
 
-    def setTime(self, time):
+    def setTrack(self, track: float):
+        # Track should be in decimal degrees, if possible confined to [0, 360[. (@todo)
+        self.setProp(FEATPROP.TRACK.value, track)
+
+    def track(self, default: float = None):
+        a = self.getProp(FEATPROP.TRACK.value)
+        if a is None or a == "None":
+            return default
+        return float(a)
+
+
+    def setTime(self, time: float):
         self.setProp(FEATPROP.TIME.value, time)
 
-    def time(self, default=None):
+    def time(self, default: float = None):
         a = self.getProp(FEATPROP.TIME.value)
         if a is None or a == "None":
             return default
         return float(a)
 
 
-    def setPause(self, time):
+    def setPause(self, time: float):
         self.setProp(FEATPROP.PAUSE.value, time)
 
-    def pause(self, default=None):
+    def addToPause(self, time: float):
+        self.setProp(FEATPROP.PAUSE.value, self.pause(0) + time)
+
+    def pause(self, default: float = None):
         a = self.getProp(FEATPROP.PAUSE.value)
         if a is None or a == "None":
             return default

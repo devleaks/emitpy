@@ -111,11 +111,59 @@ class Movement(Messages):
         """
         return (True, "Movement::time computed")
 
-    def addDelay(self, name: str, seconds: int):
-        farr = findFeatures(self.moves, {FEATPROP.MARK.value: name})
-        if len(farr) == 0:
-            logger.warning(f":addDelay: feature mark {name} not found")
-            return
-        ## assume at most one...
-        f = farr[0]
-        f.setProp(FEATPROP.DELAY.value, seconds)
+
+    def resetDelays(self):
+        """
+        Removes all waiting time in movement, included service times.
+        """
+        for f in self.moves:
+            before = f.pause(-1)
+            if before > 0:
+                n = f.getProp(FEATPROP.MARK.value)
+                logger.debug(f":resetDelays: removed delay at {n} ({before} secs.)")
+                f.setPause(0)
+
+
+    def addDelays(self, delays: dict):
+        """
+        Adds pauses. delays is a dictionary with {"_mark_name": delay_in_seconds} entries.
+        _mark that are not found are reported so and ignored.
+
+        :param      delays:  The delays
+        :type       delays:  dict
+        """
+        for name, duration in delays.items():
+            farr = findFeatures(self.moves, {FEATPROP.MARK.value: name})
+            if len(farr) == 0:
+                logger.warning(f":addDelay: feature mark {name} not found")
+                return
+            ## assume at most one...
+            f = farr[0]
+            f.setAddToPause(duration)
+
+
+    def listMarks(self):
+        """
+        List all movement marks.
+
+        :returns:   { array of movement marks }
+        :rtype:     { ( str ) }
+        """
+        marks = []
+        for f in self.moves:
+            marks.append(f.getProp(FEATPROP.MARK.value))
+        return set(marks)
+
+
+    def listPauses(self):
+        """
+        List all movement marks that have a pause.
+
+        :returns:   { array of movement marks }
+        :rtype:     { ( str ) }
+        """
+        marks = []
+        for f in self.moves:
+            if f.pause(-1) > 0:
+                marks.append(f.getProp(FEATPROP.MARK.value))
+        return set(marks)
