@@ -272,3 +272,39 @@ def findFeaturesCWL(arr, criteria):
         if ok:
             res.append(f)
     return res
+
+
+def ls_length(ls: LineString):
+    # Compute length of a linestring
+    total = 0
+    start = ls["coordinates"][0]
+    for i in range(1, len(ls["coordinates"])):
+        d = distance(Point(start), Point(ls["coordinates"][i]), units="m")
+        total = total + d
+        start = ls["coordinates"][i]
+    return total
+
+
+def ls_point_at(ls: LineString, dist: float):
+    # Returns point at distance dist since begining of linestring
+    def ffp(p):
+        return Feature(geometry=Point(p))
+
+    total = 0
+    start = ls["coordinates"][0]
+    i = 1
+    while total < dist and i < len(ls["coordinates"]):
+        d = distance(Point(start), Point(ls["coordinates"][i]), units="m")
+        prevtotal = total
+        total = total + d
+        start = ls["coordinates"][i]
+        i = i + 1
+
+    if total < dist:  # requested distance is longer than linestring
+        return None
+
+    lastvertex = ls["coordinates"][i-2]
+    left = dist - prevtotal
+    brng = bearing(ffp(lastvertex), ffp(ls["coordinates"][i-1]))
+    dest = destination(ffp(lastvertex), left, brng, {"units": "m"})
+    return dest
