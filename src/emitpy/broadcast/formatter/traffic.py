@@ -17,7 +17,7 @@ class TrafficFormatter(FormatterBase):
     NAME = "traffic-flight"
 
     def __init__(self, feature: "FeatureWithProps"):
-        FormatterBase.__init__(self, name=TrafficFlightFormatter.NAME, feature=feature)
+        FormatterBase.__init__(self, name=TrafficFormatter.NAME, feature=feature)
         self.name = "lt"
 
     def __str__(self):
