@@ -387,7 +387,7 @@ class ServiceMove(Movement):
                     service.quantity = service.quantity - vehicle_capacity
 
                 logger.debug(f":move: loaded {vehicle_capacity}, {service.quantity - vehicle_capacity} remaining, load duration={svc_duration}")
-                ramp_stop.pause(svc_duration)
+                ramp_stop.setPause(svc_duration)
 
                 # go to nearest depot
                 # ramp->network edge
@@ -423,7 +423,7 @@ class ServiceMove(Movement):
                 vehicle.setPosition(pos)
                 svc_duration = vehicle.service_duration(vehicle.current_load)
                 logger.debug(f":move: unloaded {vehicle.current_load}, {service.quantity} remaining, unload duration={svc_duration}")
-                pos.pause(svc_duration)
+                pos.setPause(svc_duration)
 
                 vehicle.current_load = 0
                 vehicle_capacity = vehicle.max_capacity

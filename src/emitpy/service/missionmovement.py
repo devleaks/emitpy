@@ -138,7 +138,7 @@ class MissionMove(Movement):
             pos.setSpeed(0)  # starts moving
             pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.CHECKPOINT.value)
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
-            pos.pause(self.mission.duration(cp))
+            pos.setPause(self.mission.duration(cp))
             self.moves.append(pos)
             logger.debug(f":move: checkpoint added")
 
