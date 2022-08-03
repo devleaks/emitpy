@@ -202,7 +202,7 @@ class FlightServices:
         for service in self.services:
             logger.debug(f":schedule: scheduling {service['type']}..")
             stime = scheduled + timedelta(minutes=service["scheduled"])  # nb: service["scheduled"] can be negative
-            service["emit"].serviceTime(SERVICE_PHASE.SERVICE_START.value, service["duration"] * 60)  # seconds
+            service["emit"].addToPause(SERVICE_PHASE.SERVICE_START.value, service["duration"] * 60)  # seconds
             service["emit"].schedule(SERVICE_PHASE.SERVICE_START.value, stime)
             logger.debug(f":schedule: there are {len(service['emit'].scheduled_emit)} scheduled emit points")
             logger.debug(f":schedule: ..done")
