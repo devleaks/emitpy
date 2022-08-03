@@ -7,7 +7,7 @@ import os
 import json
 import logging
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from random import randrange
 from geojson import Feature, FeatureCollection
 from geojson.geometry import Geometry
@@ -22,7 +22,7 @@ from emitpy.message import Messages, EstimatedTimeMessage
 from emitpy.constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
 from emitpy.constants import RATE_LIMIT, EMIT_RANGE, MOVE_TYPE
-from emitpy.parameters import MANAGED_AIRPORT_AODB, MANAGED_AIRPORT
+from emitpy.parameters import MANAGED_AIRPORT_AODB
 
 logger = logging.getLogger("Emit")
 
@@ -595,37 +595,23 @@ class Emit(Messages):
         return l
 
 
-    def pause(self, sync, duration: float):
+    def addToPause(self, sync, duration: float, add: bool = True):
         f = findFeatures(self.moves, {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
             r = f[0]
             s = r.speed()
             if s is not None and s > 0:
-                logger.warning(f":pause/serviceTime: speed {s}m/sec at vertex is not 0")
-            offset = r.setProp(FEATPROP.PAUSE.value, duration)
-            logger.debug(f":pause/serviceTime: found {sync} mark, added {duration} sec. pause")
+                logger.warning(f":addToPause: speed {s}m/sec at vertex is not 0")
+            before = r.getProp(FEATPROP.PAUSE.value) if (r.getProp(FEATPROP.PAUSE.value) is not None and add) else 0
+            r.setPause(before + duration)
+            logger.debug(f":addToPause: found {sync} mark, added {duration} sec. pause for a total of {r.getProp(FEATPROP.PAUSE.value)}")
         # should recompute emit
-        if self._emit is not None:  # already computed before...
+        if self._emit is not None:  # if already computed before, we need to recompute it
            self.emit(self.frequency)
 
 
-    def addToPause(self, sync, duration: float):
-        f = findFeatures(self.moves, {FEATPROP.MARK.value: sync})
-        if f is not None and len(f) > 0:
-            r = f[0]
-            s = r.speed()
-            if s is not None and s > 0:
-                logger.warning(f":pause/serviceTime: speed {s}m/sec at vertex is not 0")
-            before = r.getProp(FEATPROP.PAUSE.value) if r.getProp(FEATPROP.PAUSE.value) is not None else 0
-            offset = r.setProp(FEATPROP.PAUSE.value, before + duration)
-            logger.debug(f":pause/serviceTime: found {sync} mark, added {duration} sec. pause for a total of {r.getProp(FEATPROP.PAUSE.value)}")
-        # should recompute emit
-        if self._emit is not None:  # already computed before...
-           self.emit(self.frequency)
-
-
-    def serviceTime(self, sync, duration: float):
-        self.pause(sync=sync, duration=duration)
+    def setPause(self, sync, duration: float):
+        self.addToPause(sync=sync, duration=duration, add=False)
 
 
     def schedule(self, sync, moment: datetime):
@@ -676,9 +662,8 @@ class Emit(Messages):
             end   = self._emit[-1].getAbsoluteEmissionTime()
             if not as_string:
                 return (start, end)
-            localtz = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
-            startdt = datetime.fromtimestamp(start, tz=localtz)
-            enddt = datetime.fromtimestamp(end, tz=localtz)
+            startdt = datetime.fromtimestamp(start, tz=timezone.utc)
+            enddt = datetime.fromtimestamp(end, tz=timezone.utc)
             return (startdt.isoformat(), enddt.isoformat())
         logger.debug(f":getTimeBracket: no emit point")
         return (None, None)
@@ -740,8 +725,8 @@ class Emit(Messages):
         if mark is not None:
             f = self.getAbsoluteEmissionTime(mark)
             if f is not None:
-                localtz = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
-                return datetime.fromtimestamp(f, tz=localtz)
+                # localtz = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
+                return datetime.fromtimestamp(f, tz=timezone.utc)
             else:
                 logger.warning(f":getEstimatedTime: no feature at mark {mark}")
         else:
