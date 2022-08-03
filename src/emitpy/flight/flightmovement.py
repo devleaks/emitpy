@@ -135,9 +135,9 @@ class FlightMovement(Movement):
             with open(filename, "w") as fp:
                 json.dump(FeatureCollection(features=cleanFeatures(arr)), fp, indent=4)
 
-        # saveMe(self.flight.flightplan_cp, "1-plan")
-        ls = Feature(geometry=asLineString(self.flight.flightplan_cp))
-        saveMe(self.flight.flightplan_cp + [ls], FILE_FORMAT.FLIGHT_PLAN.value)
+        # saveMe(self.flight.flightplan_wpts, "1-plan")
+        ls = Feature(geometry=asLineString(self.flight.flightplan_wpts))
+        saveMe(self.flight.flightplan_wpts + [ls], FILE_FORMAT.FLIGHT_PLAN.value)
 
         # saveMe(self._premoves, "2-flight")
         ls = Feature(geometry=asLineString(self._premoves))
@@ -209,8 +209,8 @@ class FlightMovement(Movement):
             # logger.debug(":addCurrentpoint: %d %d %s" % (oi, ni, reverse))
             if oi != ni:
                 for idx in range(oi+1, ni+1):
-                    i = idx if not reverse else len(self.flight.flightplan_cp) - idx - 1
-                    wpt = self.flight.flightplan_cp[i]
+                    i = idx if not reverse else len(self.flight.flightplan_wpts) - idx - 1
+                    wpt = self.flight.flightplan_wpts[i]
                     p = MovePoint.new(wpt)
                     logger.debug(f":addCurrentpoint:{'(rev)' if reverse else ''} adding {p.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)} {p.getProp(FEATPROP.PLAN_SEGMENT_NAME.value)}")
                     p.setColor(color)
@@ -252,17 +252,17 @@ class FlightMovement(Movement):
             arr.append(mvpt)
             return mvpt
 
-        if self.flight.flightplan_cp is None or len(self.flight.flightplan_cp) == 0:
+        if self.flight.flightplan_wpts is None or len(self.flight.flightplan_wpts) == 0:
             logger.warning(":vnav: no flight plan")
             return (False, "Movement::vnav no flight plan, cannot move")
 
-        fc = self.flight.flightplan_cp
+        fc = self.flight.flightplan_wpts
         ac = self.flight.aircraft
         actype = ac.actype
         # actype.perfs()
         logger.debug(f":vnav: {'*' * 30} {type(self).__name__}: {len(fc)} points in flight plan {'*' * 30}")
 
-        # for f in self.flight.flightplan_cp:
+        # for f in self.flight.flightplan_wpts:
         #     logger.debug(":vnav: flight plan: %s" % (f.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
 
         # PART 1: FORWARD: From takeoff to top of ascent
@@ -522,7 +522,7 @@ class FlightMovement(Movement):
 
         revmoves = []
         groundmv = 0
-        fc = self.flight.flightplan_cp.copy()
+        fc = self.flight.flightplan_wpts.copy()
         fc.reverse()
         fcidx = 0
 
@@ -871,7 +871,7 @@ class FlightMovement(Movement):
         top_of_decent_idx = fcidx + 1 # we reach top of descent between idx and idx+1, so we cruise until idx+1
         logger.debug(":vnav:(rev) reverse descent at %d after %f" % (top_of_decent_idx, groundmv))
         # we .reverse() array:
-        top_of_decent_idx = len(self.flight.flightplan_cp) - top_of_decent_idx  - 1
+        top_of_decent_idx = len(self.flight.flightplan_wpts) - top_of_decent_idx  - 1
         logger.debug(":vnav:(rev) cruise until %d, descent after %d, remains %f to destination" % (top_of_decent_idx, top_of_decent_idx, groundmv))
 
         # PART 3: Join top of ascent to top of descent at cruise speed
@@ -881,7 +881,7 @@ class FlightMovement(Movement):
         if top_of_decent_idx > top_of_ascent_idx:
             # logger.debug(":vnav: adding cruise: %d -> %d" % (top_of_ascent_idx, top_of_decent_idx))
             for i in range(top_of_ascent_idx, top_of_decent_idx):
-                wpt = self.flight.flightplan_cp[i]
+                wpt = self.flight.flightplan_wpts[i]
                 # logger.debug(":vnav: adding cruise: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
 
                 p = addMovepoint(arr=self._premoves,
@@ -1098,17 +1098,6 @@ class FlightMovement(Movement):
         return (True, "Movement::add_tmo added")
 
 
-    def addDelay(self, name: str, seconds: int):
-        farr = findFeatures(self.moves, {FEATPROP.MARK.value: name})
-        if len(farr) == 0:
-            logger.warning(f":addDelay: feature mark {name} not found")
-            return
-        ## assume at most one...
-        f = farr[0]
-        f.setProp(FEATPROP.DELAY.value, seconds)
-
-
-
 class TowMovement(Movement):
     """
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
@@ -1120,7 +1109,7 @@ class TowMovement(Movement):
         self.flight_id = self.flight.getId()
         self.is_arrival = self.flight.is_arrival()
         self.newramp = newramp
-        self.tow = []  # list of tow movements
+        self.tows = []  # list of tow movements
 
 
     def tow(self):
@@ -1134,6 +1123,7 @@ class TowMovement(Movement):
         :param      moment:   The moment
         :type       moment:   int
         """
+        show_pos = False
         fc = []  # feature collection of tow movement
         # current ramp
         parking = self.flight.ramp
@@ -1184,7 +1174,7 @@ class TowMovement(Movement):
         # we call the move from packing position to taxiway network the "parking entry"
         newparking_entry = self.airport.taxiways.nearest_point_on_edge(newparking)
         if show_pos:
-            logger.debug(f":tow: new parking_entry: {parking_entry[0]}")
+            logger.debug(f":tow: new parking_entry: {newparking_entry[0]}")
 
         if newparking_entry[0] is None:
             logger.warning(":tow: could not find parking entry")
@@ -1210,7 +1200,7 @@ class TowMovement(Movement):
         else:
             logger.warning(":tow: no tow route found")
 
-        newparkingentrypos = MovePoint.new(parking_entry[0])
+        newparkingentrypos = MovePoint.new(newparking_entry[0])
         newparkingentrypos.setSpeed(SLOW_SPEED)
         newparkingentrypos.setColor("#880088")  # parking entry, is on taxiway network
         newparkingentrypos.setProp(FEATPROP.MARK.value, "tow end")
@@ -1235,13 +1225,13 @@ class TowMovement(Movement):
 
         tow = {
             "from": self.flight.ramp,
-            "to": newramp,
+            "to": self.newramp,
             "move": fc
         }
         self.tows.append(tow)  ## self.tows is array of tows since there might be many tows.
-        self.flight.ramp = newramp
+        self.flight.ramp = self.newramp
         logger.info(f"FlightMovement::tow completed: flight {self.flight_id}: from {tow['from'].getId()} to {tow['to'].getId()}"
-                  + f" at {moment} minutes {'after onblock' if self.is_arrival else 'before offblock'}")
+                  + f" at @todo minutes {'after onblock' if self.is_arrival else 'before offblock'}")
 
         logger.debug(f":tow: {len(fc)} moves")
 
@@ -1284,11 +1274,12 @@ class ArrivalMove(FlightMovement):
         landing_distance = distance(rwy_threshold, endrolloutpos)
         rwy_exit = self.airport.closest_runway_exit(rwy.name, landing_distance)
 
+
         taxi_start = self.airport.taxiways.nearest_point_on_edge(rwy_exit)
         if show_pos:
             logger.debug(f":taxi:in: taxi start: {taxi_start}")
         else:
-            logger.debug(f":taxi:in: taxi start: exit runway {rwy.name}")
+            logger.debug(f":taxi:in: {rwy.name}-{self.flight.ramp.getProp('name')} " + "=" * 30)
         if taxi_start[0] is None:
             logger.warning(":taxi:in: could not find taxi start")
         taxistartpos = MovePoint.new(taxi_start[0])
@@ -1396,12 +1387,11 @@ class DepartureMove(FlightMovement):
         show_pos = False
         fc = []
 
-
         parking = self.flight.ramp
         if show_pos:
             logger.debug(f":taxi:out: parking: {parking}")
         else:
-            logger.debug(f":taxi:out: taxi start: parking {parking.getProp('name')}")
+            logger.debug(f":taxi:out: {parking.getProp('name')}-{self.flight.rwy.name if self.flight.rwy is not None else 'no runway'} " + "=" * 30)
         # This is the first point, we make sure available info is in props
         parkingpos = MovePoint.new(parking)
         parkingpos.setSpeed(0)
@@ -1440,69 +1430,65 @@ class DepartureMove(FlightMovement):
 
         last_vtx = pushback_vtx
 
-        if TAKE_OFF_QUEUE_SIZE > 0:
-            # Taxi from pushback to start of queue
-            #
-            rwy = self.flight.rwy
+        logger.debug(f":taxi:out: taxing from pushback-hold..")
+        # Normally, we then taxi from pushback to takeoff-hold:
+        # pushb -> taxi -> takeoff-hold.
+        # Now we insert takeoff queue position if available.
+        # pushb -> queue3 -> queue2 -> queue1 -> queue0 (=runway-hold) -> takeoff-hold
+        rwy = self.flight.rwy
 
-            queuepnt = self.airport.queue_point(rwy.name, 0)
-            queuerwy = self.airport.taxiways.nearest_point_on_edge(queuepnt)
-            if show_pos:
-                logger.debug(f":taxi:out: start of queue point: {queuerwy[0]}")
-            if queuerwy[0] is None:
-                logger.warning(":taxi:out: could not find start of queue point")
+        if self.airport.has_takeoff_queue(rwy.name):
+            backup_vtx = pushback_vtx
+            has_issues = False
+            qpts = self.airport.takeoff_queue_points(rwy.name)  # should not be none...
+            qnum = len(qpts) - 1
+            logger.debug(f":taxi:out: adding queue {qnum} points..")
 
-            queuerwy_vtx = self.airport.taxiways.nearest_vertex(queuerwy[0])
-            if show_pos:
-                logger.debug(f":taxi:out: queuerwy_vtx {queuerwy_vtx[0]}")
-            if queuerwy_vtx[0] is None:
-                logger.warning(":taxi:out: could not find start of queue vertex")
-
-            taxi_ride = Route(self.airport.taxiways, pushback_vtx[0].id, queuerwy_vtx[0].id)
-            if taxi_ride.found():
-                for vtx in taxi_ride.get_vertices():
-                    taxipos = MovePoint.new(vtx)
-                    taxipos.setSpeed(TAXI_SPEED)
-                    taxipos.setColor("#880000")  # taxi
-                    taxipos.setProp(FEATPROP.MARK.value, "taxi")
-                    taxipos.setProp("_taxiways", vtx.id)
-                    fc.append(taxipos)
-                fc[-1].setProp(FEATPROP.MARK.value, "taxi start of queue")
-            else:
-                logger.warning(":taxi:out: no taxi route found to start of queue")
-
-            # Taxi from queue point 1 to last, stay on to taxiway edges
-            #
-            last_queue_on = queuerwy
-            cnt = 0
-            for i in range(1, len(self.airport.takeoff_queues[rwy.name])):
-                queuepnt = self.airport.queue_point(rwy.name, i)
+            while qnum >= 0:
+                # Taxi from last_vtx to next queue point (in reverse order)
+                #
+                queuepnt = self.airport.queue_point(rwy.name, qnum)
                 queuerwy = self.airport.taxiways.nearest_point_on_edge(queuepnt)
-                # logger.debug(":taxi: queue_point: %s" % queuerwy[0])
+                if show_pos:
+                    logger.debug(f":taxi:out: start of queue point: {queuerwy[0]}")
                 if queuerwy[0] is None:
-                    logger.warning(":taxi:out: could not place queue on taxiway")
-                else:
-                    last_queue_on = queuerwy
-                    qspos = MovePoint.new(queuerwy)
-                    qspos.setSpeed(TAXI_SPEED)
-                    qspos.setColor("#880000")
-                    qspos.setProp(FEATPROP.MARK.value, f"queue {i}")
-                    fc.append(qspos)
-                    cnt = cnt + 1
-            logger.warning(":taxi:out: added %d take-off queue points" % cnt)
+                    logger.warning(f":taxi:out: could not find queue point {qnum}")
 
-            if last_queue_on[0] is None:
-                logger.warning(":taxi:out: could not find last queue point")
+                queuerwy_vtx = self.airport.taxiways.nearest_vertex(queuerwy[0])
+                if show_pos:
+                    logger.debug(f":taxi:out: queuerwy_vtx {queuerwy_vtx[0]}")
+                if queuerwy_vtx[0] is None:
+                    logger.warning(f":taxi:out: could not find queue vertex {qnum}")
+
+                taxi_ride = Route(self.airport.taxiways, last_vtx[0].id, queuerwy_vtx[0].id)
+                if taxi_ride.found():
+                    for vtx in taxi_ride.get_vertices():
+                        taxipos = MovePoint.new(vtx)
+                        taxipos.setSpeed(TAXI_SPEED)
+                        taxipos.setColor("#880000")  # taxi
+                        taxipos.setProp(FEATPROP.MARK.value, "taxi")
+                        taxipos.setProp("_taxiways", vtx.id)
+                        fc.append(taxipos)
+                    fc[-1].setProp(FEATPROP.MARK.value, "taxi-hold")
+                    fc[-1].setProp("taxi-hold", qnum)
+                    logger.debug(f":taxi:out: added route to queue point {qnum}")
+                else:
+                    has_issues = True
+                    logger.warning(f":taxi:out: no taxi route found to queue point {qnum}")
+
+                last_vtx = queuerwy_vtx
+                qnum = qnum - 1
+
+            # last_vtx is last queue position (qnum=0)
+            if has_issues:
+                logger.warning(f":taxi:out: .. had issues adding queue points, skipping queueing")
+                last_vtx = backup_vtx
             else:
-                last_queue_vtx = self.airport.taxiways.nearest_vertex(last_queue_on[0])
-                if last_queue_vtx[0] is None:
-                    # BIG PROBLEM IF POINT last_queue_on WAS ADDED AND CANNOT FIND VERTEX
-                    logger.warning(":taxi:out: could not find last queue vertex")
-                else:
-                    last_vtx = last_queue_vtx
+                logger.debug(f":taxi:out: .. added queue points")
 
-        # Taxi from end of queue to takeoff-hold
+        # Taxi from last_vtx to takeoff-hold
         #
+        logger.debug(f":taxi:out: taxing to takeoff-hold")
         taxi_end = self.airport.taxiways.nearest_point_on_edge(self.takeoff_hold)
         if show_pos:
             logger.debug(f":taxi:out: taxi_end: {taxi_end[0]}")
@@ -1524,7 +1510,7 @@ class DepartureMove(FlightMovement):
                 taxipos.setProp(FEATPROP.MARK.value, "taxi")
                 taxipos.setProp("_taxiways", vtx.id)
                 fc.append(taxipos)
-            fc[-1].setProp(FEATPROP.MARK.value, "taxi start of queue")
+            fc[-1].setProp(FEATPROP.MARK.value, "runway hold")
         else:
             logger.warning(":taxi:out: no taxi route found to runway hold")
 

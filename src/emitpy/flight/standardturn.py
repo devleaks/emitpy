@@ -115,7 +115,7 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
         return None
 
     if abs(turnAngle) > 120:
-        logger.warning(f"standard_turn: large turn (turn={turnAngle:f}°)")
+        logger.debug(f"standard_turn: large turn (turn={turnAngle:f}°)")
 
     # Eliminate short segement turns (impossible)
     d_in = distance(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
