@@ -6,7 +6,7 @@ from emitpy.airspace import FlightRoute
 from emitpy.airport import Airport
 from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
-from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE
+from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE, RWY_ARRIVAL_SLOT, RWY_DEPARTURE_SLOT
 from emitpy.utils import FT
 from emitpy.message import Messages, FlightboardMessage
 
@@ -35,8 +35,8 @@ class Flight(Messages):
         self.codeshare = None
         self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
         self.flight_level = 0
-        self.flightplan = None
-        self.flightplan_cp = []
+        self.flightroute = None
+        self.flightplan_wpts = []
         self.dep_procs = None
         self.arr_procs = None
         self.rwy = None               # RWY object
@@ -277,7 +277,8 @@ class Flight(Messages):
                 am = self.managedAirport.airport.manager
                 if name in am.runway_allocator.resources.keys():
                     reqtime = self.scheduled_dt + timedelta(minutes=20)  # time to taxi
-                    reqend  = reqtime + timedelta(minutes=5)  # time to take-off + WTC spacing
+                    reqduration = RWY_DEPARTURE_SLOT if self.is_departure() else RWY_ARRIVAL_SLOT
+                    reqend  = reqtime + timedelta(seconds=reqduration)  # time to take-off + WTC spacing
                     #
                     # @TODO: If not available, should take next availability and "queue"
                     #
@@ -294,13 +295,13 @@ class Flight(Messages):
 
 
     def makeFlightRoute(self):
-        self.flightplan = FlightRoute(managedAirport=self.managedAirport, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
+        self.flightroute = FlightRoute(managedAirport=self.managedAirport, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
 
-        if not self.flightplan.has_route():
+        if not self.flightroute.has_route():
             logger.warning(":makeFlightRoute: no flight route, cannot proceed.")
             return
 
-        fplen = len(self.flightplan.nodes())
+        fplen = len(self.flightroute.nodes())
         if fplen < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
             logger.warning(":makeFlightRoute: flight route is too short %d" % fplen)
         logger.debug(":makeFlightRoute: loaded %d waypoints" % fplen)
@@ -317,15 +318,15 @@ class Flight(Messages):
 
 
     def plan(self):
-        if self.flightplan is None:  # not loaded, trying to load
+        if self.flightroute is None:  # not loaded, trying to load
             self.makeFlightRoute()
 
-        if not self.flightplan.has_route():  # not found... stops
+        if not self.flightroute.has_route():  # not found... stops
             logger.warning(":plan: no flight route")
             return (False, "Flight::plan: no flight route")
 
-        normplan = self.flightplan.route()
-        planpts = []
+        normplan = self.flightroute.route()
+        waypoints = []
 
         self.addMessage(FlightboardMessage(flight_id=self.getId(),
                                            is_arrival=self.is_arrival(),
@@ -344,16 +345,16 @@ class Flight(Messages):
             logger.debug(f":plan: departure airport {depapt.icao} using runway {rwydep.name}")
             if self.is_departure():
                 self.setRWY(rwydep)
-            planpts = rwydep.getRoute()
-            planpts[0].setProp("_plan_segment_type", "origin/rwy")
-            planpts[0].setProp("_plan_segment_name", depapt.icao+"/"+rwydep.name)
+            waypoints = rwydep.getRoute()
+            waypoints[0].setProp("_plan_segment_type", "origin/rwy")
+            waypoints[0].setProp("_plan_segment_name", depapt.icao+"/"+rwydep.name)
             self.dep_procs = [rwydep]
             self.meta["departure"]["procedure"] = (rwydep.name)
         else:  # no runway, we leave from airport
             logger.warning(f":plan: departure airport {rwydep.icao} has no runway, first point is departure airport")
-            planpts = depapt
-            planpts[0].setProp("_plan_segment_type", "origin")
-            planpts[0].setProp("_plan_segment_name", depapt.icao)
+            waypoints = depapt
+            waypoints[0].setProp("_plan_segment_type", "origin")
+            waypoints[0].setProp("_plan_segment_name", depapt.icao)
 
         # SID
         if depapt.has_sids() and rwydep is not None:
@@ -364,7 +365,7 @@ class Flight(Messages):
                 ret = depapt.procedures.getRoute(sid, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, "_plan_segment_type", "sid")
                 Flight.setProp(ret, "_plan_segment_name", sid.name)
-                planpts = planpts + ret
+                waypoints = waypoints + ret
                 self.dep_procs = (rwydep, sid)
                 self.meta["departure"]["procedure"] = (rwydep.name, sid.name)
             else:
@@ -373,14 +374,14 @@ class Flight(Messages):
             normplan = normplan[1:]
             Flight.setProp(normplan, "_plan_segment_type", "cruise")
             Flight.setProp(normplan, "_plan_segment_name", depapt.icao+"-"+self.arrival.icao)
-            planpts = planpts + normplan
+            waypoints = waypoints + normplan
 
         else:  # no sid, we go straight
             logger.debug(f":plan: departure airport {depapt.icao} has no procedure, flying straight")
             ret = normplan[1:]  # remove departure airport and leave cruise
             Flight.setProp(ret, "_plan_segment_type", "cruise")
             Flight.setProp(ret, "_plan_segment_name", depapt.icao+"-"+self.arrival.icao)
-            planpts = planpts + ret
+            waypoints = waypoints + ret
 
         # ###########################
         # ARRIVAL
@@ -398,7 +399,7 @@ class Flight(Messages):
             ret = rwyarr.getRoute()
             Flight.setProp(ret, "_plan_segment_type", "rwy")
             Flight.setProp(ret, "_plan_segment_name", rwyarr.name)
-            planpts = planpts[:-1] + ret  # no need to add last point which is arrival airport, we replace it with the precise runway end.
+            waypoints = waypoints[:-1] + ret  # no need to add last point which is arrival airport, we replace it with the precise runway end.
             self.arr_procs = [rwyarr]
             self.meta["arrival"]["procedure"] = (rwyarr.name)
         else:  # no star, we are done, we arrive in a straight line
@@ -413,7 +414,7 @@ class Flight(Messages):
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, "_plan_segment_type", "star")
                 Flight.setProp(ret, "_plan_segment_name", star.name)
-                planpts = planpts[:-1] + ret + [planpts[-1]]  # insert STAR before airport
+                waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert STAR before airport
                 self.arr_procs = (rwyarr, star)
                 self.meta["arrival"]["procedure"] = (rwyarr.name, star.name)
             else:
@@ -429,11 +430,11 @@ class Flight(Messages):
                 ret = arrapt.procedures.getRoute(appch, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, "_plan_segment_type", "appch")
                 Flight.setProp(ret, "_plan_segment_name", appch.name)
-                if len(planpts) > 2 and len(ret) > 0 and planpts[-2].id == ret[0].id:
+                if len(waypoints) > 2 and len(ret) > 0 and waypoints[-2].id == ret[0].id:
                     logger.debug(f":plan: duplicate end STAR/begin APPCH {ret[0].id} removed")
-                    planpts = planpts[:-2] + ret + [planpts[-1]]  # remove last point of STAR
+                    waypoints = waypoints[:-2] + ret + [waypoints[-1]]  # remove last point of STAR
                 else:
-                    planpts = planpts[:-1] + ret + [planpts[-1]]  # insert APPCH before airport
+                    waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert APPCH before airport
                 self.arr_procs = (rwyarr, star, appch)
                 self.meta["arrival"]["procedure"] = (rwyarr.name, star.name if star is not None else "no STAR", appch.name)
             else:
@@ -443,13 +444,13 @@ class Flight(Messages):
 
 
         idx = 0
-        for f in planpts:
+        for f in waypoints:
             f.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, idx)
             idx = idx + 1
 
-        self.flightplan_cp = planpts
-        # printFeatures(self.flightplan_cp, "plan")
-        logger.debug(f":plan: generated {len(self.flightplan_cp)} points")
+        self.flightplan_wpts = waypoints
+        # printFeatures(self.flightplan_wpts, "plan")
+        logger.debug(f":plan: generated {len(self.flightplan_wpts)} points")
         return (True, "Flight::plan: planned")
 
 
