@@ -82,6 +82,7 @@ class Route:
     def found(self):
         return self.route and len(self.route) > 2
 
+
     def get_edges(self):
         # From liste of vertices, build list of edges
         # but also set the size of the taxiway in the vertex
@@ -92,7 +93,23 @@ class Route:
                 self.edges.append(e)
         return self.edges
 
+
     def get_vertices(self):
         if self.vertices is None:
             self.vertices = list(map(lambda x: self.graph.get_vertex(x), self.route))
         return self.vertices
+
+
+    def get_points(self):
+        # If an edge is a linestring rather than a straight line from src to end, returns all intermediate points as well.
+        coords = []
+        last = None
+
+        for e in self.get_edges():
+            pts = e.getPoints()
+            coords = coords + pts[:-1]
+            last = pts[-1]
+
+        if last is not None:
+            coords.append(last)
+        return coords
