@@ -57,8 +57,9 @@ class Vertex(FeatureWithProps):
 
 class Edge(FeatureWithProps):
 
-    def __init__(self, src: Vertex, dst: Vertex, weight: float, directed: bool, usage: [str]=[], name=None):
-        FeatureWithProps.__init__(self, geometry=LineString([src["geometry"]["coordinates"], dst["geometry"]["coordinates"]]))
+    def __init__(self, src: Vertex, dst: Vertex, weight: float, directed: bool, usage: [str]=[], name=None, linestring: LineString = None):
+        ls = linestring if linestring is not None else LineString([src["geometry"]["coordinates"], dst["geometry"]["coordinates"]])
+        FeatureWithProps.__init__(self, geometry=ls)
         self.start = src
         self.end = dst
         self.name = name        # segment name, not unique!
@@ -81,6 +82,23 @@ class Edge(FeatureWithProps):
 
     def getWidthCode(self, default: str = None):
         return self.widthCode if not None else default
+
+    def getPoints(self):
+        # returns array of Feature<Point>.
+        # If an edge is a linestring rather than a straight line from src to end, returns all intermediate points.
+        pts = []
+        pts.append(self.src)  # extremity points have their own props from vertex
+        coords = self.coords()
+        if len(coords) > 2:
+            props = self.props()  # copies edge props to each "inner" point
+            if props is None:
+                props = {}
+            props["inner-edge"] = True
+            for p in coords[1:-1]:
+                pt = FeatureWithProps(geometry=Point(p), properties=props)
+                pts.append(pt)
+        pts.append(self.end)
+        return pts
 
 
 class Graph:  # Graph(FeatureCollection)?
@@ -249,7 +267,6 @@ class Graph:  # Graph(FeatureCollection)?
 
 
     def nearest_vertex(self, point: Feature, with_connection: bool = False):
-
         closest = None
         nconn = 0
         dist = inf
@@ -259,7 +276,11 @@ class Graph:  # Graph(FeatureCollection)?
                 if d < dist:
                     dist = d
                     closest = p
-                    nconn = len(p.adjacent)
+            #         nconn = len(p.adjacent)
+            #         logger.debug(":nearest_vertex: closer: %s, %d conn, %d km" % (p.id, len(p.adjacent), d))
+            # if p.id.startswith(point.id[0:3]) and len(p.adjacent) > 0:
+            #     d = distance(point, p)
+            #     logger.debug(":nearest_vertex: %s, %d conn, %d km" % (p.id, len(p.adjacent), d))
         # logger.debug(":nearest_vertex: returning %s" % (closest.name if closest is not None else "None"))
         return [closest, dist, nconn]
 
