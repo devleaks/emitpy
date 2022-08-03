@@ -84,7 +84,7 @@ class Airport(Location):
             lon = float(row["longitude_deg"]) if row["longitude_deg"] != "" else 0.0
             if lat != 0.0 or lon != 0.0:
                 alt = 0
-                if row["elevation_ft"]  != "":
+                if "elevation_ft" in row and row["elevation_ft"]  != "":
                     alt = float(row["elevation_ft"])*FT
                 apt = Airport(icao=row["ident"],
                               iata=row["iata_code"],
