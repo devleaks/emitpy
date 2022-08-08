@@ -18,7 +18,7 @@ e = EmitApp(MANAGED_AIRPORT)
 
 ret = e.do_mission(queue="raw",
                    emit_rate=30,
-                   operator="Airport Security",
+                   operator="HPD",
                    checkpoints=[],
                    mission="security",
                    vehicle_ident="JB007",

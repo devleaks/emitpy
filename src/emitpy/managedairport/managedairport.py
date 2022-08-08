@@ -3,6 +3,9 @@ import logging
 import pickle
 import os
 
+from timezonefinder import TimezoneFinder
+from zoneinfo import ZoneInfo
+
 from emitpy.airspace import XPAirspace, Metar
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftPerformance
@@ -25,7 +28,9 @@ class ManagedAirport:
         self._inited = False
         self._app = app  # context
         self.airport = None
-        self.timezone = Timezone(offset=self._this_airport["tzoffset"], name=self._this_airport["tzname"])
+        self.timezone = None
+
+        self.setTimezone()
 
 
     def init(self, load_airways: bool = False):
@@ -113,6 +118,22 @@ class ManagedAirport:
 
         self._inited = True
         return (True, "ManagedAirport::init done")
+
+
+    def setTimezone(self):
+        """
+        Build a python datetime tzinfo object for the airport local timezone.
+        Since python does not have a reference to all timezone, we rely on:
+        - pytz, a python implementation of  (at https://pythonhosted.org/pytz/, https://github.com/stub42/pytz)
+        - timezonefinder, a python package that finds the timezone of a (lat,lon) pair (https://github.com/jannikmi/timezonefinder).
+        """
+        if self._this_airport is not None and "tzoffset" in self._this_airport and "tzname" in self._this_airport:
+            self.timezone =  Timezone(offset=self._this_airport["tzoffset"], name=self._this_airport["tzname"])
+        if self._this_airport is not None and "lat" in self._this_airport and "lon" in self._this_airport:
+            tf = TimezoneFinder()
+            tzname = tf.timezone_at(lng=self._this_airport["lon"], lat=self._this_airport["lat"])
+            if tzname is not None:
+                self.timezone =  ZoneInfo(tzname)
 
 
     def update_metar(self):

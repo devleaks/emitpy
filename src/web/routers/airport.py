@@ -171,6 +171,10 @@ async def list_service_emits(request: Request):
 async def list_mission_emits(request: Request):
     return JSONResponse(content=request.app.state.emitpy.do_list(rtype=REDIS_TYPE.EMIT.value, mtype=REDIS_DATABASE.MISSIONS.value))
 
+@router.get("/emit/syncmarks/{ident}", tags=["movements"])
+async def list_syncmarks_for_emit(request: Request, ident: str):
+    return JSONResponse(content=request.app.state.emitpy.list_syncmarks(ident))
+
 
 # ###############################
 # Display allocations

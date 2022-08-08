@@ -23,7 +23,8 @@ e = EmitApp(MANAGED_AIRPORT)
 dohatime = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
 
 filename = os.path.join("..", "..", "data", "managedairport", "OTHH", "flights", "DEMO.csv")
-
+# First: 2019-04-03T03:31:28.911830+03:00
+# Last: 2019-04-07T14:38:07.612974+03:00
 with open(filename, 'r') as fp:
     numlines = len(fp.readlines())
 
@@ -35,17 +36,18 @@ for r in csvdata:
     a.append(r)
 
 sorted(a, key=lambda x: (x['FLIGHT SCHEDULED TIME_x']))
-print(len(a))
+
+# print("Emitalot: number of turnarounds", len(a))
 
 icao = {}
 
-NUM_TURNAROUNDS = len(a)
+NUM_TURNAROUNDS = 1
 DO_SERVICE = False
 USE_TURNAROUND = False
 
 cnt = NUM_TURNAROUNDS
-cnt_begin = 0 # random.randint(0, numlines) # random pair of flights
-cnt_end = cnt_begin + NUM_TURNAROUNDS - 1
+cnt_begin = 0 # random.randint(0, len(a)) # random pair of flights
+cnt_end = min(cnt_begin + NUM_TURNAROUNDS, len(a))
 
 queue = "test"
 rate = 30

@@ -27,7 +27,7 @@ from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX,
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE
 
 from emitpy.utils import NAUTICAL_MILE
-from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR
+from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.geo import FeatureWithProps
 
 
@@ -468,7 +468,7 @@ class LoadApp(ManagedAirport):
 
 
     def loadGSEFleet(self):
-        fn = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT["ICAO"], "services", "servicevehiclefleet.yaml")
+        fn = os.path.join(MANAGED_AIRPORT_DIR, "services", "servicevehiclefleet.yaml")
         with open(fn, "r") as file:
             data = yaml.safe_load(file)
             for f in data["ServiceVehicleFleet"]:
@@ -481,7 +481,7 @@ class LoadApp(ManagedAirport):
     # MANAGED AIRPORT
     #
     def loadFlightPlans(self):
-        flightplan_cache = os.path.join(DATA_DIR, "managedairport", self._this_airport["ICAO"], "flightplans")
+        flightplan_cache = os.path.join(MANAGED_AIRPORT_DIR, "flightplans")
         for f in sorted(os.listdir(flightplan_cache)):
             if f.endswith(".json"):
                 fn = os.path.join(flightplan_cache, f)

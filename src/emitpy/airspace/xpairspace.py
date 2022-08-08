@@ -123,46 +123,6 @@ class XPAirspace(Airspace):
         return self.airac_cycle
 
 
-    def loadAirports_alt(self):
-        """
-        Loads all airports from a csv file.
-        (From https://www.partow.net/miscellaneous/airportdatabase/index.html#Downloads)
-        Source can be changed as needed.
-        (Old version, not updated, missing airport. Left as reference but no longer used.)
-        """
-        startLen = len(self.vert_dict.keys())
-        count = 0
-        filename = os.path.join(DATA_DIR, "GlobalAirportDatabase.txt")
-        file = open(filename, "r")
-        logger.info(":loadAirports: from %s.", filename)
-        line = file.readline()
-        line.strip()
-
-        while line:
-            # GlobalAirportDatabase
-            # EBBR:BRU:BRUSSELS NATL:BRUSSELS:BELGIUM:050:054:008:N:004:029:055:E:00057:50.902:4.499
-            args = line.split(":")
-            if len(args) == 16:
-                lat = float(args[14])
-                lon = float(args[15])
-                alt = int(args[13])
-                if lat != 0.0 or lon != 0.0:
-                    apt = Terminal(name=args[0], lat=lat, lon=lon, alt=alt, iata=args[1], longname=args[2], country=args[3], city=args[4])
-                    self.airports_iata[args[1]] = apt
-                    self.airports_icao[args[0]] = apt
-                    self.add_vertex(apt)
-            else:
-                logger.warning(":loadAirports: invalid airport data %s.", line)
-            line = file.readline()
-            line.strip()
-            count += 1
-
-        file.close()
-
-        logger.debug(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
-        return [True, "XPAirspace::Airport loaded"]
-
-
     def loadAirports(self):
         """
         Loads all airports from a csv file.

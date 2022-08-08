@@ -1,3 +1,6 @@
+# API startup
+# Start with
+# uvicorn --reload --reload-dir ./emitpy api:app
 import json
 import logging
 import coloredlogs
@@ -151,8 +154,8 @@ app.add_middleware(CORSMiddleware,
 
 if SECURE_API:  # See https://github.com/mrtolkien/fastapi_simple_security on how to use
     if ALLOW_KEYGEN:
+        app.include_router(api_key_router, prefix="/auth", tags=["_auth"]) # , include_in_schema=False
         logger.warning(f":init {emitpy.__version__} «{emitpy.__version_name__}» key generation permitted")
-        app.include_router(api_key_router, prefix="/auth", include_in_schema=False)
     dependencies=[Depends(api_key_security)]
 else:
     dependencies=[]
