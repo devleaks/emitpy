@@ -939,9 +939,18 @@ class EmitApp(ManagedAirport):
 
         else:
             logger.debug(f":do_delete: deleting {ident}")
-            if what not in set(item.value for item in REDIS_TYPE):
-                logger.debug(f":do_delete: invalid type '{what}' for {ident}")
-            self.redis.delete(ident)
+            if arr[0] not in set(item.value for item in REDIS_DATABASE):
+                logger.debug(f":do_delete: no identified database '{arr[0]}' for {ident}")
+                return StatusInfo(570, f"no identified database '{arr[0]}' for {ident}", None)
+            elif what not in set(item.value for item in REDIS_TYPE):
+                logger.debug(f":do_delete: database '{arr[0]}'")
+                logger.debug(f":do_delete: no identified type '{what}' for {ident}")
+                if len(arr) == 2:
+                    logger.debug(f":do_delete: assuming top ident, deleting keys '{ident}:*'")
+                    subkeys = self.redis.keys(key_path(ident, "*"))
+                    for k in subkeys:
+                        self.redis.delete(k)
+                        logger.debug(f":do_delete: deleted {k}")
 
         if do_services:
             return StatusInfo(0, "deleted successfully (with services)", None)

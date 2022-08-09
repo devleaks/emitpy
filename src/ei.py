@@ -3,6 +3,8 @@ import sys
 import requests
 import json
 import urllib.parse
+import re
+import fnmatch
 
 parser = argparse.ArgumentParser("ei")
 sub_parsers = parser.add_subparsers(dest="command")
@@ -71,8 +73,8 @@ create_fltsvc.add_argument("flight", type=str, help="flight name, no wild card")
 #
 # RE-EMIT commands
 create_emit = create_parsers.add_parser("emit", help="create new emission of existing flight, service, or mission")
-create_emit.add_argument("frequency", type=int)
-create_emit.add_argument("queue", type=str)
+create_emit.add_argument("frequency", type=int, help="new frequency of emission as number of seconds bytween messages")
+create_emit.add_argument("queue", type=str, help="name of queue where to push emission")
 create_emit.add_argument("mark", type=str, help="synchronization mark")
 create_emit.add_argument("date", type=str, help="synchronization date")
 create_emit.add_argument("time", type=str, help="synchronization time")
@@ -118,6 +120,7 @@ list_cmd.add_argument("wildcard", type=str, default=None, nargs="?")
 del_cmd = sub_parsers.add_parser("delete", help="show details of an entity", aliases=["del"])
 del_cmd.add_argument("what", type=str, choices=["flight", "service", "mission", "queue"])
 del_cmd.add_argument("name", type=str)
+del_cmd.add_argument("queue", type=str)
 
 
 #
@@ -139,7 +142,41 @@ queue_stop.add_argument("what", type=str, choices=["queue"])
 queue_stop.add_argument("name", type=str)
 
 
-def pprint(r):
+
+def fltr(data, fe):
+    if fe is None:
+        print(data)
+        return
+
+    fere = fnmatch.translate(fe)
+    # print("has glob", fe, fere)
+    reObj = re.compile(fere)
+
+    if type(data).__name__ == "dict":
+        print("is dict")
+        for k, v in data.items():
+            if reObj.match(k) or reObj.match(v):
+                print(f"{k}: {v}")
+    elif type(data).__name__ == "list" and len(data) > 0:
+        print("is list", end=" ")
+        e = data[0]
+        if type(e).__name__ == "list":  # probably a pair of things, typically for combo boxes
+            print("of list")
+            for e in data:
+                r = list(filter(reObj.match, e))
+                if len(r) > 0:
+                    print(r)
+        else:  # assume single val
+            print("of items")
+            for e in data:
+                if reObj.match(e):
+                    print(e)
+    else:
+        print(f"is {type(data).__name__}")
+        print(data)
+
+
+def pprint(r, fe=None):
     if r.status_code == 200:
         t = r.json()
         if "status" in t:
@@ -152,7 +189,8 @@ def pprint(r):
                 if "data" in t and t["data"] is not None:
                     print(t["data"])
         else:  # probably just a [(name, value)]
-            print(t)
+            fltr(t, fe)
+
     elif r.status_code != 500:
         print(">"*10, r.status_code, r.request.url, r.request.method, r.json())
     else:
@@ -172,6 +210,7 @@ while loop:
         url = None
         data = None
         verb = requests.get
+        wc = None
 
         #
         # PREPARE IT
@@ -179,6 +218,7 @@ while loop:
             url = list_what[parsed.what]
             if parsed.what == "marks":
                 url = url + f"/{urllib.parse.quote(parsed.wildcard)}"
+            wc = parsed.wildcard
 
         elif hasattr(parsed, "what") and parsed.what == "queue":
             # special treatment for queues
@@ -220,13 +260,12 @@ while loop:
 
         elif parsed.command in ["delete", "del"]:
             verb = requests.delete
-            if parsed.what == "flight":
-                url = f"/flight/{urllib.parse.quote(parsed.name)}"
-            elif parsed.what == "service":
-                url = f"/service/{urllib.parse.quote(parsed.name)}"
-            elif parsed.what == "mission":
-                url = f"/mission/{urllib.parse.quote(parsed.name)}"
-
+            url = f"/{parsed.what}"
+            name = f"{parsed.what}_id"
+            data = {
+                name: parsed.name,
+                "queue": parsed.queue
+            }
 
         #
         # DO IT
@@ -237,7 +276,7 @@ while loop:
                 response = verb(BASE_URL + url, headers = {'api-key': API_KEY}, data=json.dumps(data))
             else:
                 response = verb(BASE_URL + url, headers = {'api-key': API_KEY})
-            pprint(response)
+            pprint(response, wc)
 
 
     except argparse.ArgumentError:
