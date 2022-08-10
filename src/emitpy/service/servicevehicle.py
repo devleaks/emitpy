@@ -63,7 +63,7 @@ class ServiceVehicle(Identity):
                 a.append(("tanker_large", "Large Fuel Tanker"))
                 a.append(("tanker_medium", "Medium Fuel Tanker"))
             else:
-                a.append((s.value+":default", s.value[0].upper()+s.value[1:]+" Vehicle"))
+                a.append((s.value+DEFAULT_VEHICLE, s.value[0].upper()+s.value[1:]+" Vehicle"))
         return a
 
     @staticmethod
@@ -73,8 +73,8 @@ class ServiceVehicle(Identity):
             a.append(("pump", "Fuel Jet Pump"))
             a.append(("tanker_large", "Large Fuel Tanker"))
             a.append(("tanker_medium", "Medium Fuel Tanker"))
-        else:
-            a.append((service+":default", service[0].upper()+service[1:]+" Vehicle"))
+        elif service in [item.value for item in SERVICE]:
+            a.append((service+DEFAULT_VEHICLE, service[0].upper()+service[1:]+" Vehicle"))
         return a
 
     @staticmethod
@@ -82,7 +82,6 @@ class ServiceVehicle(Identity):
         def is_default_model(model):
             if model is None:
                 return True
-            DEFAULT_VEHICLE = ":default"
             return len(model) <= len(DEFAULT_VEHICLE) or model[:-len(DEFAULT_VEHICLE)] != DEFAULT_VEHICLE
 
         servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
