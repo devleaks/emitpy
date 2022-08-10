@@ -776,6 +776,16 @@ class XPAirport(AirportBase):
         """
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOIs(service_name)))
 
+    def getDepotNames(self, service_name: str, redis = None):
+        """
+        Get all depot POIs for named service.
+
+        :param      service_name:  The service name
+        :type       service_name:  str
+        """
+        l = self.getDepots(service_name, redis)
+        return [(f.getName(), f.getName()) for f in l]
+
     def getNearestServiceDepot(self, service_name: str, position: Feature, redis = None):
         """
         Get nearest depot POI for named service.
@@ -793,6 +803,16 @@ class XPAirport(AirportBase):
         :type       service_name:  str
         """
         return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOIs(service_name)))
+
+    def getRestAreaNames(self, service_name: str, redis = None):
+        """
+        Get all depot POIs for named service.
+
+        :param      service_name:  The service name
+        :type       service_name:  str
+        """
+        l = self.getRestAreas(service_name, redis)
+        return [(f.getName(), f.getName()) for f in l]
 
     def getNearestServiceRestArea(self, service_name: str, position: Feature, redis = None):
         """
