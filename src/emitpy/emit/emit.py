@@ -247,7 +247,7 @@ class Emit(Messages):
         logger.debug(f":saveFile: ***** there are {len(self.scheduled_emit)} points")
 
         ls = toTraffic(self.scheduled_emit)
-        filename = os.path.join(basename + "-traffic.geojson")
+        filename = os.path.join(basename + "-traffic.csv")
         with open(filename, "w") as fp:
             fp.write(ls)
 
