@@ -6,7 +6,7 @@ import logging
 from emitpy.constants import FEATPROP, FLIGHT_DATABASE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
-from .formatter import Formatter, FormatterFlat, TrafficFormatter, LiveTrafficFormatter
+from .formatter import Formatter, FormatterFlat, TrafficFormatter, LiveTrafficFormatter, XPPlanesFormatter
 
 logger = logging.getLogger("Formatter")
 
@@ -14,6 +14,7 @@ FORMATTERS = {
     "flat": ("Flattened JSON", FormatterFlat),
     "lt": ("X-Plane LiveTraffic", LiveTrafficFormatter),
     "traffic": ("Traffic.py Library", TrafficFormatter),
+    "xpplane": ("XPPlanes shim", XPPlanesFormatter),
     "raw": ("Raw JSON", Formatter)
 }
 

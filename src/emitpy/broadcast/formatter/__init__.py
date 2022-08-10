@@ -5,3 +5,4 @@ from .formatterlivetraffic import LiveTrafficFormatter
 from .formatterflat import FormatterFlat
 # from .formatterwire import FormatterWire
 from .traffic import TrafficFormatter
+from .xpplanes import XPPlanesFormatter
