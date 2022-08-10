@@ -59,6 +59,8 @@ class Flight(Messages):
         if linked_flight is not None and linked_flight.linked_flight is None:
             linked_flight.setLinkedFlight(self) # will do self.setLinkedFlight(linked_flight)
 
+        self.aircraft.setCallsign(self.operator.icao + self.number)  # default
+
 
     @staticmethod
     def setProp(arr: list, propname: str, value: str):
