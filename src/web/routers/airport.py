@@ -102,12 +102,22 @@ async def list_service_types():
 
 @router.get("/service-type-pois/{service_type}", tags=["reference", "services"])
 async def list_service_type_pois(request: Request, service_type: str):
-    return JSONResponse(content=request.app.state.emitpy.airport.getServicePoisCombo(service_type))
+    return JSONResponse(content=request.app.state.emitpy.airport.getServicePoisCombo(service=service_type))
 
 
-@router.get("/service-vehicle-models/{service}", tags=["reference", "services"])
-async def list_service_vehicle_models(service: str):
-    return JSONResponse(content=ServiceVehicle.getModels(service))
+@router.get("/service-type-depots/{service_type}", tags=["reference", "services"])
+async def list_service_type_pois(request: Request, service_type: str):
+    return JSONResponse(content=request.app.state.emitpy.airport.getDepotNames(service_name=service_type))
+
+
+@router.get("/service-type-restareas/{service_type}", tags=["reference", "services"])
+async def list_service_type_pois(request: Request, service_type: str):
+    return JSONResponse(content=request.app.state.emitpy.airport.getRestAreaNames(service_name=service_type))
+
+
+@router.get("/service-vehicle-models/{service_type}", tags=["reference", "services"])
+async def list_service_vehicle_models(request: Request, service_type: str):
+    return JSONResponse(content=ServiceVehicle.getModels(service_type))
 
 
 @router.get("/service-handlers", tags=["reference", "services"])

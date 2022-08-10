@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, date, time, timedelta
 from typing import Optional, Literal, List
 
-from pydantic import BaseModel, Field, validator
+from pydantic import Field, validator
 
 from ..models import CreateMission, ScheduleMission, DeleteMission
 from emitpy.constants import EMIT_RATES
@@ -37,9 +37,9 @@ async def create_mission(
                 queue=mission_in.queue,
                 emit_rate=int(mission_in.emit_rate),
                 operator=mission_in.operator,
-                checkpoints=[],
+                checkpoints=mission_in.checkpoints,
                 mission=mission_in.mission,
-                vehicle_model=mission_in.mission_vehicle_type,
+                vehicle_model=mission_in.mission_vehicle_model,
                 vehicle_ident=mission_in.mission_vehicle_reg,
                 vehicle_icao24=mission_in.icao24,
                 vehicle_startpos=mission_in.previous_position,
