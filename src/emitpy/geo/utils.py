@@ -181,15 +181,17 @@ def asTrafficCSV(features: [FeatureWithProps], header:bool = True):
     # mandatory: timestamp, icao24, latitude, longitude, groundspeed, track, vertical_rate, callsign, altitude
     csv = ""
     if header:
-        csv = "icao24,callsign,timestamp,latitude,longitude,altitude,speed,track,vertical_rate\n"
+        csv = "timestamp,icao24,callsign,latitude,longitude,altitude,groundspeed,track,vertical_rate\n"
 
     c = features[0]  # constants
     icao24 = c.getProp("icao24")
-    callsign = c.getProp("callsign")
+    callsign = None
+    if "flight" in c["properties"] and "callsign" in c["properties"]["flight"]:
+        callsign = c["properties"]["flight"]["callsign"]
 
     for f in features:
         if f["geometry"]["type"] == "Point":
-            s = f"{icao24},{callsign},{f.getAbsoluteEmissionTime()},{f.lat()},{f.lon()},{f.altitude()},{f.speed()},{f.heading()},{f.vspeed()}\n"
+            s = f"{int(f.getAbsoluteEmissionTime())},{icao24},{callsign},{f.lat()},{f.lon()},{f.altitude(0)},{f.speed(0)},{f.heading(0)},{f.vspeed(0)}\n"
             csv = csv + s
 
     return csv
