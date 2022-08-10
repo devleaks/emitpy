@@ -15,7 +15,7 @@ logger = logging.getLogger("XPPlanes")
 
 class XPPlanesFormatter(FormatterBase):
 
-    NAME = "xp-planes"
+    NAME = "xpplanes"
 
     def __init__(self, feature: "FeatureWithProps"):
         FormatterBase.__init__(self, name=XPPlanesFormatter.NAME, feature=feature)
@@ -125,11 +125,15 @@ class XPPlanesFormatter(FormatterBase):
         emit_type = getprop("$.emit.emit-type")
 
         if emit_type == "flight":
-            callsign = getprop("$.flight.callsign").replace(" ","").replace("-","")
+            callsign = getprop("$.flight.callsign")
+            if callsign is not None:
+                callsign = callsign.replace(" ","").replace("-","")
             tailnumber = getprop("$.flight.aircraft.acreg")
         else:  # not a flight
-            callsign = getprop("$.service.callsign").replace(" ","").replace("-","")
-            tailnumber = getprop("$.vehicle.icao")
+            callsign = getprop("$.vehicle.callsign")
+            if callsign is not None:
+                callsign = callsign.replace(" ","").replace("-","")
+            tailnumber = getprop("$.vehicle.registration")
 
         ret = {
             "id" : icao24x,
