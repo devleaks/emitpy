@@ -12,7 +12,7 @@ from emitpy.parameters import XPLANE_FEED, XPLANE_HOSTNAME, XPLANE_PORT
 
 from .queue import Queue, RUN, STOP, QUIT
 
-QUIT_KEY = key_path(REDIS_DATABASE.QUEUES.value, QUIT)
+QUIT_KEY = Queue.mkDataKey(QUIT)  # key_path(REDIS_DATABASE.QUEUES.value, QUIT)
 
 logger = logging.getLogger("Broadcaster")
 
@@ -233,7 +233,7 @@ class Broadcaster:
                     logger.debug(f":trim: {self.name}: wait sender has stopped..")
                     self.oktotrim.wait()
                     self.oktotrim = None
-                    self._do_trim(ident=2)
+                    self._do_trim(ident="zadd")
                     logger.debug(f":trim: {self.name}: tell sender to restart, provide new blocking event..")
                     self.rdv = threading.Event()
                     self.trimmingcompleted.set()
@@ -279,7 +279,7 @@ class Broadcaster:
         tz = self._starttime.tzinfo if hasattr(self._starttime, "tzinfo") else None
 
         logger.debug(f":broadcast: {self.name}: pre-start trimming..")
-        self._do_trim()
+        self._do_trim("init")
         logger.debug(f":broadcast: {self.name}: ..done")
         logger.debug(f":broadcast: {self.name}: starting trimming thread..")
         self.rdv = threading.Event()
@@ -351,7 +351,7 @@ class Broadcaster:
                     logger.debug(f":broadcast: {self.name}: popped old event. Trim other old events..")
                     logger.debug(f":broadcast: {self.name}: {currval[2]} vs now={now} ({timetowait})..")
                     # It's an old event, we don't need to push it back on the queue, we won't send it.
-                    self._do_trim()
+                    self._do_trim("older")
                     self.rdv = threading.Event() # not really necessary?
                     logger.debug(f":broadcast: {self.name}: ..trim older events completed, restarted listening")
 
@@ -512,6 +512,10 @@ class Hypercaster:
             hyperlogger.warning(f":start_queue: {queue.name} is stopped")
 
     def terminate_queue(self, queue):
+        if hasattr(self.queues[queue], "deleted"):
+            if self.queues[queue].deleted:
+                hyperlogger.debug(f":terminate_queue: {queue} has already been deleted, do nothing")
+                return
         if hasattr(self.queues[queue], "broadcaster"):
             if hasattr(self.queues[queue].broadcaster, "shutdown_flag"):
                 self.queues[queue].broadcaster.shutdown_flag.set()
@@ -563,14 +567,14 @@ class Hypercaster:
                 if type(ty) == bytes:
                     ty = ty.decode("UTF-8")
                 if ty != "pmessage":
-                    # logger.debug(f":admin_queue: message type is not pmessage, ignoring")
+                    # hyperlogger.debug(f":admin_queue: message type is not pmessage, ignoring")
                     continue
 
                 ty = message["pattern"]
                 if type(ty) == bytes:
                     ty = ty.decode("UTF-8")
                 if ty != pattern:
-                    # logger.debug(f":admin_queue: pattern is not as expected ({ty} vs {pattern}), ignoring")
+                    # hyperlogger.debug(f":admin_queue: pattern is not as expected ({ty} vs {pattern}), ignoring")
                     continue
 
                 action = message["data"]
@@ -578,7 +582,7 @@ class Hypercaster:
                     action = action.decode("UTF-8")
 
                 if action not in ["set", "del"]:
-                    # logger.debug(f":admin_queue: ignoring action {action}")
+                    # hyperlogger.debug(f":admin_queue: ignoring action {action}")
                     continue
 
                 queuestr = message["channel"]
@@ -599,6 +603,12 @@ class Hypercaster:
                     if qn not in self.queues.keys():
                         self.queues[qn] = Queue.loadFromDB(name=qn, redis=self.redis)
                         self.start_queue(self.queues[qn])
+                    elif hasattr(self.queues[qn], "deleted"):
+                        if self.queues[qn].deleted:
+                            hyperlogger.info(f":admin_queue: queue {qn} was deleted, restarting..")
+                            self.queues[qn] = Queue.loadFromDB(name=qn, redis=self.redis)
+                            self.start_queue(self.queues[qn])
+                            self.queues[qn].broadcaster.rdv = threading.Event() # oulalaaaa!?
                     else:   # queue already exists, parameter changed, stop it first
                         hyperlogger.debug(f":admin_queue: queue {qn} already running, reseting..")
                         oldsp = self.queues[qn].speed
@@ -631,13 +641,22 @@ class Hypercaster:
                         hyperlogger.debug(f":admin_queue: ..done")
 
                 elif action == "del":
-                    if qn in self.queues.keys():
-                        if not hasattr(self.queues[qn], "deleted"):  # queue already exists, parameter changed, stop it first
-                            self.terminate_queue(qn)
-                            self.queues[qn].deleted = True
-                            hyperlogger.info(f":admin_queue: queue {qn} terminated")
-                        else:
-                            hyperlogger.debug(f":admin_queue: queue {qn} already deleted")
+                    # we want to delete a queue when queues:<queue_name> key is deleted.
+                    # we do NOT delete the queue if queues:data:<queue_name>, which contains emissions, is deleted
+                    # queues:data:<queue_name> is deleted when we remove the last emission from it (when it is empty)
+                    # 'channel': b'__keyspace@0__:queues:test' => delete test queue, we terminate it.
+                    # 'channel': b'__keyspace@0__:queues:data:test' => delete test data queue but we ignore it (just report debug)
+                    if not ":data:" in queuestr:
+                        if qn in self.queues.keys():
+                            # hyperlogger.info(f":admin_queue: queue {qn} vars: {vars(self.queues[qn])}")
+                            if not hasattr(self.queues[qn], "deleted"):  # queue already exists, parameter changed, stop it first
+                                self.terminate_queue(qn)
+                                self.queues[qn].deleted = True
+                                hyperlogger.info(f":admin_queue: queue {qn} terminated")
+                            else:
+                                hyperlogger.debug(f":admin_queue: queue {qn} already deleted")
+                    else:
+                        hyperlogger.debug(f":admin_queue: queue {qn} has no more data")
 
                 else:
                     hyperlogger.warning(f":admin_queue: ignoring '{message}'")
