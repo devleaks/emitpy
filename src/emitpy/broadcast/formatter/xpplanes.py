@@ -152,8 +152,8 @@ class XPPlanesFormatter(FormatterBase):
                 "lat" : coords[1],
                 "lon" : coords[0],
                 "alt_geo" : alt,
-                "gnd" : alt == 0,
-                "timestamp" : ts
+            #    "timestamp" : ts,
+                "gnd" : alt == 0
             },
             # "attitude" : {
             #     "roll" : -0.2,
@@ -171,7 +171,7 @@ class XPPlanesFormatter(FormatterBase):
             "light" : {
             #     "taxi" : True,
             #     "landing" : False,
-            #     "beacon" : True,
+                "beacon" : True,
             #     "nav" : True,
                 "strobe" : True
             }
@@ -187,5 +187,5 @@ class XPPlanesFormatter(FormatterBase):
         :param      f:    { parameter_description }
         :type       f:    { type_description }
         """
-        return f["position"]["timestamp"]
+        return None
 
