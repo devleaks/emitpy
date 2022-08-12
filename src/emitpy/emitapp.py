@@ -17,7 +17,7 @@ from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis, Queue
 # pylint: disable=W0611
 from emitpy.business import AirportManager
-from emitpy.constants import SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, LIVETRAFFIC_QUEUE
+from emitpy.constants import SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, LIVETRAFFIC_QUEUE, LIVETRAFFIC_FORMATTER
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, AIRAC_CYCLE
 from emitpy.parameters import REDIS_CONNECT, METAR_HISTORICAL, XPLANE_FEED
@@ -146,7 +146,7 @@ class EmitApp(ManagedAirport):
 
         if XPLANE_FEED:  # obstinately harcoded
             k = LIVETRAFFIC_QUEUE
-            v = LIVETRAFFIC_QUEUE
+            v = LIVETRAFFIC_FORMATTER
             if k not in self.queues.keys():
                 logger.debug(f":init: creating LiveTraffic queue..")
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
@@ -355,7 +355,7 @@ class EmitApp(ManagedAirport):
 
         logger.debug(":do_flight: ..scheduling..")
         # Schedule actual time if supplied
-        logger.debug(f":do_flight: scheduled={scheduled}, actual={actual_datetime}")
+        logger.debug(f":do_flight: scheduled={scheduled}, actual={actual_datetime} ({sync})")
         emit_time_str = actual_datetime if actual_datetime is not None else scheduled
         emit_time = datetime.fromisoformat(emit_time_str)
         if emit_time.tzname() is None:  # has no time zone, uses local one
