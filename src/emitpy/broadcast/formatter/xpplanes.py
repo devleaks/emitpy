@@ -102,38 +102,29 @@ class XPPlanesFormatter(FormatterBase):
         # /strobe strobe lights
         # /nav    navigation lights
         #
-        def getprop(path: str):
-            r = JSONPath(path).parse(self.feature.properties)
-            if len(r) == 1:
-                return r[0]
-            if len(r) > 1:
-                logger.warning(f":__str__: ambiguous return value for {path}")
-                return r[0]
-            return None
-
         f = self.feature
 
         icao24x = f.getProp(FEATPROP.ICAO24.value)
         coords   = f.coords()
         alt      = f.altitude(0) / FT  # m -> ft
 
-        airline = getprop("$.flight.airline.name")  # IATA name, QR
-        label = getprop("$.flight.identifier")
-        actype = getprop("$.flight.aircraft.actype.base-type.actype")
+        airline = f.getPropPath("$.flight.airline.name")  # IATA name, QR
+        label = f.getPropPath("$.flight.identifier")
+        actype = f.getPropPath("$.flight.aircraft.actype.base-type.actype")
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
 
-        emit_type = getprop("$.emit.emit-type")
+        emit_type = f.getPropPath("$.emit.emit-type")
 
         if emit_type == "flight":
-            callsign = getprop("$.flight.callsign")
+            callsign = f.getPropPath("$.flight.callsign")
             if callsign is not None:
                 callsign = callsign.replace(" ","").replace("-","")
-            tailnumber = getprop("$.flight.aircraft.acreg")
+            tailnumber = f.getPropPath("$.flight.aircraft.acreg")
         else:  # not a flight
-            callsign = getprop("$.vehicle.callsign")
+            callsign = f.getPropPath("$.vehicle.callsign")
             if callsign is not None:
                 callsign = callsign.replace(" ","").replace("-","")
-            tailnumber = getprop("$.vehicle.registration")
+            tailnumber = f.getPropPath("$.vehicle.registration")
 
         ret = {
             "id" : icao24x,
@@ -141,7 +132,7 @@ class XPPlanesFormatter(FormatterBase):
                 "airline" : airline,
                 "reg" : tailnumber,
                 "call" : callsign,
-                "label" : label
+                "label" : tailnumber
             },
             "type" : {
                 # "wingSpan" : 11.1,
@@ -149,17 +140,17 @@ class XPPlanesFormatter(FormatterBase):
                 "icao" : actype
             },
             "position" : {
-                "lat" : coords[1],
-                "lon" : coords[0],
+                "lat" : f.lat(),
+                "lon" : f.lon(),
                 "alt_geo" : alt,
             #    "timestamp" : ts,
                 "gnd" : alt == 0
             },
-            # "attitude" : {
+            "attitude" : {
             #     "roll" : -0.2,
-            #     "heading" : 42,
+                "heading" : f.heading(),
             #     "pitch" : 0.1
-            # },
+            },
             # "config" : {
             #     "mass" : 1037.6,
             #     "lift" : 10178.86,

@@ -387,6 +387,7 @@ class FEATPROP(Enum):
     BROADCAST = "broadcast"
     CITY = "city"
     CLASS = "class"
+    CLASS_ID = "classId"
     CONTROL_TIME = "control-time"
     COUNTRY = "country"
     DELAY = "delay"  # was pause in emitjs
@@ -402,19 +403,19 @@ class FEATPROP(Enum):
     FLIGHT_PLANDB_INDEX = "fpdb-index"
     GROUNDED = "grounded"
     HEADING = "heading"
-    TRACK = "track"
     ICAO24 = "icao24"
     MARK = "_mark"
     MESSAGE_ID = "message-id"
     MISSION = "mission"
-    PREMOVE_INDEX = "move-pre-index"
     MOVE_INDEX = "move-index"  # after standard turns added
     NAME = "name"
+    ORG_ID = "orgId"
     ORIENTATION = "orientation"
     PAUSE = "pause"
     PLAN_SEGMENT_NAME = "_plan_segment_name"
     PLAN_SEGMENT_TYPE = "_plan_segment_type"
     POI_TYPE = "poi-type"
+    PREMOVE_INDEX = "move-pre-index"
     REGION  = "region"
     RUNWAY = "runway"
     SAVED_TIME = "saved-time"
@@ -423,12 +424,12 @@ class FEATPROP(Enum):
     SPEED = "speed"
     STOP_TIME = "stop-time"
     TIME = "time"
-    VERTICAL_SPEED = "vspeed"
-    VSPEED = "vspeed"
-    ORG_ID = "orgId"
-    CLASS_ID = "classId"
+    TRACK = "track"
+    TRACKING = "track"
     TYPE_ID = "typeId"
     VERSION = "emitpy-version"
+    VERTICAL_SPEED = "vspeed"
+    VSPEED = "vspeed"
 
 
 ########################################
@@ -580,6 +581,7 @@ INTERNAL_QUEUES = {
     "wire": "wire"
 }
 LIVETRAFFIC_QUEUE = "lt"
+LIVETRAFFIC_FORMATTER = "xpplane"
 
 QUEUE_PREFIX = "emitpy:"
 QUEUE_DATA   = key_path("queues","data")

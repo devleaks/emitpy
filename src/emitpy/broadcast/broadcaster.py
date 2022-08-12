@@ -424,13 +424,18 @@ class Broadcaster:
 LTlogger = logging.getLogger("LiveTrafficForwarder")
 
 class LiveTrafficForwarder(Broadcaster):
+    """
+    LiveTrafficForwarder is a special process that dequeues messages and forwards them to a TCP or UDP or multicast port.
+    """
 
     def __init__(self, redis):
         Broadcaster.__init__(self, redis=redis, name=LIVETRAFFIC_QUEUE)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+        # self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Multicast
+        # self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 8)
         LTlogger.debug(f"LiveTrafficForwarder::__init__: inited")
 
-    def send_data(self, data: str) -> int:
+    def send_data_lt(self, data: str) -> int:
         fields = data.split(',')
         if len(fields) != 15:
             LTlogger.warning(f"LiveTrafficForwarder:send_data: Found {len(fields)} fields, expected 15, in line {data}")
@@ -442,6 +447,12 @@ class LiveTrafficForwarder(Broadcaster):
         fields[1] = f"{int(fields[1]):x}"
         LTlogger.debug(f"LiveTrafficForwarder::send_data: {datagram}")
         LTlogger.debug(f"LiveTrafficForwarder::send_data: ac:{fields[1]}: alt={fields[4]} ft, hdg={fields[7]}, speed={fields[8]} kn, vspeed={fields[5]} ft/min")
+        return 0
+
+    def send_data(self, data: str) -> int:
+        datagram = data
+        self.sock.sendto(datagram.encode('utf-8'), (XPLANE_HOSTNAME, XPLANE_PORT))
+        LTlogger.debug(f"LiveTrafficForwarder::send_data({XPLANE_HOSTNAME}:{XPLANE_PORT}): {datagram}")
         return 0
 
 
@@ -590,7 +601,7 @@ class Hypercaster:
                     queuestr = queuestr.decode("UTF-8")
                 qn = queuestr.split(ID_SEP)[-1]
 
-                logger.debug(f":admin_queue: processing {action} {qn}..")
+                # logger.debug(f":admin_queue: processing {action} {qn}..")
 
                 # hyperlogger.debug(f":admin_queue: received {msg}")
                 if action == "set" and qn == QUIT:  # this was provoked by self.redis.set(QUIT_KEY, QUIT)

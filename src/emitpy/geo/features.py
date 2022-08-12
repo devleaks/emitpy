@@ -5,6 +5,7 @@ import copy
 import inspect
 from geojson import Polygon, Point, Feature
 from turfpy.measurement import bearing, destination
+from jsonpath import JSONPath
 
 import emitpy
 from emitpy.constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
@@ -202,7 +203,7 @@ class FeatureWithProps(Feature):
             "fill-opacity": 0.5
         })
 
-    def setAltitude(self, alt: float, ref: str = None):
+    def setAltitude(self, alt: float, ref: str = "ASL"):  # ref={ASL|AGL|BARO}
         # ref could be ASL, AGL, BARO
         # Altitude should be in meters
         if len(self["geometry"]["coordinates"]) > 2:
@@ -293,6 +294,16 @@ class FeatureWithProps(Feature):
         if a is None or a == "None":
             return default
         return float(a)
+
+    def getPropPath(self, path: str):
+        r = JSONPath(path).parse(self["properties"])
+        if len(r) == 1:
+            return r[0]
+        if len(r) > 1:
+            logger.warning(f":__str__: ambiguous return value for {path}")
+            return r[0]
+        return None
+
 
 
 # ################################

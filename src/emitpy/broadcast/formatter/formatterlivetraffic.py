@@ -41,7 +41,7 @@ class LiveTrafficFormatter(FormatterBase):
     NAME = "lt"
 
     def __init__(self, feature: "FeatureWithProps"):
-        Formatter.__init__(self, name=LiveTrafficFormatter.NAME, feature=feature)
+        FormatterBase.__init__(self, name=LiveTrafficFormatter.NAME, feature=feature)
         self.fileformat = "csv"
 
     def __str__(self):
