@@ -24,7 +24,7 @@ from emitpy.broadcast import Hypercaster
 # #########################
 # COLORFUL LOGGING
 #
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("api")
 logging.addLevelName(5, "spam")
 
@@ -134,6 +134,8 @@ tags_metadata = [
     }
 ]
 
+logger.info(f":init {emitpy.__NAME__} {emitpy.__COPYRIGHT__}")
+logger.info(f":init Usable under Licence {emitpy.__LICENSE__} {emitpy.__LICENSEURL__}")
 
 app = FastAPI(
     title="Emitpy REST API",
@@ -193,16 +195,18 @@ async def startup():
     # + redis_connect info
     logger.info(f":startup: {APP_NAME} taking off from «{MANAGED_AIRPORT['name']}»..")
     app.state.emitpy = EmitApp(MANAGED_AIRPORT)
+    logger.info(f":startup: {APP_NAME} ..positive climb. gear up. Starting hypercaster..")
     app.state.hypercaster = Hypercaster()
-    logger.log(5, f":startup: {APP_NAME} ..positive climb. gear up. AP 1 on.")
+    logger.info(f":startup: {APP_NAME} ..hypercaster running")
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    logger.info(f":shutdown {APP_NAME} ..cleared for landing..")
-    app.state.emitpy.shutdown()
+    logger.info(f":shutdown {APP_NAME} cleared for landing..")
     app.state.hypercaster.shutdown()  # shutdown last as it might not terminate properly...
-    logger.info(f":shutdown {APP_NAME} ..landed. taxiing to gate")
+    logger.info(f":shutdown {APP_NAME} ..landed. taxiing to gate..")
+    app.state.emitpy.shutdown()
+    logger.info(f":shutdown {APP_NAME} ..on block")
     logger.info(f":shutdown kiss landed at «{MANAGED_AIRPORT['name']}». Have a nice day.")
 
 

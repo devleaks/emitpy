@@ -493,6 +493,7 @@ class Hypercaster:
         self.heartbeat = BROADCASTER_HEARTBEAT
 
         self.init()
+        hyperlogger.info(f":init: started {list(self.queues.keys())} and admin queue")
 
     def init(self):
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
@@ -501,7 +502,6 @@ class Hypercaster:
         self.admin_queue_thread = threading.Thread(target=self.admin_queue)
         self.admin_queue_thread.start()
         hyperlogger.info(f":init: admin_queue started")
-        hyperlogger.debug(f":init: {self.queues.keys()}")
 
     def start_queue(self, queue):
         if self.queues[queue.name].status == RUN:
