@@ -26,7 +26,7 @@ class RTTFCFormatter(Formatter):
 
         rttfcObj = {
           "RTTFC": "RTTFC",
-          "hexid": 4921345, # int(f.getPropPath("flight.aircraft.icao24"), 16),
+          "hexid": 4921333, # int(f.getPropPath("flight.aircraft.icao24"), 16),
           "lat": f.lat(),
           "lon": f.lon(),
           "baro_alt": f.altitude(0) / FT,
@@ -42,7 +42,7 @@ class RTTFCFormatter(Formatter):
           "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
           "source": "X2",
           "cs_iata": "CSIATA",
-          "msg_type": "adsb_other",
+          "msg_type": "adsb_icao",
           "alt_geom": -1,
           "IAS": -1,
           "TAS": -1,
@@ -50,10 +50,10 @@ class RTTFCFormatter(Formatter):
           "track_rate": -1,
           "roll": -1,
           "mag_heading": -1,
-          "true_heading": 0,
+          "true_heading": f.getProp(FEATPROP.HEADING.value),
           "geom_rate": -1,
           "emergency": "",
-          "category": "C3",
+          "category": "A3",
           "nav_qnh": -1,
           "nav_altitude_mcp": -1,
           "nav_altitude_fms": -1,
@@ -66,9 +66,54 @@ class RTTFCFormatter(Formatter):
           "OAT": -1,
           "TAT": -1,
           "isICAOhex": 0,
-          "augmentation_status": 0,
+          "augmentation_status": 262609,
           "authentication": ""
         }
+        # rttfcObj = {
+        #     "RTTFC": "RTTFC",
+        #     "hexid": int(f.getPropPath("flight.aircraft.icao24"), 16),
+        #     "lat": f.lat(),
+        #     "lon": f.lon(),
+        #     "baro_alt": f.altitude(0) / FT,  # m -> ft
+        #     "baro_rate": "",
+        #     "gnd": "",
+        #     "track": f.getProp(FEATPROP.HEADING.value),
+        #     "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,  # m/s in kn"
+        #     "cs_icao": "",
+        #     "ac_type": "",
+        #     "ac_tailno": "",
+        #     "from_iata": "",
+        #     "to_iata": "",
+        #     "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
+        #     "source": "EP",
+        #     "cs_iata": "",
+        #     "msg_type": "other",
+        #     "alt_geom": -1,
+        #     "ias": -1,
+        #     "tas": -1,
+        #     "mach": -1.0,
+        #     "track_rate": -1.0,
+        #     "roll": -1.0,
+        #     "mag_heading": -1.0,
+        #     "true_heading": f.getProp(FEATPROP.HEADING.value),
+        #     "geom_rate": -1,
+        #     "emergency": "",
+        #     "category": "",
+        #     "nav_qnh": -1,
+        #     "nav_altitude_mcp": -1,
+        #     "nav_altitude_fms": -1,
+        #     "nav_heading": -1.00,
+        #     "nav_modes": "",
+        #     "seen": "",
+        #     "rssi": "",
+        #     "winddir": -1,
+        #     "windspd": -1,
+        #     "oat": -1,
+        #     "tat": -1,
+        #     "isicaohex": 0,  # we randomly generate it...
+        #     "augmentation_status": "",
+        #     "authentication": ""
+        # }
 
         airborne = (rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50)  # should be: speed < min(takeoff_speed, landing_speed)
         rttfcObj["gnd"] = 0 if not airborne else 1  # :-)
