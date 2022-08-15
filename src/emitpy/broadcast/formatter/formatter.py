@@ -2,11 +2,11 @@ import json
 from emitpy.constants import FEATPROP
 
 
-class FormatterBase:
+class Formatter:
 
     NAME = "abc"
 
-    def __init__(self, name: str, feature: "Feature"):
+    def __init__(self, name: str, feature: "FeatureWithProps"):
         self.feature = feature
         self.name = name
 
@@ -31,9 +31,9 @@ class FormatterBase:
         return None
 
 
-class Formatter(FormatterBase):
+class FormatterRaw(Formatter):
 
     NAME = "raw"
 
-    def __init__(self, feature: "Feature"):
-        FormatterBase.__init__(self, name=Formatter.NAME, feature=feature)
+    def __init__(self, feature: "FeatureWithProps"):
+        Formatter.__init__(self, name=FormatterRaw.NAME, feature=feature)

@@ -1,14 +1,14 @@
 import json
 import flatdict
-from .formatter import FormatterBase
+from .formatter import Formatter
 
 
-class FormatterFlat(FormatterBase):
+class FormatterFlat(Formatter):
 
     NAME = "flat"
 
     def __init__(self, feature: "Feature"):
-        FormatterBase.__init__(self, name=FormatterFlat.NAME, feature=feature)
+        Formatter.__init__(self, name=FormatterFlat.NAME, feature=feature)
 
 
     def __str__(self):

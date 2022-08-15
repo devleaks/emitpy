@@ -7,17 +7,17 @@ from jsonpath import JSONPath
 from emitpy.constants import FEATPROP
 from emitpy.utils import FT, NAUTICAL_MILE
 
-from .formatter import FormatterBase
+from .formatter import Formatter
 
-logger = logging.getLogger("AITFCFormatter")
+logger = logging.getLogger("TrafficFormatter")
 
 
-class TrafficFormatter(FormatterBase):
+class TrafficFormatter(Formatter):
 
     NAME = "traffic-flight"
 
     def __init__(self, feature: "FeatureWithProps"):
-        FormatterBase.__init__(self, name=TrafficFormatter.NAME, feature=feature)
+        Formatter.__init__(self, name=TrafficFormatter.NAME, feature=feature)
         self.name = "lt"
 
     def __str__(self):

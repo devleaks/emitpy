@@ -6,21 +6,26 @@ import logging
 from emitpy.constants import FEATPROP, FLIGHT_DATABASE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
-from .formatter import Formatter, FormatterFlat, TrafficFormatter, LiveTrafficFormatter, XPPlanesFormatter
+# Generic, yet another flavor of vanilla:
+from .formatter import FormatterRaw, FormatterFlat, TrafficFormatter
+
+# For X-Plane LiveTraffic and XPPlanes plugins:
+from .formatter import AITFCFormatter, RTTFCFormatter, XPPlanesFormatter
 
 logger = logging.getLogger("Formatter")
 
 FORMATTERS = {
     "flat": ("Flattened JSON", FormatterFlat),
-    "lt": ("X-Plane LiveTraffic", LiveTrafficFormatter),
+    "aitfc": ("X-Plane LiveTraffic", AITFCFormatter),
+    "rttfc": ("X-Plane LiveTraffic", RTTFCFormatter),
+    "xpplanes": ("XPPlanes shim", XPPlanesFormatter),
     "traffic": ("Traffic.py Library", TrafficFormatter),
-    "xpplane": ("XPPlanes shim", XPPlanesFormatter),
-    "raw": ("Raw JSON", Formatter)
+    "raw": ("Raw JSON", FormatterRaw)
 }
 
 class Format:
 
-    def __init__(self, emit: "Emit", formatter: Formatter):
+    def __init__(self, emit: "Emit", formatter: FormatterRaw):
         self.emit = emit
         self.formatter = formatter
         self.output = []
@@ -34,7 +39,7 @@ class Format:
 
     @staticmethod
     def getFormatter(name):
-        return FORMATTERS[name][1] if name in FORMATTERS.keys() else Formatter
+        return FORMATTERS[name][1] if name in FORMATTERS.keys() else FormatterRaw
 
 
     def format(self):

@@ -158,7 +158,9 @@ REDIS_DATABASES = {
     "unknowndb": REDIS_DATABASE.UNKNOWN.value  # should be symmetric to avoid issues
 }
 
-
+#
+# R  E  D  I  S
+#
 # Redis key builder with domains
 def key_path(*args):  # difficult to "import" without circular issues
     a = map(lambda x: x if x is not None else "", args)
@@ -576,12 +578,16 @@ class SERVICE_PHASE_COLOR(Enum):
 class MESSAGE_COLOR(Enum):
     DEFAULT = "#888888"
 
+# Broadcaster Queues
 INTERNAL_QUEUES = {
     "raw": "raw",
     "wire": "wire"
 }
-LIVETRAFFIC_QUEUE = "lt"
-LIVETRAFFIC_FORMATTER = "xpplane"
 
-QUEUE_PREFIX = "emitpy:"
-QUEUE_DATA   = key_path("queues","data")
+LIVETRAFFIC_QUEUE = "lt"            # should be lt
+LIVETRAFFIC_FORMATTER = "rttfc"     # {aitfc|rttfc|xpplanes}
+LIVETRAFFIC_VERBOSE = True
+
+# Redis Publish/Subscribe
+PUBSUB_CHANNEL_PREFIX = "emitpy:"
+QUEUE_DATA   = key_path(REDIS_DATABASE.QUEUES.value,"data")

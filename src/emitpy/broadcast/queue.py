@@ -65,7 +65,10 @@ class Queue:
         qstr = redis.get(ident)
         if qstr is not None:
             q = json.loads(qstr.decode("UTF-8"))
-            logger.debug(f":loadFromDB: loaded {name}")
+            if name == LIVETRAFFIC_QUEUE:
+                logger.debug(f":loadFromDB: loaded LiveTraffic queue with {q['formatter_name']} formatter")
+            else:
+                logger.debug(f":loadFromDB: loaded {name}")
             start = True
             if "status" in q and q["status"] == STOP:
                 start = False

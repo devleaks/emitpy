@@ -8,167 +8,194 @@ from emitpy.constants import FEATPROP
 from emitpy.airport import Airport
 from emitpy.utils import FT, NAUTICAL_MILE
 
-from .formatter import FormatterBase
+from .formatter import Formatter
 
 logger = logging.getLogger("RTTFCFormatter")
 
 
-class RTTFCFormatter(FormatterBase):
+class RTTFCFormatter(Formatter):
 
     NAME = "rttfc"
 
     def __init__(self, feature: "FeatureWithProps"):
-        FormatterBase.__init__(self, name=RTTFCFormatter.NAME, feature=feature)
+        Formatter.__init__(self, name=RTTFCFormatter.NAME, feature=feature)
         self.name = "rttfc"
 
     def __str__(self):
-        # RTTFC,hexid, lat, lon, baro_alt, baro_rate, gnd, track, gsp, cs_icao, ac_type, ac_tailno,
-        #       from_iata, to_iata, timestamp, source, cs_iata, msg_type, alt_geom, IAS, TAS, Mach,
-        #       track_rate, roll, mag_heading, true_heading, geom_rate, emergency, category,
-        #       nav_qnh, nav_altitude_mcp, nav_altitude_fms, nav_heading, nav_modes, seen, rssi,
-        #       winddir, windspd, OAT, TAT, isICAOhex,augmentation_status,authentication
+        f = self.feature
 
-        # RTTFC,hexid,  lat,      lon,      baro_alt, baro_rate, gnd, track, gsp, cs_icao, ac_type, ac_tailno,from_iata, to_iata, timestamp,              source, cs_iata,  msg_type, alt_geom, IAS, TAS, Mach,track_rate, roll, mag_heading, true_heading, geom_rate, emergency, category,nav_qnh, nav_altitude_mcp, nav_altitude_fms, nav_heading, nav_modes, seen, rssi, winddir, windspd, OAT, TAT, isICAOhex, augmentation_status, authentication
-        # RTTFC,9004093,25.175100,51.675200,3450    ,13        , 0  ,115   , 139,  ETD394,    A321,    A6-AEG,         ,        ,       256, OpenSky Live Online,  ETD394, lt_export,     3092,  -1,  -1,   -1,        -1,   -1,          -1,       114.67,        13,      none,         ,     -1,               -1,               -1,          -1,        -1,   -1,   -1,      -1,      -1,  -1,  -1,         1,                    ,
+        rttfcObj = {
+          "RTTFC": "RTTFC",
+          "hexid": 4921345, # int(f.getPropPath("flight.aircraft.icao24"), 16),
+          "lat": f.lat(),
+          "lon": f.lon(),
+          "baro_alt": f.altitude(0) / FT,
+          "baro_rate": 0,
+          "gnd": 1,  # default will be updated below
+          "track": f.getProp(FEATPROP.HEADING.value),
+          "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,
+          "cs_icao": "CSICAO",
+          "ac_type": "A320",
+          "ac_tailno": "OO-PMA",
+          "from_iata": "BRU",
+          "to_iata": "",
+          "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
+          "source": "X2",
+          "cs_iata": "CSIATA",
+          "msg_type": "adsb_other",
+          "alt_geom": -1,
+          "IAS": -1,
+          "TAS": -1,
+          "Mach": -1,
+          "track_rate": -1,
+          "roll": -1,
+          "mag_heading": -1,
+          "true_heading": 0,
+          "geom_rate": -1,
+          "emergency": "",
+          "category": "C3",
+          "nav_qnh": -1,
+          "nav_altitude_mcp": -1,
+          "nav_altitude_fms": -1,
+          "nav_heading": -1,
+          "nav_modes": "",
+          "seen": 60,
+          "rssi": -1,
+          "winddir": -1,
+          "windspd": -1,
+          "OAT": -1,
+          "TAT": -1,
+          "isICAOhex": 0,
+          "augmentation_status": 0,
+          "authentication": ""
+        }
 
-        # RTTFC,7389381,25.290900,51.590000,0,0,1,245,4,QTR1399,A333,A4O-DI,OTHH,DTTA,249,OpenSky Live Online,QTR1399,lt_export,0,-1,-1,-1,-1,-1,-1,244.69,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,7389381,25.290900,51.590000,0,0,1,245,4,QTR1399,A333,A4O-DI,OTHH,DTTA,249,OpenSky Live Online,QTR1399,lt_export,0,-1,-1,-1,-1,-1,-1,244.69,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,434334,25.282000,51.593700,0,0,1,158,34,QTR209,A320,A7-AHW,,,250,OpenSky Live Online,QTR209,lt_export,0,-1,-1,-1,-1,-1,-1,157.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9004093,25.175100,51.675200,3450,13,0,115,139,ETD394,A321,A6-AEG,,,256,OpenSky Live Online,ETD394,lt_export,3092,-1,-1,-1,-1,-1,-1,114.67,13,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9004049,25.283200,51.614600,375,0,0,159,52,ABY136,A320,A6-AOE,,,256,OpenSky Live Online,ABY136,lt_export,17,-1,-1,-1,-1,-1,-1,158.51,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,434505,25.288900,51.606700,0,0,1,338,0,QTR76R,A388,A7-APH,,,302,OpenSky Live Online,QTR76R,lt_export,0,-1,-1,-1,-1,-1,-1,337.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,4949106,25.281200,51.610000,0,0,1,248,1,QTR8409,B744,TC-ACR,VHHH,OTHH,308,OpenSky Live Online,QTR8409,lt_export,0,-1,-1,-1,-1,-1,-1,247.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9004093,25.160500,51.749900,5975,12,0,101,141,ETD394,A321,A6-AEG,,,311,OpenSky Live Online,ETD394,lt_export,5617,-1,-1,-1,-1,-1,-1,101.39,12,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9004049,25.245300,51.630900,1525,4,0,157,91,ABY136,A320,A6-AOE,,,311,OpenSky Live Online,ABY136,lt_export,1167,-1,-1,-1,-1,-1,-1,157.36,4,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        #
-        # RTTFC,9004338,25.185500,55.485600,2150,-4,0,301,97,FDB866,B38M,A6-FMM,,,102,OpenSky Live Online,FDB866,lt_export,1792,-1,-1,-1,-1,-1,-1,301.49,-4,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,4958674,25.259500,55.359800,325,3,0,301,86,THY2YH,A333,TC-JNR,,,103,OpenSky Live Online,THY2YH,lt_export,-33,-1,-1,-1,-1,-1,-1,301.32,3,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9004023,25.252300,55.378200,0,0,1,121,5,A6EOZ,A388,A6-EOZ,,,103,OpenSky Live Online,A6EOZ,lt_export,0,-1,-1,-1,-1,-1,-1,120.94,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,7389446,25.254600,55.364900,0,0,1,121,9,OMA604,B38M,A4O-MK,,,103,OpenSky Live Online,OMA604,lt_export,0,-1,-1,-1,-1,-1,-1,120.94,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9003829,25.426700,55.310500,5700,11,0,23,141,FDB5DA,B738,A6-FED,,,109,OpenSky Live Online,FDB5DA,lt_export,5342,-1,-1,-1,-1,-1,-1,23.20,11,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9006849,25.253300,55.351300,0,0,1,31,1,SW10,ZZZC,,,,124,OpenSky Live Online,SW10,lt_export,0,-1,-1,-1,-1,-1,-1,30.94,0,none,C2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9006794,25.264100,55.347900,0,0,1,174,3,CM4,ZZZC,,,,126,OpenSky Live Online,CM4,lt_export,0,-1,-1,-1,-1,-1,-1,174.38,0,none,C2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,8392033,25.256000,55.349000,0,0,1,31,1,IGO064,A20N,VT-IZU,,,129,OpenSky Live Online,IGO064,lt_export,0,-1,-1,-1,-1,-1,-1,30.94,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9006778,25.250900,55.363700,0,0,1,253,4,,,,,,135,OpenSky Live Online,,lt_export,0,-1,-1,-1,-1,-1,-1,253.12,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,9006778,25.250900,55.363700,0,0,1,253,4,,ZZZC,,,,135,OpenSky Live Online,,lt_export,0,-1,-1,-1,-1,-1,-1,253.12,0,none,C2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        # RTTFC,3949968,25.262900,55.360000,0,0,1,42,1,BOX513,,,,,137,OpenSky Live Online,BOX513,lt_export,0,-1,-1,-1,-1,-1,-1,42.19,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
-        #
-        def getprop(path: str):
-            r = JSONPath(path).parse(self.feature.properties)
-            if len(r) == 1:
-                return r[0]
-            elif len(r) > 1:
-                logger.warning(f":__str__: ambiguous return value for {path}")
-                return r[0]
-            return None
+        airborne = (rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50)  # should be: speed < min(takeoff_speed, landing_speed)
+        rttfcObj["gnd"] = 0 if not airborne else 1  # :-)
 
-
-        icao24x = getProp("flight.aircraft.icao24")
-        hexid = int(icao24x, 16)
-
-        icao24x = f.getProp(FEATPROP.ICAO24.value)
-        if icao24x is not None:
-            icao24 = int(str(icao24x), 16)  # https://stackoverflow.com/questions/46341329/int-cant-convert-non-string-with-explicit-base-when-converting-to-gui
-        else:
-            icao24 = None
-
-        coords   = f.coords()
-
-        baro_alt = f.altitude(0) / FT  # m -> ft
-        baro_rate = 0
-
-        vspeed   = f.vspeed(0) * FT * 60  # m/s -> ft/min
-        speed    = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
-
-        airborne = (alt > 0 and speed > 50)
-        gnd = not airborne  # :-)
-
-        track  = f.getProp(FEATPROP.HEADING.value)
-
-        gsp = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
-
-
-
-        timestamp = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
-        source = "emitpy"
-
-        emit_type = getprop("$.emit.emit-type")
-
+        emit_type = f.getPropPath("$.emit.emit-type")
         if emit_type == "flight":
-            actype = getprop("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
-            callsign = getprop("$.flight.callsign").replace(" ","").replace("-","")
-            ac_tailno = getprop("$.flight.aircraft.acreg")
+            rttfcObj["ac_type"] = f.getPropPath("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
+            callsign = f.getPropPath("$.flight.callsign")
+            if callsign is not None:
+                rttfcObj["cs_icao"] = callsign.replace(" ","").replace("-","")
+            callsign = f.getPropPath("$.flight.flightnumber")
+            if callsign is not None:
+                rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
+            rttfcObj["ac_tailno"] = f.getPropPath("$.flight.aircraft.acreg")
+            rttfcObj["from_iata"] = f.getPropPath("$.flight.departure.airport.iata")
+            rttfcObj["to_iata"] = f.getPropPath("$.flight.arrival.airport.iata")
 
-            from_iata = getprop("$.flight.departure.iata")
-            to_iata = getprop("$.flight.arrival.iata")
+        # elif emit_type == "service":
+        #     callsign = f.getPropPath("$.service.vehicle.callsign")
+        #     if callsign is not None:
+        #         rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
+        #     rttfcObj["ac_tailno"] = f.getPropPath("$.service.vehicle.registration")
+        #     # ac_type blank for ground vehicle
 
-            aptfrom = getprop("$.flight.departure.icao")     # IATA
-            aptto = getprop("$.flight.arrival.icao")  # IATA
+        # elif emit_type == "mission":
+        #     callsign = f.getPropPath("$.mission.vehicle.callsign")
+        #     if callsign is not None:
+        #         rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
+        #     rttfcObj["ac_tailno"] = f.getPropPath("$.mission.vehicle.registration")
+        #     # ac_type blank for ground vehicle
 
-            cs_icao= getProp("$.flight.aircraft.callsign")
-            cs_iata = getProp("$.flight.flightnumber").replace(" ", "")
+        # else:
+        #     logger.warning(f":__str__: invalid emission type {emit_type}")
+        #     return None
 
-            alt_geom = f.getProp("")
-            ias = f.getProp("")
-            tas = f.getProp("")
-            mach = f.getProp("")
-            track_rate = f.getProp("")
-            roll = f.getProp("")
-
-        elif emit_type == "service":
-            callsign = getprop("$.service.vehicle.callsign").replace(" ","").replace("-","")
-            ac_tailno = getprop("$.service.vehicle.registration")
-            actype = getprop("$.service.vehicle.icao")
-            from_iata = ""
-            to_iata = ""
-            aptfrom = ""
-            aptto = ""
-
-        elif emit_type == "mission":
-            callsign = getprop("$.mission.vehicle.callsign").replace(" ","").replace("-","")
-            ac_tailno = getprop("$.mission.vehicle.registration")
-            actype = getprop("$.mission.vehicle.icao")
-            from_iata = ""
-            to_iata = ""
-            aptfrom = ""
-            aptto = ""
-
-        else:
-            logger.warning(f":__str__: invalid emission type {emit_type}")
-            return None
+        return ",".join([str(f) for f in rttfcObj.values()]).replace("None", "")
 
 
-        msg_type = f.getProp("")
-        mag_heading = f.getProp("")
-        true_heading = f.getProp("")
+    @staticmethod
+    def getAbsoluteTime(f):
+        """
+        Method that returns the absolute emission time of a formatted message
 
-        geom_rate = f.getProp("")
-        emergency = f.getProp("")
-        category, = f.getProp("")
+        :param      f:    { parameter_description }
+        :type       f:    { type_description }
+        """
+        a = f.split(",")
+        if len(a) == 43:  # len()>15?
+            return a[14]
+        return None
 
-        nav_qnh = f.getProp("")
-        nav_altitude_mcp = f.getProp("")
-        nav_altitude_fms = f.getProp("")
-        nav_heading = f.getProp("")
-        nav_modes = f.getProp("")
+# ###########################################
+#
+# • RTTFC
+# • hexid
+# • lat = latitude
+# • lon = longitude
+# • baro_alt = barometric altitude
+# • baro_rate = barometric vertical rate
+# • gnd = ground flag
+# • track = track
+# • gsp = ground speed
+# • cs_icao = ICAO call sign
+# • ac_type = aircraft type
+# • ac_tailno = aircraft registration
+# • from_iata = origin IATA code
+# • to_iata = destination IATA code
+# • timestamp = unix epoch timestamp when data was last updated
+# • source = data source
+# • cs_iata = IATA call sign
+# • msg_type = type of message
+# • alt_geom = geometric altitude (WGS84 GPS altitude)
+# • IAS = indicated air speed
+# • TAS = true air speed
+# • Mach = Mach number
+# • track_rate = rate of change for track
+# • roll = roll in degrees, negative = left
+# • mag_heading = magnetic heading
+# • true_heading = true heading
+# • geom_rate = geometric vertical rate
+# • emergency = emergency status
+# • category = category of the aircraft
+# • nav_qnh = QNH setting navigation is based on
+# • nav_altitude_mcp = altitude dialled into the MCP in the flight deck
+# • nav_altitude_fms = altitude set by the flight management system (FMS)
+# • nav_heading = heading set by the MCP
+# • nav_modes = which modes the autopilot is currently in
+# • seen = seconds since any message updated this aircraft state vector
+# • rssi = signal strength of the receiver
+# • winddir = wind direction in degrees true north
+# • windspd = wind speed in kts
+# • OAT = outside air temperature / static air temperature
+# • TAT = total air temperature
+# • isICAOhex = is this hexid an ICAO assigned ID.
+# • Augmentation_status = has this record been augmented from multiple sources
+# • Authentication = authentication status of the license, safe to ignore.
+#
+# ###########################################
+#
+# RTTFC,hexid, lat, lon, baro_alt, baro_rate, gnd, track, gsp, cs_icao, ac_type, ac_tailno,
+#       from_iata, to_iata, timestamp, source, cs_iata, msg_type, alt_geom, IAS, TAS, Mach,
+#       track_rate, roll, mag_heading, true_heading, geom_rate, emergency, category,
+#       nav_qnh, nav_altitude_mcp, nav_altitude_fms, nav_heading, nav_modes, seen, rssi,
+#       winddir, windspd, OAT, TAT, isICAOhex,augmentation_status,authentication
 
-        seen = f.getProp("")
-        rssi, = f.getProp("")
+# RTTFC,hexid,  lat,      lon,      baro_alt, baro_rate, gnd, track, gsp, cs_icao, ac_type, ac_tailno,from_iata, to_iata, timestamp,              source, cs_iata,  msg_type, alt_geom, IAS, TAS, Mach,track_rate, roll, mag_heading, true_heading, geom_rate, emergency, category,nav_qnh, nav_altitude_mcp, nav_altitude_fms, nav_heading, nav_modes, seen, rssi, winddir, windspd, OAT, TAT, isICAOhex, augmentation_status, authentication
+# RTTFC,9004093,25.175100,51.675200,3450    ,13        , 0  ,115   , 139,  ETD394,    A321,    A6-AEG,         ,        ,       256, OpenSky Live Online,  ETD394, lt_export,     3092,  -1,  -1,   -1,        -1,   -1,          -1,       114.67,        13,      none,         ,     -1,               -1,               -1,          -1,        -1,   -1,   -1,      -1,      -1,  -1,  -1,         1,                    ,
 
-        winddir = f.getProp("")
-        windspd = f.getProp("")
-        oat = f.getProp("")
-        tat = f.getProp("")
-
-        isicaohex = f.getProp("")
-
-        augmentation_status = f.getProp("")
-        authentication = f.getProp("")
-
-
-        rttfc = f"RTTFC,{hexid},{lat},{lon},{baro_alt},{baro_rate},{gnd},{track},{gsp},{cs_icao},{ac_type},{ac_tailno},"
-              + f"{from_iata},{to_iata},{timestamp},{source},{cs_iata},{msg_type},{alt_geom},{ias},{tas},{mach},"
-              + f"{track_rate},{roll},{mag_heading},{true_heading},{geom_rate},{emergency},{category},"
-              + f"{nav_qnh},{nav_altitude_mcp},{nav_altitude_fms},{nav_heading},{nav_modes},{seen},{rssi},"
-              + f"{winddir},{windspd},{oat},{tat},{isicaohex},{augmentation_status},{authentication}"
-        return rttfc.replace("None", "")
+# RTTFC,7389381,25.290900,51.590000,0,0,1,245,4,QTR1399,A333,A4O-DI,OTHH,DTTA,249,OpenSky Live Online,QTR1399,lt_export,0,-1,-1,-1,-1,-1,-1,244.69,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,7389381,25.290900,51.590000,0,0,1,245,4,QTR1399,A333,A4O-DI,OTHH,DTTA,249,OpenSky Live Online,QTR1399,lt_export,0,-1,-1,-1,-1,-1,-1,244.69,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,434334,25.282000,51.593700,0,0,1,158,34,QTR209,A320,A7-AHW,,,250,OpenSky Live Online,QTR209,lt_export,0,-1,-1,-1,-1,-1,-1,157.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9004093,25.175100,51.675200,3450,13,0,115,139,ETD394,A321,A6-AEG,,,256,OpenSky Live Online,ETD394,lt_export,3092,-1,-1,-1,-1,-1,-1,114.67,13,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9004049,25.283200,51.614600,375,0,0,159,52,ABY136,A320,A6-AOE,,,256,OpenSky Live Online,ABY136,lt_export,17,-1,-1,-1,-1,-1,-1,158.51,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,434505,25.288900,51.606700,0,0,1,338,0,QTR76R,A388,A7-APH,,,302,OpenSky Live Online,QTR76R,lt_export,0,-1,-1,-1,-1,-1,-1,337.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,4949106,25.281200,51.610000,0,0,1,248,1,QTR8409,B744,TC-ACR,VHHH,OTHH,308,OpenSky Live Online,QTR8409,lt_export,0,-1,-1,-1,-1,-1,-1,247.50,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9004093,25.160500,51.749900,5975,12,0,101,141,ETD394,A321,A6-AEG,,,311,OpenSky Live Online,ETD394,lt_export,5617,-1,-1,-1,-1,-1,-1,101.39,12,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9004049,25.245300,51.630900,1525,4,0,157,91,ABY136,A320,A6-AOE,,,311,OpenSky Live Online,ABY136,lt_export,1167,-1,-1,-1,-1,-1,-1,157.36,4,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+#
+# RTTFC,9004338,25.185500,55.485600,2150,-4,0,301,97,FDB866,B38M,A6-FMM,,,102,OpenSky Live Online,FDB866,lt_export,1792,-1,-1,-1,-1,-1,-1,301.49,-4,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,4958674,25.259500,55.359800,325,3,0,301,86,THY2YH,A333,TC-JNR,,,103,OpenSky Live Online,THY2YH,lt_export,-33,-1,-1,-1,-1,-1,-1,301.32,3,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9004023,25.252300,55.378200,0,0,1,121,5,A6EOZ,A388,A6-EOZ,,,103,OpenSky Live Online,A6EOZ,lt_export,0,-1,-1,-1,-1,-1,-1,120.94,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,7389446,25.254600,55.364900,0,0,1,121,9,OMA604,B38M,A4O-MK,,,103,OpenSky Live Online,OMA604,lt_export,0,-1,-1,-1,-1,-1,-1,120.94,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9003829,25.426700,55.310500,5700,11,0,23,141,FDB5DA,B738,A6-FED,,,109,OpenSky Live Online,FDB5DA,lt_export,5342,-1,-1,-1,-1,-1,-1,23.20,11,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9006849,25.253300,55.351300,0,0,1,31,1,SW10,ZZZC,,,,124,OpenSky Live Online,SW10,lt_export,0,-1,-1,-1,-1,-1,-1,30.94,0,none,C2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9006794,25.264100,55.347900,0,0,1,174,3,CM4,ZZZC,,,,126,OpenSky Live Online,CM4,lt_export,0,-1,-1,-1,-1,-1,-1,174.38,0,none,C2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,8392033,25.256000,55.349000,0,0,1,31,1,IGO064,A20N,VT-IZU,,,129,OpenSky Live Online,IGO064,lt_export,0,-1,-1,-1,-1,-1,-1,30.94,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9006778,25.250900,55.363700,0,0,1,253,4,,,,,,135,OpenSky Live Online,,lt_export,0,-1,-1,-1,-1,-1,-1,253.12,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,9006778,25.250900,55.363700,0,0,1,253,4,,ZZZC,,,,135,OpenSky Live Online,,lt_export,0,-1,-1,-1,-1,-1,-1,253.12,0,none,C2,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+# RTTFC,3949968,25.262900,55.360000,0,0,1,42,1,BOX513,,,,,137,OpenSky Live Online,BOX513,lt_export,0,-1,-1,-1,-1,-1,-1,42.19,0,none,,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,,
+#

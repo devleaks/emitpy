@@ -148,7 +148,7 @@ class EmitApp(ManagedAirport):
             k = LIVETRAFFIC_QUEUE
             v = LIVETRAFFIC_FORMATTER
             if k not in self.queues.keys():
-                logger.debug(f":init: creating LiveTraffic queue..")
+                logger.debug(f":init: creating LiveTraffic queue with {LIVETRAFFIC_FORMATTER} formatter")
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                 self.queues[k].save()
 

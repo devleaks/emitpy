@@ -8,17 +8,17 @@ from jsonpath import JSONPath
 from emitpy.constants import FEATPROP
 from emitpy.utils import FT, NAUTICAL_MILE
 
-from .formatter import FormatterBase
+from .formatter import Formatter
 
-logger = logging.getLogger("XPPlanes")
+logger = logging.getLogger("XPPlanesFormatter")
 
 
-class XPPlanesFormatter(FormatterBase):
+class XPPlanesFormatter(Formatter):
 
     NAME = "xpplanes"
 
     def __init__(self, feature: "FeatureWithProps"):
-        FormatterBase.__init__(self, name=XPPlanesFormatter.NAME, feature=feature)
+        Formatter.__init__(self, name=XPPlanesFormatter.NAME, feature=feature)
         self.name = "lt"
 
     def __str__(self):
@@ -115,6 +115,8 @@ class XPPlanesFormatter(FormatterBase):
 
         emit_type = f.getPropPath("$.emit.emit-type")
 
+        speed = f.speed()  # used to check whether airborne or not
+
         if emit_type == "flight":
             callsign = f.getPropPath("$.flight.callsign")
             if callsign is not None:
@@ -144,7 +146,7 @@ class XPPlanesFormatter(FormatterBase):
                 "lon" : f.lon(),
                 "alt_geo" : alt,
             #    "timestamp" : ts,
-                "gnd" : alt == 0
+                "gnd" : (alt == 0 and speed < 30)
             },
             "attitude" : {
             #     "roll" : -0.2,
