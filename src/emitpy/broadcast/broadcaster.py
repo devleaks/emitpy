@@ -5,7 +5,7 @@ import threading
 import socket
 import redis
 
-from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE, QUEUE_PREFIX
+from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE, PUBSUB_CHANNEL_PREFIX, LIVETRAFFIC_VERBOSE
 from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT
 from emitpy.parameters import XPLANE_FEED, XPLANE_HOSTNAME, XPLANE_PORT
@@ -249,7 +249,7 @@ class Broadcaster:
     def send_data(self, data: str) -> int:
         # l = min(30, len(data))
         # logger.debug(f":send_data: '{data[0:l]}'...")
-        self.redis.publish(QUEUE_PREFIX+self.name, data)
+        self.redis.publish(PUBSUB_CHANNEL_PREFIX + self.name, data)
         return 0
 
 
@@ -451,8 +451,9 @@ class LiveTrafficForwarder(Broadcaster):
 
     def send_data(self, data: str) -> int:
         datagram = data
-        self.sock.sendto(datagram.encode('utf-8'), (XPLANE_HOSTNAME, XPLANE_PORT))
-        LTlogger.debug(f"LiveTrafficForwarder::send_data({XPLANE_HOSTNAME}:{XPLANE_PORT}): {datagram}")
+        self.sock.sendto(datagram.encode('ascii'), (XPLANE_HOSTNAME, XPLANE_PORT))
+        if LIVETRAFFIC_VERBOSE:
+            LTlogger.debug(f"LiveTrafficForwarder::send_data({XPLANE_HOSTNAME}:{XPLANE_PORT}):\n{datagram}")
         return 0
 
 
