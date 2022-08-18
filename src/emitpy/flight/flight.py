@@ -309,6 +309,12 @@ class Flight(Messages):
         logger.debug(":makeFlightRoute: loaded %d waypoints" % fplen)
 
 
+    def printFlightRoute(self):
+        if self.flightroute is None or not self.flightroute.has_route():
+            logger.warning(":printFlightRoute: no flight route")
+            return
+        return self.flightroute.print()
+
     def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):
         self.estimated = dt
         self.schedule_history.append((dt.isoformat(), "ET", info_time.isoformat()))
@@ -454,6 +460,21 @@ class Flight(Messages):
         # printFeatures(self.flightplan_wpts, "plan")
         logger.debug(f":plan: generated {len(self.flightplan_wpts)} points")
         return (True, "Flight::plan: planned")
+
+
+    def printFlightPlan(self):
+        if self.flightplan_wpts is None:
+            logger.warning(":printFlightPlan: no flight plan")
+            return
+        SEP = ","
+        rt = ""
+        for w in self.flightplan_wpts:
+            wi = w.getId()
+            wa = wi.split(":")
+            if len(wa) == 4:
+                wi = wa[1]
+            rt = rt + wi + SEP
+        return rt.strip(SEP)
 
 
 class Arrival(Flight):
