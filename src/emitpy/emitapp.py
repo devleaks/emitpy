@@ -331,6 +331,9 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(110, f"problem during flight planning", ret[1])
 
+        logger.debug(f":do_flight: route: {flight.printFlightRoute()}")
+        logger.debug(f":do_flight: plan : {flight.printFlightPlan()}")
+
         logger.debug(":do_flight: ..flying..")
         move = None
         if movetype == ARRIVAL:
