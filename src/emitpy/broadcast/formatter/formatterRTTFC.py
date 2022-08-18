@@ -26,7 +26,7 @@ class RTTFCFormatter(Formatter):
 
         rttfcObj = {
           "RTTFC": "RTTFC",
-          "hexid": 4921333, # int(f.getPropPath("flight.aircraft.icao24"), 16),
+          "hexid": "efface",
           "lat": f.lat(),
           "lon": f.lon(),
           "baro_alt": f.altitude(0) / FT,
@@ -35,9 +35,9 @@ class RTTFCFormatter(Formatter):
           "track": f.getProp(FEATPROP.HEADING.value),
           "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,
           "cs_icao": "CSICAO",
-          "ac_type": "A320",
-          "ac_tailno": "OO-PMA",
-          "from_iata": "BRU",
+          "ac_type": "ZZZC",
+          "ac_tailno": "TAILNUM",
+          "from_iata": "",
           "to_iata": "",
           "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
           "source": "X2",
@@ -121,6 +121,8 @@ class RTTFCFormatter(Formatter):
         emit_type = f.getPropPath("$.emit.emit-type")
         if emit_type == "flight":
             rttfcObj["ac_type"] = f.getPropPath("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
+            rttfcObj["hexid"] = int(f.getPropPath("flight.aircraft.icao24"), 16)
+
             callsign = f.getPropPath("$.flight.callsign")
             if callsign is not None:
                 rttfcObj["cs_icao"] = callsign.replace(" ","").replace("-","")
@@ -131,23 +133,31 @@ class RTTFCFormatter(Formatter):
             rttfcObj["from_iata"] = f.getPropPath("$.flight.departure.airport.iata")
             rttfcObj["to_iata"] = f.getPropPath("$.flight.arrival.airport.iata")
 
-        # elif emit_type == "service":
-        #     callsign = f.getPropPath("$.service.vehicle.callsign")
-        #     if callsign is not None:
-        #         rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
-        #     rttfcObj["ac_tailno"] = f.getPropPath("$.service.vehicle.registration")
-        #     # ac_type blank for ground vehicle
+        elif emit_type == "service":
+            rttfcObj["hexid"] = int(f.getPropPath("service.vehicle.icao24"), 16)
+            # rttfcObj["ac_type"] = f.getPropPath("$.service.vehicle.icao")  # ICAO A35K
 
-        # elif emit_type == "mission":
-        #     callsign = f.getPropPath("$.mission.vehicle.callsign")
-        #     if callsign is not None:
-        #         rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
-        #     rttfcObj["ac_tailno"] = f.getPropPath("$.mission.vehicle.registration")
-        #     # ac_type blank for ground vehicle
+            callsign = f.getPropPath("$.service.vehicle.callsign")
+            if callsign is not None:
+                rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
+                rttfcObj["cs_icao"] = callsign.replace(" ","").replace("-","")
+            rttfcObj["ac_tailno"] = f.getPropPath("$.service.vehicle.registration")
+            # ac_type blank for ground vehicle
 
-        # else:
-        #     logger.warning(f":__str__: invalid emission type {emit_type}")
-        #     return None
+        elif emit_type == "mission":
+            rttfcObj["hexid"] = int(f.getPropPath("mission.vehicle.icao24"), 16)
+            # rttfcObj["ac_type"] = f.getPropPath("$.service.vehicle.icao")  # ICAO A35K
+
+            callsign = f.getPropPath("$.mission.vehicle.callsign")
+            if callsign is not None:
+                rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
+                rttfcObj["cs_icao"] = callsign.replace(" ","").replace("-","")
+            rttfcObj["ac_tailno"] = f.getPropPath("$.mission.vehicle.registration")
+            # ac_type blank for ground vehicle
+
+        else:
+            logger.warning(f":__str__: invalid emission type {emit_type}")
+            return None
 
         return ",".join([str(f) for f in rttfcObj.values()]).replace("None", "")
 
