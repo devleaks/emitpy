@@ -124,6 +124,21 @@ class FlightRoute:
         return copy.deepcopy(self.waypoints)
 
 
+    def print(self):
+        # print flight route in "flight plan" format
+        a = self.getAirspace()
+        SEP = ","
+        fp = ""
+        for n in self.nodes():
+            f = a.get_vertex(n)
+            fi = f.getId()
+            fa = fi.split(":")
+            if len(fa) == 4:
+                fi = fa[1]
+            fp = fp + fi + SEP
+        return fp.strip(SEP)
+
+
     def getGeoJSON(self, include_ls: bool = False):
         # returns flight route from airspace vertices in GeoJSON FeatureCollection
         fc = copy.deepcopy(self._route)
