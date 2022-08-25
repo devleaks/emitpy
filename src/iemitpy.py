@@ -8,10 +8,11 @@ import urllib.parse
 import logging
 import coloredlogs
 
+
 # #########################
 # COLORFUL LOGGING
 #
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("iemitpy")
 logging.addLevelName(5, "spam")
 
@@ -23,12 +24,25 @@ coloredlogs.DEFAULT_LEVEL_STYLES["info"] = {"color": "cyan", "bright": True}
 coloredlogs.DEFAULT_LEVEL_STYLES["debug"] = {"color": "white"}
 
 # %(levelname)s
-coloredlogs.install(level=logging.DEBUG, logger=logger, fmt="%(asctime)s %(name)s:%(message)s", datefmt="%H:%M:%S")
+coloredlogs.install(level=logging.INFO, logger=logger, fmt="%(asctime)s %(name)s:%(message)s", datefmt="%H:%M:%S")
 
 
+# #########################
+# HOOK
+#
+BASE_URL = "http://127.0.0.1:8000"
+API_KEY = "d06c4f70-439b-4d0d-992a-0a615013d17d"
 
-parser = argparse.ArgumentParser("", exit_on_error=False)
+
+# #########################
+# INTERPRETER
+#
+parser = argparse.ArgumentParser("iemitpy", exit_on_error=False)
 sub_parsers = parser.add_subparsers(dest="command")
+
+#
+# HELP command
+cmd_help = sub_parsers.add_parser("help", help="help, print this help", aliases=["?"])
 
 #
 # CREATE commands
@@ -84,7 +98,7 @@ create_mission.add_argument("name", type=str)
 create_mission.add_argument("date", type=str)
 create_mission.add_argument("time", type=str)
 create_mission.add_argument("svmodel", type=str)
-create_mission.add_argument("checkpoints", type=str)
+create_mission.add_argument("checkpoints", type=str, help="comma separated list of checkpoint names, no space")
 create_mission.add_argument("svreg", type=str)
 create_mission.add_argument("svicao", type=str)
 create_mission.add_argument("emit_rate", type=float)
@@ -191,11 +205,13 @@ def fltr(data, fe):
         reObj = re.compile(fere)
 
     if type(data).__name__ == "dict":
+        print(f"total {len(data.items())}")
         logger.debug("is dict")
         for k, v in data.items():
             if reObj is None or reObj.match(k) or reObj.match(v):
                 print(f"{k}: {v}")
     elif type(data).__name__ == "list" and len(data) > 0:
+        print(f"total {len(data)}")
         logger.debug("is list..")
         e = data[0]
         if type(e).__name__ == "list":  # probably a pair of things, typically for combo boxes
@@ -214,6 +230,7 @@ def fltr(data, fe):
     else:
         logger.debug(f"is {type(data).__name__}")
         logger.debug(data)
+        print(f"total {len(data)}")
 
 
 def pprint(r, fe=None):
@@ -254,7 +271,9 @@ while loop:
 
         #
         # PREPARE IT
-        if parsed.command == "list" or parsed.command == "ls":
+        if parsed.command == "help" or parsed.command == "?":
+            parser.print_help()
+        elif parsed.command == "list" or parsed.command == "ls":
             url = list_what[parsed.what]
             if parsed.what == "marks":
                 if parsed.wildcard is None or parsed.wildcard == "":
@@ -362,23 +381,8 @@ while loop:
                     "queue": parsed.queue
                 }
             elif parsed.what == "mission":
-                # {
-                #   "operator": "HPD",
-                #   "mission": "test",
-                #   "mission_type": "security",
-                #   "mission_vehicle_model": "security",
-                #   "mission_vehicle_reg": "JB007",
-                #   "icao24": "abcdef",
-                #   "previous_position": "svc:depot:0",
-                #   "next_position": "svc:depot:4",
-                #   "checkpoints": ["ckpt:checkpoint:11","ckpt:checkpoint:22"],
-                #   "mission_date": "2022-08-10",
-                #   "mission_time": "18:17:00",
-                #   "emit_rate": 30,
-                #   "queue": "test"
-                # }
                 data = {
-                    "handler": parsed.operator,
+                    "operator": parsed.operator,
                     "mission": parsed.name,
                     "mission_type": parsed.mission_type,
                     "mission_vehicle_model": parsed.svmodel,
@@ -387,8 +391,8 @@ while loop:
                     "previous_position": parsed.prevpos,
                     "next_position": parsed.nextpos,
                     "checkpoints": parsed.checkpoints.split(","),
-                    "mission_date": "2022-05-09",
-                    "mission_time": "14:00",
+                    "mission_date": parsed.date,
+                    "mission_time": parsed.time,
                     "emit_rate": parsed.emitrate,
                     "queue": parsed.queue
                 }
@@ -402,8 +406,6 @@ while loop:
         #
         # DO IT
         if url is not None and url != "":
-            BASE_URL = "http://127.0.0.1:8000"
-            API_KEY = "d06c4f70-439b-4d0d-992a-0a615013d17d"
             if data is not None:
                 response = verb(BASE_URL + url, headers = {'api-key': API_KEY}, data=json.dumps(data))
             else:
@@ -416,4 +418,3 @@ while loop:
 
     except SystemExit:
         pass
-

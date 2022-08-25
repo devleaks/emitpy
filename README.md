@@ -10,7 +10,7 @@ It is conceived as a box software, only accessible through a REST api, and produ
 
 This repository only contains code, it does not contain any data (which sometimes is private) which is necessary for it to run.
 
-Document is added now. Be patient.
+Documentation is added now. Be patient.
 
 The generator software is written in Python.
 
