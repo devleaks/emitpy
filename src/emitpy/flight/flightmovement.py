@@ -520,8 +520,16 @@ class FlightMovement(Movement):
         STAR_ALT = 6000*FT      # Altitude ABG at which we perform STAR path before approach
         LAND_TOUCH_DOWN = 0.4   # km, distance of touch down from the runway threshold (given in CIFP)
 
-        FINAL_VSPEED = 600      # Vertical speed, in ft/min, for final (all aicraft the same)
+        # Alternative 1: VSPEED = 600ft/min for all aircrafts
+        FINAL_VSPEED = 600
+
+        if actype.getSI(ACPERF.landing_speed) is not None and actype.getSI(ACPERF.landing_speed) > 0:
+            # Alternative 2 : VSPEED adjusted to have an angle/ratio of 3% (common)
+            # Note: Landing speed is in kn. 1 kn = 101.26859 ft/min :-)
+            FINAL_VSPEED = 0.03 * actype.get(ACPERF.landing_speed) * 101.26859  # in ft/min
+
         final_speed_ms = FINAL_VSPEED * FT / 60  # in meters/sec
+        logger.debug(f":vnav: final vspeed {actype.typeId}: {round(final_speed_ms, 2)} m/s, {round(FINAL_VSPEED, 2)} ft/min")
 
         revmoves = []
         groundmv = 0
