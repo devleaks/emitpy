@@ -520,6 +520,9 @@ class FlightMovement(Movement):
         STAR_ALT = 6000*FT      # Altitude ABG at which we perform STAR path before approach
         LAND_TOUCH_DOWN = 0.4   # km, distance of touch down from the runway threshold (given in CIFP)
 
+        FINAL_VSPEED = 600      # Vertical speed, in ft/min, for final (all aicraft the same)
+        final_speed_ms = FINAL_VSPEED * FT / 60  # in meters/sec
+
         revmoves = []
         groundmv = 0
         fc = self.flight.flightplan_wpts.copy()
@@ -561,7 +564,7 @@ class FlightMovement(Movement):
             logger.debug(f":vnav:(rev) end roll out at {rwy.name}, {rollout_distance:f}, {alt:f}")
             self.end_rollout = copy.deepcopy(currpos)  # we keep this special position for taxiing (start_of_taxi)
 
-            # Point just before before is touch down
+            # Point just before is touch down
             p = addMovepoint(arr=revmoves,
                              src=touch_down,
                              alt=alt,
@@ -578,9 +581,9 @@ class FlightMovement(Movement):
                                             info=self.getInfo()))
             is_grounded = False
 
-            # we move to the final fix at max FINAL_ALT ft, approach speed, from touchdown
+            # we move to the final fix at max FINAL_ALT ft, landing speed, FINAL_VSPEED (ft/min), from touchdown
             logger.debug(":vnav:(rev) final")
-            step = actype.descentFinal(alt+FINAL_ALT, alt)  # (t, d, altend)
+            step = actype.descentFinal(alt+FINAL_ALT, alt, final_speed_ms)  # (t, d, altend)
             final_distance = step[1] / 1000  # km
             # find initial climb point
 
@@ -595,7 +598,7 @@ class FlightMovement(Movement):
                                    src=final_fix,
                                    alt=alt+FINAL_ALT,
                                    speed=actype.getSI(ACPERF.landing_speed),
-                                   vspeed=actype.getSI(ACPERF.approach_vspeed),
+                                   vspeed=final_speed_ms,
                                    color=POSITION_COLOR.FINAL.value,
                                    mark=FLIGHT_PHASE.FINAL.value,
                                    ix=newidx)
@@ -608,7 +611,7 @@ class FlightMovement(Movement):
 
             # XXXXXX
             groundmv = groundmv + step[1]
-            # find initial climb point
+            # from approach alt to final fix alt
             currpos, fcidx = moveOnLS(coll=revmoves, reverse=True,
                                       fc=fc,
                                       fcidx=fcidx,
@@ -631,7 +634,7 @@ class FlightMovement(Movement):
                                    src=arrvapt,
                                    alt=alt,
                                    speed=actype.getSI(ACPERF.landing_speed),
-                                   vspeed=actype.getSI(ACPERF.approach_vspeed),
+                                   vspeed=final_speed_ms,
                                    color=POSITION_COLOR.DESTINATION.value,
                                    mark="destination",
                                    ix=len(fc)-fcidx)
@@ -643,11 +646,11 @@ class FlightMovement(Movement):
                                             info=self.getInfo()))
             is_grounded = False
 
-            # we move to the final fix at max 3000ft, approach speed either from  airport last point
+            # we move to the final fix at max 3000ft, approach speed from airport last point, vspeed=FINAL_VSPEED
             logger.debug(":vnav:(rev) final")
-            step = actype.descentFinal(alt+FINAL_ALT, alt)  # (t, d, altend)
+            step = actype.descentFinal(alt+FINAL_ALT, alt, final_speed_ms)  # (t, d, altend)
             groundmv = groundmv + step[1]
-            # find initial climb point
+            # find final fix point
             currpos, fcidx = moveOnLS(coll=revmoves, reverse=True,
                                       fc=fc,
                                       fcidx=fcidx,
@@ -655,7 +658,7 @@ class FlightMovement(Movement):
                                       dist=step[1],
                                       alt=alt+APPROACH_ALT,
                                       speed=actype.getSI(ACPERF.landing_speed),
-                                      vspeed=actype.getSI(ACPERF.approach_vspeed),
+                                      vspeed=final_speed_ms,
                                       color=POSITION_COLOR.FINAL.value,
                                       mark="start_of_final",
                                       mark_tr=FLIGHT_PHASE.FINAL.value)
