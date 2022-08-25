@@ -880,7 +880,7 @@ class AircraftPerformance(AircraftType):
 
     def initialClimb(self, altstart, safealt: int = 1500*FT):
         """
-        Alias to clib function for initialClimb speed and vspeed.
+        Alias to climb function for initialClimb speed and vspeed.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
@@ -892,7 +892,7 @@ class AircraftPerformance(AircraftType):
 
     def climbToFL100(self, altstart):
         """
-        Alias to clib function for initialClimb speed and vspeed.
+        Alias to climb function for initialClimb speed and vspeed.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
@@ -904,7 +904,7 @@ class AircraftPerformance(AircraftType):
 
     def fl100Speed(self):
         """
-        Alias to clib function for FL100 speed and vspeed.
+        Alias to climb function for FL100 speed and vspeed.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
@@ -917,7 +917,7 @@ class AircraftPerformance(AircraftType):
 
     def climbToFL150(self, altstart):
         """
-        Alias to clib function for FL150 speed and vspeed.
+        Alias to climb function for FL150 speed and vspeed.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
@@ -929,7 +929,7 @@ class AircraftPerformance(AircraftType):
 
     def climbToFL240(self, altstart):
         """
-        Alias to clib function for FL240 speed and vspeed.
+        Alias to climb function for FL240 speed and vspeed.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
@@ -941,7 +941,7 @@ class AircraftPerformance(AircraftType):
 
     def climbToCruise(self, altstart, altcruise):
         """
-        Alias to clib function for cruise speed and vspeed.
+        Alias to climb function for cruise speed and vspeed.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
@@ -960,7 +960,7 @@ class AircraftPerformance(AircraftType):
     #
     def descentToFL240(self, altcruise):
         """
-        Alias to clib function to descent to FL240 speed and vspeed.
+        Alias to climb function to descent to FL240 speed and vspeed.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
@@ -974,7 +974,7 @@ class AircraftPerformance(AircraftType):
 
     def descentToFL100(self, altstart):
         """
-        Alias to clib function to descent to FL100 speed and vspeed.
+        Alias to climb function to descent to FL100 speed and vspeed.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
@@ -985,7 +985,7 @@ class AircraftPerformance(AircraftType):
 
     def descentApproach(self, altstart, altend):
         """
-        Alias to clib function to descent to approach speed and vspeed.
+        Alias to climb function to descent to approach speed and vspeed.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
@@ -994,16 +994,16 @@ class AircraftPerformance(AircraftType):
         """
         return self.climb(altstart, altend, - self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.approach_speed))
 
-    def descentFinal(self, altstart, altend):
+    def descentFinal(self, altstart, altend, vspeed):
         """
-        Alias to clib function to descent to final speed and vspeed.
+        Alias to climb function to descent from final to touch down.
 
         :param      altstart:  The altstart
         :type       altstart:  { type_description }
         :param      safealt:   The safealt
         :type       safealt:   int
         """
-        return self.climb(altstart, altend, - self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.landing_speed))
+        return self.climb(altstart, altend, -vspeed, self.getSI(ACPERF.landing_speed))
 
     def getTurnaroundProfile(self, move: str, ramp: str, redis = None):
         if self.tarprofile is None:
