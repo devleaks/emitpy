@@ -8,7 +8,7 @@ import math
 import json
 from enum import Enum
 
-from geojson import Point, Feature
+from geojson import Point, LineString, Polygon, Feature
 from turfpy.measurement import distance, destination
 
 from emitpy.graph import Vertex, Edge, Graph
@@ -24,6 +24,20 @@ class CPIDENT(Enum):
     IDENT = "ident"
     POINTTYPE = "pointtype"
 
+class SPEED_RESTRICTION(Enum):
+    NONE  = "none"
+    AT    = "at"
+    ABOVE = "above"
+    BELOW = "below"
+
+class ALT_RESTRICTION(Enum):
+    NONE  = "none"
+    AT    = "at"
+    ABOVE = "above"
+    BELOW = "below"
+    BETWEEN = "between"
+    ILS_AT = "ils_at"
+
 ################################
 #
 # RESTRICTIONS
@@ -37,11 +51,12 @@ class Restriction:
     If there is no restriction, use None for restriction.
     Consider this as a mixin.
     """
-    def __init__(self):
-        self.altmin = None
-        self.altmax = None
-        self.speedmin = None
-        self.speedmax = None
+    def __init__(self, altmin: int = None, altmax: int = None, speedmin: float = None, speedmax: float = None):
+        self.altmin = altmin        # In ft
+        self.altmax = altmax
+        self.speedmin = speedmin    # In kn
+        self.speedmax = speedmax
+        self.angle = None           # Bank angle in °.
 
     def getInfo(self):
         return {
@@ -51,6 +66,28 @@ class Restriction:
             "speedmin": self.speedmin,
             "speedmax": self.speedmax
         }
+
+    def __str__(self):
+        # @todo: make sure speed in ft.
+        a = ""
+        if self.altmin is not None:
+            a = a + f"A {self.altmin} "
+        if self.altmax is not None:
+            a = a + f"B {self.altmax} "
+
+        # @todo: make sure speed in kn.
+        a = a + "/ "
+        if self.speedmin is not None:
+            a = a + f"A {self.speedmin} "
+        if self.speedmax is not None:
+            a = a + f"B {self.speedmax} "
+
+        # @todo: may also have bank angle constrains
+        # a = a + "/ "
+        # if self.angle is not None:
+        #     a = a + f"{self.angle}°"
+        return a.strip()
+
 
     def setAltitudeRestriction(self, altmin: float, altmax: float):
         self.altmin = altmin

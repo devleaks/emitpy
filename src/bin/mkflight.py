@@ -1,12 +1,16 @@
 import logging
 from datetime import datetime, timedelta
 
+import sys
+sys.path.append('..')
+
+
 from emitpy.airspace import XPAirspace, Metar
 from emitpy.business import Airline
 from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.airport import Airport, AirportBase, XPAirport
-from emitpy.emit import Emit, Format, ADSBFormatter
+from emitpy.emit import Emit
 from emitpy.business import AirportManager
 from emitpy.parameters import MANAGED_AIRPORT
 from emitpy.constants import FLIGHT_PHASE

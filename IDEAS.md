@@ -15,3 +15,9 @@ Felicity Ace
 Tricolor
 Titanic
 
+----
+
+Route with constraints:
+
+Make sure constraints are on vertices (uniform).
+Make sure constraints that are on edges are carried on vertices (uniform too, possible conflict).

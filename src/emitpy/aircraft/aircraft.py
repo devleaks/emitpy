@@ -260,7 +260,7 @@ class AircraftType(Identity):
                 try_class = "C"
             elif ws > 32:
                 try_class = "B"
-            logger.warning(f":setClass: guessed class {try_class} for {self.typeId} (wingspan={ws})")
+            # logger.warning(f":setClass: guessed class {try_class} for {self.typeId} (wingspan={ws})")
             ac_class = try_class
 
         if ac_class is not None and ac_class in "ABCDEF":
@@ -703,6 +703,12 @@ class AircraftPerformance(AircraftType):
             param_list = param_list + ["climbmach_mach", "climbmach_vspeed"]
             param_list = param_list + ["descentFL240_mach", "descentFL240_vspeed"]
 
+        # @todo:
+        # For ATRXX, max_ceiling > 240 and max_ceiling < 300,
+        # should accept climb/decent at same rate as climbFL240_speed, climbFL240_vspeed, descentFL100_speed, descentFL100_vspeed
+        # even if not climbmach_mach, descentFL240_mach, etc.
+        # Need to accept here, and adjust climbToCruise() and descentToFL240().
+
         for name in param_list:
             if name not in self.perfraw or self.perfraw[name] == "no data":
                 logger.warning(f":check_availability: no {name} for: {self.typeId}, rejecting")
@@ -734,7 +740,7 @@ class AircraftPerformance(AircraftType):
                 try_class = "C"
             elif ws > 15:
                 try_class = "B"
-            logger.debug(f":setClass: guessed class {try_class} for {self.typeId}")
+            # logger.debug(f":setClass: guessed class {try_class} for {self.typeId}")
             # logger.debug(f":setClass: {self.typeId}: wingspan={ws}, length={ln}")
             ac_class = try_class
 
@@ -1034,6 +1040,42 @@ class AircraftPerformance(AircraftType):
         return self.gseprofile
 
 
+    def inTarget(self, current, target: dict) -> dict:
+        sok = current.speed > target["speed_min"] and current.speed < target["speed_max"]
+        aok = current.altitude > target["altitude_min"] and current.speed < target["altitude_max"]
+        tok = True
+        if current.time is not None:
+            tok = current.time > target["time_min"] and current.time < target["time_max"]
+        return sok and aok and tok
+
+
+    def getPotential(self, current, dist: float) -> dict:
+        return {
+            "speed_min": 0,
+            "speed_max": 0,
+            "altitude_min": 0,
+            "altitude_min": 0,
+            "time_max": 0,
+            "time_min": 0,
+            "time_curr": 0,
+        }
+
+
+    def getTarget(self, current, dist: float, target: dict) -> dict:
+        return {
+            "speed": 0,
+            "acceleration": 0,
+            "altitude": 0,
+            "vrate": 0,
+            "time": 0
+        }
+
+
+    def yes_we_can(self, current, d, target):
+        p = self.getPotential(current, d)
+        return self.inTarget(target, p)
+
+
 class AircraftClass(AircraftPerformance):
     """
     An aircraft class is one particular aircraft type from A-F taxiway aicraft class type.
@@ -1084,7 +1126,7 @@ class AircraftClass(AircraftPerformance):
         return AircraftClass._DB_AC_CLASS[ac_class] if ac_class in "ABCDEF" else AircraftClass._DB_AC_CLASS[_STD_CLASS]
 
 
-class Aircraft:
+class Aircraft(Identity):
     """
     An aircraft servicing an airline route.
     """
@@ -1093,6 +1135,7 @@ class Aircraft:
         An aircraft servicing a flight.
 
         """
+        Identity.__init__(self, orgId=operator.name, classId="Aircraft", typeId=actype.typeId, name=registration)
         self.registration = registration
         self.icao24 = icao24  # 6 hexadecimal digit string, ADS-B address
         self.operator = operator
@@ -1131,6 +1174,10 @@ class Aircraft:
             "acreg": self.registration,
             "icao24": self.icao24
         }
+
+    def getShortDesc(self):
+        return super().getId()
+        # return f"{self.registration} {self.actype.typeId} ({self.icao24})"
 
     def save(self, redis):
         """

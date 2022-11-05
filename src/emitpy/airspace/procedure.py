@@ -63,7 +63,11 @@ class PROC_DATA(Enum):
 
 
 class ProcedureData:
-    # CIFP line for this airport
+    # CIFP line for this airport. Example line:
+    # APPCH:030,A,I25RZ,KERKY,CF25R,EB,P,C,EE B,R,   ,CF,Y,IBR,EB,P,I,      ,0644,0130,2140,0085,+,02000,     ,     , ,   ,    ,   , , , , , ,0,D,S;
+    # PROC :[params]                                   ↑
+    #       params[PROC_DATA.PATH_TERM] = param[11]----+  (CF, Course to Fix)
+    #
     def __init__(self, line):
         self.procedure = None
         self.data = []
@@ -75,7 +79,7 @@ class ProcedureData:
             self.procedure = a[0]
             self.params = a[1].split(",")
         if len(self.params) == 0:
-            logger.debug(":__init__: invalid line '%s'", line)
+            logger.debug(":__init__: invalid line '%s', no params", line)
 
 
     def proc(self):

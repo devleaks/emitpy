@@ -36,7 +36,7 @@ logger = logging.getLogger("LoadApp")
 logging.basicConfig(level=logging.DEBUG)
 
 
-DATA_TO_LOAD = ["airport", "info"] # ["vertex", "apt", "hold", "airway"] ["info"]
+DATA_TO_LOAD = ["ramp", "info"] # ["vertex", "apt", "hold", "airway"] ["info"]
 
 
 class LoadApp(ManagedAirport):
@@ -105,6 +105,8 @@ class LoadApp(ManagedAirport):
 
         if type(what) == str:
             what = [ what ]
+
+        logger.debug(f":load: loading.. ({what})")
 
         # #############################
         # GENERIC
@@ -268,7 +270,7 @@ class LoadApp(ManagedAirport):
             self._this_airport[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), self._this_airport)
 
-        logger.debug(f":load: loaded")
+        logger.debug(f":load: ..loaded")
         return (True, f"LoadApp::load: loaded")
 
 
@@ -519,6 +521,7 @@ class LoadApp(ManagedAirport):
             self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), key_path(POI_COMBO.RAMP.value, k)))
 
         logger.debug(f":loadRamps: loaded {len(self.airport.ramps)}")
+        # logger.debug(f":loadRamps: loaded {self.airport.ramps}")
         return (True, f"LoadApp::loadRamps: loaded ramps")
 
 

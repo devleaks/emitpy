@@ -15,6 +15,7 @@ import random
 import operator
 
 import geojson
+from turfpy.measurement import distance
 
 from emitpy.graph import Graph
 from emitpy.geo import Location
@@ -251,6 +252,17 @@ class Airport(Location):
 
     def getKey(self):
         return self.icao
+
+
+    def miles(self, airport):
+        """
+        Returns the distance, in nautical miles, from the current (managed) airport to the supplied airport.
+        Used to compute bonus milage.
+
+        :param      airport:  The airport
+        :type       airport:  { type_description }
+        """
+        return distance(self, airport)
 
 
     def save(self, base, redis):

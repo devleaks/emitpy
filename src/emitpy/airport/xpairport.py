@@ -95,53 +95,94 @@ class XPAirport(AirportBase):
         Scans scenery_packs collection for apt.dat files.
         Tries to locate manage airport ICAO. If match is found, data lines are loaded.
         """
-        SCENERY_PACKS = os.path.join(XPLANE_DIR, "Custom Scenery", "scenery_packs.ini")
-        scenery_packs = open(SCENERY_PACKS, "r")
-        scenery = scenery_packs.readline()
-        scenery = scenery.strip()
+        APT_FILES = {}
+        GLOBAL_AIRPORTS = "Global Airports"
 
-        while not self.loaded and scenery:  # while we have not found our airport and there are more scenery packs
-            if re.match("^SCENERY_PACK", scenery, flags=0):
-                logger.debug("SCENERY_PACK %s", scenery.rstrip())
-                scenery_pack_dir = scenery[13:-1]
-                scenery_pack_apt = os.path.join(XPLANE_DIR, scenery_pack_dir, "Earth nav data", "apt.dat")
-                logger.debug("APT.DAT %s", scenery_pack_apt)
-
-                if os.path.isfile(scenery_pack_apt):
-                    apt_dat = open(scenery_pack_apt, "r", encoding='utf-8')
-                    line = apt_dat.readline()
-
-                    while not self.loaded and line:  # while we have not found our airport and there are more lines in this pack
-                        if re.match("^1 ", line, flags=0):  # if it is a "startOfAirport" line
-                            newparam = line.split()  # if no characters supplied to split(), multiple space characters as one
-                            # logger.debug("airport: %s" % newparam[4])
-                            if newparam[4] == self.icao:  # it is the airport we are looking for
-                                self.name = " ".join(newparam[5:])
-                                self.altitude = newparam[1]
-                                # Info 4.a
-                                logger.info(":loadFromFile: Found airport %s '%s' in '%s'.", newparam[4], self.name, scenery_pack_apt)
-                                self.scenery_pack = scenery_pack_apt  # remember where we found it
-                                self.lines.append(AptLine(line))  # keep first line
-                                line = apt_dat.readline()  # next line in apt.dat
-                                while line and not re.match("^1 ", line, flags=0):  # while we do not encounter a line defining a new airport...
-                                    testline = AptLine(line)
-                                    if testline.linecode() is not None:
-                                        self.lines.append(testline)
-                                    else:
-                                        logger.debug(f":loadFromFile: did not load empty line '{line}'")
-                                    line = apt_dat.readline()  # next line in apt.dat
-                                # Info 4.b
-                                logger.info(f":loadFromFile: read {len(self.lines)} lines for {self.name}.")
-                                self.loaded = True
-
-                        if(line):  # otherwize we reached the end of file
-                            line = apt_dat.readline()  # next line in apt.dat
-
-                    apt_dat.close()
-
+        # Add scenery packs, which include Global Airports scenery in XP11
+        scenery_packs_file = os.path.join(XPLANE_DIR, "Custom Scenery", "scenery_packs.ini")
+        global_airport11 = None
+        if os.path.exists(scenery_packs_file):
+            scenery_packs = open(scenery_packs_file, "r")
             scenery = scenery_packs.readline()
+            scenery = scenery.strip().rstrip("\n\r")
+            while scenery:
+                # logger.debug("loadFromFile: SCENERY_PACK '%s'", scenery)
+                if re.match("^SCENERY_PACK", scenery, flags=0):
+                    scenery_pack_dir = scenery[13:-1]
+                    scenery_pack_apt = os.path.join(XPLANE_DIR, scenery_pack_dir, "Earth nav data", "apt.dat")
+                    # logger.debug("loadFromFile: APT.DAT %s", scenery_pack_apt)
+                    if os.path.exists(scenery_pack_apt) and os.path.isfile(scenery_pack_apt):
+                        if GLOBAL_AIRPORTS in scenery_pack_dir:
+                            global_airport11 = {}
+                            global_airport11["default airports 11"] = scenery_pack_apt
+                        else:
+                            APT_FILES[scenery_pack_dir] = scenery_pack_apt
+                            logger.debug(f"loadFromFile: Added '{scenery_pack_dir}' file {scenery_pack_apt}")
+                    else:
+                        logger.debug(f"loadFromFile: scenery file not found {scenery_pack_apt}")
+                scenery = scenery_packs.readline()
+            scenery_packs.close()
+        else:
+            logger.debug(f"loadFromFile: scenery packs file not found {scenery_packs_file}")
 
-        scenery_packs.close()
+        # Add XP 12 location for Global Airports
+        # This is added at the end, since we should find airport in custom folder first.
+        # X-Plane Global Airport is the last try
+        default_airports_file = os.path.join(XPLANE_DIR, "Global Scenery", GLOBAL_AIRPORTS, "Earth nav data", "apt.dat")
+        if os.path.exists(default_airports_file) and os.path.isfile(default_airports_file):
+            APT_FILES["default airports 12"] = default_airports_file
+            logger.debug(f"loadFromFile: Added default airports file (XP12) {default_airports_file}")
+        # else:
+        #     logger.warning(f"Airport::load: default airport file {DEFAULT_AIRPORTS} not found")
+
+        # Add XP 11 location for Global Airports if we found it at the end.
+        # We add it after XP12 since it is older
+        if global_airport11 is not None:
+            APT_FILES["default airports 11"] = global_airport11["default airports 11"]
+            logger.debug(f"loadFromFile: Added default airports file (XP11) {global_airport11['default airports 11']}")
+
+        # logger.debug(f"loadFromFile: APT files: {APT_FILES}")
+        logger.debug(f"loadFromFile: searching..")
+
+        for scenery, filename in APT_FILES.items():
+            if self.loaded:
+                logger.debug(f"loadFromFile: ..found..done")
+                return [True, "XPAirport::loadFromFile: loaded"]
+
+            logger.debug(f":loadFromFile: scenery pack {scenery}..")
+            apt_dat = open(filename, "r", encoding="utf-8", errors="ignore")
+            line = apt_dat.readline()
+
+            while not self.loaded and line:  # while we have not found our airport and there are more lines in this pack
+                if re.match("^1 ", line, flags=0):  # if it is a "startOfAirport" line
+                    newparam = line.split()  # if no characters supplied to split(), multiple space characters as one
+                    # logger.debug("airport: %s" % newparam[4])
+                    if newparam[4] == self.icao:  # it is the airport we are looking for
+                        self.name = " ".join(newparam[5:])
+                        self.altitude = newparam[1]
+                        # Info 4.a
+                        logger.info(":loadFromFile: Found airport %s '%s' in '%s'.", newparam[4], self.name, scenery_pack_apt)
+                        self.scenery_pack = scenery_pack_apt  # remember where we found it
+                        self.lines.append(AptLine(line))  # keep first line
+                        line = apt_dat.readline()  # next line in apt.dat
+                        while line and not re.match("^1 ", line, flags=0):  # while we do not encounter a line defining a new airport...
+                            testline = AptLine(line)
+                            if testline.linecode() is not None:
+                                self.lines.append(testline)
+                            else:
+                                logger.debug(f":loadFromFile: did not load empty line '{line}'")
+                            line = apt_dat.readline()  # next line in apt.dat
+                        # Info 4.b
+                        logger.info(f":loadFromFile: read {len(self.lines)} lines for {self.name}.")
+                        self.loaded = True
+
+                if(line):  # otherwize we reached the end of file
+                    line = apt_dat.readline()  # next line in apt.dat
+
+            apt_dat.close()
+            logger.debug(f":loadFromFile: ..{scenery} done")
+
+        logger.debug(f"loadFromFile: ..done")
         return [True, "XPAirport::loadFromFile: loaded"]
 
 
@@ -534,17 +575,6 @@ class XPAirport(AirportBase):
             f = FeatureWithProps.new(r)
             return Ramp(name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=r["geometry"]["coordinates"], orientation=f.getProp("orientation"), use=f.getProp("use"))
         return self.ramps[name] if name in self.ramps.keys() else None
-
-    def miles(self, airport):
-        """
-        Returns the distance, in nautical miles, from the current (managed) airport to the supplied airport.
-        Used to compute bonus milage.
-
-        :param      airport:  The airport
-        :type       airport:  { type_description }
-        """
-        return distance(self, airport)
-
 
     def makeAdditionalAerowayPOIS(self):
         """
