@@ -186,7 +186,7 @@ class Broadcaster:
         while not self.shutdown_flag.is_set():
 
             if self.heartbeat:
-                logger.debug(f":trim: {self.name}: queue time: {self.now(format_output)} listening..")
+                logger.debug(f":trim: {self.name}: queue time: {self.now(format_output=True)} listening..")
 
             # logger.debug(f":trim: {self.name}: waiting for message (with timeout {LISTEN_TIMEOUT} secs.)..")
             # "pmessage","__key*__:*","__keyspace@0__:test","zadd"
