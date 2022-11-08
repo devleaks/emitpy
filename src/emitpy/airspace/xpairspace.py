@@ -5,15 +5,19 @@ import re
 import logging
 import time
 import csv
+import json
+from importlib_resources import files
+
 from math import inf
 from turfpy.measurement import distance
+
 
 from emitpy.geo import FeatureWithProps
 from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
 from emitpy.parameters import XPLANE_DIR, DATA_DIR
 from emitpy.utils import FT
-from .airspace import Airspace, Terminal, Fix, SignificantPoint, AirwaySegment, CPIDENT
+from .airspace import Airspace, Terminal, Fix, SignificantPoint, AirwaySegment, CPIDENT, ControlledAirspace, Restriction
 from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 
 logger = logging.getLogger("XPAirspace")
@@ -601,3 +605,47 @@ class XPAirspace(Airspace):
         return [True, "XPAirspace::Holds loaded"]
 
 
+    def loadAirspaces(self):
+        """
+        Load all airspaces from Little Navmap.
+        "properties": {
+            "boundary_id": 29386,
+            "file_id": 1,
+            "type": "FIR",
+            "name": "HONIARA",
+            "description": null,
+            "restrictive_designation": null,
+            "restrictive_type": null,
+            "multiple_code": "",
+            "time_code": "U",
+            "com_type": "CTR",
+            "com_frequency": 118100,
+            "com_name": "HONIARA",
+            "min_altitude_type": "MSL",
+            "max_altitude_type": "UL",
+            "min_altitude": 0,
+            "max_altitude": 100000,
+            "max_lonx": 166.875,
+            "max_laty": -4.833333492279053,
+            "min_lonx": 155,
+            "min_laty": -14
+        }
+        """
+        airspaces = files('data.airspaces').joinpath('boundaries.geojson').read_text()
+        fc = json.loads(airspaces)
+        for f in fc["features"]:
+            props = f["properties"]
+            r = Restriction(altmin=0.0,
+                            altmax=0.0,
+                            speedmin=0.0,
+                            speedmax=0.0)
+            ca = ControlledAirspace(name=props["name"],
+                                    region="",
+                                    airspace_class="",
+                                    restriction=r,
+                                    area=f["geometry"])
+            self.airspaces[props["boundary_id"]] = ca
+
+        logger.debug(f":loadAirspaces: loaded {len(self.airspaces)} boundaries")
+
+        return [True, "XPAirspace::loadAirspaces aispace loaded"]

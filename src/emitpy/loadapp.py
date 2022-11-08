@@ -24,7 +24,7 @@ from emitpy.airspace import SignificantPoint, NavAid, CPIDENT, AirwaySegment, Te
 from emitpy.airport import Airport, AirportBase
 
 from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
-from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE
+from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE, FLIGHTROUTE_DATABASE
 
 from emitpy.utils import NAUTICAL_MILE
 from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR, MANAGED_AIRPORT_DIR
@@ -483,7 +483,7 @@ class LoadApp(ManagedAirport):
     # MANAGED AIRPORT
     #
     def loadFlightPlans(self):
-        flightplan_cache = os.path.join(MANAGED_AIRPORT_DIR, "flightplans")
+        flightplan_cache = os.path.join(MANAGED_AIRPORT_DIR, FLIGHTROUTE_DATABASE)
         for f in sorted(os.listdir(flightplan_cache)):
             if f.endswith(".json"):
                 fn = os.path.join(flightplan_cache, f)

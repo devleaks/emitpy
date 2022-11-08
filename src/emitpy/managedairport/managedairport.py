@@ -13,7 +13,10 @@ from emitpy.airport import Airport, XPAirport
 from emitpy.business import AirportManager
 from emitpy.utils import Timezone
 
-from emitpy.parameters import CACHE_DIR
+# All base directories will be checked and created if non existent
+from emitpy.parameters import HOME_DIR, DATA_DIR, TEMP_DIR
+from emitpy.parameters import CACHE_DIR, METAR_DIR
+from emitpy.parameters import MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_CACHE
 
 logger = logging.getLogger("ManagedAirport")
 
@@ -40,8 +43,12 @@ class ManagedAirport:
         if self._inited:
             return (False, "ManagedAirport::init already inited")
 
+        status = self.mkdirs(create=True)
+        if not status[0]:
+            return status
+
         # Now caching Airspace with pickle (~ 100MB)
-        airspace_cache = os.path.join(CACHE_DIR, "airspace.pickle")
+        airspace_cache = os.path.join(MANAGED_AIRPORT_CACHE, "airspace.pickle")
         if os.path.exists(airspace_cache):
             logger.debug("loading airspace from pickle..")
             with open(airspace_cache, "rb") as fp:
@@ -119,6 +126,28 @@ class ManagedAirport:
         self._inited = True
         return (True, "ManagedAirport::init done")
 
+    def mkdirs(self, create: bool = True):
+        """
+        Check and creates directories necessary for managing this airport.
+        """
+        # Mandatory directories
+        dirs = [HOME_DIR, DATA_DIR]
+        ok = True
+        for d in dirs:
+            if not os.path.exists(d):
+                ok = False
+                logger.warning(f":mkdirs: directory {d} does not exist")
+        if not ok:
+            return (False, "ManagedAirport::mkdirs missing mandatory base directories")
+
+        dirs = [TEMP_DIR, CACHE_DIR, METAR_DIR, MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_CACHE]
+        for d in dirs:
+            if not os.path.exists(d):
+                logger.warning(f":mkdirs: directory {d} does not exist")
+                if create:
+                    os.makedirs(d)
+                    logger.info(f":mkdirs: created directory {d}")
+        return (True, "ManagedAirport::init done")
 
     def setTimezone(self):
         """

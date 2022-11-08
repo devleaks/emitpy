@@ -33,6 +33,41 @@
 from enum import Enum
 
 
+AIRSPACE_TYPES = {
+    "AIRSPACE_NONE": "No Airspace",
+    "CENTER": "",
+    "CLASS_A": "Controlled, above 18,000 ft MSL, IFR, no VFR, ATC clearance required.",
+    "CLASS_B": "Controlled, IFR and VFR, ATC clearance required.",
+    "CLASS_C": "Controlled, IFR and VFR, ATC clearance required, transponder required.",
+    "CLASS_D": "Controlled, IFR and VFR, ATC clearance required.",
+    "CLASS_E": "Controlled, IFR and VFR, ATC clearance required for IFR only.",
+    "CLASS_F": "Uncontrolled, IFR and VFR, ATC clearance not required.",
+    "CLASS_G": "Uncontrolled, IFR and VFR, ATC clearance not required.",
+    "FIR": "Uncontrolled, IFR and VFR, ATC clearance not required.",
+    "UIR": "Uncontrolled, IFR and VFR, ATC clearance not required.",
+    "TOWER": "",
+    "CLEARANCE": "",
+    "GROUND": "",
+    "DEPARTURE": "",
+    "APPROACH": "",
+    "MOA": "Military operations area. Needs clearance for IFR if active. Check for traffic advisories.",
+    "RESTRICTED": "Needs authorization.",
+    "PROHIBITED": "No flight allowed.",
+    "WARNING": "Contains activity that may be hazardous to aircraft.",
+    "CAUTION": "",
+    "ALERT": "High volume of pilot training or an unusual type of aerial activity.",
+    "DANGER": "Avoid or proceed with caution.",
+    "NATIONAL_PARK": "",
+    "MODEC": "Needs altitude aware transponder.",
+    "RADAR": "Terminal radar area. Not controlled.",
+    "GCA": "",
+    "MCTR": "",
+    "TRSA": "",
+    "TRAINING": "",
+    "GLIDERPROHIBITED": "",
+    "WAVEWINDOW": "Sailplane Area.",
+    "ONLINE_OBSERVER": "Online network observer"
+}
 
 APPROACH_FIX_TYPES = {
     "IAF": "Initial Approach Fix",

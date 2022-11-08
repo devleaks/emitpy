@@ -225,8 +225,12 @@ class Emit(Messages):
 
         ident = self.getId()
         db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
-        basename = os.path.join(MANAGED_AIRPORT_AODB, db, ident)
+        basedir = os.path.join(MANAGED_AIRPORT_AODB, db)
+        if not os.path.exists(basedir):
+            os.mkdir(basedir)
+            logger.info(f":saveFile: directory {basedir} does not exist. created.")
 
+        basename = os.path.join(basedir, ident)
         # 1. Save "raw emits"
         # filename = os.path.join(basename + "-5-emit.json")
         # with open(filename, "w") as fp:

@@ -18,8 +18,14 @@ HOME_DIR = os.path.join("<application-home-directory>")  # should work even on w
 # DATA is a database of *static* data, definitions, etc. (read-only)
 DATA_DIR = os.path.join(HOME_DIR, "data")
 
-# AODB is a database of working data (read-write). Mostly replaced by Redis
+# AODB is a database of working data (read-write). Mostly replaced by Redis.
 TEMP_DIR = os.path.join(HOME_DIR, "db")
+
+# Cache dir is for pickle dumps.
+CACHE_DIR = os.path.join(TEMP_DIR, "cache")
+
+# METAR storage directory
+METAR_DIR = os.path.join(TEMP_DIR, "metar")
 
 
 # ######################
@@ -55,8 +61,11 @@ MANAGED_AIRPORT = {
     "operator": "MATAR"
 }
 
-MANAGED_AIRPORT_DIR = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT["ICAO"])
+MANAGED_AIRPORT_DIR  = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT["ICAO"])
+MANAGED_AIRPORT_AODB = os.path.join(TEMP_DIR, MANAGED_AIRPORT["ICAO"])
+MANAGED_AIRPORT_CACHE = os.path.join(CACHE_DIR, MANAGED_AIRPORT["ICAO"])  # os.path.join(MANAGED_AIRPORT_AODB, "cache")
 
+# Broadcaster
 BROADCASTER_HEARTBEAT = False
 
 # Sources of some data
@@ -64,8 +73,7 @@ METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"
 METAR_HISTORICAL = False
 
 # X-Plane location
+XPLANE_DIR = os.path.join("<x-plane-home-directory>")
 XPLANE_FEED = False
-
 XPLANE_HOSTNAME = "<x-plane-host-ip-address>"
 XPLANE_PORT = 49003
-XPLANE_DIR = os.path.join("<x-plane-home-directory>")

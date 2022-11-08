@@ -2,7 +2,6 @@
 A METAR is a weather situation at a named location, usually an airport.
 """
 import os
-import pathlib
 import re
 import json
 import logging
@@ -18,17 +17,13 @@ import flightplandb as fpdb
 
 # from metar import Metar as MetarLib
 
-from emitpy.constants import METAR_DATABASE, REDIS_DATABASE, REDIS_DB
-from emitpy.parameters import MANAGED_AIRPORT_AODB, REDIS_CONNECT
+from emitpy.constants import REDIS_DATABASE, REDIS_DB
+from emitpy.parameters import METAR_DIR, REDIS_CONNECT
 from emitpy.utils import key_path
 
 from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 
 logger = logging.getLogger("Metar")
-
-METAR_DIR = os.path.join(MANAGED_AIRPORT_AODB, METAR_DATABASE)
-
-# pathlib.Path("/tmp/path/to/desired/directory").mkdir(parents=True, exist_ok=True)
 
 
 def round_dt(dt, delta):  # rounds date to delta after date.
@@ -53,8 +48,11 @@ class Metar:
         self.raw = None     # metar string
         self.redis = redis
 
-        if redis is None:
-            pathlib.Path(METAR_DIR).mkdir(parents=True, exist_ok=True)
+        # this is now checked/created in managedairport at startup
+        # if redis is None:
+        #     pathlib.Path(METAR_DIR).mkdir(parents=True, exist_ok=True)
+        if redis is None and not os.path.exists(METAR_DIR) or  not os.path.isdir(METAR_DIR):
+            logger.warning(f":__init__: no Metar directory {METAR_DIR}")
 
 
     @staticmethod
@@ -64,7 +62,7 @@ class Metar:
             doit = getattr(metarclasses, method)
             return doit(icao, redis)
         else:
-            logger.warning(f":__init__: could not get Metar implementation {method}")
+            logger.warning(f":new: could not get Metar implementation {method}")
         return None
 
 

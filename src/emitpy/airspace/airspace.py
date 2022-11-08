@@ -52,10 +52,15 @@ class Restriction:
     Consider this as a mixin.
     """
     def __init__(self, altmin: int = None, altmax: int = None, speedmin: float = None, speedmax: float = None):
+        # Altitude constrains
         self.altmin = altmin        # In ft
         self.altmax = altmax
+        self.altmin_type = None     # MSL, AGL, UL
+        self.altmax_type = None
+        # Speed constrains
         self.speedmin = speedmin    # In kn
         self.speedmax = speedmax
+        # Bank angle constrains
         self.angle = None           # Bank angle in °.
 
     def getInfo(self):
@@ -137,6 +142,16 @@ class Restriction:
     def hasSpeedRestriction(self):
         return self.speedmin is not None or self.speedmax is not None
 
+    def combine(self, restriction: "Restriction"):
+        def nvl(a, b):
+            return a if a is not None else b
+
+        self.altmin = min(nvl(self.altmin, math.inf), nvl(restriction.altmin, math.inf))
+        self.altmax = max(nvl(self.altmax, 0), nvl(restriction.altmax, 0))
+
+        self.speedmin = max(nvl(self.speedmin, 0), nvl(restriction.speedmin, 0))
+        self.speedmax = min(nvl(self.speedmax, math.inf), nvl(restriction.speedmax, math.inf))
+
 
 class ControlledAirspace(FeatureWithProps):
     """
@@ -144,12 +159,16 @@ class ControlledAirspace(FeatureWithProps):
     @todo: we'll deal with the airspace restricted volumes later.
     @see: Little Navmap for "inspiration".
     """
-    def __init__(self, name, region, airspace_class, restriction):
-        default_polygon = [ [0,0], [0,1], [1, 1], [0, 0] ]
-        FeatureWithProps.__init__(self, geometry=Polygon(default_polygon), properties={})
+    def __init__(self, name, region, airspace_class, restriction, area):
+        FeatureWithProps.__init__(self, geometry=area, properties={})
 
         self.airspace_class = airspace_class
         self.restriction = restriction
+        self.restrictions = [restriction]
+
+    def add_restricton(self, restriction):
+        self.restrictions.append(restriction)
+        self.restriction.combine(restriction)
 
 
 ################################
@@ -539,6 +558,7 @@ class Airspace(Graph):
 
         self.all_points = {}
         self.holds = {}
+        self.airspaces = {}
 
 
     def load(self, redis = None):
@@ -563,6 +583,10 @@ class Airspace(Graph):
             if not status[0]:
                 return status
 
+        status = self.loadAirspaces()
+        if not status[0]:
+            return status
+
         status = self.loadHolds()
         if not status[0]:
             return status
@@ -583,6 +607,10 @@ class Airspace(Graph):
 
 
     def loadAirwaySegments(self):
+        return [False, "no load implemented"]
+
+
+    def loadAirspaces(self):
         return [False, "no load implemented"]
 
 

@@ -221,9 +221,9 @@ class REDIS_PREFIX(Enum):
     AIRSPACE_WAYPOINTS = key_path("airspace", "waypoints")
     BUSINESS = "business"
     COMPANIES = key_path("business", "companies")
-    FLIGHTPLAN_APTS = key_path("flightplans", "airports")
-    FLIGHTPLAN_FPDB = key_path("flightplans", "fpdb")
-    FLIGHTPLAN_GEOJ = key_path("flightplans", "geojson")
+    FLIGHTPLAN_APTS = key_path(FLIGHTROUTE_DATABASE, "airports")
+    FLIGHTPLAN_FPDB = key_path(FLIGHTROUTE_DATABASE, "fpdb")
+    FLIGHTPLAN_GEOJ = key_path(FLIGHTROUTE_DATABASE, "geojson")
     GEOJSON = "geojson"
     GROUNDSUPPORT = "service"
     GROUNDSUPPORT_DESTINATION = "service-destination"
