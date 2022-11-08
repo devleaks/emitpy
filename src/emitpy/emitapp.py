@@ -70,6 +70,7 @@ def BOOTSTRAP_REDIS():
     k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
     a = r.json().get(k)
     r.select(prevdb)
+    logger.info(f"BOOTSTRAP_REDIS: Managed airport: {a}")
     return a is not None and MANAGED_AIRPORT_LAST_UPDATED in a and AIRAC_CYCLE in a
 
 

@@ -111,11 +111,16 @@ class Metar:
         fn = os.path.join(METAR_DIR, self.icao + "-" + nowstr + ".json")
         logger.debug(f":load: trying {fn}")
         if os.path.exists(fn):
-            with open(fn, "r") as fp:
-                self.raw = json.load(fp)
+            try:
+                with open(fn, "r") as fp:
+                    self.raw = json.load(fp)
+            except:
+                logger.debug(f":load: problem reading from {fn}", exc_info=True)
+                self.raw = None
+
             if self.raw is not None:
                 logger.debug(f":load: found {fn}")
-                return self.parse(self.raw["METAR"])
+                return self.parse()
             return (False, "Metar::load: not loaded")
         else:
             logger.debug(f":load: not found {fn}")
