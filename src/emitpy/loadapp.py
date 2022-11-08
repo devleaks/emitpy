@@ -74,9 +74,15 @@ class LoadApp(ManagedAirport):
         self.cache_lovs()
 
         # Caching emitpy data into Redis
-        self.load(DATA_TO_LOAD)
+        status = self.load(DATA_TO_LOAD)
+        if not status[0]:
+            logger.error(f":init: {status[1]}")
+            logger.error(":init: .. NOT DONE")
+            logger.debug(":init: NOT COMPLETED SUCCESSFULLY")
+        else:
+            logger.debug(":init: .. done")
+            logger.debug(":init: completed successfully")
 
-        logger.debug(":init: .. done")
         logger.debug("=" * 90)
 
         # Restore default db
@@ -283,12 +289,15 @@ class LoadApp(ManagedAirport):
         #     status = self.loadGraph("serviceroads", self.airport.service_roads)
         #     if not status[0]:
         #         return status
-
         if "*" in what or "info" in what:
-            self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
-            self._this_airport[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
-            self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), self._this_airport)
-            logger.info(f"LoadApp::load: loaded info")
+            try:
+                self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
+                self._this_airport[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
+                self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), self._this_airport)
+                logger.info(f"LoadApp::load: loaded info")
+            except:
+                logger.info(f"LoadApp::load: not loaded info", exc_info=True)
+                return (False, f"LoadApp::load: info NOT loaded")
 
         logger.debug(f":load: ..loaded")
         return (True, f"LoadApp::load: loaded")
@@ -442,7 +451,8 @@ class LoadApp(ManagedAirport):
 
 
     def loadAirRoutes(self):
-        return (False, f"LoadApp::loadAirRoutes: no free global feed for airline routes")
+        logger.warning(f":loadAirRoutes: no free global feed for airline routes")
+        return (True, f"LoadApp::loadAirRoutes: no free global feed for airline routes")
 
 
     # #############################
