@@ -45,7 +45,7 @@ class StatusInfo:
 
 SAVE_TO_FILE = False  # for debugging purpose
 SAVE_TRAFFIC = True
-
+LOAD_AIRWAYS = True
 
 def BOOTSTRAP_REDIS():
     not_connected = True
@@ -92,7 +92,7 @@ class EmitApp(ManagedAirport):
         # Otherwise, it will use the data files.
         if not self._use_redis:  # If caching data we MUST preload them from files
             logger.info(f":init: not using Redis for data")
-            ret = self.init()    # call init() here to use data from data files
+            ret = self.init(load_airways=LOAD_AIRWAYS)    # call init() here to use data from data files
             if not ret[0]:
                 logger.warning(ret[1])
 
@@ -153,7 +153,7 @@ class EmitApp(ManagedAirport):
                 self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                 self.queues[k].save()
 
-        ret = self.init(load_airways=True)  # call init() here to use data from Redis
+        ret = self.init(load_airways=LOAD_AIRWAYS)  # call init() here to use data from Redis
         if not ret[0]:
             logger.warning(ret[1])
             return
