@@ -274,9 +274,10 @@ class Airport(Location):
         :param      redis:  The redis
         :type       redis:  { type_description }
         """
-        # redis.set(key_path(base, self.icao[0:2], self.getKey()), json.dumps(self.getInfo()))
-        redis.delete(key_path(base, self.icao[0:2], self.getKey()))
-        redis.json().set(key_path(base, self.icao[0:2], self.getKey()), "$", self.getInfo())
+        if redis is not None:
+            redis.delete(key_path(base, self.icao[0:2], self.getKey()))
+            # redis.set(key_path(base, self.icao[0:2], self.getKey()), json.dumps(self.getInfo()))
+            redis.json().set(key_path(base, self.icao[0:2], self.getKey()), "$", self.getInfo())
 
 
 

@@ -36,7 +36,7 @@ logger = logging.getLogger("LoadApp")
 logging.basicConfig(level=logging.DEBUG)
 
 
-DATA_TO_LOAD = ["ramp", "info"] # ["vertex", "apt", "hold", "airway"] ["info"]
+DATA_TO_LOAD = ["*"] # ["ramp", "info", "vertex", "apt", "hold", "airway"] ["info"]
 
 
 class LoadApp(ManagedAirport):
@@ -115,36 +115,43 @@ class LoadApp(ManagedAirport):
             status = self.loadAircraftTypes()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "acperf" in what:
             status = self.loadAircraftPerformances()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "acequiv" in what:
             status = self.loadAircraftEquivalences()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "actaprof" in what:
             status = self.loadTurnaroundProfiles()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "airport" in what:
             status = self.loadAirports()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "airline" in what:
             status = self.loadAirlines()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "airroute" in what:
             status = self.loadAirRoutes()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         # #############################
         # AIRSPACE
@@ -187,31 +194,37 @@ class LoadApp(ManagedAirport):
             status = self.loadAirlineFrequencies()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "alroute" in what:
             status = self.loadAirlineRoutes()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "alroutefreq" in what:
             status = self.loadAirlineRouteFrequencies()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "comp" in what:
             status = self.loadCompanies()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "gse" in what:
             status = self.loadGSE()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "gsefleet" in what:
             status = self.loadGSEFleet()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         # #############################
         # MANAGED AIRPORT
@@ -227,31 +240,37 @@ class LoadApp(ManagedAirport):
             status = self.loadRamps()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "rwy" in what:
             status = self.loadRunways()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "apoi" in what:
             status = self.loadAirwayPOIS()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "spoi" in what:
             status = self.loadServicePOIS()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "dpoi" in what:
             status = self.loadServiceDestinations()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         if "*" in what or "cpoi" in what:
             status = self.loadCheckpoints()
             if not status[0]:
                 return status
+        logger.info(f"{status[1]}")
 
         # it no longer is necessary to load graphs, they are pickled
         # if "taxiways" in what:
@@ -269,6 +288,7 @@ class LoadApp(ManagedAirport):
             self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
             self._this_airport[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), self._this_airport)
+            logger.info(f"LoadApp::load: loaded info")
 
         logger.debug(f":load: ..loaded")
         return (True, f"LoadApp::load: loaded")
