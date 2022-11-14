@@ -407,7 +407,7 @@ class Ramp(FeatureWithProps):
 
         if aircraft.iata in self.service_pois:
             if len(self.service_pois[aircraft.iata]) > 0:
-                return (True, "Ramp::makeServicePOIs: created")
+                return (True, "Ramp::makeServicePOIs: already created")
             else:
                 return (False, f"Ramp::makeServicePOIs: no POI for {aircraft.iata}")
 
