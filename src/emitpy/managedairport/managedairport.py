@@ -36,7 +36,7 @@ class ManagedAirport:
         self.setTimezone()
 
 
-    def init(self, load_airways: bool = False):
+    def init(self, load_airways: bool = True):
         """
         Load entire managed airport data together with airport manager.
         """
