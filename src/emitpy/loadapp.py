@@ -36,7 +36,7 @@ logger = logging.getLogger("LoadApp")
 logging.basicConfig(level=logging.DEBUG)
 
 
-DATA_TO_LOAD = ["*"] # ["ramp", "info", "vertex", "apt", "hold", "airway"] ["info"]
+DATA_TO_LOAD = ["actaprof"] # ["ramp", "info", "vertex", "apt", "hold", "airway"] ["info"]
 
 
 class LoadApp(ManagedAirport):
@@ -121,43 +121,50 @@ class LoadApp(ManagedAirport):
             status = self.loadAircraftTypes()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "acperf" in what:
             status = self.loadAircraftPerformances()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "acequiv" in what:
             status = self.loadAircraftEquivalences()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "actaprof" in what:
             status = self.loadTurnaroundProfiles()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "airport" in what:
             status = self.loadAirports()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "airline" in what:
             status = self.loadAirlines()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "airroute" in what:
             status = self.loadAirRoutes()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         # #############################
         # AIRSPACE
@@ -200,37 +207,43 @@ class LoadApp(ManagedAirport):
             status = self.loadAirlineFrequencies()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "alroute" in what:
             status = self.loadAirlineRoutes()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "alroutefreq" in what:
             status = self.loadAirlineRouteFrequencies()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "comp" in what:
             status = self.loadCompanies()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "gse" in what:
             status = self.loadGSE()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "gsefleet" in what:
             status = self.loadGSEFleet()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         # #############################
         # MANAGED AIRPORT
@@ -246,37 +259,43 @@ class LoadApp(ManagedAirport):
             status = self.loadRamps()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "rwy" in what:
             status = self.loadRunways()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "apoi" in what:
             status = self.loadAirwayPOIS()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "spoi" in what:
             status = self.loadServicePOIS()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "dpoi" in what:
             status = self.loadServiceDestinations()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         if "*" in what or "cpoi" in what:
             status = self.loadCheckpoints()
             if not status[0]:
                 return status
-        logger.info(f"{status[1]}")
+            else:
+                logger.info(f"{status[1]}")
 
         # it no longer is necessary to load graphs, they are pickled
         # if "taxiways" in what:
@@ -294,7 +313,7 @@ class LoadApp(ManagedAirport):
                 self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
                 self._this_airport[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), self._this_airport)
-                logger.info(f"LoadApp::load: loaded info")
+                logger.info(f"LoadApp::load: loaded info ({key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)})")
             except:
                 logger.info(f"LoadApp::load: not loaded info", exc_info=True)
                 return (False, f"LoadApp::load: info NOT loaded")
@@ -378,7 +397,8 @@ class LoadApp(ManagedAirport):
                 else:
                     logger.warning(f":loadFromFile: file not found {filename}")
                 return None
-
+            #
+            # Turnaround Profiles
             tarprofile = {
                 RAMP_TYPE.JETWAY.value: {},
                 RAMP_TYPE.TIE_DOWN.value: {}
@@ -389,12 +409,14 @@ class LoadApp(ManagedAirport):
                     tarprofile[rt.value][move] = loadFromFile(f"{actype}-{move}-{rt.value}-tarprf.yaml")
                     if tarprofile[rt.value][move] is not None:
                         logger.debug(f":loadTurnaroundProfile: loaded for aircraft class {actype}, {move}, ramp type {rt.value}")
-            if len(tarprofile[RAMP_TYPE.JETWAY.value]) > 0 or len(RAMP_TYPE.TIE_DOWN.value) > 0:
+                        at_least_one = True
+            if at_least_one:
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRCRAFT_TARPROFILES.value, actype), Path.root_path(), tarprofile)
                 logger.debug(f":loadTurnaroundProfiles: loaded service data for aircraft class {actype}")
             else:
                 logger.debug(f":loadTurnaroundProfiles: no service data for aircraft class {actype}")
-
+            #
+            # RAMP Service Vehicle Positions around aircraft
             gseprofile = loadFromFile(f"{actype}-gseprf.yaml")
             if gseprofile is not None:
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, actype), Path.root_path(), gseprofile)
