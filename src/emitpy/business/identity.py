@@ -7,6 +7,9 @@ from emitpy.utils import key_path
 import emitpy
 
 
+ALL_IDENTITIES = {}
+
+
 class IDENTIFIER(Enum):
     """
     Base class for all things identified in the system, in particular aircrafts and vehicles,
@@ -16,6 +19,7 @@ class IDENTIFIER(Enum):
     classId = "classId"
     typeId = "typeId"
     name = "name"
+
 
 class Identity:
     """
@@ -31,6 +35,22 @@ class Identity:
         self.classId = classId
         self.typeId = typeId
         self.name = name
+
+        self.register()
+
+
+    @classmethod
+    def new(cls, orgId: str, classId: str, typeId: str, name: str):
+        thisone = orgId + ID_SEP + classId + ID_SEP + typeId + ID_SEP + name
+        return ALL_IDENTITIES[thisone] if thisone in ALL_IDENTITIES.keys() else cls(orgId=orgId, classId=classId, typeId=typeId, name=name)
+
+    def register(self):
+        thisone = self.getId()
+        if thisone in ALL_IDENTITIES.keys():
+            if False:
+                print(f"Identity: entity {thisone} already registered")
+        else:
+            ALL_IDENTITIES[thisone] = self
 
     def getId(self):
         return self.orgId + ID_SEP + self.classId + ID_SEP + self.typeId + ID_SEP + self.name
