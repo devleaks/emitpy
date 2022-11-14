@@ -12,7 +12,7 @@ import emitpy.service
 from emitpy.flight import Flight
 from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis
-from emitpy.constants import SERVICE_PHASE, ARRIVAL, DEPARTURE, REDIS_TYPE
+from emitpy.constants import SERVICE_PHASE, ARRIVAL, DEPARTURE, REDIS_TYPE, REDIS_DATABASE, ID_SEP, key_path
 
 logger = logging.getLogger("FlightServices")
 
@@ -107,8 +107,12 @@ class FlightServices:
         tarprofile = self.flight.aircraft.actype.getTurnaroundProfile(move=self.flight.get_move(),
                                                                       ramp=self.ramp.getProp("sub-type"),
                                                                       redis=self.app.use_redis())
+        gseprofile = self.flight.aircraft.actype.getGSEProfile(redis=self.app.use_redis())
         if tarprofile is None:
-            return (False, f"FlightServices::run: no turnaround profile for {self.flight.aircraft.actype}")
+            return (False, f"FlightServices::run: no turnaround profile for {self.flight.aircraft.actype.typeId}")
+
+        if gseprofile is None:
+            logger.warning(f"FlightServices::run: no GSE ramp profile for {self.flight.aircraft.actype.typeId}")
 
         if "services" not in tarprofile:
             return (False, f"FlightServices::run: no services in turnaround profile for {self.flight.aircraft.actype}")

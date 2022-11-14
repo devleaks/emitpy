@@ -77,18 +77,20 @@ class ServiceMove(Movement):
             logger.warning(":move: no nearest_vertex for startpos")
 
         # find ramp position, use ramp center if none is given
-        gseprofile = self.service.actype.gseprofile
+        gseprofile = self.service.actype.getGSEProfile()
         if gseprofile is not None:
             status = self.service.ramp.makeServicePOIs(self.service.actype)
             if not status[0]:
                 logger.warning(f":move:create ramp service points failed {self.service.actype.getInfo()}")
-            else:
-                logger.debug(f':move:created ramp service points {list(gseprofile["services"].keys())}')
+            # else:
+            #     logger.debug(f':move:created ramp service points {list(gseprofile["services"].keys())}')
 
         ramp_stop = self.service.ramp.getServicePOI(service_type, self.service.actype)
+        wer = service_type
         if ramp_stop is None:
-            logger.warning(f":move: failed to find ramp stop for { self.service.actype }, { service_type }, using ramp center")
+            logger.warning(f":move: failed to find ramp stop for { self.service.actype.typeId }, { service_type }, using ramp center")
             ramp_stop = self.service.ramp  # use center of ramp
+            wer = "center"
 
         if ramp_stop is None:
             logger.warning(f":move: failed to find ramp stop and/or center for { service_type }")
@@ -99,15 +101,15 @@ class ServiceMove(Movement):
         # find closest point on network to ramp
         ramp_npe = self.airport.service_roads.nearest_point_on_edge(ramp_stop)
         if ramp_npe[0] is None:
-            logger.warning(":move: no nearest_point_on_edge for ramp_stop")
+            logger.warning(f":move: no nearest_point_on_edge for ramp_stop ({wer})")
         ramp_nv = self.airport.service_roads.nearest_vertex(ramp_stop)
         if ramp_nv[0] is None:
-            logger.warning(":move: no nearest_vertex for ramp_stop")
+            logger.warning(f":move: no nearest_vertex for ramp_stop ({wer})")
 
         # logger.debug(":move: ramp vertex %s" % (ramp_nv[0]))
 
         # route from start to ramp
-        logger.debug(f":move: route from start {startnv[0].id} to ramp {ramp_nv[0].id} (vertices)")
+        logger.debug(f":move: route from start {startnv[0].id} to ramp/{wer} {ramp_nv[0].id} (vertices)")
         rt1 = Route(self.airport.service_roads, startnv[0].id, ramp_nv[0].id)
         # rt1.find()  # auto route
         # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, ramp_nv[0].id)
