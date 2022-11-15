@@ -3,7 +3,6 @@ A METAR is a weather situation at a named location, usually an airport.
 """
 import os
 import re
-import json
 import logging
 import importlib
 from datetime import datetime, timedelta, timezone
@@ -20,7 +19,7 @@ import flightplandb as fpdb
 from emitpy.constants import REDIS_DATABASE, REDIS_DB
 from emitpy.parameters import METAR_DIR, REDIS_CONNECT
 from emitpy.utils import key_path
-
+from .atmap import ATMAP
 from emitpy.private import FLIGHT_PLAN_DATABASE_APIKEY
 
 logger = logging.getLogger("Metar")
@@ -46,6 +45,7 @@ class Metar:
         self.moment_norm = normalize_dt(self.moment)
         self.metar = None   # parsed metar
         self.raw = None     # metar string
+        self.atmap = None   # Eurocontrol ATMAP coefficient
         self.redis = redis
 
         # this is now checked/created in managedairport at startup
@@ -104,86 +104,92 @@ class Metar:
         return (False, "Metar::fetch: abstract class")
 
 
+    def save(self):
+        if self.redis is not None:
+            return self.saveToCache()
+        else:
+            return self.saveFile()
+
     def load(self):
         if self.redis is not None:
             return self.loadFromCache()
-        nowstr = self.moment_norm.strftime('%d%H%MZ')
-        fn = os.path.join(METAR_DIR, self.icao + "-" + nowstr + ".json")
-        logger.debug(f":load: trying {fn}")
+        else:
+            return self.loadFile()
+
+    def saveFileName(self):
+        nowstr = self.moment_norm.strftime('%Y%m-%d%H%MZ')
+        return os.path.join(METAR_DIR, self.icao + "-" + nowstr + ".metar")
+
+    def saveFile(self):
+        if self.raw is not None:
+            fn = self.saveFileName()
+            if not os.path.exists(fn):
+                logger.warning(f":saveFile: saving into {fn} '{self.raw}'")
+                with open(fn, "w") as outfile:
+                    outfile.write(self.raw)
+            else:
+                logger.warning(f":saveFile: already exist {fn}")
+            return (True, "Metar::saveFile: saved")
+        return (False, "Metar::saveFile: no METAR to saved")
+
+    def loadFile(self):
+        fn = self.saveFileName()
         if os.path.exists(fn):
+            logger.debug(f":loadFile: found {fn}")
             try:
                 with open(fn, "r") as fp:
-                    self.raw = json.load(fp)
+                    self.raw = fp.readline()
             except:
-                logger.debug(f":load: problem reading from {fn}", exc_info=True)
+                logger.debug(f":loadFile: problem reading from {fn}", exc_info=True)
                 self.raw = None
 
             if self.raw is not None:
-                logger.debug(f":load: found {fn}")
                 return self.parse()
-            return (False, "Metar::load: not loaded")
+                return (True, "Metar::loadFile: loaded and parsed")
+            return (False, "Metar::loadFile: not loaded")
         else:
-            logger.debug(f":load: not found {fn}")
+            logger.debug(f":loadFile: file not found {fn}")
+        return (False, "Metar::loadFile: not loaded")
 
-
-    def save(self):
-        if self.redis is not None:
-            if self.raw is not None:
-                prevdb = self.redis.client_info()["db"]
-                self.redis.select(REDIS_DB.PERM.value)
-                nowstr = self.getFullDT()
-                metid = key_path(REDIS_DATABASE.METAR.value, self.raw[0:4], nowstr)
-                if not self.redis.exists(metid):
-                    self.redis.set(metid, self.raw)
-                    self.redis.select(prevdb)
-                    logger.debug(f":save: saved {metid}")
-                    return (True, "Metar::save: saved")
-                else:
-                    self.redis.select(prevdb)
-                    logger.warning(f":save: already exist {metid}")
-            else:
-                logger.warning(f":save: no metar to save")
-        else:
-            return self.saveFile()
-        return (False, "Metar::save: not saved")
-
-
-    def saveFile(self):
-        metid = "*ERROR*"
-        fn = "*ERROR*"
-        if self.raw is not None:
-            metid = self.raw[0:4] + '-' + self.raw[5:12]
-            fn = os.path.join(METAR_DIR, metid + ".json")
-            if not os.path.exists(fn):
-                with open(fn, "w") as outfile:
-                    print(self.raw, outfile)
-            else:
-                logger.warning(f":save: already exist {fn}")
-            return (True, "Metar::save: saved")
-        return (False, "Metar::save: not saved")
-
-
-    def loadFromCache(self):
-        if self.redis is not None:
-            nowstr = self.getFullDT()
-            metid = REDIS_DATABASE.METAR.value + ":" + self.icao + ":" + nowstr
-            logger.debug(f":loadFromCache: trying {metid}")
-            if self.redis.exists(metid):
-                raw = self.redis.get(metid)
-                self.raw = raw.decode("UTF-8")
-                if self.raw is not None:
-                    return self.parse()
-                return (False, "Metar::loadFromCache: failed to get")
-            else:
-                logger.debug(f":loadFromCache: not found {metid}")
-        return (False, "Metar::loadFromCache: failed to load")
-
-
-    def getFullDT(self):
+    def cacheKeyName(self):
         """
         Gets the full data time for storage. METAR only have latest DDHHMM, with no year or month.
         """
         return self.moment_norm.strftime('%Y%m%d%H%MZ')
+
+    def saveToCache(self):
+        if self.raw is not None:
+            prevdb = self.redis.client_info()["db"]
+            self.redis.select(REDIS_DB.PERM.value)
+            nowstr = self.cacheKeyName()
+            metid = key_path(REDIS_DATABASE.METAR.value, self.raw[0:4], nowstr)
+            if not self.redis.exists(metid):
+                self.redis.set(metid, self.raw)
+                self.redis.select(prevdb)
+                logger.debug(f":saveToCache: saved {metid}")
+                return (True, "Metar::saveToCache: saved")
+            else:
+                self.redis.select(prevdb)
+                logger.warning(f":saveToCache: already exist {metid}")
+        else:
+            logger.warning(f":saveToCache: no metar to save")
+        return (False, "Metar::saveToCache: not saved")
+
+    def loadFromCache(self):
+        if self.redis is not None:
+            nowstr = self.cacheKeyName()
+            metid = REDIS_DATABASE.METAR.value + ":" + self.icao + ":" + nowstr
+            if self.redis.exists(metid):
+                logger.debug(f":loadFromCache: found {metid}")
+                raw = self.redis.get(metid)
+                self.raw = raw.decode("UTF-8")
+                if self.raw is not None:
+                    return self.parse()
+                    return (True, "Metar::loadFromCache: loaded and parsed")
+                return (False, "Metar::loadFromCache: failed to get")
+            else:
+                logger.debug(f":loadFromCache: not found {metid}")
+        return (False, "Metar::loadFromCache: failed to load")
 
 
     def parse(self):
@@ -201,6 +207,11 @@ class Metar:
         return (False, "Metar::parse: failed to parse")
 
 
+    def getAtmap(self):
+        if self.atmap is None:
+            self.atmap = ATMAP(obs=self.raw)
+        return self.atmap.bad_weather_classes() if self.atmap is not None else None
+
 
 class MetarFPDB(Metar):
     """
@@ -213,8 +224,8 @@ class MetarFPDB(Metar):
         if redis is not None:
             backend = requests_cache.RedisCache(host=REDIS_CONNECT["host"], port=REDIS_CONNECT["port"], db=2)
             requests_cache.install_cache(backend=backend)
-        else:
-            requests_cache.install_cache()  # defaults to sqlite
+        # else:
+        #     requests_cache.install_cache()  # defaults to sqlite
         self.init()
 
 
