@@ -6,6 +6,7 @@ sys.path.append(os.path.join(HOME_DIR, "src"))
 import logging
 import json
 import yaml
+import time
 
 import redis
 from redis.commands.json.path import Path
@@ -36,19 +37,16 @@ logger = logging.getLogger("LoadApp")
 logging.basicConfig(level=logging.DEBUG)
 
 
-DATA_TO_LOAD = ["actaprof"] # ["ramp", "info", "vertex", "apt", "hold", "airway"] ["info"]
-
-
 class LoadApp(ManagedAirport):
 
-    def __init__(self, airport):
+    def __init__(self, airport, data_to_load:list = ["*"]):
 
         ManagedAirport.__init__(self, airport=airport, app=self)
 
         self.redis_pool = None
         self.redis = None
 
-        ret = self.init(load_airways=("*" in DATA_TO_LOAD or "airway" in DATA_TO_LOAD))  # call init() here to use data from data files (no Redis supplied)
+        ret = self.init(load_airways=(data_to_load is None or "*" in data_to_load or "airway" in data_to_load))  # call init() here to use data from data files (no Redis supplied)
         if not ret[0]:
             logger.warning(ret[1])
 
@@ -66,7 +64,7 @@ class LoadApp(ManagedAirport):
         self._app.redis.select(REDIS_DB.REF.value)
 
         logger.debug("=" * 90)
-        logger.debug(":init: initialized. ready to cache. caching..")
+        logger.debug(":init: initialized. ready to save. saving..")
 
         # Caching emitpy lists of values Redis
         # We need to cache lov first because we will reset
@@ -74,13 +72,13 @@ class LoadApp(ManagedAirport):
         self.cache_lovs()
 
         # Caching emitpy data into Redis
-        status = self.load(DATA_TO_LOAD)
+        status = self.load(data_to_load)
         if not status[0]:
             logger.error(f":init: {status[1]}")
             logger.error(":init: .. NOT DONE")
             logger.debug(":init: NOT COMPLETED SUCCESSFULLY")
         else:
-            logger.debug(":init: .. done")
+            logger.debug(":init: .. saved")
             logger.debug(":init: completed successfully")
 
         logger.debug("=" * 90)
@@ -107,10 +105,7 @@ class LoadApp(ManagedAirport):
         return (False, f"{k} not found")
 
 
-    def load(self, what = ["*"]):
-
-        if type(what) == str:
-            what = [ what ]
+    def load(self, what: list):
 
         logger.debug(f":load: loading.. ({what})")
 
@@ -787,4 +782,50 @@ class LoadApp(ManagedAirport):
         return (True, f"LoadApp::cache_lovs: cached")
 
 if __name__ == "__main__":
-    d = LoadApp(airport=MANAGED_AIRPORT)
+    """
+    Exit: 0: Redis available, airport already loaded.
+          1: Redis not available
+          2: Redis available, whole airport is being loaded
+          3: Redis available, airport already loaded, reloaded some data
+    """
+    ATTEMPS = 10    # # of attempts
+    SLEEP_TIME = 2  # secs. between attempts
+
+    not_connected = True
+    attempts = 0
+    logger.info("connecting ..")
+    while not_connected and attempts < ATTEMPS:
+        r = redis.Redis(**REDIS_CONNECT)
+        try:
+            pong = r.ping()
+            not_connected = False
+            logger.info(".. connected")
+        except redis.RedisError:
+            logger.info(f".. cannot connect, retrying ({attempts+1}/{ATTEMPS}, sleeping {SLEEP_TIME} secs) ..")
+            attempts = attempts + 1
+            time.sleep(SLEEP_TIME)
+
+    if not_connected:
+        logger.warning(".. cannot connect, not using Redis for data")
+        sys.exit(1)
+
+    prevdb = r.client_info()["db"]
+    r.select(REDIS_DB.REF.value)
+    k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
+    a = r.json().get(k)
+    r.select(prevdb)
+    logger.info(f"Managed airport: {a}")
+
+    if a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT["ICAO"]:
+        logger.info(f"loading ..")
+        d = LoadApp(airport=MANAGED_AIRPORT)
+        logger.info(f".. loaded")
+        sys.exit(2)
+
+    if len(sys.argv) > 1:
+        logger.info(f"loading {sys.argv[1:]} ..")
+        d = LoadApp(airport=MANAGED_AIRPORT, data_to_load=sys.argv[1:])
+        logger.info(f".. loaded")
+        sys.exit(3)
+
+    sys.exit(0)
