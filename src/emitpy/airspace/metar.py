@@ -117,7 +117,7 @@ class Metar:
             return self.loadFile()
 
     def saveFileName(self):
-        nowstr = self.moment_norm.strftime('%Y%m-%d%H%MZ')
+        nowstr = self.cacheKeyName()
         return os.path.join(METAR_DIR, self.icao + "-" + nowstr + ".metar")
 
     def saveFile(self):
@@ -154,8 +154,9 @@ class Metar:
     def cacheKeyName(self):
         """
         Gets the full data time for storage. METAR only have latest DDHHMM, with no year or month.
+        So we add them to Redis keys and filenames.
         """
-        return self.moment_norm.strftime('%Y%m%d%H%MZ')
+        return self.moment_norm.strftime('%Y%m-%d%H%MZ')
 
     def saveToCache(self):
         if self.raw is not None:
