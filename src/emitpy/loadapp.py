@@ -14,6 +14,7 @@ from fastapi.encoders import jsonable_encoder
 
 from datetime import datetime
 
+import emitpy
 from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
@@ -34,7 +35,7 @@ from emitpy.geo import FeatureWithProps
 
 logger = logging.getLogger("LoadApp")
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 class LoadApp(ManagedAirport):
@@ -793,15 +794,16 @@ if __name__ == "__main__":
 
     not_connected = True
     attempts = 0
-    logger.info("connecting ..")
+    logger.info(f"emitpy version {emitpy.__version__} «{emitpy.__version_name__}»")
+    logger.debug("connecting ..")
     while not_connected and attempts < ATTEMPS:
         r = redis.Redis(**REDIS_CONNECT)
         try:
             pong = r.ping()
             not_connected = False
-            logger.info(".. connected")
+            logger.debug(".. connected")
         except redis.RedisError:
-            logger.info(f".. cannot connect, retrying ({attempts+1}/{ATTEMPS}, sleeping {SLEEP_TIME} secs) ..")
+            logger.debug(f".. cannot connect, retrying ({attempts+1}/{ATTEMPS}, sleeping {SLEEP_TIME} secs) ..")
             attempts = attempts + 1
             time.sleep(SLEEP_TIME)
 
@@ -817,15 +819,15 @@ if __name__ == "__main__":
     logger.info(f"Managed airport: {a}")
 
     if a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT["ICAO"]:
-        logger.info(f"loading ..")
+        logger.debug(f"loading ..")
         d = LoadApp(airport=MANAGED_AIRPORT)
-        logger.info(f".. loaded")
+        logger.debug(f".. loaded")
         sys.exit(2)
 
     if len(sys.argv) > 1:
-        logger.info(f"loading {sys.argv[1:]} ..")
+        logger.debug(f"loading {sys.argv[1:]} ..")
         d = LoadApp(airport=MANAGED_AIRPORT, data_to_load=sys.argv[1:])
-        logger.info(f".. loaded")
+        logger.debug(f".. loaded")
         sys.exit(3)
 
     sys.exit(0)
