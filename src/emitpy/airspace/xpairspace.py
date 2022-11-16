@@ -608,7 +608,13 @@ class XPAirspace(Airspace):
     def loadAirspaces(self):
         """
         Load all airspaces from Little Navmap.
-        "properties": {
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [ [ [0, 0], .. ,[0, 0] ] ]
+          },
+          "properties": {
             "boundary_id": 29386,
             "file_id": 1,
             "type": "FIR",
@@ -629,21 +635,33 @@ class XPAirspace(Airspace):
             "max_laty": -4.833333492279053,
             "min_lonx": 155,
             "min_laty": -14
+          }
         }
+        List of values:
+        --------------
+        type: ["AL","C","CA","CB","CC","CD","CE","CF","CG","CN","DA","FIR","GCA","M","MCTR","P","R","RD","T","TR","TRSA","UIR","W"]
+        restrictive_type: [null,"A","C","D","M","P","R","T","W"]
+        multiple_code: [null,"A", .. ,"Z"]
+        time_code: [null,"C","H","N","U"]
+        comm_type: [null,"CTR"]
+
         """
         airspaces = files('data.airspaces').joinpath('boundaries.geojson').read_text()
         fc = json.loads(airspaces)
         for f in fc["features"]:
             props = f["properties"]
-            r = Restriction(altmin=0.0,
-                            altmax=0.0,
-                            speedmin=0.0,
-                            speedmax=0.0)
+            r = Restriction(altmin=props["min_altitude"],
+                            altmax=props["max_altitude"])
+            r.altmin_type = props["min_altitude_type"]
+            r.altmax_type = props["max_altitude_type"]
             ca = ControlledAirspace(name=props["name"],
                                     region="",
                                     airspace_class="",
                                     restriction=r,
                                     area=f["geometry"])
+            for p in props:
+                ca.setProp(p, props[p])
+            ca.setId(props["boundary_id"])
             self.airspaces[props["boundary_id"]] = ca
 
         logger.debug(f":loadAirspaces: loaded {len(self.airspaces)} boundaries")

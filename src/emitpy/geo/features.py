@@ -140,6 +140,10 @@ class FeatureWithProps(Feature):
     def getId(self):
         return self.id if hasattr(self, "id") else self.getProp("id")
 
+    def getKey(self):
+        # return type(self).__name__ + ID_SEP + self.getId()
+        return self.getId()
+
     def setId(self, ident: str):
         self.id = ident
 

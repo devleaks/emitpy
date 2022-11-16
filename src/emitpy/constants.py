@@ -205,6 +205,7 @@ class REDIS_PREFIX(Enum):
     AIRPORTS_GEO_INDEX = key_path("airports", "_geo_index")
     AIRPORT_GEO_INDEX = key_path("airport", "_geo_index")
     AIRSPACE = "airspace"
+    AIRSPACE_CONTROLLED = key_path("airspace", "controlled-airspaces")
     AIRSPACE_AIRWAYS = key_path("airspace", "airways")
     AIRSPACE_ALL_INDEX = key_path("airspace", "idents")
     # AIRSPACE_FIXES = key_path("airspace", "fixes")

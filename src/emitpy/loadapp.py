@@ -22,7 +22,7 @@ from emitpy.service import Service, ServiceMove, FlightServices, Mission, Missio
 from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis, Queue
 from emitpy.business import AirportManager
-from emitpy.airspace import SignificantPoint, NavAid, CPIDENT, AirwaySegment, Terminal
+from emitpy.airspace import SignificantPoint, NavAid, CPIDENT, AirwaySegment, Terminal, ControlledAirspace
 from emitpy.airport import Airport, AirportBase
 
 from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
@@ -35,7 +35,7 @@ from emitpy.geo import FeatureWithProps
 
 logger = logging.getLogger("LoadApp")
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 class LoadApp(ManagedAirport):
@@ -193,6 +193,11 @@ class LoadApp(ManagedAirport):
 
         # if "*" in what or "airway" in what:
         #     status = self.loadAirways()
+        #     if not status[0]:
+        #         return status
+
+        # if "*" in what or "airspace" in what:
+        #     status = self.loadAirspaces()
         #     if not status[0]:
         #         return status
 
@@ -742,6 +747,15 @@ class LoadApp(ManagedAirport):
             self.redis.json().set(key_path(kn, e.getKey()), Path.root_path(), e)
             # self.redis.set(key_path(kn, e.getKey()), json.dumps(e))
 
+    def loadAirspaces(self):
+        # Never tested, hence not implemented
+        cnt = 0
+        for v in self.airport.airspace.airspaces.values():
+            if isinstance(v, ControlledAirspace):
+                self.redis.json().set(key_path(REDIS_PREFIX.AIRSPACE_CONTROLLED.value, v.getProp("type"), str(v.getKey())), Path.root_path(), FeatureWithProps.convert(v))
+                cnt = cnt + 1
+        logger.debug(f":loadAirspaces: loaded {cnt}")
+        return (True, f"LoadApp::loadAirspaces: loaded controlled airspaces")
 
     # #############################
     # LISTS OF VALUES
