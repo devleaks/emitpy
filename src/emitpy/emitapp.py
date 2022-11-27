@@ -238,19 +238,8 @@ class EmitApp(ManagedAirport):
         logger.debug(":do_flight: ..done")
 
         logger.debug(":do_flight: remote airport..")
-        remote_apt = AirportBase(icao=remote_apt.icao,
-                                 iata=remote_apt.iata,
-                                 name=remote_apt["properties"]["name"],
-                                 city=remote_apt["properties"]["city"],
-                                 country=remote_apt["properties"]["country"],
-                                 region=remote_apt.region,
-                                 lat=remote_apt["geometry"]["coordinates"][1],
-                                 lon=remote_apt["geometry"]["coordinates"][0],
-                                 alt=remote_apt["geometry"]["coordinates"][2] if len(remote_apt["geometry"]["coordinates"]) > 2 else None)
-        ret = remote_apt.load()
-        if not ret[0]:
-            logger.warning(f":do_flight: remote airport not loaded: {ret}")
-            return ret
+        remote_apt = AirportBase.new(remote_apt)
+        logger.debug(f":do_flight: remote airport is {remote_apt}")
 
         prevdb = self.redis.client_info()["db"]
         self._app.redis.select(1)

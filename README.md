@@ -10,12 +10,15 @@ It is conceived as a box software, only accessible through a REST api, and produ
 
 This repository only contains code, it does not contain any data (which sometimes is private) which is necessary for it to run.
 
-Documentation is added now. Be patient.
+Documentation [is added now](https://github.com/devleaks/emitpy/wiki). Be patient.
 
 The generator software is written in Python.
 
-The basic viwer software is written in JavaScript with node-red.
+The basic stream processor is written in JavaScript with node-red.
+
+The basic viewer software is also written in JavaScript with node-red.
 
 Emitpy sofware is a perpetual beta software.
 
 Major releases are named after naval disasters.
+(The name of the disaster is often the name of the ship that sunk.)

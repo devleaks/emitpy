@@ -199,6 +199,9 @@ class Airport(Location):
                        lon=float(info["geometry"]["coordinates"][0]),
                        alt=float(info["geometry"]["coordinates"][2] if len(info["geometry"]["coordinates"])>2 else None))
 
+    def __str__(self):
+        return f"{self['properties']['name']}, {self['properties']['city']}, {self['properties']['country']} ({self.iata}, {self.icao})"
+
 
     def loadFromFile(self):
         """
@@ -531,6 +534,22 @@ class AirportBase(AirportWithProcedures):
         :type       manager:  { type_description }
         """
         self.manager = manager
+
+    @classmethod
+    def new(cls, apt: Airport):
+        base = cls(icao=apt.icao,
+                   iata=apt.iata,
+                   name=apt["properties"]["name"],
+                   city=apt["properties"]["city"],
+                   country=apt["properties"]["country"],
+                   region=apt.region,
+                   lat=apt["geometry"]["coordinates"][1],
+                   lon=apt["geometry"]["coordinates"][0],
+                   alt=apt["geometry"]["coordinates"][2] if len(apt["geometry"]["coordinates"]) > 2 else None)
+        ret = base.load()
+        if not ret[0]:
+            logger.warning(f":new: could not load airport base: {ret}")
+        return base
 
     def load(self):
         """

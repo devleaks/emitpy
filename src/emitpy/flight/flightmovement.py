@@ -92,6 +92,11 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
+        status = self.add_faraway()
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
         status = self.interpolate()
         if not status[0]:
             logger.warning(status[1])
@@ -1075,15 +1080,15 @@ class FlightMovement(Movement):
         return (True, "Movement::taxiInterpolateAndTime done")
 
 
-    def add_tmo(self):
+    def add_tmo(self, TMO: float = 10 * NAUTICAL_MILE):
         # We add a TMO point (Ten (nautical) Miles Out). Should be set before we interpolate.
-        TMO = 10 * NAUTICAL_MILE  # km
+        # TMO = 10 * NAUTICAL_MILE  # km
         idx = len(self.moves) - 1  # last is end of roll, before last is touch down.
         totald = 0
         prev = 0
         while totald < TMO and idx > 1:
             idx = idx - 1
-            d = distance(self.moves[idx], self.moves[idx-1])
+            d = distance(self.moves[idx], self.moves[idx - 1])
             prev = totald
             totald = totald + d
             # logger.debug("add_tmo: %d: d=%f, t=%f" % (idx, d, totald))
@@ -1107,6 +1112,38 @@ class FlightMovement(Movement):
                                         info=self.getInfo()))
 
         return (True, "Movement::add_tmo added")
+
+
+    def add_faraway(self, FARAWAY: float = 100 * NAUTICAL_MILE):
+        # We add a FARAWAY point when flight is at FARAWAY from begin of roll (i.e. at FARAWAY from airport).
+        start = self.moves[0]
+        idx = 0
+        totald = 0
+        prev = 0
+        while totald < FARAWAY and idx < (len(self.moves) - 1):
+            totald = distance(start, self.moves[idx + 1])
+            prev = totald
+            idx = idx + 1
+            # logger.debug("add_faraway: %d: d=%f, t=%f" % (idx, d, totald))
+        # idx points at
+        left = FARAWAY - prev
+        # logger.debug("add_faraway: %d: left=%f, FARAWAY=%f" % (idx, left, FARAWAY))
+        brng = bearing(self.moves[idx], self.moves[idx + 1])
+        tmopt = destination(self.moves[idx], left, brng, {"units": "km"})
+
+        tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
+        tmomp.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.FAR_AWAY.value)
+
+        d = distance(start, tmomp)
+        self.moves.insert(idx, tmomp)
+        logger.debug(f":add_faraway: added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from airport")
+
+        self.addMessage(MovementMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.FAR_AWAY.value}",
+                                        move=self,
+                                        sync=FLIGHT_PHASE.FAR_AWAY.value,
+                                        info=self.getInfo()))
+
+        return (True, "Movement::add_faraway added")
 
 
 class TowMovement(Movement):

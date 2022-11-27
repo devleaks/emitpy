@@ -30,10 +30,64 @@ logging.addLevelName(5, "spam")
 
 coloredlogs.DEFAULT_FIELD_STYLES["levelname"] = {"color": "blue"}
 coloredlogs.DEFAULT_FIELD_STYLES["name"] = {"color": "white", "bold": False, "bright": True}
+coloredlogs.DEFAULT_FIELD_STYLES["asctime"] = {"color": 60, "bold": False, "bright": False}
+coloredlogs.DEFAULT_FIELD_STYLES["name"] = {"color": 120, "bold": False, "bright": True}
 
 coloredlogs.DEFAULT_LEVEL_STYLES["spam"] = {"color": "red"}
-coloredlogs.DEFAULT_LEVEL_STYLES["info"] = {"color": "cyan", "bright": True}
-coloredlogs.DEFAULT_LEVEL_STYLES["debug"] = {"color": "white"}
+coloredlogs.DEFAULT_LEVEL_STYLES["info"] = {"color": 159, "bright": True}
+coloredlogs.DEFAULT_LEVEL_STYLES["debug"] = {"color": "white"}  # , "faint": True
+
+# coloredlogs.DEFAULT_FIELD_STYLES = {
+#     'asctime': {
+#         'color': 'green'
+#     },
+#     'hostname': {
+#         'color': 'magenta'
+#     },
+#     'levelname': {
+#         'bold': True,
+#         'color': 'black'
+#     },
+#     'name': {
+#         'color': 'blue'
+#     },
+#     'programname': {
+#         'color': 'cyan'
+#     },
+#     'username': {
+#         'color': 'yellow'
+#     }
+# }
+# coloredlogs.DEFAULT_LEVEL_STYLES = {
+#     'critical': {
+#         'bold': True,
+#         'color': 'red'
+#     },
+#     'debug': {
+#         'color': 'green'
+#     },
+#     'error': {
+#         'color': 'red'
+#     },
+#     'info': {},
+#     'notice': {
+#         'color': 'magenta'
+#     },
+#     'spam': {
+#         'color': 'green',
+#         'faint': True
+#     },
+#     'success': {
+#         'bold': True,
+#         'color': 'green'
+#     },
+#     'verbose': {
+#         'color': 'blue'
+#     },
+#     'warning': {
+#         'color': 'yellow'
+#     }
+# }
 
 # %(levelname)s
 coloredlogs.install(level=logging.DEBUG, logger=logger, fmt="%(asctime)s %(name)s:%(message)s", datefmt="%H:%M:%S")
