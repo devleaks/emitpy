@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, validator, constr
 from emitpy.constants import EMIT_RATES, REDIS_DATABASE, REDIS_LOVS
 from emitpy.utils import key_path
 from emitpy.parameters import REDIS_CONNECT
-from emitpy.service import Service, ServiceVehicle
+from emitpy.service import Service, Equipment
 from emitpy.broadcast import Queue
 
 from .utils import LOV_Validator, REDISLOV_Validator, ICAO24_Validator
@@ -21,15 +21,15 @@ class CreateService(BaseModel):
     aircraft_type: str = Field(..., description="IATA or ICAO aircraft model code")
     service_type: str = Field(..., description="Type of service")
     quantity: float = Field(..., description="Quantity of service (float number, meaning varies with service), used to determine service duration")
-    service_vehicle_model: str = Field(..., description="Model of service vehicle used")
-    service_vehicle_reg: str = Field(..., description="Registration of service vehicle used")
+    equipment_model: str = Field(..., description="Model of equipment used")
+    equipment_reg: str = Field(..., description="Registration of equipment used")
     icao24: Optional[constr(min_length=6, max_length=6)] = Field(..., description="Hexadecimal number of ADS-B broadcaster MAC address, exactly 6 hexadecimal digits")
-    previous_position: str = Field(..., description="Position where the vehicle is coming from before this service")
-    next_position: str = Field(..., description="Position where the vehicle is going to after this service")
+    previous_position: str = Field(..., description="Position where the equipment is coming from before this service")
+    next_position: str = Field(..., description="Position where the equipment is going to after this service")
     service_date: date = Field(..., description="Service scheduled date in managed airport local time")
     service_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Service scheduled time in managed airport local time")
-    emit_rate: int = Field(30, description="Emission rate for position of service vehicle (sent every ... seconds)")
-    queue: str = Field(..., description="Name of emission broadcast queue for positions of service vehicle")
+    emit_rate: int = Field(30, description="Emission rate for position of equipment (sent every ... seconds)")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions of equipment")
 
     @validator('handler')
     def validate_handler(cls,handler):
@@ -62,12 +62,12 @@ class CreateService(BaseModel):
                                   valid_key=key_path(REDIS_DATABASE.LOVS.value,REDIS_LOVS.RAMPS.value),
                                   invalid_message=f"Invalid ramp {ramp}")
 
-    @validator('service_vehicle_model')
-    def validate_service_vehicle_type(cls,service_vehicle_model):
-        valid_values = [e[0] for e in ServiceVehicle.getCombo()]
-        return LOV_Validator(value=service_vehicle_model,
+    @validator('equipment_model')
+    def validate_equipment_type(cls,equipment_model):
+        valid_values = [e[0] for e in Equipment.getCombo()]
+        return LOV_Validator(value=equipment_model,
                              valid_values=valid_values,
-                             invalid_message=f"Service vehicle model must be in {valid_values}")
+                             invalid_message=f"Equipment model must be in {valid_values}")
 
     @validator('icao24')
     def validate_icao24(cls,icao24):
@@ -141,8 +141,8 @@ class CreateFlightServices(BaseModel):
 
     flight_id: str = Field(..., description="Flight IATA identifier")
     handler: str = Field(..., description="Operator code name")
-    emit_rate: int = Field(30, description="Position emission rate for service vehicles")
-    queue: str = Field(..., description="Name of emission broadcast queue for positions of service vehicle")
+    emit_rate: int = Field(30, description="Position emission rate for equipment")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions of equipment")
 
     @validator('handler')
     def validate_handler(cls,handler):
@@ -174,5 +174,5 @@ class ScheduleFlightServices(BaseModel):
     flight_date: date = Field(..., description="Estimatated flight date in managed airport local time in managed airport local time")
     flight_time: time = Field(time(hour=datetime.now().hour, minute=datetime.now().minute), description="Estimatated flight time in managed airport local time")
     # flight_date: datetime = Field(..., description="Scheduled date time for flight (arrival or departure), services will be scheduled according to PTS")
-    queue: str = Field(..., description="Name of emission broadcast queue for positions of aicraft and service vehicle")
+    queue: str = Field(..., description="Name of emission broadcast queue for positions of aicraft and equipment")
 

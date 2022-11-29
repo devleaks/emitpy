@@ -3,9 +3,9 @@ A Service  is a maintenance operation performed on an aircraft during a turn-aro
 
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from .servicevehicle import ServiceVehicle
+from .equipment import Equipment
 
 logger = logging.getLogger("GroundSupport")
 
@@ -57,6 +57,7 @@ class GroundSupport:
         self.next_position = None
         self.route = []
         self.name = None
+        self.quantity = None
 
     def getId(self):
         return self.name
@@ -87,7 +88,7 @@ class GroundSupport:
     def setName(self, name: str):
         self.name = name
 
-    def setVehicle(self, vehicle: ServiceVehicle):
+    def setVehicle(self, vehicle: Equipment):
         self.vehicle = vehicle
 
     def setNextPosition(self, position):

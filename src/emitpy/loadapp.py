@@ -516,7 +516,7 @@ class LoadApp(ManagedAirport):
 
 
     def loadGSE(self):
-        for k, v in self.airport.manager.vehicle_by_type.items():
+        for k, v in self.airport.manager.equipment_by_type.items():
             for v1 in v:
                 self.redis.json().set(key_path(REDIS_PREFIX.GSE.value, k, v1.getKey()), Path.root_path(), v1.getInfo())
         return (True, f"LoadApp::loadGSE: loaded GSE")
@@ -526,7 +526,7 @@ class LoadApp(ManagedAirport):
         fn = os.path.join(MANAGED_AIRPORT_DIR, "services", "servicevehiclefleet.yaml")
         with open(fn, "r") as file:
             data = yaml.safe_load(file)
-            for f in data["ServiceVehicleFleet"]:
+            for f in data["EquipmentFleet"]:
                 for k, v in f.items():
                     self.redis.set("business:services:fleet:"+k, v)
         return (True, f"LoadApp::loadGSEFleet: loaded fleet")

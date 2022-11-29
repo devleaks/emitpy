@@ -399,7 +399,7 @@ class XPAirport(AirportBase):
         svc_park = 0
 
         for aptline in self.lines:
-            if aptline.linecode() in [1400, 1401]:  # service vehicle paarking or destination
+            if aptline.linecode() in [1400, 1401]:  # equipment paarking or destination
                 args = aptline.content().split()
                 name = " ".join(args[4:])
                 svc = ServiceParking(name=name, parking_type=aptline.linecode(), position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[3])

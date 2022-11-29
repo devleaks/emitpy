@@ -19,7 +19,7 @@ from emitpy.private import API_KEY
 from emitpy.aircraft import AircraftPerformance as Aircraft
 from emitpy.airport import Airport
 from emitpy.business import Airline
-from emitpy.service import Service, ServiceVehicle, Mission, MissionVehicle
+from emitpy.service import Service, Equipment, Mission, MissionVehicle
 from ..models import NotAvailable
 
 
@@ -115,9 +115,9 @@ async def list_service_type_pois(request: Request, service_type: str):
     return JSONResponse(content=request.app.state.emitpy.airport.getRestAreaNames(service_name=service_type))
 
 
-@router.get("/service-vehicle-models/{service_type}", tags=["reference", "services"])
-async def list_service_vehicle_models(request: Request, service_type: str):
-    return JSONResponse(content=ServiceVehicle.getModels(service_type))
+@router.get("/service-equipment-models/{service_type}", tags=["reference", "services"])
+async def list_equipment_models(request: Request, service_type: str):
+    return JSONResponse(content=Equipment.getModels(service_type))
 
 
 @router.get("/service-handlers", tags=["reference", "services"])
@@ -221,9 +221,9 @@ async def list_runways(request: Request):
     r1 = reformat_allocations(r0)
     return JSONResponse(content=r1)
 
-@router.get("/allocation/vehicles")
-async def list_vehicles(request: Request):
-    r0 = request.app.state.emitpy.airport.manager.vehicle_allocator.table()
+@router.get("/allocation/equipments")
+async def list_equipments(request: Request):
+    r0 = request.app.state.emitpy.airport.manager.equipment_allocator.table()
     r1 = reformat_allocations(r0)
     return JSONResponse(content=r1)
 
@@ -243,9 +243,9 @@ async def allocation_runways(request: Request):
 async def allocation_ramps(request: Request):
     return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "ramps", "api_key": API_KEY})
 
-@router2.get("/vehicles-viewer", include_in_schema=False)
-async def allocation_vehicles(request: Request):
-    return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "vehicles", "api_key": API_KEY})
+@router2.get("/equipments-viewer", include_in_schema=False)
+async def allocation_equipments(request: Request):
+    return templates.TemplateResponse("visavail.html", {"request": request, "alloc": "equipments", "api_key": API_KEY})
 
 
 # ###############################

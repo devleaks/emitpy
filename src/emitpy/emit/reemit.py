@@ -320,7 +320,7 @@ class ReEmit(Emit):
             vehicle = self.getMeta("move.vehicle.registration")
             am = self.managedAirport.airport.manager
 
-            svrsc = am.vehicle_allocator.findReservation(vehicle, ident, self.redis)
+            svrsc = am.equipment_allocator.findReservation(vehicle, ident, self.redis)
             if svrsc is not None:
                 svrsc.setEstimatedTime(et, et)
                 logger.debug(f":updateResources: updated {vehicle} for {ident}")
@@ -333,7 +333,7 @@ class ReEmit(Emit):
             vehicle = self.getMeta("move.vehicle.registration")
             am = self.managedAirport.airport.manager
 
-            svrsc = am.vehicle_allocator.findReservation(vehicle, ident, self.redis)
+            svrsc = am.equipment_allocator.findReservation(vehicle, ident, self.redis)
             if svrsc is not None:
                 svrsc.setEstimatedTime(et, et)
                 logger.debug(f":updateResources: updated {vehicle} for {ident}")

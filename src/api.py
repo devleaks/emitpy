@@ -101,7 +101,7 @@ description = """
 **Emitpy** is an ADS-B Track Generator. With **Emitpy** you can generate ADS-B tracks for
 
  - Flights
- - Ground service vehicles
+ - Ground service equipments
  - Vehicles executing « _missions_ » (surveillance, emergency, fire...)
 
 Emission of those vehicle positions is done on "output queues".
@@ -154,9 +154,9 @@ and precise its start date time, its speed of emission, and the data format of t
 ## Airport utility functions
 
 - List all flights
-- List all services, service vehicles, service vehicle types
+- List all services, equipment types, equipment models, equipments in use
 - List all missions, mission types and mission vehicles
-- Show allocations for runways, ramps, and all vehicles
+- Show allocations for runways, ramps, and all equipments
 - Helper functions to ease use interface building and selection by returning
   lists of pairs (internal_name, display_name) for combo boxes and form validation.
 
@@ -267,6 +267,6 @@ async def shutdown():
 if __name__ == "__main__":
     uvicorn.run(app,
                 host="127.0.0.1",
-                port=5000,
+                port=8000,
                 log_level="info",
                 reload_dirs=["emitpy", "web"])

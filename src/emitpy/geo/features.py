@@ -514,7 +514,7 @@ class Runway(FeatureWithProps):
 class ServiceParking(FeatureWithProps):
     """
     A service parking is a depot or a destination in X-Plane
-    for service vehicle movements (row codes 1400, 1401).
+    for equipment movements (row codes 1400, 1401).
     """
     def __init__(self, name: str, parking_type: str, position: [float], orientation: float, use: str):
         FeatureWithProps.__init__(self, geometry=Point(position), properties={

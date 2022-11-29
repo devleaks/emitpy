@@ -77,7 +77,7 @@ FLIGHT_DATABASE = "flights"
 FLIGHTROUTE_DATABASE = "flightplans"
 MANAGED_AIRPORT = "managedairport"  # Home specific parameters and simulation parameters
 METAR_DATABASE = "metar"
-SERVICE_VEHICLE_TYPE_DATABASE = "service_vehicle_types"
+SERVICE_VEHICLE_TYPE_DATABASE = "equipment_types"
 XPLANE_DATABASE = "x-plane"
 
 # sub-sub dirs

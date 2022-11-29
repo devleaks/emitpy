@@ -139,23 +139,23 @@ class FlightServices:
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             this_service.setRamp(self.ramp)
-            vehicle_model = sched[2] if len(sched) > 2 else None
+            equipment_model = sched[2] if len(sched) > 2 else None
             # should book vehicle a few minutes before and after...
-            this_vehicle = am.selectServiceVehicle(operator=self.operator,
+            this_equipment = am.selectEquipment(operator=self.operator,
                                                    service=this_service,
-                                                   model=vehicle_model,
+                                                   model=equipment_model,
                                                    reqtime=service_scheduled_dt,
                                                    reqend=service_scheduled_end_dt,
                                                    use=True)
 
-            if this_vehicle is None:
+            if this_equipment is None:
                 return (True, f"FlightServices::service: vehicle not found")
 
-            vehicle_startpos = self.airport.selectRandomServiceDepot(sname)
-            this_vehicle.setPosition(vehicle_startpos)
+            equipment_startpos = self.airport.selectRandomServiceDepot(sname)
+            this_equipment.setPosition(equipment_startpos)
 
-            vehicle_endpos = self.airport.selectRandomServiceRestArea(sname)
-            this_vehicle.setNextPosition(vehicle_endpos)
+            equipment_endpos = self.airport.selectRandomServiceRestArea(sname)
+            this_equipment.setNextPosition(equipment_endpos)
 
             # logger.debug(".. moving ..")
             # move = ServiceMove(this_service, self.airport)

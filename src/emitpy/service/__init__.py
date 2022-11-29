@@ -1,6 +1,6 @@
 from .service import Service
 from .mission import Mission
-from .servicevehicle import ServiceVehicle, MissionVehicle
+from .equipment import Equipment, MissionVehicle
 from .servicemovement import ServiceMove
 from .missionmovement import MissionMove
 from .flightservices import FlightServices

@@ -1,5 +1,5 @@
 """
-Build movement of a service vehicle
+Build movement of a equipment
 """
 import logging
 

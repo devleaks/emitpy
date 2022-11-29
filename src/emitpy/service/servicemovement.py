@@ -1,5 +1,5 @@
 """
-Build movement of a service vehicle
+Build movement of a equipment
 """
 import logging
 from math import inf
@@ -369,7 +369,7 @@ class ServiceMove(Movement):
             vehicle = self.service.vehicle
             service = self.service
             logger.debug(f":move: vehicle capacity {vehicle.max_capacity}, current load {vehicle.current_load}")
-            vehicle_capacity = vehicle.max_capacity - vehicle.current_load  # may not be empty when it arrives
+            equipment_capacity = vehicle.max_capacity - vehicle.current_load  # may not be empty when it arrives
             while self.service.quantity > 0:
                 #
                 # Fill vehicle, decrease service quantity
@@ -377,18 +377,18 @@ class ServiceMove(Movement):
                     vehicle.current_load = service.quantity
                     svc_duration = vehicle.service_duration(service.quantity)
                     service.quantity = 0
-                elif service.quantity < vehicle_capacity:  # one last trip
+                elif service.quantity < equipment_capacity:  # one last trip
                     vehicle.current_load = vehicle.current_load + service.quantity
                     svc_duration = vehicle.service_duration(service.quantity)
                     logger.debug(f":move: loaded {service.quantity}, 0 remaining")
                     service.quantity = 0
                 else:
-                    logger.debug(f":move: loaded {vehicle_capacity}, {service.quantity - vehicle_capacity} remaining")
+                    logger.debug(f":move: loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining")
                     vehicle.current_load = vehicle.max_capacity
                     svc_duration = vehicle.service_duration(vehicle.max_capacity)
-                    service.quantity = service.quantity - vehicle_capacity
+                    service.quantity = service.quantity - equipment_capacity
 
-                logger.debug(f":move: loaded {vehicle_capacity}, {service.quantity - vehicle_capacity} remaining, load duration={svc_duration}")
+                logger.debug(f":move: loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining, load duration={svc_duration}")
                 ramp_stop.setPause(svc_duration)
 
                 # go to nearest depot
@@ -428,7 +428,7 @@ class ServiceMove(Movement):
                 pos.setPause(svc_duration)
 
                 vehicle.current_load = 0
-                vehicle_capacity = vehicle.max_capacity
+                equipment_capacity = vehicle.max_capacity
 
                 # go back to ramp
                 # depot ->network edge (close to depot)

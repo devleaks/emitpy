@@ -409,22 +409,22 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(150, f"problem during flight service", ret[1])
 
-        logger.debug(":do_flight: ..moving service vehicle..")
+        logger.debug(":do_flight: ..moving equipment..")
         ret = flight_service.move()
         if not ret[0]:
             return StatusInfo(151, f"problem during flight service movement creation", ret[1])
 
-        logger.debug(":do_flight: ..emission positions service vehicle..")
+        logger.debug(":do_flight: ..emission positions equipment..")
         ret = flight_service.emit(emit_rate)
         if not ret[0]:
             return StatusInfo(152, f"problem during flight service emission", ret[1])
 
-        logger.debug(":do_flight: ..scheduling service vehicle..")
+        logger.debug(":do_flight: ..scheduling equipment..")
         ret = flight_service.schedule(blocktime)
         if not ret[0]:
             return StatusInfo(153, f"problem during flight service scheduling", ret[1])
 
-        logger.debug(":do_flight: ..saving service vehicle..")
+        logger.debug(":do_flight: ..saving equipment..")
         if SAVE_TO_FILE or SAVE_TRAFFIC:
             ret = flight_service.saveFile()
             if not ret[0]:
@@ -445,7 +445,7 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "completed successfully", flight.getId())
 
 
-    def do_service(self, queue, emit_rate, operator, service, quantity, ramp, aircraft, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
+    def do_service(self, queue, emit_rate, operator, service, quantity, ramp, aircraft, equipment_ident, equipment_icao24, equipment_model, equipment_startpos, equipment_endpos, scheduled):
         logger.debug(":do_service: loading aircraft..")
         acperf = AircraftPerformance.find(aircraft, redis=self.use_redis())
         if acperf is None:
@@ -468,18 +468,18 @@ class EmitApp(ManagedAirport):
                                                    operator=operator,
                                                    quantity=quantity)
         this_service.setAircraftType(acperf)
-        this_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=this_service, reqtime=scheduled_dt, model=vehicle_model, registration=vehicle_ident, use=True)
-        if this_vehicle is None:
+        this_equipment = self.airport.manager.selectEquipment(operator=operator, service=this_service, reqtime=scheduled_dt, model=equipment_model, registration=equipment_ident, use=True)
+        if this_equipment is None:
             return StatusInfo(202, f"EmitApp:do_service: vehicle not found", None)
-        this_vehicle.setICAO24(vehicle_icao24)
-        startpos = self.airport.selectServicePOI(vehicle_startpos, service, redis=self.use_redis())
+        this_equipment.setICAO24(equipment_icao24)
+        startpos = self.airport.selectServicePOI(equipment_startpos, service, redis=self.use_redis())
         if startpos is None:
-            return StatusInfo(203, f"EmitApp:do_service: start position {vehicle_startpos} for {service} not found", None)
-        this_vehicle.setPosition(startpos)  # this is the start position for the vehicle
-        nextpos = self.airport.selectServicePOI(vehicle_endpos, service, redis=self.use_redis())
+            return StatusInfo(203, f"EmitApp:do_service: start position {equipment_startpos} for {service} not found", None)
+        this_equipment.setPosition(startpos)  # this is the start position for the vehicle
+        nextpos = self.airport.selectServicePOI(equipment_endpos, service, redis=self.use_redis())
         if nextpos is None:
-            return StatusInfo(204, f"EmitApp:do_service: start position {vehicle_endpos} for {service} not found", None)
-        this_vehicle.setNextPosition(nextpos)  # this is the position the vehicle is going to after service
+            return StatusInfo(204, f"EmitApp:do_service: start position {equipment_endpos} for {service} not found", None)
+        this_equipment.setNextPosition(nextpos)  # this is the position the vehicle is going to after service
 
         logger.debug(":do_service: ..moving..")
         move = ServiceMove(this_service, self.airport)
@@ -632,22 +632,22 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(150, f"problem during flight service", ret[1])
 
-        logger.debug(":do_flight_services: ..moving service vehicle..")
+        logger.debug(":do_flight_services: ..moving equipment..")
         ret = flight_service.move()
         if not ret[0]:
             return StatusInfo(151, f"problem during flight service movement creation", ret[1])
 
-        logger.debug(":do_flight_services: ..emiting positions service vehicle..")
+        logger.debug(":do_flight_services: ..emiting positions equipment..")
         ret = flight_service.emit(emit_rate)
         if not ret[0]:
             return StatusInfo(152, f"problem during flight service emission", ret[1])
 
-        logger.debug(":do_flight_services: ..scheduling service vehicle..")
+        logger.debug(":do_flight_services: ..scheduling equipment..")
         ret = flight_service.schedule(blocktime)
         if not ret[0]:
             return StatusInfo(153, f"problem during flight service scheduling", ret[1])
 
-        logger.debug(":do_flight_services: ..saving service vehicle..")
+        logger.debug(":do_flight_services: ..saving equipment..")
         if SAVE_TO_FILE:
             ret = flight_service.saveFile()
             if not ret[0]:
@@ -667,7 +667,7 @@ class EmitApp(ManagedAirport):
         return StatusInfo(0, "completed successfully", emit.getId())
 
 
-    def do_mission(self, emit_rate, queue, operator, checkpoints, mission, vehicle_ident, vehicle_icao24, vehicle_model, vehicle_startpos, vehicle_endpos, scheduled):
+    def do_mission(self, emit_rate, queue, operator, checkpoints, mission, equipment_ident, equipment_icao24, equipment_model, equipment_startpos, equipment_endpos, scheduled):
         logger.debug(":do_mission: creating mission..")
         if len(checkpoints) == 0:
             k = 3
@@ -683,20 +683,20 @@ class EmitApp(ManagedAirport):
             logger.debug(":do_mission: scheduled time has no time zone, added managed airport local time zone")
 
         logger.debug(":do_mission: ..vehicle..")
-        mission_vehicle = self.airport.manager.selectServiceVehicle(operator=operator, service=mission, reqtime=mission_time, model=vehicle_model, registration=vehicle_ident, use=True)
-        if mission_vehicle is None:
-            return StatusInfo(311, f"connot find vehicle {vehicle_model}", None)
-        mission_vehicle.setICAO24(vehicle_icao24)
+        mission_equipment = self.airport.manager.selectEquipment(operator=operator, service=mission, reqtime=mission_time, model=equipment_model, registration=equipment_ident, use=True)
+        if mission_equipment is None:
+            return StatusInfo(311, f"connot find vehicle {equipment_model}", None)
+        mission_equipment.setICAO24(equipment_icao24)
 
         logger.debug(":do_mission: ..start and end positions..")
-        start_pos = self.airport.getPOIFromCombo(vehicle_startpos)
+        start_pos = self.airport.getPOIFromCombo(equipment_startpos)
         if start_pos is None:
-            return StatusInfo(300, f"connot find start position {vehicle_startpos}", None)
-        mission_vehicle.setPosition(start_pos)
-        end_pos = self.airport.getPOIFromCombo(vehicle_endpos)
+            return StatusInfo(300, f"connot find start position {equipment_startpos}", None)
+        mission_equipment.setPosition(start_pos)
+        end_pos = self.airport.getPOIFromCombo(equipment_endpos)
         if end_pos is None:
-            return StatusInfo(301, f"connot find end position {vehicle_endpos}", None)
-        mission_vehicle.setNextPosition(end_pos)
+            return StatusInfo(301, f"connot find end position {equipment_endpos}", None)
+        mission_equipment.setNextPosition(end_pos)
 
         # logger.debug(":do_mission: ..running..")
         # mission.run()  # do nothing...

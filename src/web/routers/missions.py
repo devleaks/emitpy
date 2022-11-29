@@ -39,11 +39,11 @@ async def create_mission(
                 operator=mission_in.operator,
                 checkpoints=mission_in.checkpoints,
                 mission=mission_in.mission,
-                vehicle_model=mission_in.mission_vehicle_model,
-                vehicle_ident=mission_in.mission_vehicle_reg,
-                vehicle_icao24=mission_in.icao24,
-                vehicle_startpos=mission_in.previous_position,
-                vehicle_endpos=mission_in.next_position,
+                equipment_model=mission_in.mission_vehicle_model,
+                equipment_ident=mission_in.mission_vehicle_reg,
+                equipment_icao24=mission_in.icao24,
+                equipment_startpos=mission_in.previous_position,
+                equipment_endpos=mission_in.next_position,
                 scheduled=dt.isoformat())
     except Exception as ex:
         ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())

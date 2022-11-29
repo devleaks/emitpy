@@ -44,11 +44,11 @@ async def create_service(
                quantity=service_in.quantity,
                ramp=service_in.ramp,
                aircraft=service_in.aircraft_type,
-               vehicle_model=service_in.service_vehicle_model,
-               vehicle_ident=service_in.service_vehicle_reg,
-               vehicle_icao24=service_in.icao24,
-               vehicle_startpos=service_in.previous_position,
-               vehicle_endpos=service_in.next_position,
+               equipment_model=service_in.equipment_model,
+               equipment_ident=service_in.equipment_reg,
+               equipment_icao24=service_in.icao24,
+               equipment_startpos=service_in.previous_position,
+               equipment_endpos=service_in.next_position,
                scheduled=dt.isoformat())
     except Exception as ex:
         ret = StatusInfo(status=1, message="exception", data=traceback.format_exc())

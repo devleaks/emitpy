@@ -11,7 +11,7 @@ from types import NoneType
 from emitpy.constants import SERVICE, ID_SEP
 from emitpy.utils import key_path
 from .ground_support import GroundSupport
-from .servicevehicle import ServiceVehicle
+from .equipment import Equipment
 
 logger = logging.getLogger("Service")
 

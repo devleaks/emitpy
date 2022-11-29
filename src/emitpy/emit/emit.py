@@ -803,7 +803,7 @@ class Emit(Messages):
             vehicle = source.vehicle
             am = self.move.airport.manager
 
-            svrsc = am.vehicle_allocator.findReservation(vehicle.getResourceId(), ident)
+            svrsc = am.equipment_allocator.findReservation(vehicle.getResourceId(), ident)
             if svrsc is not None:
                 et_end = et + timedelta(minutes=30)
                 svrsc.setEstimatedTime(et, et_end)

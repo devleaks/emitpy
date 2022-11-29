@@ -10,7 +10,7 @@ import re
 from emitpy.business import Identity, Company
 from emitpy.constants import SERVICE
 
-logger = logging.getLogger("ServiceVehicle")
+logger = logging.getLogger("Equipment")
 
 DEFAULT_VEHICLE = ":default"
 DEFAULT_VEHICLE_SHORT = "SV"
@@ -20,7 +20,7 @@ DEFAULT_VEHICLE_SHORT = "SV"
 # SERVICE VEHICLE TYPES AND MODELS
 #
 #
-class ServiceVehicle(Identity):
+class Equipment(Identity):
     """
     A Service Vehicle Type is a type of vehicle used to perform a service or maintenance operation.
 
@@ -84,15 +84,15 @@ class ServiceVehicle(Identity):
                 return True
             return len(model) <= len(DEFAULT_VEHICLE) or model[:-len(DEFAULT_VEHICLE)] != DEFAULT_VEHICLE
 
-        servicevehicleclasses = importlib.import_module(name=".service.servicevehicle", package="emitpy")
+        servicevehicleclasses = importlib.import_module(name=".service.equipment", package="emitpy")
         vtype = service[0].upper() + service[1:].lower() + "Vehicle"
 
         if not is_default_model(model):
             model = model.replace("-", "_")  # now model is snake_case
             vtype = vtype + ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
-            logger.debug(f"ServiceVehicle::new creating {vtype}")
+            logger.debug(f"Equipment::new creating {vtype}")
             if hasattr(servicevehicleclasses, vtype):
-                logger.debug(f"ServiceVehicle::new creating {vtype}")
+                logger.debug(f"Equipment::new creating {vtype}")
                 return getattr(servicevehicleclasses, vtype)(registration=registration, operator=operator)
         return None
 
@@ -200,10 +200,10 @@ class ServiceVehicle(Identity):
 # ########################
 # FUEL
 #
-class FuelVehicle(ServiceVehicle):
+class FuelVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
 
         self.icao = "ZZZE"
         self.model = ""
@@ -275,10 +275,10 @@ class FuelVehicleTankerMedium(FuelVehicle):
 # ########################
 # CATERING
 #
-class CateringVehicle(ServiceVehicle):
+class CateringVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZH"
         self.model = ""
         self.model_name = "Catering vehicle"
@@ -288,10 +288,10 @@ class CateringVehicle(ServiceVehicle):
 # ########################
 # CLEANING
 #
-class CleaningVehicle(ServiceVehicle):
+class CleaningVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZX"
         self.model = ""
         self.model_name = "Cleaning vehicle"
@@ -301,10 +301,10 @@ class CleaningVehicle(ServiceVehicle):
 # ########################
 # SEWAGE
 #
-class SewageVehicle(ServiceVehicle):
+class SewageVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZV"
         self.model = ""
         self.model_name = "Sewage vehicle"
@@ -314,10 +314,10 @@ class SewageVehicle(ServiceVehicle):
 # ########################
 # WATER
 #
-class WaterVehicle(ServiceVehicle):
+class WaterVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZW"
         self.model = ""
         self.model_name = "Water vehicle"
@@ -327,10 +327,10 @@ class WaterVehicle(ServiceVehicle):
 # ########################
 # CARGO
 #
-class CargoVehicle(ServiceVehicle):
+class CargoVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZU"
         self.model = ""
         self.model_name = "Cargo mover vehicle"
@@ -360,10 +360,10 @@ class CargoVehicleUldTrain(CargoVehicle):
 # ########################
 # BAGGAGE
 #
-class BaggageVehicle(ServiceVehicle):
+class BaggageVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZB"
         self.model = ""
         self.model_name = "Baggage train"
@@ -437,10 +437,10 @@ class BaggageVehicleTrainLarge(BaggageVehicle):
 # ########################
 # CREW (Cabin & Flight)
 #
-class CrewVehicle(ServiceVehicle):
+class CrewVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZK"
         self.model = ""
         self.model_name = "Crew bus"
@@ -470,10 +470,10 @@ class CrewVehicleLimousine(CrewVehicle):
 # ########################
 # PASSENGERS (VIP to Economy)
 #
-class PassengerVehicle(ServiceVehicle):
+class PassengerVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZQ"
         self.model = ""
         self.model_name = "Passenger coach"
@@ -513,10 +513,10 @@ class PassengerVehicleLimousine(PassengerVehicle):
 # ########################
 # AIRCRAFT SUPPORT
 #
-class AircraftVehicle(ServiceVehicle):
+class AircraftVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZA"
         self.model = ""
         self.model_name = "APU"
@@ -556,10 +556,10 @@ class AircraftVehicleMarshall(AircraftVehicle):
 # ########################
 # MISSIONS
 #
-class MissionVehicle(ServiceVehicle):
+class MissionVehicle(Equipment):
 
     def __init__(self, registration: str, operator: Company):
-        ServiceVehicle.__init__(self, registration=registration,  operator=operator)
+        Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZR"
         self.model_name = "Mission vehicle"
         self.setup_time = 4
