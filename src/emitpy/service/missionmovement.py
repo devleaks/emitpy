@@ -3,7 +3,7 @@ Build movement of a equipment
 """
 import logging
 
-from emitpy.airport import AirportBase
+from emitpy.airport import ManagedAirportBase
 from emitpy.geo import MovePoint, Movement
 from emitpy.service import Mission
 from emitpy.graph import Route
@@ -19,7 +19,7 @@ class MissionMove(Movement):
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
     from takeoff to landing and roll out.
     """
-    def __init__(self, mission: Mission, airport: AirportBase):
+    def __init__(self, mission: Mission, airport: ManagedAirportBase):
         Movement.__init__(self, airport=airport)
         self.mission = mission
 

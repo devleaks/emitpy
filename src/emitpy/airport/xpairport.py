@@ -17,7 +17,7 @@ from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, P
 from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP
 from emitpy.utils import key_path, rejson
 
-from .airport import AirportBase
+from .airport import ManagedAirportBase
 
 
 logger = logging.getLogger("XPAirport")
@@ -52,12 +52,12 @@ class AptLine:
 # XP AIRPORT
 #
 #
-class XPAirport(AirportBase):
+class XPAirport(ManagedAirportBase):
     """
     Airport represetation
     """
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
-        AirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+        ManagedAirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.scenery_pack = False
         self.lines = []
         self.atc_ground = None

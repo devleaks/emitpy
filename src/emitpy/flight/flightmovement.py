@@ -11,7 +11,7 @@ from geojson import LineString, FeatureCollection, Feature
 from turfpy.measurement import distance, destination, bearing
 
 from emitpy.flight import Flight
-from emitpy.airport import AirportBase
+from emitpy.airport import ManagedAirportBase
 from emitpy.aircraft import ACPERF
 from emitpy.geo import MovePoint, Movement
 from emitpy.geo import moveOn, cleanFeatures, findFeatures, asLineString, toKML
@@ -33,7 +33,7 @@ class FlightMovement(Movement):
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
     from takeoff to landing and roll out.
     """
-    def __init__(self, flight: Flight, airport: AirportBase):
+    def __init__(self, flight: Flight, airport: ManagedAirportBase):
         Movement.__init__(self, airport=airport)
         self.flight = flight
         self.flight_id = self.flight.getId()
@@ -48,7 +48,7 @@ class FlightMovement(Movement):
 
 
     @staticmethod
-    def create(flight: Flight, airport: AirportBase):
+    def create(flight: Flight, airport: ManagedAirportBase):
         # Allows to expose Movement without exposing ArrivalMove or DepartureMove
         if flight.is_arrival():
             return ArrivalMove(flight, airport)
@@ -1151,7 +1151,7 @@ class TowMovement(Movement):
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
     from takeoff to landing and roll out.
     """
-    def __init__(self, flight: Flight, newramp: "Ramp", airport: AirportBase):
+    def __init__(self, flight: Flight, newramp: "Ramp", airport: ManagedAirportBase):
         Movement.__init__(self, airport=airport)
         self.flight = flight
         self.flight_id = self.flight.getId()
@@ -1290,7 +1290,7 @@ class ArrivalMove(FlightMovement):
     """
     Movement for an arrival flight
     """
-    def __init__(self, flight: Flight, airport: AirportBase):
+    def __init__(self, flight: Flight, airport: ManagedAirportBase):
         FlightMovement.__init__(self, flight=flight, airport=airport)
 
 
@@ -1413,7 +1413,7 @@ class DepartureMove(FlightMovement):
     """
     Movement for an departure flight
     """
-    def __init__(self, flight: Flight, airport: AirportBase):
+    def __init__(self, flight: Flight, airport: ManagedAirportBase):
         FlightMovement.__init__(self, flight=flight, airport=airport)
 
 

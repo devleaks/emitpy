@@ -9,7 +9,7 @@ import logging
 from geojson import Point, Feature
 from turfpy.measurement import distance, bearing
 
-from .airport import AirportBase
+from .airport import ManagedAirportBase
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.graph import Vertex, Edge
 from emitpy.geo import Runway, Ramp
@@ -21,12 +21,12 @@ logger = logging.getLogger("OSMAirport")
 # OSM AIRPORT
 #
 #
-class OSMAirport(AirportBase):
+class OSMAirport(ManagedAirportBase):
     """
     Airport represetation extracted from OSM overpass queries
     """
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
-        AirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+        ManagedAirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.airport_base = None
         self.taxiways_geo = None
         self.taxiways_net = None

@@ -165,10 +165,10 @@ class Emit(Messages):
         return key_path(db, self.emit_id, f"{frequency}", extension)
 
 
-    def loadMeta(self):
+    def loadMeta(self, redis):
         meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
-        if self.redis.exists(meta_id):
-            self.redis = json.loads(redis.get(meta_id))
+        if redis.exists(meta_id):
+            self.emit_meta = json.loads(redis.get(meta_id))
             logger.debug(f":loadMeta: ..got {len(self.props)} props")
         else:
             logger.debug(f":loadMeta: ..no meta for {self.emit_type}")
@@ -187,6 +187,10 @@ class Emit(Messages):
         """
         Save flight paths to file for emitted positions.
         """
+        if redis is None:
+            # return self.saveFile()
+            return (True, "Emit::save: no Redis")
+
         if self._emit is None or len(self._emit) == 0:
             logger.warning(":save: no emission point")
             return (False, "Emit::save: no emission point")

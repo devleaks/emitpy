@@ -23,7 +23,7 @@ from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis, Queue
 from emitpy.business import AirportManager
 from emitpy.airspace import SignificantPoint, NavAid, CPIDENT, AirwaySegment, Terminal, ControlledAirspace
-from emitpy.airport import Airport, AirportBase
+from emitpy.airport import Airport, ManagedAirportBase
 
 from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE, FLIGHTROUTE_DATABASE
@@ -523,10 +523,10 @@ class LoadApp(ManagedAirport):
 
 
     def loadGSEFleet(self):
-        fn = os.path.join(MANAGED_AIRPORT_DIR, "services", "servicevehiclefleet.yaml")
+        fn = os.path.join(MANAGED_AIRPORT_DIR, "services", "equipment.yaml")
         with open(fn, "r") as file:
             data = yaml.safe_load(file)
-            for f in data["EquipmentFleet"]:
+            for f in data["Equipment"]:
                 for k, v in f.items():
                     self.redis.set("business:services:fleet:"+k, v)
         return (True, f"LoadApp::loadGSEFleet: loaded fleet")

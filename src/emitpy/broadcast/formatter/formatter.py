@@ -5,13 +5,13 @@ from emitpy.constants import FEATPROP
 class Formatter:
 
     NAME = "abc"
+    FILE_EXTENSION = "json"
 
     def __init__(self, name: str, feature: "FeatureWithProps"):
-        self.feature = feature
         self.name = name
+        self.feature = feature
 
         self.ts = feature.getAbsoluteEmissionTime()
-        self.fileformat = "json"
         if "properties" in self.feature:
             self.feature["properties"]["emitpy-format"] = self.name
 
@@ -34,6 +34,7 @@ class Formatter:
 class FormatterRaw(Formatter):
 
     NAME = "raw"
+    FILE_EXTENSION = "geojson"
 
     def __init__(self, feature: "FeatureWithProps"):
         Formatter.__init__(self, name=FormatterRaw.NAME, feature=feature)

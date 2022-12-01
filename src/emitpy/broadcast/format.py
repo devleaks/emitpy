@@ -25,7 +25,7 @@ FORMATTERS = {
 
 class Format:
 
-    def __init__(self, emit: "Emit", formatter: FormatterRaw):
+    def __init__(self, emit: "Emit", formatter = FormatterRaw):
         self.emit = emit
         self.formatter = formatter
         self.output = []
@@ -58,7 +58,7 @@ class Format:
 
     def saveFile(self, overwrite: bool = False):
         basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE)
-        fileformat = self.formatter.FILE_EXTENTION
+        fileformat = self.formatter.FILE_EXTENSION
         ident = self.emit.getId()
         fn = f"{ident}-6-broadcast.{fileformat}"
         filename = os.path.join(basename, fn)
@@ -71,4 +71,4 @@ class Format:
                 fp.write(str(l)+"\n")
 
         logger.debug(f":save: saved {fn}")
-        return (False, "Format::save saved")
+        return (True, "Format::save saved")

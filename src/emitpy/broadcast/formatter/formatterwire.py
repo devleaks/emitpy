@@ -5,12 +5,12 @@ from emitpy.constants import FEATPROP
 class FormatterWire:
 
     NAME = "wire"
+    FILE_EXTENSION = "json"
 
     def __init__(self, message: "Message"):
-        self.fileformat = "json"
         self.name = "wire"
-
         self.message = message
+
         self.ts = message.getAbsoluteEmissionTime()
         self.message["emitpy-format"] = self.name
 
@@ -26,5 +26,5 @@ class FormatterWire:
         :type       f:    { type_description }
         """
         if FEATPROP.EMIT_ABSOLUTE_TIME.value in m:
-            return self.message[FEATPROP.EMIT_ABSOLUTE_TIME.value]
+            return m[FEATPROP.EMIT_ABSOLUTE_TIME.value]
         return None

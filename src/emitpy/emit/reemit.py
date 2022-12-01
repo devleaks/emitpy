@@ -8,7 +8,8 @@ from .emit import EmitPoint, Emit
 # pylint: disable=C0411
 from emitpy.message import EstimatedTimeMessage
 from emitpy.constants import ID_SEP, FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
-from emitpy.constants import REDIS_DATABASES, REDIS_TYPE
+from emitpy.constants import REDIS_DATABASES, REDIS_TYPE, FLIGHT_DATABASE
+from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.utils import Timezone
 
 

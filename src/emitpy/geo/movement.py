@@ -31,7 +31,7 @@ class MovePoint(FeatureWithProps):
 
 class Movement(Messages):
 
-    def __init__(self, airport: "AirportBase"):
+    def __init__(self, airport: "ManagedAirportBase"):
         self.airport = airport
         self.moves = []  # Array of Features<Point>
         self.messages = []  # Array of Messages

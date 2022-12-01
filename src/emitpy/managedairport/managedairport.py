@@ -27,7 +27,7 @@ class ManagedAirport:
     """
 
     def __init__(self, airport, app):
-        self._this_airport = airport
+        self._this_airport = airport  # simple dict
         self._inited = False
         self._app = app  # context
         self.airport = None
@@ -61,7 +61,7 @@ class ManagedAirport:
             if not ret[0]:
                 logger.warning("Airspace not loaded")
                 return ret
-            logger.debug("..pickling..")
+            logger.debug("..pickling airspace..")
             with open(airspace_cache, "wb") as fp:
                 pickle.dump(airspace, fp)
             logger.debug("..done")
@@ -84,6 +84,7 @@ class ManagedAirport:
         logger.debug("loading managed airport..")
 
         logger.debug("..loading airport manager..")
+        logger.debug("..creating airport operator..")
         operator = Company(orgId="Airport Operator",
                            classId="Airport Operator",
                            typeId="Airport Operator",
@@ -94,27 +95,40 @@ class ManagedAirport:
             logger.warning("Airport manager not loaded")
             return ret
 
-        logger.debug("..loading managed airport..")
-        self.airport = XPAirport(
-            icao=self._this_airport["ICAO"],
-            iata=self._this_airport["IATA"],
-            name=self._this_airport["name"],
-            city=self._this_airport["city"],
-            country=self._this_airport["country"],
-            region=self._this_airport["regionName"],
-            lat=self._this_airport["lat"],
-            lon=self._this_airport["lon"],
-            alt=self._this_airport["elevation"])
-        ret = self.airport.load()
-        if not ret[0]:
-            logger.warning("Managed airport not loaded")
-            return ret
+        # Now caching ManagedAirport with pickle (~ 100MB)
+        airport_cache = os.path.join(MANAGED_AIRPORT_CACHE, "airport.pickle")
+        if os.path.exists(airport_cache):
+            logger.debug("loading managed airport from pickle..")
+            with open(airport_cache, "rb") as fp:
+                self.airport = pickle.load(fp)
+            logger.debug("..done")
+        else:
+            logger.debug("..loading managed airport..")
+            self.airport = XPAirport(
+                icao=self._this_airport["ICAO"],
+                iata=self._this_airport["IATA"],
+                name=self._this_airport["name"],
+                city=self._this_airport["city"],
+                country=self._this_airport["country"],
+                region=self._this_airport["regionName"],
+                lat=self._this_airport["lat"],
+                lon=self._this_airport["lon"],
+                alt=self._this_airport["elevation"])
+            ret = self.airport.load()
+            if not ret[0]:
+                logger.warning("Managed airport not loaded")
+                return ret
+            logger.debug("..pickling airport..")
+            with open(airport_cache, "wb") as fp:
+                pickle.dump(self.airport, fp)
+            logger.debug("..done")
 
         logger.debug("..setting resources..")
 
         self.airport.setAirspace(airspace)
 
-        # Set for resource usage
+        # Set for resource usage,
+        # setEquipment is performed during manager's init() when loading equipment fleet.
         manager.setRamps(self.airport.getRamps())
         manager.setRunways(self.airport.getRunways())
         self.airport.setManager(manager)
@@ -125,6 +139,9 @@ class ManagedAirport:
 
         self._inited = True
         return (True, "ManagedAirport::init done")
+
+    def getInfo(self):
+        return self._this_airport
 
     def mkdirs(self, create: bool = True):
         """

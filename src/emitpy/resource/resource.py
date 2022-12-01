@@ -383,6 +383,9 @@ class AllocationTable:
         return (True, "AllocationTable::save completed")
 
     def load(self, redis):
+        if redis is None:
+            return (True, "AllocationTable::load: no Redis")
+
         keys = redis.keys(key_path(self.getKey() , "*"))
         rscs = set([a.decode("UTF-8").split(ID_SEP)[2] for a in keys])
         for r in rscs:

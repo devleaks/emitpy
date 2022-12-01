@@ -350,15 +350,16 @@ class AirportManager:
                 else:
                     logger.debug(f":loadEquipments: vehicle type {vcl} not found")
             self.setEquipments(self.equipments)
+            logger.debug(f":loadEquipments: ..done")
             return (True, "AirportManager::loadEquipments: loaded")
         else:
-            business = os.path.join(MANAGED_AIRPORT_DIR, "services", "servicevehiclefleet.yaml")
+            business = os.path.join(MANAGED_AIRPORT_DIR, "services", "equipment.yaml")
             if os.path.exists(business):
                 with open(business, "r") as fp:
                     self.data = yaml.safe_load(fp)
                 logger.debug(f":file: {business} loaded")
                 servicevehicleclasses = importlib.import_module(name=".service.equipment", package="emitpy")
-                for vtype in self.data["EquipmentFleet"]:
+                for vtype in self.data["Equipment"]:
                     (vcl, vqty) = list(vtype.items())[0]
                     logger.debug(f":loadEquipments: doing {vtype}..")
                     names = vcl.split("Vehicle")
@@ -572,9 +573,9 @@ class AirportManager:
 
     def bookVehicle(self, vehicle: "Equipment", reqtime: "datetime", reqduration: int, reason: str):
         reqend = reqtime + timedelta(minutes=reqduration)
-        avail = self.equipment_allocator.isAvailable(ramp.getResourceId(), reqtime, reqend)
+        avail = self.equipment_allocator.isAvailable(vehicle.getResourceId(), reqtime, reqend)
         if avail:
-            self.equipment_allocator.book(ramp.getResourceId(), reqtime, reqend, reason)
+            self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, reason)
         return avail
 
 

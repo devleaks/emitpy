@@ -1,0 +1,229 @@
+{
+    "type": "Feature",
+    "geometry":
+    {
+        "type": "Point",
+        "coordinates": [51.606933, 25.267947, 4.5]
+    },
+    "properties":
+    {
+        "name": "D9",
+        "type": "flight",
+        "sub-type": "tiedown",
+        "use": "heavy|jets|turboprops|props",
+        "orientation": 23.0,
+        "available": null,
+        "emitpy-version": "0.10.5",
+        "class": "Ramp",
+        "speed": 0,
+        "vspeed": 0,
+        "altitude": 4.5,
+        "altitude-reference": "ASL",
+        "marker-color": "#880088",
+        "marker-size": "medium",
+        "marker-symbol": "",
+        "_mark": "ONBLOCK",
+        "time": 22283.451343568577,
+        "saved-time": 204.15287229041044,
+        "grounded": true,
+        "emit-relative-time": 22362.654529401552,
+        "emit-index": 2390,
+        "broadcast": false,
+        "emit-reason": "at vertex 154, e=2390",
+        "ident": "QR1380-S201904042020",
+        "flight":
+        {
+            "identifier": "QR1380-S201904042020",
+            "scheduled": "2019-04-04T23:20:00+03:00",
+            "airline":
+            {
+                "orgId": "Qatar Airways",
+                "classId": "airline",
+                "typeId": "",
+                "name": "QR",
+                "iata": "QR",
+                "icao": "QTR"
+            },
+            "departure":
+            {
+                "airport":
+                {
+                    "icao": "DAAG",
+                    "iata": "ALG",
+                    "name": "Houari Boumediene Airport",
+                    "city": "Algiers",
+                    "country": "DZ",
+                    "iso_region": "DZ-16",
+                    "lat": 36.691002,
+                    "lon": 3.21541,
+                    "alt": 24.9936
+                },
+                "procedures":
+                {
+                    "type": "CIFP",
+                    "terminal": "DAAG",
+                    "sids": ["RW23", "RW27", "RW05", "RW09", "DAHRA", "TRB", "MJV", "MHN", "IZA"],
+                    "stars": [],
+                    "approaches": ["RW05", "RW-N", "RW-V", "RW23", "RW27", "RW09"],
+                    "runways": ["RW05", "RW09", "RW23", "RW27"]
+                }
+            },
+            "arrival":
+            {
+                "airport":
+                {
+                    "icao": "OTHH",
+                    "iata": "DOH",
+                    "name": "Hamad International Airport",
+                    "city": "Doha",
+                    "country": "Qatar",
+                    "iso_region": "Qatar",
+                    "lat": 25.2745,
+                    "lon": 51.6077,
+                    "alt": 4.5
+                },
+                "procedures":
+                {
+                    "type": "CIFP",
+                    "terminal": "OTHH",
+                    "sids": ["RW16R", "RW34R", "RW16L", "RW34L"],
+                    "stars": ["RW16R", "RW34L", "RW16L", "RW34R"],
+                    "approaches": ["RW16L", "RW16R", "RW34L", "RW34R"],
+                    "runways": ["RW16L", "RW16R", "RW34L", "RW34R"]
+                }
+            },
+            "aircraft":
+            {
+                "actype":
+                {
+                    "type": "aircraft-performances",
+                    "base-type":
+                    {
+                        "actype-manufacturer": "Boeing",
+                        "class": "D",
+                        "actype": "B788",
+                        "acmodel": "787-8 Dreamliner",
+                        "acclass": "D",
+                        "properties":
+                        {
+                            "length": 56.7,
+                            "wingspan": 52
+                        }
+                    },
+                    "class": "D",
+                    "performances-raw":
+                    {
+                        "icao": "B788",
+                        "iata": "no data",
+                        "takeoff_speed": 165,
+                        "takeoff_distance": 2820,
+                        "takeoff_wtc": "H",
+                        "takeoff_recat": "Upper Heavy",
+                        "takeoff_mtow": 228000,
+                        "initial_climb_speed": 190,
+                        "initial_climb_vspeed": 2700,
+                        "climbFL150_speed": 290,
+                        "climbFL150_vspeed": 2000,
+                        "climbFL240_speed": 290,
+                        "climbFL240_vspeed": 1500,
+                        "climbmach_mach": 0.79,
+                        "climbmach_vspeed": 1500,
+                        "cruise_speed": 470,
+                        "cruise_mach": 0.85,
+                        "max_ceiling": 430,
+                        "cruise_range": 8000,
+                        "descentFL240_mach": 0.84,
+                        "descentFL240_vspeed": 2600,
+                        "descentFL100_speed": 300,
+                        "descentFL100_vspeed": 2800,
+                        "approach_speed": 240,
+                        "approach_vspeed": 1500,
+                        "final_speed": 220,
+                        "landing_speed": 140,
+                        "landing_distance": 1520,
+                        "landing_apc": "C",
+                        "wingspan": 52,
+                        "length": 56.7,
+                        "height": 16.9,
+                        "equivalences": ["788", "B787", "787"]
+                    },
+                    "performances":
+                    {
+                        "initial_climb_vspeed": 13.716,
+                        "climbFL150_vspeed": 10.16,
+                        "climbFL240_vspeed": 7.62,
+                        "climbmach_vspeed": 7.62,
+                        "descentFL240_vspeed": 13.208,
+                        "descentFL100_vspeed": 14.224,
+                        "approach_vspeed": 7.62,
+                        "takeoff_speed": 84.883,
+                        "initial_climb_speed": 97.744,
+                        "climbFL150_speed": 149.189,
+                        "climbFL240_speed": 149.189,
+                        "cruise_speed": 241.789,
+                        "descentFL100_speed": 154.333,
+                        "approach_speed": 123.467,
+                        "landing_speed": 72.022,
+                        "climbmach_mach": 249.728,
+                        "descentFL240_mach": 265.533,
+                        "cruise_mach": 258.069,
+                        "icao": "B788",
+                        "takeoff_distance": 2820,
+                        "takeoff_wtc": "H",
+                        "takeoff_recat": "Upper Heavy",
+                        "takeoff_mtow": 228000,
+                        "max_ceiling": 430,
+                        "cruise_range": 8000,
+                        "final_speed": 220,
+                        "landing_distance": 1520,
+                        "landing_apc": "C",
+                        "wingspan": 52,
+                        "length": 56.7,
+                        "height": 16.9,
+                        "equivalences": ["788", "B787", "787"]
+                    },
+                    "profile-tar": null,
+                    "profile-gse": null
+                },
+                "operator":
+                {
+                    "orgId": "Qatar Airways",
+                    "classId": "airline",
+                    "typeId": "",
+                    "name": "QR",
+                    "iata": "QR",
+                    "icao": "QTR"
+                },
+                "acreg": "A7-BCH",
+                "icao24": "e33db8"
+            },
+            "icao24": "e33db8",
+            "callsign": "QTR1380",
+            "flightnumber": "QR 1380",
+            "codeshare": null,
+            "ramp":
+            {
+                "name": "D9",
+                "apron": "D"
+            },
+            "runway":
+            {
+                "name": "34L",
+                "resource": "16R-34L"
+            },
+            "is_arrival": true
+        },
+        "icao24": "e33db8",
+        "emit":
+        {
+            "type": "emit",
+            "emit-type": "flight",
+            "ident": "QR1380-S201904042020",
+            "frequency": 10,
+            "time-bracket": ["1970-01-01T00:00:00+00:00", "1970-01-01T00:00:00+00:00"],
+            "version": 0
+        },
+        "heading": 0.0
+    },
+    "id": "D9"
+}

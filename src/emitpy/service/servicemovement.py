@@ -7,7 +7,7 @@ from math import inf
 
 from geojson import Feature
 
-from emitpy.airport import AirportBase
+from emitpy.airport import ManagedAirportBase
 from emitpy.geo import MovePoint, Movement, printFeatures, asLineString
 from emitpy.service import Service
 from emitpy.graph import Route
@@ -23,7 +23,7 @@ class ServiceMove(Movement):
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
     from takeoff to landing and roll out.
     """
-    def __init__(self, service: Service, airport: AirportBase):
+    def __init__(self, service: Service, airport: ManagedAirportBase):
         Movement.__init__(self, airport=airport)
         self.service = service
 

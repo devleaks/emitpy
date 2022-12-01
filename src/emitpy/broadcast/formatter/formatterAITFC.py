@@ -18,10 +18,10 @@ logger = logging.getLogger("AITFCFormatter")
 class AITFCFormatter(Formatter):
 
     NAME = "aitfc"
+    FILE_EXTENSION = "csv"
 
     def __init__(self, feature: "FeatureWithProps"):
         Formatter.__init__(self, name=AITFCFormatter.NAME, feature=feature)
-        self.fileformat = "csv"
 
     def __str__(self):
         f = self.feature

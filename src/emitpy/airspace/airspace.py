@@ -6,6 +6,7 @@
 import logging
 import math
 import json
+from abc import ABC, abstractmethod
 from enum import Enum
 
 from geojson import Point, LineString, Polygon, Feature
@@ -538,7 +539,7 @@ class AirwayRoute(FeatureWithProps):
 # A I R   S P A C E
 #
 #
-class Airspace(Graph):
+class Airspace(Graph, ABC):
     """
     Airspace is a network of air routes.
     Vertices are airports, navaids, and fixes. Edges are airway (segements).
@@ -593,27 +594,32 @@ class Airspace(Graph):
 
         return [True, f"Airspace loaded ({type(self).__name__})"]
 
-
+    @abstractmethod
     def loadAirports(self):
         return [False, "no load implemented"]
 
 
+    @abstractmethod
     def loadFixes(self):
         return [False, "no load implemented"]
 
 
+    @abstractmethod
     def loadNavaids(self):
         return [False, "no load implemented"]
 
 
+    @abstractmethod
     def loadAirwaySegments(self):
         return [False, "no load implemented"]
 
 
+    @abstractmethod
     def loadAirspaces(self):
         return [False, "no load implemented"]
 
 
+    @abstractmethod
     def loadHolds(self):
         return [False, "no load implemented"]
 
@@ -621,4 +627,3 @@ class Airspace(Graph):
     def findHolds(self, name):
         validholds = list(filter(lambda x: x.fix.id == name, self.holds.values()))
         return validholds
-

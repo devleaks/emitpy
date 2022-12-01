@@ -9,7 +9,7 @@ import logging
 import json
 import yaml
 
-from .airport import AirportBase
+from .airport import ManagedAirportBase
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 
 logger = logging.getLogger("GeoJSONAirport")
@@ -19,12 +19,12 @@ logger = logging.getLogger("GeoJSONAirport")
 # GEOJSON AIRPORT
 #
 #
-class GeoJSONAirport(AirportBase):
+class GeoJSONAirport(ManagedAirportBase):
     """
     Airport represetation
     """
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
-        AirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+        ManagedAirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.airport_base = None
         self.taxiways_geo = None
         self.ramps_geo = None

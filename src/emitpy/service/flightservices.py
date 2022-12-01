@@ -11,7 +11,7 @@ import emitpy.service
 
 from emitpy.flight import Flight
 from emitpy.emit import Emit, ReEmit
-from emitpy.broadcast import EnqueueToRedis
+from emitpy.broadcast import Format, EnqueueToRedis
 from emitpy.constants import SERVICE_PHASE, ARRIVAL, DEPARTURE, REDIS_TYPE, REDIS_DATABASE, ID_SEP, key_path
 
 logger = logging.getLogger("FlightServices")
@@ -229,5 +229,20 @@ class FlightServices:
             logger.debug(f"..done")
         return (True, "FlightServices::enqueuetoredis: completed")
 
+
+    def format(self, saveToFile: bool = False):
+        for service in self.services:
+            logger.debug(f":format: formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
+            formatted = Format(service["emit"])
+            ret = formatted.format()
+            if not ret[0]:
+                return ret
+            if saveToFile:
+                ret = formatted.saveFile()
+                logger.debug(f"..saved to file..")
+                if not ret[0]:
+                    return ret
+            logger.debug(f"..done")
+        return (True, "FlightServices::enqueuetoredis: completed")
 
 
