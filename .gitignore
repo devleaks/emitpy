@@ -59,3 +59,5 @@ src/bin/
 *.rdb
 *.tar
 *.db
+src/web/emitview/.yarn
+src/web/emitview/.yarnrc.yml
