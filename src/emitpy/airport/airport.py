@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import csv
+import json
 import logging
 import random
 import operator
@@ -122,7 +123,9 @@ class Airport(Location):
                 k = key_path(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value))
             ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value, path=f".{code}")
             if ac is not None:
-                return Airport.fromInfo(info=ac)
+                if len(code) == 4:
+                    return Airport.fromInfo(info=ac)
+                return Airport.fromFeature(info=ac)
             else:
                 logger.warning(f"Airport::find: no such key {k}")
                 return None
@@ -139,7 +142,7 @@ class Airport(Location):
         :type       icao:  str
         """
         if redis is not None:
-            k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value, icao[0:2], icao[2:4])
+            k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value, icao[0:2], icao)
             ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             # k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value)
             # ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value, path=f".{icao}")
@@ -148,6 +151,8 @@ class Airport(Location):
             else:
                 logger.warning(f":find: no such key {k}")
         else:
+            if len(Airport._DB) == 0:
+                Airport.loadAll()
             return Airport._DB[icao] if icao in Airport._DB else None
         return None
 
@@ -165,10 +170,12 @@ class Airport(Location):
             k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value)
             ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value, path=f".{iata}")
             if ac is not None:
-                return Airport.fromInfo(info=ac)
+                return Airport.fromFeature(info=ac)
             else:
                 logger.warning(f":find: no such key {k}")
         else:
+            if len(Airport._DB_IATA) == 0:
+                Airport.loadAll()
             return Airport._DB_IATA[iata] if iata in Airport._DB_IATA else None
         return None
 
@@ -188,7 +195,7 @@ class Airport(Location):
 
 
     @classmethod
-    def fromInfo(cls, info):
+    def fromFeature(cls, info):
         # logger.debug(f":fromInfo: {json.dumps(info, indent=2)}")
         return Airport(icao=info["icao"],
                        iata=info["iata"],
@@ -199,6 +206,19 @@ class Airport(Location):
                        lat=float(info["geometry"]["coordinates"][1]),
                        lon=float(info["geometry"]["coordinates"][0]),
                        alt=float(info["geometry"]["coordinates"][2] if len(info["geometry"]["coordinates"])>2 else None))
+
+    @classmethod
+    def fromInfo(cls, info):
+        logger.debug(f":fromInfo: {json.dumps(info, indent=2)}")
+        return Airport(icao=info["icao"],
+                       iata=info["iata"],
+                       name=info["name"],
+                       city=info["city"],
+                       country=info["country"],
+                       region=info["iso_region"],
+                       lat=info["lat"],
+                       lon=info["lon"],
+                       alt=info["alt"])
 
     def __str__(self):
         return f"{self['properties']['name']}, {self['properties']['city']}, {self['properties']['country']} ({self.iata}, {self.icao})"

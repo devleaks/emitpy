@@ -16,7 +16,7 @@ from web.routers import flights, services, missions, queues, airport
 from fastapi_simple_security import api_key_router, api_key_security
 
 import emitpy
-from emitpy.parameters import MANAGED_AIRPORT, SECURE_API, ALLOW_KEYGEN
+from emitpy.parameters import MANAGED_AIRPORT_ICAO, SECURE_API, ALLOW_KEYGEN
 from emitpy.emitapp import EmitApp
 from emitpy.broadcast import Hypercaster
 
@@ -247,8 +247,8 @@ async def startup():
     # git describe --tags
     # git log -1 --format=%cd --relative-date
     # + redis_connect info
-    logger.info(f":startup: {APP_NAME} taking off from «{MANAGED_AIRPORT['name']}»..")
-    app.state.emitpy = EmitApp(MANAGED_AIRPORT)
+    logger.info(f":startup: {APP_NAME} taking off from «{MANAGED_AIRPORT_ICAO}»..")
+    app.state.emitpy = EmitApp(MANAGED_AIRPORT_ICAO)
     logger.info(f":startup: {APP_NAME} ..positive climb. gear up. Starting hypercaster..")
     app.state.hypercaster = Hypercaster()
     logger.info(f":startup: {APP_NAME} ..hypercaster running")
@@ -261,7 +261,7 @@ async def shutdown():
     logger.info(f":shutdown {APP_NAME} ..landed. taxiing to gate..")
     app.state.emitpy.shutdown()
     logger.info(f":shutdown {APP_NAME} ..on block")
-    logger.info(f":shutdown kiss landed at «{MANAGED_AIRPORT['name']}». Have a nice day.")
+    logger.info(f":shutdown kiss landed at «{MANAGED_AIRPORT_ICAO}». Have a nice day.")
 
 
 if __name__ == "__main__":

@@ -91,7 +91,7 @@ class FeatureWithProps(Feature):
         return self["geometry"]["coordinates"] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
 
     def props(self):
-        return self["properties"] if properties in self else None
+        return self["properties"] if "properties" in self else None
 
     def lat(self):
         return self["geometry"]["coordinates"][1] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None

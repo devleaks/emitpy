@@ -49,16 +49,17 @@ SAVE_TRAFFIC = True
 LOAD_AIRWAYS = True
 
 def BOOTSTRAP_REDIS():
+    NUM_ATTEMPTS = 3
     not_connected = True
     attempts = 0
-    while not_connected and attempts < 10:
+    while not_connected and attempts < NUM_ATTEMPTS:
         r = redis.Redis(**REDIS_CONNECT)
         try:
             pong = r.ping()
             not_connected = False
             logger.info("BOOTSTRAP_REDIS: connected")
         except redis.RedisError:
-            logger.warning("BOOTSTRAP_REDIS: cannot connect, retrying...")
+            logger.warning(f"BOOTSTRAP_REDIS: cannot connect, retrying ({attempts+1}/{NUM_ATTEMPTS})...")
             attempts = attempts + 1
             time.sleep(2)
 
@@ -77,56 +78,24 @@ def BOOTSTRAP_REDIS():
 
 class EmitApp(ManagedAirport):
 
-    def __init__(self, airport):
-
-        ManagedAirport.__init__(self, airport=airport, app=self)
-
-        self.local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
+    def __init__(self, icao):
 
         self.redis_pool = None
         self.redis = None
         self.gas = None
 
         self._use_redis = BOOTSTRAP_REDIS()
+        if self._use_redis:
+            self.init_redis()
+
+        ManagedAirport.__init__(self, icao=icao, app=self)
+
+        self.local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
 
         # If Redis is defined before calling init(), it will use it.
         # Otherwise, it will use the data files.
-        if not self._use_redis:
-            logger.info(f":init: not using Redis for data")
-        else:
-            # (Mandatory) use of Redis starts here
-            # Redis is sometimes slow to start, wait for it a bit
-            not_connected = True
-            attempts = 0
-            while not_connected and attempts < 10:
-                self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
-                self.redis = redis.Redis(connection_pool=self.redis_pool)
-                try:
-                    pong = self.redis.ping()
-                    not_connected = False
-                    logger.info(":init: connected to Redis")
-                    self.redis.config_set('notify-keyspace-events', "KA")
-                    logger.debug(f":init: {self.redis.config_get('notify-keyspace-events')}")
-                    logger.info(":init: keyspace notification enabled")
-                except redis.RedisError:
-                    logger.error(":init: cannot connect to redis, retrying...")
-                    attempts = attempts + 1
-                    time.sleep(2)
-            if not_connected:
-                logger.error(":init: cannot connect to redis")
-                return
-            ret = self.check_data()
-            if not ret[0]:
-                logger.error(ret[1])
-                return
-            # Init "Global Airport Status" structure.
-            # For later use. Used for testing only.
-            # self.redis.select(REDIS_DB.CACHE.value)
-            # self.gas = RedisDict(None, redis=redis.Redis(connection_pool=self.redis_pool), key='airport')
-            # self.gas["managed-airport"] = airport
-            # self.redis.select(REDIS_DB.APP.value)
-            logger.info(f":init: using Redis for data, {ret[1]}")
-
+        if self._use_redis:
+            logger.info(f":init: using Redis")
             # Prepare default queue(s)
             self.redis.select(REDIS_DB.APP.value)
             self.queues = Queue.loadAllQueuesFromDB(self.redis)
@@ -144,6 +113,8 @@ class EmitApp(ManagedAirport):
                     logger.debug(f":init: creating LiveTraffic queue with {LIVETRAFFIC_FORMATTER} formatter")
                     self.queues[k] = Queue(name=k, formatter_name=v, redis=self.redis)
                     self.queues[k].save()
+        else:
+            logger.info(f":init: not using Redis")
 
         ret = self.init(load_airways=LOAD_AIRWAYS)
         if not ret[0]:
@@ -157,6 +128,40 @@ class EmitApp(ManagedAirport):
 
         logger.debug(":init: initialized. listening.."+ "\n\n")
         # logger.warning("=" * 90)
+
+
+    def init_redis(self):
+        # (Mandatory) use of Redis starts here
+        # Redis is sometimes slow to start, wait for it a bit
+        not_connected = True
+        attempts = 0
+        while not_connected and attempts < 10:
+            self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
+            self.redis = redis.Redis(connection_pool=self.redis_pool)
+            try:
+                pong = self.redis.ping()
+                not_connected = False
+                logger.info(":init: connected to Redis")
+                self.redis.config_set('notify-keyspace-events', "KA")
+                logger.debug(f":init: {self.redis.config_get('notify-keyspace-events')}")
+                logger.info(":init: keyspace notification enabled")
+            except redis.RedisError:
+                logger.error(":init: cannot connect to redis, retrying...")
+                attempts = attempts + 1
+                time.sleep(2)
+        if not_connected:
+            logger.error(":init: cannot connect to redis")
+            return
+        ret = self.check_data()
+        if not ret[0]:
+            logger.error(ret[1])
+            return
+        # Init "Global Airport Status" structure.
+        # For later use. Used for testing only.
+        # self.redis.select(REDIS_DB.CACHE.value)
+        # self.gas = RedisDict(None, redis=redis.Redis(connection_pool=self.redis_pool), key='airport')
+        # self.gas["managed-airport"] = airport
+        # self.redis.select(REDIS_DB.APP.value)
 
 
     def use_redis(self):
@@ -278,7 +283,7 @@ class EmitApp(ManagedAirport):
 
         # logger.info("*" * 90)
         logger.info("***** (%s, %dnm) %s-%s AC %s at FL%d" % (
-                    remote_apt.getProp(FEATPROP.CITY.value), aptrange/NAUTICAL_MILE, remote_apt.iata, self._this_airport["IATA"],
+                    remote_apt.getProp(FEATPROP.CITY.value), aptrange/NAUTICAL_MILE, remote_apt.iata, self.iata,
                     acperf.typeId, reqfl))
         # logger.debug("*" * 89)
 
@@ -406,7 +411,7 @@ class EmitApp(ManagedAirport):
         blocktime = emit_time + timedelta(seconds=td)
 
         # @todo: pass service operator
-        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=self._this_airport["operator"])
+        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=self.operator)
         # operator = self.airport.manager.getCompany(operator)
 
         flight_service = FlightServices(flight, operator)
@@ -465,7 +470,7 @@ class EmitApp(ManagedAirport):
         acperf.load()
         logger.debug(f":do_flight: ..done {acperf.available}")
 
-        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=self._this_airport["operator"])
+        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=self.operator)
 
         logger.debug(":do_service: creating service..")
         rampval = self.airport.getRamp(ramp, redis=self.use_redis())

@@ -29,7 +29,7 @@ from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX,
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE, FLIGHTROUTE_DATABASE
 
 from emitpy.utils import NAUTICAL_MILE
-from emitpy.parameters import MANAGED_AIRPORT, REDIS_CONNECT, DATA_DIR, MANAGED_AIRPORT_DIR
+from emitpy.parameters import MANAGED_AIRPORT_ICAO, REDIS_CONNECT, DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.geo import FeatureWithProps
 
 
@@ -40,9 +40,11 @@ logging.basicConfig(level=logging.DEBUG)
 
 class LoadApp(ManagedAirport):
 
-    def __init__(self, airport, data_to_load:list = ["*"]):
+    def __init__(self, icao: str, data_to_load:list = ["*"]):
 
-        ManagedAirport.__init__(self, airport=airport, app=self)
+        self._use_redis = False
+
+        ManagedAirport.__init__(self, icao=icao, app=self)
 
         self.redis_pool = None
         self.redis = None
@@ -104,6 +106,10 @@ class LoadApp(ManagedAirport):
         if a is not None and MANAGED_AIRPORT_LAST_UPDATED in a:
             return (True, a[MANAGED_AIRPORT_LAST_UPDATED])
         return (False, f"{k} not found")
+
+
+    def use_redis(self):
+        return None
 
 
     def load(self, what: list):
@@ -311,9 +317,10 @@ class LoadApp(ManagedAirport):
         #         return status
         if "*" in what or "info" in what:
             try:
-                self._this_airport[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
-                self._this_airport[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
-                self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), self._this_airport)
+                info = self.getAirportDetails()
+                info[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
+                info[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
+                self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), info)
                 logger.info(f"LoadApp::load: loaded info ({key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)})")
             except:
                 logger.info(f"LoadApp::load: not loaded info", exc_info=True)
@@ -440,7 +447,7 @@ class LoadApp(ManagedAirport):
 
         errcnt = 0
         for a in Airport._DB.values():
-            a.save(REDIS_PREFIX.AIRPORTS.value, self.redis)
+            a.save(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value), self.redis)
             try:  # we noticed, experimentally, abs(lon) > 85 is not good...
                 self.redis.geoadd(REDIS_PREFIX.AIRPORTS_GEO_INDEX.value, (a.lon(), a.lat(), a.icao))
             except:
@@ -711,11 +718,11 @@ class LoadApp(ManagedAirport):
                 logger.debug(f":loadHolds: cannot load {k} (lat={v.fix.lat()}, lon={v.fix.lon()})")
             cnt = cnt + 1
         # We preselect holds in the vicinity of the managed airport
-        logger.debug(f":loadHolds: preselecting {self._this_airport['ICAO']} local holds..")
-        store = key_path(REDIS_PREFIX.AIRSPACE_HOLDS.value, self._this_airport["ICAO"])
+        logger.debug(f":loadHolds: preselecting {self.icao} local holds..")
+        store = key_path(REDIS_PREFIX.AIRSPACE_HOLDS.value, self.icao)
         self.redis.geosearchstore(name=REDIS_PREFIX.AIRSPACE_HOLDS_GEO_INDEX.value,
-                                  longitude=self._this_airport["lon"],
-                                  latitude=self._this_airport["lat"],
+                                  longitude=self.longitude,
+                                  latitude=self.latitude,
                                   unit='km',
                                   radius=100*NAUTICAL_MILE,
                                   dest=store)
@@ -832,15 +839,15 @@ if __name__ == "__main__":
     r.select(prevdb)
     logger.info(f"Managed airport: {a}")
 
-    if a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT["ICAO"]:
+    if a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT_ICAO:
         logger.debug(f"loading ..")
-        d = LoadApp(airport=MANAGED_AIRPORT)
+        d = LoadApp(icao=MANAGED_AIRPORT_ICAO)
         logger.debug(f".. loaded")
         sys.exit(2)
 
     if len(sys.argv) > 1:
         logger.debug(f"loading {sys.argv[1:]} ..")
-        d = LoadApp(airport=MANAGED_AIRPORT, data_to_load=sys.argv[1:])
+        d = LoadApp(icao=MANAGED_AIRPORT_ICAO, data_to_load=sys.argv[1:])
         logger.debug(f".. loaded")
         sys.exit(3)
 

@@ -221,8 +221,7 @@ class ReEmit(Emit):
         if mark is not None:
             f = self.getAbsoluteEmissionTime(mark)
             if f is not None:
-                localtz = Timezone(offset=self.managedAirport._this_airport["tzoffset"], name=self.managedAirport._this_airport["tzname"])
-                return datetime.fromtimestamp(f, tz=localtz)
+                return datetime.fromtimestamp(f, tz=self.managedAirport.timezone)
             else:
                 logger.warning(f":getEstimatedTime: no feature at mark {mark}")
         else:

@@ -45,25 +45,11 @@ ALLOW_KEYGEN = True  # Whether to mount api to generate keys, should be false in
 # Application options and parameters
 #
 # Managed Airport we are working on
-MANAGED_AIRPORT = {
-    "ICAO": "OTHH",
-    "IATA": "DOH",
-    "name": "Hamad International Airport",
-    "name_local": "مطار حمد الدولي",
-    "city": "Doha",
-    "country": "Qatar",
-    "regionName": "Qatar",
-    "elevation": 13.0,
-    "lat": 25.2745,
-    "lon": 51.6077,
-    "tzoffset": 3,
-    "tzname": "Doha",
-    "operator": "MATAR"
-}
+MANAGED_AIRPORT_ICAO = "OTHH"
 
-MANAGED_AIRPORT_DIR  = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT["ICAO"])
-MANAGED_AIRPORT_AODB = os.path.join(TEMP_DIR, MANAGED_AIRPORT["ICAO"])
-MANAGED_AIRPORT_CACHE = os.path.join(CACHE_DIR, MANAGED_AIRPORT["ICAO"])  # os.path.join(MANAGED_AIRPORT_AODB, "cache")
+MANAGED_AIRPORT_DIR  = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT_ICAO)
+MANAGED_AIRPORT_AODB = os.path.join(TEMP_DIR, MANAGED_AIRPORT_ICAO)
+MANAGED_AIRPORT_CACHE = os.path.join(CACHE_DIR, MANAGED_AIRPORT_ICAO)  # os.path.join(MANAGED_AIRPORT_AODB, "cache")
 
 # Broadcaster
 BROADCASTER_HEARTBEAT = False
