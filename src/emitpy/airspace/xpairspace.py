@@ -609,33 +609,33 @@ class XPAirspace(Airspace):
         """
         Load all airspaces from Little Navmap.
         {
-          "type": "Feature",
-          "geometry": {
-            "type": "Polygon",
-            "coordinates": [ [ [0, 0], .. ,[0, 0] ] ]
-          },
-          "properties": {
-            "boundary_id": 29386,
-            "file_id": 1,
-            "type": "FIR",
-            "name": "HONIARA",
-            "description": null,
-            "restrictive_designation": null,
-            "restrictive_type": null,
-            "multiple_code": "",
-            "time_code": "U",
-            "com_type": "CTR",
-            "com_frequency": 118100,
-            "com_name": "HONIARA",
-            "min_altitude_type": "MSL",
-            "max_altitude_type": "UL",
-            "min_altitude": 0,
-            "max_altitude": 100000,
-            "max_lonx": 166.875,
-            "max_laty": -4.833333492279053,
-            "min_lonx": 155,
-            "min_laty": -14
-          }
+        "type": "Feature",
+        "geometry": {
+        "type": "Polygon",
+        "coordinates": [ [ [0, 0], .. ,[0, 0] ] ]
+        },
+        "properties": {
+        "boundary_id": 29386,
+        "file_id": 1,
+        "type": "FIR",
+        "name": "HONIARA",
+        "description": null,
+        "restrictive_designation": null,
+        "restrictive_type": null,
+        "multiple_code": "",
+        "time_code": "U",
+        "com_type": "CTR",
+        "com_frequency": 118100,
+        "com_name": "HONIARA",
+        "min_altitude_type": "MSL",
+        "max_altitude_type": "UL",
+        "min_altitude": 0,
+        "max_altitude": 100000,
+        "max_lonx": 166.875,
+        "max_laty": -4.833333492279053,
+        "min_lonx": 155,
+        "min_laty": -14
+        }
         }
         List of values:
         --------------

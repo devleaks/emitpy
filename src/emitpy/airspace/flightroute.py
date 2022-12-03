@@ -1,7 +1,4 @@
-"""
-A FlightPlan is a flight plan built at from navaid, fixes, and airways.
-If we do not find a route from departure to arrival, has_plan() returns False.
-"""
+#
 import logging
 import copy
 
@@ -14,6 +11,10 @@ logger = logging.getLogger("FlightRoute")
 
 
 class FlightRoute:
+    """
+    A FlightRoute is a flight plan built at from navaid, fixes, and airways.
+    If we do not find a route from departure to arrival, has_plan() returns False.
+    """
 
     def __init__(self, managedAirport, fromICAO: str, toICAO: str,
                  useNAT: bool = True, usePACOT: bool = True, useAWYLO: bool = True, useAWYHI: bool = True,
@@ -48,10 +49,16 @@ class FlightRoute:
 
 
     def getAirspace(self):
+        """
+        Gets the airspace.
+        """
         return self.managedAirport.airport.airspace
 
 
     def nodes(self):
+        """
+        Returns the flight plan route as a collection of nodes.
+        """
         if self.flight_plan is None:
             self.makeFlightRoute()
 
@@ -59,10 +66,16 @@ class FlightRoute:
 
 
     def has_route(self):
+        """
+        Returns whether a route is found.
+        """
         return self.flight_plan is not None and self.flight_plan.found()
 
 
     def makeFlightRoute(self):
+        """
+        Builds the flight route between fromICAO and toICAO airports.
+        """
         a = self.getAirspace()
 
         if a is None:  # force fetch from flightplandb
@@ -102,8 +115,10 @@ class FlightRoute:
 
 
     def _convertToGeoJSON(self):
-        # convert the route of a flight plan to a geojson feature collection
-        # of waypoints and a line segment for the route.
+        """
+        Convert the route of a flight plan to a geojson feature collection
+        of waypoints and a line segment for the route.
+        """
         a = self.getAirspace()
 
         self.routeLS = LineString()
@@ -120,12 +135,17 @@ class FlightRoute:
 
 
     def route(self):
-        # returns flight route from airspace vertices, returns a copy because Feature properties will be modified
+        """
+        Returns flight route from airspace vertices,
+        returns a copy because Feature properties will be modified
+        """
         return copy.deepcopy(self.waypoints)
 
 
     def print(self):
-        # print flight route in "flight plan" format
+        """
+        Print flight route in "flight plan" format
+        """
         a = self.getAirspace()
         SEP = ","
         fp = ""
@@ -140,7 +160,12 @@ class FlightRoute:
 
 
     def getGeoJSON(self, include_ls: bool = False):
-        # returns flight route from airspace vertices in GeoJSON FeatureCollection
+        """
+        Returns flight route from airspace vertices in GeoJSON FeatureCollection
+
+        :param      include_ls:  Indicates if the ls is included
+        :type       include_ls:  bool
+        """
         fc = copy.deepcopy(self._route)
         if include_ls:
             fc.features.append(Feature(geometry=self.routeLS, properties={"tag": "route"}))

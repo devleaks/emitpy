@@ -63,6 +63,10 @@ class PROC_DATA(Enum):
 
 
 class ProcedureData:
+    """
+    Represent one line of more of procedure data from CIFP file.
+    If the line of instruction has more lines of data, they get collected in this instance.
+    """
     # CIFP line for this airport. Example line:
     # APPCH:030,A,I25RZ,KERKY,CF25R,EB,P,C,EE B,R,   ,CF,Y,IBR,EB,P,I,      ,0644,0130,2140,0085,+,02000,     ,     , ,   ,    ,   , , , , , ,0,D,S;
     # PROC :[params]                                   ↑
@@ -83,34 +87,61 @@ class ProcedureData:
 
 
     def proc(self):
+        """
+        Returns the procedure type (SID, STAR, RWY, APPCH)
+        """
         return self.procedure
 
     def name(self):
+        """
+        Returns the procedure name, if present
+        """
         if self.proc() == "RWY":
             return self.params[0]
         return self.params[2]
 
     def addData(self, data):
+        """
+        Adds a line of procedure data
+
+        :param      data:  The data
+        :type       data:  { type_description }
+        """
         return self.data.append(data)
 
     def seq(self):
+        """
+        Returns the procedure data line sequence number
+        """
         if self.proc() in ("RWY", "PRDAT"):
             return 0
         return int(self.params[0])
 
     def line(self):
+        """
+        Returns the whole procedure line
+        """
         return ",".join(self.params)
 
     def param(self, name: PROC_DATA):
+        """
+        Returns the requested procedure data or parameter.
+        Name of parameter is coded in PROC_DATA enum.
+
+        :param      name:  The name
+        :type       name:  PROC_DATA
+        """
         return self.params[name.value]
 
     def runway(self):
-        # This function reports the runway to which the procedure applies.
-        # IT IS NOT NECESSARILY A REAL RUNWAY NAME
-        # For exemple,
-        #   if a function relates to all runways, this procedure will return ALL
-        #   if a function relates to both NNL and NNR runways, this procedure will return NNB (both)
-        # This is taken into account when selecting procedures for a given runway.
+        """
+        This function reports the runway to which the procedure applies.
+        IT IS NOT NECESSARILY A REAL RUNWAY NAME.
+        For exemple,
+        - if a function relates to all runways, this procedure will return ALL
+        - if a function relates to both NNL and NNR runways, this procedure will return NNB (both)
+        This is taken into account when selecting procedures for a given runway.
+        """
         if self.proc() == "RWY":
             return self.name
         if self.proc() == "APPCH":
@@ -131,6 +162,12 @@ class Procedure:
         self.route = {}  # list of CIFP lines
 
     def add(self, line: ProcedureData):
+        """
+        Adds a line of procedure data to the procedure
+
+        :param      line:  The line
+        :type       line:  ProcedureData
+        """
         if len(self.route) == 0:  # First time, sets runway CIFP name
             self.runway = line.runway()
         self.route[line.seq()] = line
@@ -139,14 +176,18 @@ class Procedure:
 class SID(Procedure):
     """
     A Standard Instrument Departure is a special instance of a Procedure.
-
-    SID:010,5,ALSE1E,RW34R,SOKEN,OT,P,C,E   , ,   ,CF, ,DIA,OT,D, ,      ,3493,0132,3360,0100,+,02500,     ,13000, ,   ,    ,   ,OTHH,OT,P,A, , , , ;
-
     """
     def __init__(self, name: str):
         Procedure.__init__(self, name)
 
     def getRoute(self, airspace: Airspace):
+        """
+        Returns an array of vertices from the Airspace
+        that follow the SID
+
+        :param      airspace:  The airspace
+        :type       airspace:  Airspace
+        """
         a = []
         for v in self.route.values():
             fid = v.param(PROC_DATA.FIX_IDENT).strip()
@@ -166,14 +207,18 @@ class SID(Procedure):
 class STAR(Procedure):
     """
     A Standard Terminal Arrival Route is a special instance of a Procedure.
-
-    STAR:030,5,AFNA1E,RW34R,LOVAN,OB,E,A,E   , ,   ,TF, , , , , ,      ,    ,    ,    ,    ,-,08000,     ,     ,-,220,    ,   , , , , , , , , ;
-
     """
     def __init__(self, name: str):
         Procedure.__init__(self, name)
 
     def getRoute(self, airspace: Airspace):
+        """
+        Returns an array of vertices from the Airspace
+        that follow the STAR
+
+        :param      airspace:  The airspace
+        :type       airspace:  Airspace
+        """
         a = []
         for v in self.route.values():
             fid = v.param(PROC_DATA.FIX_IDENT).strip()
@@ -201,6 +246,13 @@ class APPCH(Procedure):
         Procedure.__init__(self, name)
 
     def getRoute(self, airspace: Airspace):
+        """
+        Returns an array of vertices from the Airspace
+        that follow the approach.
+
+        :param      airspace:  The airspace
+        :type       airspace:  Airspace
+        """
         interrupted = False
         a = []
         for v in self.route.values():
@@ -237,9 +289,6 @@ class RWY(Procedure):
     A runway for starting a SID or terminating a STAR.
     We distinguish the "aeronautical" RWY (in Airspace.Procedure) from the gegraphical/geometrical Runway (in Geo.Runway)
 
-        0     1     2      3     4 5    6 7             8          9
-    RWY:RW16L,     ,      ,00013, ,IDE ,3,   ;N25174597,E051363196,0000;
-
     """
     def __init__(self, name: str, airport: str):
         Procedure.__init__(self, name)
@@ -255,6 +304,9 @@ class RWY(Procedure):
             logger.warning(":add: Cannot add to an already defined runway")
             return
 
+
+        #     0     1     2      3     4 5    6 7             8          9
+        # RWY:RW16L,     ,      ,00013, ,IDE ,3,   ;N25174597,E051363196,0000;
         self.route[0] = line
         if self.has_latlon():
             self.point = RestrictedSignificantPoint(
@@ -271,36 +323,59 @@ class RWY(Procedure):
 
 
     def has_latlon(self):
+        """
+        Returns whether the RWY procedure has latitude and longitude of threshold point
+        """
         return (self.route[0].params[7].split(";")[1] != '') and (self.route[0].params[8] != '')
 
     def getLatitude(self):
+        """
+        Returns latitude of threshold point
+        """
         latstr = self.route[0].params[7].split(";")[1]
         return ConvertDMSToDD(latstr[1:3], latstr[3:5], int(latstr[5:9])/100, latstr[0])
 
     def getLongitude(self):
+        """
+        Returns longitude of threshold point
+        """
         lonstr = self.route[0].params[8]
         return ConvertDMSToDD(lonstr[1:4], lonstr[4:6], int(lonstr[6:10])/100, lonstr[0])
 
     def setAltitude(self, alt):
+        """
+        Sets altitude of threshold point
+        """
         if len(self.point["geometry"]["coordinates"]) > 2:
             self.point["geometry"]["coordinates"][2] = alt
         else:
             self.point["geometry"]["coordinates"].append(alt)
 
     def getPoint(self):
+        """
+        Returns runway threshold point
+        """
         return self.point
 
     def getRoute(self):
+        """
+        Returns runway threshold point
+        """
         return [self.point]
 
     def both(self):
-        if self.runway[-1] in list("LR"):  # NNL + NNR -> NNB, I don't know if there is a NNC?
+        """
+        Returns neutral representation of runway in case of multiple parallel runways
+        """
+        if self.runway[-1] in list("LR"):  # "LRC"? NNL + NNR -> NNB, I don't know if there is a NNC?
             return self.runway[:-1] + "B"
         return "ALL"
 
 
 class CIFP:
-
+    """
+    This class loads all procedures for a given airport.
+    """
     def __init__(self, icao: str):
         self.icao = icao
         self.airac_cycle = None
@@ -321,10 +396,16 @@ class CIFP:
 
 
     def getKey(self):
+        """
+        Returns airport ICAO name for this set of procedure.
+        """
         return self.icao
 
 
     def getInfo(self):
+        """
+        Returns instance information.
+        """
         return {
             "type": "CIFP",
             "terminal": self.icao,
@@ -338,7 +419,7 @@ class CIFP:
 
     def loadFromFile(self):
         """
-        Loads Coded Instrument Flight Procedures
+        Loads Coded Instrument Flight Procedures for one airport
 
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
@@ -418,6 +499,9 @@ class CIFP:
         return (True, "CIFP:loadFromFile: loaded")
 
     def pairRunways(self):
+        """
+        Pairs runways in opposite direction.
+        """
         if len(self.RWYS) == 2:
             rwk = list(self.RWYS.keys())
             self.RWYS[rwk[0]].end, self.RWYS[rwk[1]].end = self.RWYS[rwk[1]], self.RWYS[rwk[0]]
@@ -473,16 +557,30 @@ class CIFP:
 
 
     def getRoute(self, procedure: Procedure, airspace: Airspace):
+        """
+        Get array of vertices representing the supplied procedure.
+
+        :param      procedure:  The procedure
+        :type       procedure:  Procedure
+        :param      airspace:   The airspace
+        :type       airspace:   Airspace
+        """
         return procedure.getRoute(airspace)
 
 
     def getRunway(self):
+        """
+        Returns a random runway from RWY list.
+        """
         # Random for now, can use some logic if necessary.
         rwy = random.choice(list(self.RWYS.keys()))
         return {rwy: self.RWYS[rwy]}
 
 
     def getRunways(self):
+        """
+        Returns all runway thresholds.
+        """
         ret = {}
         for k, v in self.RWYS.items():
             if v.has_latlon():
@@ -491,6 +589,13 @@ class CIFP:
 
 
     def getOperationalRunways(self, wind_dir: float):
+        """
+        Get a runway opposite to the supplied wind direction.
+        If there is no wind, a random runway is selected.
+
+        :param      wind_dir:  The wind dir
+        :type       wind_dir:  float
+        """
         if wind_dir is None:
             logger.warning(f":getOperationalRunways: {self.icao} no wind direction, using all runways")
             return self.getRunways()

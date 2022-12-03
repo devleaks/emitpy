@@ -829,7 +829,7 @@ if __name__ == "__main__":
             time.sleep(SLEEP_TIME)
 
     if not_connected:
-        logger.warning(".. cannot connect, not using Redis for data")
+        logger.warning(".. cannot connect to Redis. bye.")
         sys.exit(1)
 
     prevdb = r.client_info()["db"]

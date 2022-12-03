@@ -9,7 +9,7 @@ from emitpy.airspace import XPAirspace, Metar
 from emitpy.business import Airline
 from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
-from emitpy.airport import Airport, AirportBase, XPAirport
+from emitpy.airport import Airport, ManagedAirportBase, XPAirport
 from emitpy.emit import Emit
 from emitpy.business import AirportManager
 from emitpy.parameters import MANAGED_AIRPORT
@@ -78,7 +78,7 @@ def main():
     aptrange = managed.miles(remote_apt)
 
     logger.debug("loading other airport..")
-    remote_apt = AirportBase(icao=remote_apt.icao,
+    remote_apt = ManagedAirportBase(icao=remote_apt.icao,
                              iata=remote_apt.iata,
                              name=remote_apt["properties"]["name"],
                              city=remote_apt["properties"]["city"],

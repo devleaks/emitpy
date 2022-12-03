@@ -5,6 +5,7 @@ import os
 import re
 import logging
 import importlib
+from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 
 import requests_cache
@@ -35,9 +36,9 @@ def normalize_dt(dt):
     return dtret
 
 
-class Metar:
+class Metar(ABC):
     """
-    Loads cached METAR for ICAO or fetch **current** from flightplandatabase.
+    Loads cached METAR for ICAO or fetch **current** from source.
     """
     def __init__(self, icao: str, redis = None):
         self.icao = icao
@@ -54,9 +55,18 @@ class Metar:
         if redis is None and not os.path.exists(METAR_DIR) or  not os.path.isdir(METAR_DIR):
             logger.warning(f":__init__: no Metar directory {METAR_DIR}")
 
-
     @staticmethod
     def new(icao: str, redis=None, method: str = "MetarFPDB"):
+        """
+        Create a new Metar using the supplied fetch method.
+
+        :param      icao:    The icao
+        :type       icao:    str
+        :param      redis:   The redis
+        :type       redis:   { type_description }
+        :param      method:  The method
+        :type       method:  str
+        """
         metarclasses = importlib.import_module(name=".airspace.metar", package="emitpy")
         if hasattr(metarclasses, method):
             doit = getattr(metarclasses, method)
@@ -65,13 +75,11 @@ class Metar:
             logger.warning(f":new: could not get Metar implementation {method}")
         return None
 
-
     def init(self):
         self.load()
         if self.raw is None:
             self.fetch()
             self.save()
-
 
     def setDatetime(self, moment: datetime = datetime.now().astimezone()):
         self.moment = moment
@@ -80,14 +88,11 @@ class Metar:
         self.raw = None
         self.init()
 
-
     def get(self):
         return self.raw
 
-
     def hasMetar(self):
         return self.metar is not None
-
 
     def getInfo(self):
         return {
@@ -96,13 +101,12 @@ class Metar:
             "metar": self.raw
         }
 
-
+    @abstractmethod
     def fetch(self):
         """
-        Fetches the metar from a source.
+        Fetches the METAR from its source.
         """
         return (False, "Metar::fetch: abstract class")
-
 
     def save(self):
         if self.redis is not None:
@@ -192,7 +196,6 @@ class Metar:
                 logger.debug(f":loadFromCache: not found {metid}")
         return (False, "Metar::loadFromCache: failed to load")
 
-
     def parse(self):
         """
         Clear protected parsing of Metar.
@@ -207,18 +210,17 @@ class Metar:
             logger.debug(f":load: METAR failed to parse '{self.raw}': {e}")
         return (False, "Metar::parse: failed to parse")
 
-
     def getAtmap(self):
-        if self.atmap is None:
-            self.atmap = ATMAP(obs=self.raw)
+        if self.atmap is None and self.metar is not None:
+            # self.atmap = ATMAP(obs=self.raw)
+            self.atmap = ATMAP(metar=self.metar) # use already parsed version
         return self.atmap.bad_weather_classes() if self.atmap is not None else None
 
 
 class MetarFPDB(Metar):
     """
-    Loads cached METAR for ICAO or fetch **current** from flightplandatabase.
+    Loads cached METAR for ICAO or fetch **current** from flightplandatabase and cache it.
     """
-
     def __init__(self, icao: str, redis = None):
         Metar.__init__(self, icao=icao, redis=redis)
         # For development
@@ -229,17 +231,15 @@ class MetarFPDB(Metar):
         #     requests_cache.install_cache()  # defaults to sqlite
         self.init()
 
-
     def fetch(self):
+        metar = fpdb.weather.fetch(icao=self.icao, key=FLIGHT_PLAN_DATABASE_APIKEY)
         """
-        Fetches the object.
         Flightplandb returns something like:
         {
           "METAR": "KLAX 042053Z 26015KT 10SM FEW180 SCT250 25/17 A2994",
           "TAF": "TAF AMD KLAX 042058Z 0421/0524 26012G22KT P6SM SCT180 SCT250 FM050400 26007KT P6SM SCT200 FM050700 VRB05KT P6SM SCT007 SCT200 FM051800 23006KT P6SM SCT020 SCT180"
         }
         """
-        metar = fpdb.weather.fetch(icao=self.icao, key=FLIGHT_PLAN_DATABASE_APIKEY)
         if metar is not None and metar.METAR is not None:
             self.raw = metar.METAR
             logger.debug(f":fetch: {self.raw}")
@@ -249,23 +249,23 @@ class MetarFPDB(Metar):
 
 class MetarHistorical(Metar):
     """
-    Wrapper to maintain symmetry with current metar
+    Fetch past METAR and cache it
     """
     def __init__(self, icao: str, redis = None):
         Metar.__init__(self, icao=icao, redis=redis)
 
-
     def fetch(self):
-        """
-        https://www.ogimet.com/display_metars2.php?lang=en&lugar=OTHH&tipo=SA&ord=REV&nil=SI&fmt=txt&ano=2019&mes=04&day=13&hora=07&anof=2019&mesf=04&dayf=13&horaf=07&minf=59&send=send      ==>
-        201904130700 METAR OTHH 130700Z 29012KT 3500 TSRA FEW015 SCT030 FEW040CB OVC100 21/17 Q1011 NOSIG=
-        """
         yr = self.moment_norm.strftime("%Y")
         mo = self.moment_norm.strftime("%m")
         dy = self.moment_norm.strftime("%d")
         hr = self.moment_norm.strftime("%H")
         nowstr = self.moment_norm.strftime('%d%H%MZ')
         nowstr2 = self.moment_norm.strftime('%Y%m%d%H%M')
+
+        """
+        https://www.ogimet.com/display_metars2.php?lang=en&lugar=OTHH&tipo=SA&ord=REV&nil=SI&fmt=txt&ano=2019&mes=04&day=13&hora=07&anof=2019&mesf=04&dayf=13&horaf=07&minf=59&send=send      ==>
+        201904130700 METAR OTHH 130700Z 29012KT 3500 TSRA FEW015 SCT030 FEW040CB OVC100 21/17 Q1011 NOSIG=
+        """
 
         url = f"https://www.ogimet.com/display_metars2.php?lang=en&lugar={self.icao}&tipo=SA&ord=REV&nil=SI&fmt=txt"
         url = url + f"&ano={yr}&mes={mo}&day={dy}&hora={hr}&anof={yr}&mesf={mo}&dayf={dy}&horaf={hr}&minf=59&send=send"

@@ -1,13 +1,35 @@
-from metar import Metar
+# METAR Eurocontrol ATMAP estimation.
+# from metar import Metar
 
 
 class ATMAP:
+    """
+    ATMAP converts weather situation into an integer number that
+    can be used to determine the weather severity.
+    """
 
-    def __init__(self, obs: str):
-        self.metar = Metar.Metar(obs, strict=False)
+    # def __init__(self, obs: str):
+    #     self.metar = Metar.Metar(obs, strict=False)
+
+    def __init__(self, metar: "Metar"):
+        self.metar = metar
+
+
+    def getInfo(self):
+        """
+        Returns ATMAP values for ceiling, wind, precipitations, freezing condition,
+        and other meteorological phenomena.
+        """
+        return self.bad_weather_classes()
 
 
     def bad_weather_classes(self):
+        """
+        Exposed function to get weather number representation of conditions.
+
+        :returns:   ceiling, wind, precipitations, freezing condition, and other meteorological phenomena.
+        :rtype:     dict
+        """
         return {
             "ceiling": self._get_visibility_ceiling_coef(),
             "wind": self._get_wind_coef(),
@@ -18,6 +40,9 @@ class ATMAP:
 
 
     def _get_dangerous_phenomena_coef(self):
+        """
+        Internal class to get the dangerous phenomena ratio.
+        """
         phenomena, showers = self.__dangerous_weather()
         cb, tcu, ts = self.__dangerous_clouds()
         if showers is not None and showers > 0:
@@ -40,6 +65,9 @@ class ATMAP:
 
 
     def __dangerous_weather(self):
+        """
+        Internal class to get dangerous weather conditions.
+        """
         weather = self.metar.weather
         phenomena = None
         showers = None
@@ -68,6 +96,9 @@ class ATMAP:
 
 
     def __dangerous_clouds(self):
+        """
+        Internal class to get dangerous cloudy conditions.
+        """
         sky = self.metar.sky
         cb = 0
         tcu = 0
@@ -112,6 +143,9 @@ class ATMAP:
 
 
     def _get_wind_coef(self):
+        """
+        Internal class to get wind conditions.
+        """
         spd = self.metar.wind_speed.value()
         gusts = self.metar.wind_gust.value() if self.metar.wind_gust is not None else None
         coef = 0
@@ -132,6 +166,9 @@ class ATMAP:
 
 
     def _get_precipitation_coef(self):
+        """
+        Internal class to get precipitation conditions.
+        """
         coef = 0
         for intensity, desc, precip, obs, other in self.metar.weather:
             __coef = 0
@@ -154,6 +191,9 @@ class ATMAP:
 
 
     def _get_freezing_coef(self):
+        """
+        Internal class to get cold temperature conditions.
+        """
         tt = self.metar.temp.value()
         dp = self.metar.dewpt.value()
         moisture = None
@@ -199,6 +239,9 @@ class ATMAP:
 
 
     def _get_visibility_ceiling_coef(self):
+        """
+        Internal class to get cloud conditions.
+        """
         vis = self.__get_visibility()
         is_covered, cld_base = self.__get_ceiling()
 
@@ -215,6 +258,9 @@ class ATMAP:
 
 
     def __get_ceiling(self):
+        """
+        Internal class to get ceiling.
+        """
         cld_cover = False
         cld_base = None
         for cover, height, cloud in self.metar.sky:
@@ -228,6 +274,9 @@ class ATMAP:
 
 
     def __get_visibility(self):
+        """
+        Internal class to get visibility conditions.
+        """
         vis = self.metar.vis.value()
         rvr = None
         for name, low, high, unit in self.metar.runway:

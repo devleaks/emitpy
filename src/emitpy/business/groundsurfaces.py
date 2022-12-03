@@ -47,16 +47,16 @@ class Apron(AirportAOI):
         self.parking = {}
 
 
-class Parking(AirportAOI):
-    # ugly but perfectly works.
-    pass
+# class Parking(AirportAOI):
+#     # ugly but perfectly works.
+#     pass
 
 
 class Parking(AirportAOI):
     """
     A Parking uis a place to store an aircraft when it is on the ground.
     """
-    def __init__(self, orgId: str, classId: str, typeId: str, name: str, size: str, shared: Union[[str], [Parking]] = None):
+    def __init__(self, orgId: str, classId: str, typeId: str, name: str, size: str, shared = None):  # shared: Union[[str], [Parking]] = None
         AirportAOI.__init__(self, orgId, classId, typeId, name)
         self.usage = [CARGO, PASSENGER]  # PASSENGER or CARGO or both
         self.type = None  # {JETWAY|TIEDOWN}

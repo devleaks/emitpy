@@ -1,6 +1,7 @@
 """
 Everything related to aircrafts, their codes, classes, performmances.
 """
+
 import sys
 import logging
 import operator
@@ -32,6 +33,7 @@ class ACPERF:
     """
     List of aircraft performances. (Enum-like.)
     """
+
     icao = "icao"
     iata = "iata"
     takeoff_speed = "takeoff_speed"
@@ -88,11 +90,11 @@ class AircraftType(Identity):
         """
         Loads all aircraft models from aircraft type data file.
         Current datafile contains the following CSV fields:
-            Date Completed,Manufacturer,Model,Physical Class (Engine),# Engines,AAC,ADG,TDG,
-            Approach Speed (Vref),Wingtip Configuration,Wingspan- ft,Length- ft,Tail Height- ft(@ OEW),
-            Wheelbase- ft,Cockpit to Main Gear (CMG),MGW (Outer to Outer),MTOW,Max Ramp Max Taxi,
-            Main Gear Config,ICAO Code,Wake Category,ATCT Weight Class,Years Manufactured,
-            Note,Parking Area (WS x Length)- sf
+        Date Completed,Manufacturer,Model,Physical Class (Engine),# Engines,AAC,ADG,TDG,
+        Approach Speed (Vref),Wingtip Configuration,Wingspan- ft,Length- ft,Tail Height- ft(@ OEW),
+        Wheelbase- ft,Cockpit to Main Gear (CMG),MGW (Outer to Outer),MTOW,Max Ramp Max Taxi,
+        Main Gear Config,ICAO Code,Wake Category,ATCT Weight Class,Years Manufactured,
+        Note,Parking Area (WS x Length)- sf
         """
         ac = files('data.aircraft_types').joinpath('aircraft-types.json').read_text()
         data = json.loads(ac)
@@ -301,38 +303,39 @@ class AircraftPerformance(AircraftType):
     The AircraftPerformance class augments the information available from the global aircraft database (AircraftType)
     with aircraft performance data necessary for the computation of its movements.
     {
-        "icao": "A321",
-        "iata": "321/32S",
-        "takeoff_speed": 145,
-        "takeoff_distance": 2210,
-        "takeoff_wtc": "M",
-        "takeoff_recat": "Upper Medium",
-        "takeoff_mtow": 83000,
-        "initial_climb_speed": 175,
-        "initial_climb_vspeed": 2500,
-        "climbFL150_speed": 290,
-        "climbFL150_vspeed": 2000,
-        "climbFL240_speed": 290,
-        "climbFL240_vspeed": 1800,
-        "climbmach_mach": 0.78,
-        "climbmach_vspeed": 1000,
-        "cruise_speed": 450,
-        "cruise_mach": 0.79,
-        "max_ceiling": 410,
-        "cruise_range": 2350,
-        "descentFL240_mach": 0.78,
-        "descentFL240_vspeed": 1000,
-        "descentFL100_speed": 290,
-        "descentFL100_vspeed": 2500,
-        "approach_speed": 210,
-        "approach_vspeed": 1500,
-        "landing_speed": 141,
-        "landing_distance": 1600,
-        "landing_apc": "C",
-        "wingspan": 30.56,
-        "length": 28.45
+    "icao": "A321",
+    "iata": "321/32S",
+    "takeoff_speed": 145,
+    "takeoff_distance": 2210,
+    "takeoff_wtc": "M",
+    "takeoff_recat": "Upper Medium",
+    "takeoff_mtow": 83000,
+    "initial_climb_speed": 175,
+    "initial_climb_vspeed": 2500,
+    "climbFL150_speed": 290,
+    "climbFL150_vspeed": 2000,
+    "climbFL240_speed": 290,
+    "climbFL240_vspeed": 1800,
+    "climbmach_mach": 0.78,
+    "climbmach_vspeed": 1000,
+    "cruise_speed": 450,
+    "cruise_mach": 0.79,
+    "max_ceiling": 410,
+    "cruise_range": 2350,
+    "descentFL240_mach": 0.78,
+    "descentFL240_vspeed": 1000,
+    "descentFL100_speed": 290,
+    "descentFL100_vspeed": 2500,
+    "approach_speed": 210,
+    "approach_vspeed": 1500,
+    "landing_speed": 141,
+    "landing_distance": 1600,
+    "landing_apc": "C",
+    "wingspan": 30.56,
+    "length": 28.45
     }
     """
+
     _DB_PERF = {}
 
     def __init__(self, orgId: str, classId: str, typeId: str, name: str, data = None):

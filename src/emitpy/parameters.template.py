@@ -10,6 +10,16 @@ PRODUCTION  = True  # removes caches and short circuits
 
 
 # ######################
+# Managed Airport we are working on
+#
+MANAGED_AIRPORT_ICAO = None               # there is no default value
+
+MANAGED_AIRPORT_OPERATOR = "MATAR"        # default is "AIRPORT_OPERATOR"
+MANAGED_AIRPORT_HANDLER = "QAS"           # default is "AIRPORT_HANDLER"
+MANAGED_AIRPORT_MISSION_HANDLER = "HIA"   # default is "MISSION_HANDLER"
+
+
+# ######################
 # File system-based Data
 #
 # Should not be specified, should be deduced from Emitpy.__FILE__
@@ -27,6 +37,11 @@ CACHE_DIR = os.path.join(TEMP_DIR, "cache")
 # METAR storage directory
 METAR_DIR = os.path.join(TEMP_DIR, "metar")
 
+# Managed Airport storage directories
+MANAGED_AIRPORT_DIR  = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT_ICAO)
+MANAGED_AIRPORT_AODB = os.path.join(TEMP_DIR, MANAGED_AIRPORT_ICAO)
+MANAGED_AIRPORT_CACHE = os.path.join(CACHE_DIR, MANAGED_AIRPORT_ICAO)  # os.path.join(MANAGED_AIRPORT_AODB, "cache")
+
 
 # ######################
 # Database system-based Data
@@ -37,26 +52,26 @@ REDIS_CONNECT = {
     "db": 0
 }
 
+
+# ######################
+# Security (API-key)
 # See https://github.com/mrtolkien/fastapi_simple_security
+#
 SECURE_API   = True  # Whether to use api-key for all requests
 ALLOW_KEYGEN = True  # Whether to mount api to generate keys, should be false in production
+
 
 # ######################
 # Application options and parameters
 #
-# Managed Airport we are working on
-MANAGED_AIRPORT_ICAO = "OTHH"
-
-MANAGED_AIRPORT_DIR  = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT_ICAO)
-MANAGED_AIRPORT_AODB = os.path.join(TEMP_DIR, MANAGED_AIRPORT_ICAO)
-MANAGED_AIRPORT_CACHE = os.path.join(CACHE_DIR, MANAGED_AIRPORT_ICAO)  # os.path.join(MANAGED_AIRPORT_AODB, "cache")
-
 # Broadcaster
 BROADCASTER_HEARTBEAT = False
 
 # Sources of some data
 METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"
-METAR_HISTORICAL = False
+
+# Sources of some data
+METAR_HISTORICAL = False  # unreliable, limited, does not work
 
 # X-Plane location
 XPLANE_DIR = os.path.join("<x-plane-home-directory>")

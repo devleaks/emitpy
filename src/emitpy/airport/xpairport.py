@@ -12,7 +12,7 @@ from turfpy.measurement import distance, destination, bearing
 
 from emitpy.graph import Vertex, Edge, USAGE_TAG
 from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, FeatureWithProps, ls_length, ls_point_at
-from emitpy.parameters import DATA_DIR, XPLANE_DIR
+from emitpy.parameters import DATA_DIR, XPLANE_DIR, MANAGED_AIRPORT_DIR
 from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE
 from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP
 from emitpy.utils import key_path, rejson
@@ -54,7 +54,7 @@ class AptLine:
 #
 class XPAirport(ManagedAirportBase):
     """
-    Airport represetation
+    Managed Airport represetation extracted from X-Plane airport data files (apt.dat).
     """
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
         ManagedAirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
@@ -66,8 +66,7 @@ class XPAirport(ManagedAirportBase):
         self.aeroway_pois = None
         self.service_pois = None
         self.check_pois = {}
-        self.simairporttype = "X-Plane"
-        self.airport_base = os.path.join(DATA_DIR, "managedairport", icao)
+        self.airport_base = MANAGED_AIRPORT_DIR
         self.runway_exits = {}
         self.takeoff_queues = {}
         self.all_pois_combo = {}

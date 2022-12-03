@@ -88,7 +88,7 @@ class ManagedAirport:
             logger.debug("..done")
 
         # Now caching Airspace with pickle (~ 100MB)
-        airspace_cache = os.path.join(MANAGED_AIRPORT_CACHE, "airspace.pickle")
+        airspace_cache = os.path.join(CACHE_DIR, "airspace.pickle")
         if os.path.exists(airspace_cache):
             logger.debug("loading airspace from pickle..")
             with open(airspace_cache, "rb") as fp:
@@ -127,7 +127,7 @@ class ManagedAirport:
         manager = AirportManager(icao=self.icao, operator=operator, app=self._app)
         ret = manager.load(self._app.redis)
         if not ret[0]:
-            logger.warning("..!! airport manager not loaded!!")
+            logger.warning("..airport manager !** not loaded **!")
             return ret
 
         logger.debug("..setting managed airport resources..")

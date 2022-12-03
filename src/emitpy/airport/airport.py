@@ -53,31 +53,30 @@ class Airport(Location):
         self._rawdata = {}
         self.airlines = {}
         self.hub = {}
-        self.simairporttype = "Generic"
 
     @staticmethod
     def loadAll():
         """
         Loads all known airports from a global airport list file.
         Currently, the data file used returns the follwing information:
-            - id
-            - ident
-            - type
-            - name
-            - latitude_deg
-            - longitude_deg
-            - elevation_ft
-            - continent
-            - iso_country
-            - iso_region
-            - municipality
-            - scheduled_service
-            - gps_code
-            - iata_code
-            - local_code
-            - home_link
-            - wikipedia_link
-            - keywords
+        - id
+        - ident
+        - type
+        - name
+        - latitude_deg
+        - longitude_deg
+        - elevation_ft
+        - continent
+        - iso_country
+        - iso_region
+        - municipality
+        - scheduled_service
+        - gps_code
+        - iata_code
+        - local_code
+        - home_link
+        - wikipedia_link
+        - keywords
         """
         filename = os.path.join(DATA_DIR, AIRPORT_DATABASE, "airports.csv")
         file = open(filename, "r")
@@ -196,7 +195,15 @@ class Airport(Location):
 
     @classmethod
     def fromFeature(cls, info):
-        # logger.debug(f":fromInfo: {json.dumps(info, indent=2)}")
+        """
+        Build and Airport instance from properties extracted for a GeoJSON Feature.
+
+        :param      cls:   The cls
+        :type       cls:   { type_description }
+        :param      info:  The information
+        :type       info:  { type_description }
+        """
+        # logger.debug(f":fromFeature: {json.dumps(info, indent=2)}")
         return Airport(icao=info["icao"],
                        iata=info["iata"],
                        name=info["properties"]["name"],
@@ -209,7 +216,15 @@ class Airport(Location):
 
     @classmethod
     def fromInfo(cls, info):
-        logger.debug(f":fromInfo: {json.dumps(info, indent=2)}")
+        """
+        Builds an Airport instance from the dictionary returned by airport.getInfo() function.
+
+        :param      cls:   The cls
+        :type       cls:   { type_description }
+        :param      info:  The information
+        :type       info:  { type_description }
+        """
+        # logger.debug(f":fromInfo: {json.dumps(info, indent=2)}")
         return Airport(icao=info["icao"],
                        iata=info["iata"],
                        name=info["name"],
@@ -549,6 +564,7 @@ class AirportWithProcedures(Airport):
         if metar.metar is not None:
             self.metar = metar.metar
             logger.debug(f":setMETAR: {self.metar}")
+            logger.debug(f":setMETAR: ATMAP: {metar.getInfo()}")
             if self.procedures is not None:
                 # set which runways are usable
                 wind_dir = self.metar.wind_dir
@@ -616,7 +632,7 @@ class AirportWithProcedures(Airport):
 # AIRPORT BASE
 #
 #
-class ManagedAirportBase(AirportWithProcedures,):
+class ManagedAirportBase(AirportWithProcedures):
     """
     An ManagedAirportBase the abstract class of a ManagedAirport. It defines all data and procedures
     necessary for the ManagedAirport but does not implement them.
@@ -710,14 +726,14 @@ class ManagedAirportBase(AirportWithProcedures,):
         """
         # Loads GeoJSON file, returned dict has proper GeoJSON types,
         # ie. not 'dict' but 'FeatureCollection', 'Feature', 'Point', etc.
+        self.data = None
         df = os.path.join(self.airport_base, "geometries", name)
         if os.path.exists(df):
             with open(df, "r") as fp:
                 self.data = geojson.load(fp)
-        else:
-            logger.warning(f":file: {df} not found")
-            return [False, "GeoJSONAirport::loadGeometries file %s not found", df]
-        return [True, f"GeoJSONAirport::file {name} loaded"]
+            return [True, f"GeoJSONAirport::file {name} loaded"]
+        logger.warning(f":file: {df} not found")
+        return [False, "GeoJSONAirport::loadGeometries file %s not found", df]
 
     @abstractmethod
     def loadRunways(self):

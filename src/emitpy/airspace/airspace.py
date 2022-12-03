@@ -193,10 +193,32 @@ class SignificantPoint(Vertex):
 
     @staticmethod
     def mkId(region: str, airport: str, ident: str, pointtype: str = None) -> str:
+        """
+        Builds a SignificantPoint identifier from its region, airport (or enroute),
+        identifier and point type (Fix, navaid, etc.)
+
+        :param      region:     The region
+        :type       region:     str
+        :param      airport:    The airport
+        :type       airport:    str
+        :param      ident:      The identifier
+        :type       ident:      str
+        :param      pointtype:  The pointtype
+        :type       pointtype:  str
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     str
+        """
         return region + SignificantPoint.identsep + ident + SignificantPoint.identsep + ("" if pointtype is None else pointtype) + SignificantPoint.identsep + airport
 
     @staticmethod
     def parseId(ident: str):
+        """
+        Reconstruct an identifier built by mkId function into its constituting parts.
+
+        :param      ident:  The identifier
+        :type       ident:  str
+        """
         arr = ident.split(SignificantPoint.identsep)
         return {
             CPIDENT.REGION: arr[0],
@@ -206,6 +228,9 @@ class SignificantPoint(Vertex):
         } if len(arr) == 4 else None
 
     def getInfo(self):
+        """
+        Gets a SignificantPoint information dictionary.
+        """
         return {
             "class": type(self).__name__,
             "name": self.name,          # from Vertex()
@@ -215,6 +240,9 @@ class SignificantPoint(Vertex):
         }
 
     def getFeature(self):
+        """
+        Get a simple, clean GeoJSON feature from the SignificantPoint
+        """
         try:
             s = json.dumps(self)
             # if succeeded:
@@ -226,6 +254,7 @@ class SignificantPoint(Vertex):
 
 class RestrictedSignificantPoint(SignificantPoint, Restriction):
     """
+    A SignificantPoint with a Restriction attached to it.
     """
     def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
         SignificantPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
@@ -238,6 +267,9 @@ class RestrictedSignificantPoint(SignificantPoint, Restriction):
 #
 #
 class NavAid(SignificantPoint):
+    """
+    Base class for all navigational aids.
+    """
     # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
         # for marker beacons, we use their "name"/type (OM/MM/IM) rather than a generic MB (marker beacon)
@@ -250,60 +282,78 @@ class NavAid(SignificantPoint):
 
 
 class NDB(NavAid):  # 2
-
+    """
+    Non Directional Beacon
+    """
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
 
 
 class VOR(NavAid):  # 3
-
+    """
+    VHF Omnidirectional Range
+    """
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
 
 
 class LOC(NavAid):  # 4,5
-
+    """
+    Localiser
+    """
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
 class GS(NavAid):  # 6
-
+    """
+    GLide slope component of an ILS
+    """
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
 class MB(NavAid):  # 7,8,9
-
+    """
+    Marker Beacon, outer, middle or inner.
+    """
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
 class DME(NavAid):  # 12,13
-
+    """
+    Distance Measuring Equipment
+    """
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
 
 
 class FPAP(NavAid):  # 14
-
+    """
+    Final approach path alignment point (SBAS and GBAS)
+    """
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
 class GLS(NavAid):  # 16
-
+    """
+    GBAS Landing System
+    """
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
 
 
 class LTPFTP(NavAid):  # 16
-
+    """
+    Landing threshold point or fictitious threshold point of an SBAS/GBAS approach
+    """
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
         NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
         self.runway = runway
@@ -315,6 +365,10 @@ class LTPFTP(NavAid):  # 16
 #
 #
 class Fix(SignificantPoint):
+    """
+    Non navigational aid fix.
+    (we currently do not store how the fix is located, relative to surrounding navaids.)
+    """
     # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
     def __init__(self, ident, region, airport, lat, lon, waypoint_type: str):
         SignificantPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
@@ -328,7 +382,7 @@ class Fix(SignificantPoint):
 #
 class Terminal(SignificantPoint):
     """
-    This Terminam is a SignificantPoint airport.
+    This Terminaml is a SignificantPoint airport.
     """
     AS_WAYPOINTS = {}
 
@@ -513,9 +567,10 @@ class AirwaySegment(Edge):
         }
 
 
-class AirwayRoute(FeatureWithProps):
+class Airway(FeatureWithProps):
     """
-    An AirwayRroute is a named array of AirwaySegments.
+    An Airway is a named array of AirwaySegments.
+    It is exposed as a LineString.
     """
     def __init__(self, name: str, route: [AirwaySegment]):
         self.name = name
@@ -542,7 +597,7 @@ class AirwayRoute(FeatureWithProps):
 class Airspace(Graph, ABC):
     """
     Airspace is a network of air routes.
-    Vertices are airports, navaids, and fixes. Edges are airway (segements).
+    Vertices are airports, navaids, and fixes. Edges are airway segments.
     """
 
     def __init__(self, bbox=None, load_airways: bool = False):
@@ -596,34 +651,61 @@ class Airspace(Graph, ABC):
 
     @abstractmethod
     def loadAirports(self):
+        """
+        Loads airports.
+        """
         return [False, "no load implemented"]
 
 
     @abstractmethod
     def loadFixes(self):
+        """
+        Loads fixes.
+        """
         return [False, "no load implemented"]
 
 
     @abstractmethod
     def loadNavaids(self):
+        """
+        Loads navaids.
+        """
         return [False, "no load implemented"]
 
 
     @abstractmethod
     def loadAirwaySegments(self):
+        """
+        Loads airway segments.
+        """
         return [False, "no load implemented"]
 
 
     @abstractmethod
     def loadAirspaces(self):
+        """
+        Loads airspaces and their restrictions.
+        """
         return [False, "no load implemented"]
 
 
     @abstractmethod
     def loadHolds(self):
+        """
+        Loads holding points, their characteristics, and their restrictions.
+        """
         return [False, "no load implemented"]
 
 
     def findHolds(self, name):
+        """
+        Finds holding positions with supplied name.
+
+        :param      name:  The name
+        :type       name:  { type_description }
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
         validholds = list(filter(lambda x: x.fix.id == name, self.holds.values()))
         return validholds

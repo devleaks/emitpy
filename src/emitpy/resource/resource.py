@@ -1,4 +1,7 @@
-# Resource and allocation management
+"""
+Resource and allocation management
+"""
+
 import logging
 from datetime import datetime, timedelta
 
@@ -98,9 +101,9 @@ class Resource:
     Array of Reservations for a Resource.
     Used to check for availability and book Reservations.
     Typical resources:
-     - Vehicle (or persons)
-     - Ramps
-     - Runways
+    - Vehicle (or persons)
+    - Ramps
+    - Runways
     """
     def __init__(self, name: str, table: str):
         self.table = table
