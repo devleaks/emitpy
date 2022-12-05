@@ -51,7 +51,7 @@ class GroundSupport:
         self.pause_before = 0  # currently unused
         self.pause_after = 0   # currently unused
         self.setup_time = 0    # currently unused
-        self.close_time = 0    # currently unused
+        self.cleanup_time = 0    # currently unused
 
         self.vehicle = None
         self.next_position = None

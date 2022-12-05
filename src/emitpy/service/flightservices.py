@@ -246,3 +246,55 @@ class FlightServices:
         return (True, "FlightServices::enqueuetoredis: completed")
 
 
+loggerta = logging.getLogger("Turnaround")
+
+
+class Turnaround:
+    """
+    Convenience wrapper around a pair of linked, related flight.
+    Calls FlightServices on a pair of flights.
+    """
+
+    def __init__(self, arrival: Flight, departure: Flight, operator: "Company"):
+        arrival.setLinkedFlight(departure)
+        self.arrival = FlightServices(arrival, operator)
+        self.departure = FlightServices(departure, operator)
+        self.airport = None
+        arrival.setLinkedFlight(linked_flight=departure)  # will do the reverse as well
+        if self.towed():
+            loggerta.warning(":init: aircraft towed between linked flights")
+
+    def isTowed(self) -> bool:
+        return self.arrival.flight.ramp != self.departure.flight.ramp
+
+    def getTowMovement(self):
+        pass
+
+    def scheduleTowMovement(self):
+        pass
+
+    def emitTowMovement(self):
+        pass
+
+    def setManagedAirport(self, airport):
+        self.airport = airport
+        self.arrival.setManagedAirport(airport)
+        self.departure.setManagedAirport(airport)
+
+    def service(self):
+        # If towed, should schedule towing
+        self.arrival.service()
+        self.departure.service()
+
+    def move(self):
+        self.arrival.move()
+        self.departure.move()
+
+    def emit(self, emit_rate: int):
+        self.arrival.emit(emit_rate)
+        self.departure.emit(emit_rate)
+
+    def save(self, redis):
+        self.arrival.save(redis)
+        self.departure.save(redis)
+
