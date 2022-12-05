@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import logging
 import random
 import importlib
-import operator
+import operator as py_operator
 import json
 import csv
 import yaml
@@ -32,11 +32,20 @@ logger = logging.getLogger("AirportManager")
 
 
 class AirportManager:
+    """
+    The Airport Manager entity is responsible for managing the Managed Airport resources.
+    It also supply the Managed Airport business data such as airlines operating at the Managed Airport,
+    or air route frequencies.
 
-    def __init__(self, icao, operator: "Company", app):
+    :param      icao:      ICAO code of the Managed Airport
+    :type       icao:      { type_description }
+    :param      operator:  Operating company for the Managed Airport
+    :type       operator:  { type_description }
+    """
+
+    def __init__(self, icao, operator: Company):
         self.icao = icao
         self.operator = operator
-        self._app = app
 
         self.companies = {}
         self.people = {}
@@ -213,7 +222,7 @@ class AirportManager:
             routes = set(self.airline_route_frequencies[airline].keys())
         # return routes
         apts = list(filter(lambda a: a.iata in routes, Airport._DB_IATA.values()))
-        return [(a.iata, a.display_name) for a in sorted(apts, key=operator.attrgetter('display_name'))]
+        return [(a.iata, a.display_name) for a in sorted(apts, key=py_operator.attrgetter('display_name'))]
 
 
     def selectRandomAirline(self):

@@ -11,7 +11,7 @@ import redis
 import emitpy
 from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company
-from emitpy.aircraft import AircraftPerformance, Aircraft
+from emitpy.aircraft import AircraftTypeWithPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit
@@ -21,7 +21,7 @@ from emitpy.business import AirportManager
 from emitpy.constants import SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, LIVETRAFFIC_QUEUE, LIVETRAFFIC_FORMATTER
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, AIRAC_CYCLE
-from emitpy.parameters import REDIS_CONNECT, METAR_HISTORICAL, XPLANE_FEED
+from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT, METAR_HISTORICAL, XPLANE_FEED
 from emitpy.airport import Airport, AirportWithProcedures
 from emitpy.airspace import Metar
 from emitpy.utils import NAUTICAL_MILE
@@ -52,19 +52,20 @@ def BOOTSTRAP_REDIS():
     NUM_ATTEMPTS = 3
     not_connected = True
     attempts = 0
-    while not_connected and attempts < NUM_ATTEMPTS:
+    logger.debug("BOOTSTRAP_REDIS: connecting to Redis..")
+    while not_connected and attempts < REDIS_ATTEMPTS:
         r = redis.Redis(**REDIS_CONNECT)
         try:
             pong = r.ping()
             not_connected = False
-            logger.info("BOOTSTRAP_REDIS: connected")
+            logger.info("BOOTSTRAP_REDIS: ..connected.")
         except redis.RedisError:
-            logger.warning(f"BOOTSTRAP_REDIS: cannot connect, retrying ({attempts+1}/{NUM_ATTEMPTS})...")
+            logger.warning(f"BOOTSTRAP_REDIS: ..cannot connect, retrying ({attempts+1}/{REDIS_ATTEMPTS}, sleeping {REDIS_WAIT} secs)..")
             attempts = attempts + 1
-            time.sleep(2)
+            time.sleep(REDIS_WAIT)
 
     if not_connected:
-        logger.error("BOOTSTRAP_REDIS: cannot connect")
+        logger.error("BOOTSTRAP_REDIS: ..cannot connect to Redis.")
         return False
 
     prevdb = r.client_info()["db"]
@@ -269,10 +270,10 @@ class EmitApp(ManagedAirport):
         logger.debug(":do_flight: loading aircraft..")
         acarr = (actype, actype) if type(actype) == str else actype
         actype, acsubtype = acarr
-        ac = AircraftPerformance.findAircraftByType(actype, acsubtype, self.use_redis())
+        ac = AircraftTypeWithPerformance.findAircraftByType(actype, acsubtype, self.use_redis())
         if ac is None:
             return StatusInfo(100, f"aircraft performance not found for {actype} or {acsubtype}", None)
-        acperf = AircraftPerformance.find(icao=ac, redis=self.use_redis())
+        acperf = AircraftTypeWithPerformance.find(icao=ac, redis=self.use_redis())
         if acperf is None:
             return StatusInfo(101, f"aircraft performance not found for {ac}", None)
         acperf.load()
@@ -464,7 +465,7 @@ class EmitApp(ManagedAirport):
 
     def do_service(self, queue, emit_rate, operator, service, quantity, ramp, aircraft, equipment_ident, equipment_icao24, equipment_model, equipment_startpos, equipment_endpos, scheduled):
         logger.debug(":do_service: loading aircraft..")
-        acperf = AircraftPerformance.find(aircraft, redis=self.use_redis())
+        acperf = AircraftTypeWithPerformance.find(aircraft, redis=self.use_redis())
         if acperf is None:
             return StatusInfo(200, f"EmitApp:do_service: aircraft performance {aircraft} not found", None)
         acperf.load()
@@ -609,7 +610,7 @@ class EmitApp(ManagedAirport):
         remote_apt = Airport.find(airport_code, self.redis)
         actype_code = emit.getMeta("$.move.aircraft.actype.base-type.actype")
         logger.debug(f":do_flight_services: ..got actype code {actype_code}..")
-        acperf = AircraftPerformance.find(icao=actype_code, redis=self.use_redis())
+        acperf = AircraftTypeWithPerformance.find(icao=actype_code, redis=self.use_redis())
         acperf.load()
         acreg  = emit.getMeta("$.move.aircraft.acreg")
         icao24 = emit.getMeta("$.move.aircraft.icao24")

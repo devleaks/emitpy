@@ -298,42 +298,46 @@ class AircraftType(Identity):
         redis.json().set(key_path(base, self.getKey()), "$", self.getInfo())
 
 
-class AircraftPerformance(AircraftType):
+class AircraftTypeWithPerformance(AircraftType):
     """
     The AircraftPerformance class augments the information available from the global aircraft database (AircraftType)
     with aircraft performance data necessary for the computation of its movements.
-    {
-    "icao": "A321",
-    "iata": "321/32S",
-    "takeoff_speed": 145,
-    "takeoff_distance": 2210,
-    "takeoff_wtc": "M",
-    "takeoff_recat": "Upper Medium",
-    "takeoff_mtow": 83000,
-    "initial_climb_speed": 175,
-    "initial_climb_vspeed": 2500,
-    "climbFL150_speed": 290,
-    "climbFL150_vspeed": 2000,
-    "climbFL240_speed": 290,
-    "climbFL240_vspeed": 1800,
-    "climbmach_mach": 0.78,
-    "climbmach_vspeed": 1000,
-    "cruise_speed": 450,
-    "cruise_mach": 0.79,
-    "max_ceiling": 410,
-    "cruise_range": 2350,
-    "descentFL240_mach": 0.78,
-    "descentFL240_vspeed": 1000,
-    "descentFL100_speed": 290,
-    "descentFL100_vspeed": 2500,
-    "approach_speed": 210,
-    "approach_vspeed": 1500,
-    "landing_speed": 141,
-    "landing_distance": 1600,
-    "landing_apc": "C",
-    "wingspan": 30.56,
-    "length": 28.45
-    }
+
+    .. code-block:: json
+
+        {
+            "icao": "A321",
+            "iata": "321/32S",
+            "takeoff_speed": 145,
+            "takeoff_distance": 2210,
+            "takeoff_wtc": "M",
+            "takeoff_recat": "Upper Medium",
+            "takeoff_mtow": 83000,
+            "initial_climb_speed": 175,
+            "initial_climb_vspeed": 2500,
+            "climbFL150_speed": 290,
+            "climbFL150_vspeed": 2000,
+            "climbFL240_speed": 290,
+            "climbFL240_vspeed": 1800,
+            "climbmach_mach": 0.78,
+            "climbmach_vspeed": 1000,
+            "cruise_speed": 450,
+            "cruise_mach": 0.79,
+            "max_ceiling": 410,
+            "cruise_range": 2350,
+            "descentFL240_mach": 0.78,
+            "descentFL240_vspeed": 1000,
+            "descentFL100_speed": 290,
+            "descentFL100_vspeed": 2500,
+            "approach_speed": 210,
+            "approach_vspeed": 1500,
+            "landing_speed": 141,
+            "landing_distance": 1600,
+            "landing_apc": "C",
+            "wingspan": 30.56,
+            "length": 28.45
+        }
+
     """
 
     _DB_PERF = {}
@@ -359,19 +363,19 @@ class AircraftPerformance(AircraftType):
         for ac in jsondata.keys():
             actype = AircraftType.find(ac)
             if actype is not None:
-                acperf = AircraftPerformance(actype.orgId, actype.classId, actype.typeId, actype.name, actype.rawdata)
+                acperf = AircraftTypeWithPerformance(actype.orgId, actype.classId, actype.typeId, actype.name, actype.rawdata)
                 acperf.display_name = acperf.orgId + " " + acperf.name
                 acperf.perfraw = jsondata[ac]
                 acperf.setClass()
                 if acperf.check_availability():  # sets but also returns availability
                     acperf.toSI()
-                AircraftPerformance._DB_PERF[ac] = acperf
+                AircraftTypeWithPerformance._DB_PERF[ac] = acperf
             else:
                 logger.warning(f":loadAll: AircraftType {ac} not found")
 
-        cnt = len(list(filter(lambda a: a.available, AircraftPerformance._DB_PERF.values())))
-        logger.debug(f":loadAll: loaded {len(AircraftPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
-        logger.debug(f":loadAll: {list(map(lambda f: (f.typeId, f.getIata()), AircraftPerformance._DB_PERF.values()))}")
+        cnt = len(list(filter(lambda a: a.available, AircraftTypeWithPerformance._DB_PERF.values())))
+        logger.debug(f":loadAll: loaded {len(AircraftTypeWithPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
+        logger.debug(f":loadAll: {list(map(lambda f: (f.typeId, f.getIata()), AircraftTypeWithPerformance._DB_PERF.values()))}")
 
 
     @staticmethod
@@ -387,10 +391,10 @@ class AircraftPerformance(AircraftType):
             ap = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if ap is not None:
                 logger.debug(f"AircraftPerformance::find: loaded {icao} from redis")
-                return AircraftPerformance.fromInfo(info=ap)
+                return AircraftTypeWithPerformance.fromInfo(info=ap)
             else:
                 logger.warning(f"AircraftPerformance::find: no such key {k}")
-        return AircraftPerformance._DB_PERF[icao] if icao in AircraftPerformance._DB_PERF else None
+        return AircraftTypeWithPerformance._DB_PERF[icao] if icao in AircraftTypeWithPerformance._DB_PERF else None
 
 
     @staticmethod
@@ -407,9 +411,9 @@ class AircraftPerformance(AircraftType):
         """
         rdiff = inf
         best = None
-        for ac in AircraftPerformance._DB_PERF.keys():
-            if AircraftPerformance._DB_PERF[ac].available  and ("cruise_range" in AircraftPerformance._DB_PERF[ac].perfraw):
-                r = int(AircraftPerformance._DB_PERF[ac].perfraw["cruise_range"]) * NAUTICAL_MILE  # km
+        for ac in AircraftTypeWithPerformance._DB_PERF.keys():
+            if AircraftTypeWithPerformance._DB_PERF[ac].available  and ("cruise_range" in AircraftTypeWithPerformance._DB_PERF[ac].perfraw):
+                r = int(AircraftTypeWithPerformance._DB_PERF[ac].perfraw["cruise_range"]) * NAUTICAL_MILE  # km
                 if r > reqrange:
                     rd = r - reqrange
                     # logger.debug(":findAircraft: can use %s: %f (%f)" % (ac, r, rd))
@@ -417,7 +421,7 @@ class AircraftPerformance(AircraftType):
                         rdiff = rd
                         best = ac
                         # logger.debug(":findAircraft: best %f" % rdiff)
-        return AircraftPerformance._DB_PERF[best]
+        return AircraftTypeWithPerformance._DB_PERF[best]
 
 
     @staticmethod
@@ -444,27 +448,27 @@ class AircraftPerformance(AircraftType):
                 logger.debug(f":findAircraftByType: found sub type {acsubtype}")
                 return acsubtype
 
-            eq = AircraftPerformance.getEquivalence(actype, redis)
+            eq = AircraftTypeWithPerformance.getEquivalence(actype, redis)
             if eq is not None:
                 logger.debug(f":findAircraftByType: found equivalence {eq} for type {actype}")
                 return eq
-            eq = AircraftPerformance.getEquivalence(acsubtype, redis)
+            eq = AircraftTypeWithPerformance.getEquivalence(acsubtype, redis)
             if eq is not None:
                 logger.debug(f":findAircraftByType: found equivalence {eq} for subtype {acsubtype}")
                 return eq
 
         else:
-            if actype in AircraftPerformance._DB_PERF.keys():
+            if actype in AircraftTypeWithPerformance._DB_PERF.keys():
                 logger.debug(f":findAircraftByType: found type {actype}")
                 return actype
-            if acsubtype in AircraftPerformance._DB_PERF.keys():
+            if acsubtype in AircraftTypeWithPerformance._DB_PERF.keys():
                 logger.debug(f":findAircraftByType: found sub type {acsubtype}")
                 return acsubtype
-            eq = AircraftPerformance.getEquivalence(actype)
+            eq = AircraftTypeWithPerformance.getEquivalence(actype)
             if eq is not None:
                 logger.debug(f":findAircraftByType: found equivalence {eq} for type {actype}")
                 return eq
-            eq = AircraftPerformance.getEquivalence(acsubtype)
+            eq = AircraftTypeWithPerformance.getEquivalence(acsubtype)
             if eq is not None:
                 logger.debug(f":findAircraftByType: found equivalence {eq} for subtype {acsubtype}")
                 return eq
@@ -482,7 +486,7 @@ class AircraftPerformance(AircraftType):
             aperfs = rejson(redis=redis, key=REDIS_PREFIX.AIRCRAFT_PERFS.value, db=REDIS_DB.REF.value)
             return [(ac, ac) for ac in aperfs.keys()]
 
-        l = filter(lambda a: a.available, AircraftPerformance._DB_PERF.values())
+        l = filter(lambda a: a.available, AircraftTypeWithPerformance._DB_PERF.values())
         a = [(a.typeId, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
         return a
 
@@ -498,11 +502,11 @@ class AircraftPerformance(AircraftType):
 
     @classmethod
     def fromInfo(cls, info: str):
-        acperf = AircraftPerformance(orgId=info["base-type"]["actype-manufacturer"],
-                                     classId=info["base-type"]["acclass"],
-                                     typeId=info["base-type"]["actype"],
-                                     name=info["base-type"]["acmodel"],
-                                     data=info["performances-raw"])
+        acperf = AircraftTypeWithPerformance(orgId=info["base-type"]["actype-manufacturer"],
+                                             classId=info["base-type"]["acclass"],
+                                             typeId=info["base-type"]["actype"],
+                                             name=info["base-type"]["acmodel"],
+                                             data=info["performances-raw"])
         acperf.display_name = acperf.orgId + " " + acperf.name
         acperf.perfraw = info["performances-raw"]
         acperf.perfdata = info["performances"]
@@ -1110,7 +1114,7 @@ class AircraftPerformance(AircraftType):
         return self.inTarget(target, p)
 
 
-class AircraftClass(AircraftPerformance):
+class AircraftClass(AircraftTypeWithPerformance):
     """
     An aircraft class is one particular aircraft type from A-F taxiway aicraft class type.
     It is an aircraft of typical class dimension, hence typical range, and capacity.
@@ -1122,7 +1126,7 @@ class AircraftClass(AircraftPerformance):
 
 
     def __init__(self, orgId: str, classId: str, typeId: str, name: str, data):
-        AircraftPerformance.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name, data=data)
+        AircraftTypeWithPerformance.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name, data=data)
 
 
     @staticmethod
@@ -1164,7 +1168,7 @@ class Aircraft(Identity):
     """
     An aircraft servicing an airline route.
     """
-    def __init__(self, registration: str, icao24: str, actype: AircraftPerformance, operator: Company):
+    def __init__(self, registration: str, icao24: str, actype: AircraftTypeWithPerformance, operator: Company):
         """
         An aircraft servicing a flight.
 

@@ -44,7 +44,8 @@ MAXBACKLOGSECS  = -20  # 0 is too critical, but MUST be <=0
 #
 class Broadcaster:
     """
-    The Broadcaster pops items from the sorted set, reads the timestamp,
+    The Broadcaster is the executor of a :py:class:`emitpy.broadcast.queue.Queue`.
+    It pops items from the sorted set, reads the timestamp,
     and publish items at the right time.
     Also trims the sorted set when events older than the "queue time" are found.
     """
@@ -78,6 +79,9 @@ class Broadcaster:
 
 
     def setTimeshift(self):
+        """
+        Compute time difference (time shift) at time of call.
+        """
         self.timeshift = datetime.now().astimezone() - self.starttime()  # timedelta
         if self.timeshift < timedelta(seconds=10):
             self.timeshift = timedelta(seconds=0)
@@ -86,12 +90,18 @@ class Broadcaster:
 
 
     def starttime(self):
+        """
+        Returns this broadcaster' start time.
+        """
         if self._starttime is None:
             return datetime.now().astimezone()  # should never happen...
         return self._starttime
 
 
     def getInfo(self):
+        """
+        Get Broadcaster information string.
+        """
         realnow = datetime.now()
         elapsed = realnow - (self.starttime() + self.timeshift)
         return {
@@ -107,6 +117,14 @@ class Broadcaster:
 
 
     def reset(self, speed: float = 1, starttime: datetime = None):
+        """
+        Resets the Broadcaster. Restart at start_time and flows at speed.
+
+        :param      speed:      The speed
+        :type       speed:      float
+        :param      starttime:  The starttime
+        :type       starttime:  datetime
+        """
         # We need to ask the broadcaster to stop, put poped item back in queue
         logger.debug(f":reset: prepare..")
         self.oktoreset = threading.Event()
@@ -132,6 +150,14 @@ class Broadcaster:
 
 
     def now(self, format_output: bool = False, verbose: bool = False):
+        """
+        Returns the Broadcaster's "now" time, taking into account its start time and flow speed.
+
+        :param      format_output:  The format output
+        :type       format_output:  bool
+        :param      verbose:        The verbose
+        :type       verbose:        bool
+        """
         realnow = datetime.now().astimezone()
         if self.speed == 1 and self.timeshift.total_seconds() == 0:
             newnow = realnow
@@ -159,7 +185,7 @@ class Broadcaster:
 
     def _do_trim(self, ident=None):
         """
-        Removes elements in sortedset that are outdated for this queue's time.
+        Removes elements in sorted set that are outdated for this queue's time.
         """
         now = self.now()
         queue_key = Queue.mkDataKey(self.name)
@@ -175,7 +201,8 @@ class Broadcaster:
     def trim(self):
         """
         Wrapper to prevent new "pop" while trimming the queue.
-        If new elements are added while, it does not matter because they will be trimmed at the end of their insertion.
+        If new elements are added while, it does not matter because
+        they will be trimmed at the end of their insertion.
         """
         queue_key = Queue.mkDataKey(self.name)
         pattern = "__keyspace@0__:"+queue_key
@@ -247,6 +274,15 @@ class Broadcaster:
 
 
     def send_data(self, data: str) -> int:
+        """
+        Sends data on Redis Publish/Subscribe for this queue.
+
+        :param      data:  The data
+        :type       data:  str
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     int
+        """
         # l = min(30, len(data))
         # logger.debug(f":send_data: '{data[0:l]}'...")
         self.redis.publish(PUBSUB_CHANNEL_PREFIX + self.name, data)
@@ -255,7 +291,7 @@ class Broadcaster:
 
     def broadcast(self):
         """
-        Pop elements from the sortedset at requested time and publish them on pubsub queue.
+        Pop elements from the sorted set at requested time and publish it on pub/sub queue.
         """
         def pushback(item):
             if item is not None:
@@ -425,7 +461,9 @@ LTlogger = logging.getLogger("LiveTrafficForwarder")
 
 class LiveTrafficForwarder(Broadcaster):
     """
-    LiveTrafficForwarder is a special process that dequeues messages and forwards them to a TCP or UDP or multicast port.
+    LiveTrafficForwarder is a special Broadcaster that dequeues messages
+    and forwards them to a TCP or UDP or multicast port for the LiveTraffic plugin
+    in the X-Plane flight simulator game.
     """
 
     def __init__(self, redis):
@@ -436,20 +474,41 @@ class LiveTrafficForwarder(Broadcaster):
         LTlogger.debug(f"LiveTrafficForwarder::__init__: inited")
 
     def send_data_lt(self, data: str) -> int:
+        """
+        Send data to LiveTraffic.
+        Send a UDP datagram to a port supplied in parameter file.
+        (alternative experimental version.)
+
+        :param      data:  The data
+        :type       data:  str
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     int
+        """
         fields = data.split(',')
         if len(fields) != 15:
-            LTlogger.warning(f"LiveTrafficForwarder:send_data: Found {len(fields)} fields, expected 15, in line {data}")
+            LTlogger.warning(f"LiveTrafficForwarder:send_data_lt: Found {len(fields)} fields, expected 15, in line {data}")
             return 1
         # Update and wait for timestamp
         # fields[14] = compWaitTS(fields[14])  # this is done in our own broadcaster :-)
         datagram = ','.join(fields)
         self.sock.sendto(datagram.encode('ascii'), (XPLANE_HOSTNAME, XPLANE_PORT))
         fields[1] = f"{int(fields[1]):x}"
-        LTlogger.debug(f"LiveTrafficForwarder::send_data: {datagram}")
-        LTlogger.debug(f"LiveTrafficForwarder::send_data: ac:{fields[1]}: alt={fields[4]} ft, hdg={fields[7]}, speed={fields[8]} kn, vspeed={fields[5]} ft/min")
+        LTlogger.debug(f"LiveTrafficForwarder::send_data_lt: {datagram}")
+        LTlogger.debug(f"LiveTrafficForwarder::send_data_lt: ac:{fields[1]}: alt={fields[4]} ft, hdg={fields[7]}, speed={fields[8]} kn, vspeed={fields[5]} ft/min")
         return 0
 
     def send_data(self, data: str) -> int:
+        """
+        Send data to LiveTraffic.
+        Send a UDP datagram to a port supplied in parameter file.
+
+        :param      data:  The data
+        :type       data:  str
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     int
+        """
         datagram = data
         self.sock.sendto(datagram.encode('ascii'), (XPLANE_HOSTNAME, XPLANE_PORT))
         if LIVETRAFFIC_VERBOSE:
@@ -464,8 +523,8 @@ hyperlogger = logging.getLogger("Hypercaster")
 
 class Hypercaster:
     """
-    Starts/stop/reset a Broadcaster for each queue.
-    Hypercaster is an administrator for all Broadcasters.
+    The Hypercaster is a manager of Broadcasters.
+    It starts, pause, reset, ends broadcasters gracefuly.
     """
 
     _instance = None
@@ -473,6 +532,17 @@ class Hypercaster:
 
     @classmethod
     def __new__(cls, *args, **kwargs):
+        """
+        Thread safe Hypercaster singleton instanciation
+
+        :param      cls:     The cls
+        :type       cls:     { type_description }
+        :param      args:    The arguments
+        :type       args:    list
+        :param      kwargs:  The keywords arguments
+        :type       kwargs:  dictionary
+        """
+
         # https://medium.com/analytics-vidhya/how-to-create-a-thread-safe-singleton-class-in-python-822e1170a7f6
         if not cls._instance:
             with cls._lock:
@@ -482,7 +552,6 @@ class Hypercaster:
                 if not cls._instance:
                     cls._instance = super(Hypercaster, cls).__new__(cls)
         return cls._instance
-
 
     def __init__(self):
         self.redis_pool = redis.ConnectionPool(**REDIS_CONNECT)
@@ -497,6 +566,10 @@ class Hypercaster:
         hyperlogger.info(f":init: started {list(self.queues.keys())} and admin queue")
 
     def init(self):
+        """
+        Initializes the Hypercaster.
+        On startup, create all existing queue Broadcasters
+        """
         self.queues = Queue.loadAllQueuesFromDB(self.redis)
         for k in self.queues.values():
             self.start_queue(k)
@@ -505,6 +578,12 @@ class Hypercaster:
         hyperlogger.info(f":init: admin_queue started")
 
     def start_queue(self, queue):
+        """
+        Starts a queue Broadcaster.
+
+        :param      queue:  The queue
+        :type       queue:  { type_description }
+        """
         if self.queues[queue.name].status == RUN:
             b = None
             if queue.name == LIVETRAFFIC_QUEUE:
@@ -524,6 +603,12 @@ class Hypercaster:
             hyperlogger.warning(f":start_queue: {queue.name} is stopped")
 
     def terminate_queue(self, queue):
+        """
+        Gracefully terminates the named queue Broadcaster.
+
+        :param      queue:  The queue
+        :type       queue:  { type_description }
+        """
         if hasattr(self.queues[queue], "deleted"):
             if self.queues[queue].deleted:
                 hyperlogger.debug(f":terminate_queue: {queue} has already been deleted, do nothing")
@@ -542,6 +627,9 @@ class Hypercaster:
             hyperlogger.warning(f":terminate_queue: {queue} has no broadcaster")
 
     def terminate_all_queues(self):
+        """
+        Gracefully terminates all individual Broadcaster, their threads, etc.
+        """
         hyperlogger.debug(f":terminate_all_queues: notifying..")
         for k in self.queues.keys():
             hyperlogger.debug(f":terminate_all_queues: notifying {k}..")
@@ -555,6 +643,11 @@ class Hypercaster:
         hyperlogger.debug(f":terminate_all_queues: ..done")
 
     def admin_queue(self):
+        """
+        Reads message on the Redis interal admin queue to detect queue create or suppression.
+        Starts or stops a Broadcaster accordingly.
+        """
+
         # redis events:
         # {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues', 'data': b'del'}
         # {'type': 'pmessage', 'pattern': b'__keyspace@0__:*', 'channel': b'__keyspace@0__:queues:test', 'data': b'del'}
@@ -678,5 +771,7 @@ class Hypercaster:
         hyperlogger.info(":admin_queue: ..bye")
 
     def shutdown(self):
-        # Convenience synonym
+        """
+        Shut down all broadcasters. Shutdown Hypercaster.
+        """
         self.terminate_all_queues()

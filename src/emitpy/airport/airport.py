@@ -59,6 +59,7 @@ class Airport(Location):
         """
         Loads all known airports from a global airport list file.
         Currently, the data file used returns the follwing information:
+
         - id
         - ident
         - type
@@ -77,6 +78,7 @@ class Airport(Location):
         - home_link
         - wikipedia_link
         - keywords
+
         """
         filename = os.path.join(DATA_DIR, AIRPORT_DATABASE, "airports.csv")
         file = open(filename, "r")

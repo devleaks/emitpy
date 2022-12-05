@@ -17,7 +17,7 @@ from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
 from emitpy.parameters import XPLANE_DIR, DATA_DIR
 from emitpy.utils import FT
-from .airspace import Airspace, Terminal, Fix, SignificantPoint, AirwaySegment, CPIDENT, ControlledAirspace, Restriction
+from .airspace import AirspaceBase, Terminal, Fix, SignificantPoint, AirwaySegment, CPIDENT, ControlledAirspace, Restriction
 from .airspace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 
 logger = logging.getLogger("XPAirspace")
@@ -67,7 +67,7 @@ CUSTOM_DATA_DIR  = os.path.join(XPLANE_DIR, "Custom Data")
 # A I R   S P A C E   D A T A   I S S U E D   F R O M   X -P L A N E
 # (Alternatives are Navigraph, ARIAC 424, etc.)
 #
-class XPAirspace(Airspace):
+class XPAirspace(AirspaceBase):
     """
     Airspace definition based on X-Plane data.
     """

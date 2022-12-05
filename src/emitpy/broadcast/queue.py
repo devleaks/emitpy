@@ -16,6 +16,22 @@ CONTINUE = "continue"
 
 
 class Queue:
+    """
+    A Queue is a model of the broadcast of information.
+
+    :param      name:            The name of the Queue is the name of the Redis Publish Subscribe topic.
+    :type       name:            str
+    :param      formatter_name:  Formatter to be used to convert emission point for broadcast
+    :type       formatter_name:  str
+    :param      starttime:       The start time of the queue.
+    :type       starttime:       str
+    :param      speed:           The speed of time of the queue, 0.1 to 60, 10 times slower or 60 times faster.
+    :type       speed:           float
+    :param      start:           Whether to start the queue on startup or not
+    :type       start:           bool
+    :param      redis:           Redis connection
+    :type       redis:           { type_description }
+    """
 
     def __init__(self, name: str, formatter_name: str, starttime: str = None, speed: float = 1, start: bool=True, redis = None):
         self.name = name
@@ -29,6 +45,12 @@ class Queue:
 
     @staticmethod
     def getAllQueues(redis):
+        """
+        Returns all available queue names.
+
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        """
         keys = redis.keys(key_path(REDIS_DATABASE.QUEUES.value, "*"))
         if keys is not None:
             return list(filter(lambda x: not x.startswith(QUEUE_DATA), [k.decode("UTF-8") for k in keys]))
@@ -38,7 +60,7 @@ class Queue:
     @staticmethod
     def loadAllQueuesFromDB(redis):
         """
-        Instantiate Queue from characteristics saved in Redis
+        Instantiate all existing queue from characteristics saved in Redis
         """
         queues = {}
         keys = Queue.getAllQueues(redis)
@@ -59,7 +81,7 @@ class Queue:
     @staticmethod
     def loadFromDB(redis, name):
         """
-        Instantiate Queue from characteristics saved in Redis
+        Instantiate a queue from its characteristics saved in Redis
         """
         ident = Queue.mkKey(name)
         qstr = redis.get(ident)
@@ -78,6 +100,14 @@ class Queue:
 
     @staticmethod
     def delete(redis, name):
+        """
+        Delete a queue.
+
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        :param      name:   The name
+        :type       name:   { type_description }
+        """
         if name in INTERNAL_QUEUES.keys() or name == LIVETRAFFIC_QUEUE:
             return (False, "Queue::delete: cannot delete default queue")
         # 1. Remove definition
@@ -92,6 +122,12 @@ class Queue:
 
     @staticmethod
     def getCombo(redis):
+        """
+        Creates a tuple (queue name, queue name) for user interface select combo box.
+
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        """
         redis.select(0)
         keys = Queue.getAllQueues(redis)
         qns = [k.split(ID_SEP)[-1] for k in keys]
@@ -100,23 +136,51 @@ class Queue:
 
     @staticmethod
     def mkKey(name):
+        """
+        Creates a Queue internal name from its name.
+
+        :param      name:  The name
+        :type       name:  { type_description }
+        """
         return key_path(REDIS_DATABASE.QUEUES.value, name)
 
 
     @staticmethod
     def mkDataKey(name):
+        """
+        Returns the queue's data key.
+
+        :param      name:  The name
+        :type       name:  { type_description }
+        """
         return key_path(QUEUE_DATA, name)
 
 
     def getKey(self):
+        """
+        Returns a queue's Redis key.
+        """
         return Queue.mkKey(self.name)
 
 
     def getDataKey(self):
+        """
+        Returns a queue's data Redis key.
+        """
         return Queue.mkDataKey(self.name)
 
 
     def reset(self, speed: float = 1, starttime: str = None, start: bool = True):
+        """
+        Resets a queue to the supplied start time and speed of time.
+
+        :param      speed:      The speed
+        :type       speed:      float
+        :param      starttime:  The starttime
+        :type       starttime:  str
+        :param      start:      The start
+        :type       start:      bool
+        """
         self.speed = speed
         self.starttime = starttime
         self.status = RUN if start else STOP
@@ -127,6 +191,7 @@ class Queue:
         """
         Saves Queue characteristics in a structure for Broadcaster
         Also saves Queue existence in "list of queues" set ("Queue Database"), to build combo, etc.
+        Optionnally a queue's current time.
         """
         ident = self.getKey()
         self.redis.set(ident, json.dumps({

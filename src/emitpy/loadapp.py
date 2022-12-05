@@ -1,7 +1,7 @@
 import os
 import sys
-from parameters import HOME_DIR
-sys.path.append(os.path.join(HOME_DIR, "src"))
+# from parameters import HOME_DIR
+sys.path.append(os.path.join(".."))  # os.path.join(HOME_DIR, "src"), changed to avoid dependancy on parameter
 
 import logging
 import json
@@ -17,7 +17,7 @@ from datetime import datetime
 import emitpy
 from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company
-from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
+from emitpy.aircraft import AircraftType, AircraftTypeWithPerformance, Aircraft
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis, Queue
@@ -29,7 +29,8 @@ from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX,
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE, FLIGHTROUTE_DATABASE
 
 from emitpy.utils import NAUTICAL_MILE
-from emitpy.parameters import MANAGED_AIRPORT_ICAO, REDIS_CONNECT, DATA_DIR, MANAGED_AIRPORT_DIR
+from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT
+from emitpy.parameters import MANAGED_AIRPORT_ICAO, DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.geo import FeatureWithProps
 
 
@@ -318,12 +319,24 @@ class LoadApp(ManagedAirport):
         if "*" in what or "info" in what:
             try:
                 info = self.getAirportDetails()
+                if info is None:
+                    logger.warning(f"LoadApp::load: not loaded info, info not found")
+                    return (False, f"LoadApp::load: info NOT loaded")
+
+                key = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
+                old = r.json().get(key)
+                action = "loaded"
+                if a is not None and MANAGED_AIRPORT_LAST_UPDATED in a:
+                    action = "updated"
+                if self.airport.airspace is not None:
+                    info[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
+                else:
+                    logger.warning(f"LoadApp::load: AIRAC cycle not saved")
                 info[MANAGED_AIRPORT_LAST_UPDATED] = datetime.now().astimezone().isoformat()
-                info[AIRAC_CYCLE] = self.airport.airspace.getAiracCycle()
-                self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY), Path.root_path(), info)
-                logger.info(f"LoadApp::load: loaded info ({key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)})")
+                self.redis.json().set(key, Path.root_path(), info)
+                logger.info(f"LoadApp::load: {action} info (key {key})")
             except:
-                logger.info(f"LoadApp::load: not loaded info", exc_info=True)
+                logger.warning(f"LoadApp::load: not loaded info", exc_info=True)
                 return (False, f"LoadApp::load: info NOT loaded")
 
         logger.debug(f":load: ..loaded")
@@ -348,34 +361,34 @@ class LoadApp(ManagedAirport):
     def loadAircraftPerformances(self):
         if len(AircraftType._DB) == 0:
             AircraftType.loadAll()
-        if len(AircraftPerformance._DB_PERF) == 0:
-            AircraftPerformance.loadAll()
-        for a in AircraftPerformance._DB_PERF.values():
+        if len(AircraftTypeWithPerformance._DB_PERF) == 0:
+            AircraftTypeWithPerformance.loadAll()
+        for a in AircraftTypeWithPerformance._DB_PERF.values():
             a.save(REDIS_PREFIX.AIRCRAFT_PERFS.value, self.redis)
 
         def saveid(k):
-            AircraftPerformance._DB_PERF[k].save_id = k
-            return AircraftPerformance._DB_PERF[k]
+            AircraftTypeWithPerformance._DB_PERF[k].save_id = k
+            return AircraftTypeWithPerformance._DB_PERF[k]
 
-        g1 = map(saveid, AircraftPerformance._DB_PERF.keys())
+        g1 = map(saveid, AircraftTypeWithPerformance._DB_PERF.keys())
         g2 = filter(lambda a: a.check_availability(), g1)
         gdict = dict([(v.save_id, v.getInfo()) for v in g2])
         self.redis.json().set(REDIS_PREFIX.AIRCRAFT_PERFS.value, Path.root_path(), gdict)
         # a = list(gdict.values())
         # self.redis.json().set(REDIS_PREFIX.AIRCRAFT_PERFS.value + "2", Path.root_path(), a)
 
-        logger.debug(f":loadAircraftPerformances: loaded {len(gdict)}/{len(AircraftPerformance._DB_PERF)} aircraft performances")
+        logger.debug(f":loadAircraftPerformances: loaded {len(gdict)}/{len(AircraftTypeWithPerformance._DB_PERF)} aircraft performances")
         return (True, f"LoadApp::loadAircraftPerformances: loaded aircraft performances")
 
 
     def loadAircraftEquivalences(self):
         if len(AircraftType._DB) == 0:
             AircraftType.loadAll()
-        if len(AircraftPerformance._DB_PERF) == 0:
-            AircraftPerformance.loadAll()
+        if len(AircraftTypeWithPerformance._DB_PERF) == 0:
+            AircraftTypeWithPerformance.loadAll()
         EQUIVALENCES = "equivalences"
         cnt = 0
-        for k, v in AircraftPerformance._DB_PERF.items():
+        for k, v in AircraftTypeWithPerformance._DB_PERF.items():
             if EQUIVALENCES in v.perfraw.keys():
                 equivs = v.perfraw[EQUIVALENCES]
                 self.redis.sadd(key_path(REDIS_PREFIX.AIRCRAFT_EQUIS.value, k), *equivs)
@@ -790,7 +803,7 @@ class LoadApp(ManagedAirport):
         # Airport handlers and operators
         saveComboAsJson(REDIS_LOVS.COMPANIES.value, self.airport.manager.getCompaniesCombo())
         # Aircraft types
-        saveComboAsJson(REDIS_LOVS.AIRCRAFT_TYPES.value, AircraftPerformance.getCombo())
+        saveComboAsJson(REDIS_LOVS.AIRCRAFT_TYPES.value, AircraftTypeWithPerformance.getCombo())
         # # Services
         # redis.set(LOVS+"services", Service.getCombo())
         # # Service handlers
@@ -810,45 +823,44 @@ if __name__ == "__main__":
           2: Redis available, whole airport is being loaded
           3: Redis available, airport already loaded, reloaded some data
     """
-    ATTEMPS = 10    # # of attempts
-    SLEEP_TIME = 2  # secs. between attempts
-
     not_connected = True
     attempts = 0
     logger.info(f"emitpy version {emitpy.__version__} «{emitpy.__version_name__}»")
-    logger.debug("connecting ..")
-    while not_connected and attempts < ATTEMPS:
+    logger.debug("connecting to Redis..")
+    while not_connected and attempts < REDIS_ATTEMPTS:
         r = redis.Redis(**REDIS_CONNECT)
         try:
             pong = r.ping()
             not_connected = False
-            logger.debug(".. connected")
+            logger.debug("..connected.")
         except redis.RedisError:
-            logger.debug(f".. cannot connect, retrying ({attempts+1}/{ATTEMPS}, sleeping {SLEEP_TIME} secs) ..")
+            logger.debug(f"..cannot connect, retrying ({attempts+1}/{REDIS_ATTEMPTS}, sleeping {REDIS_WAIT} secs)..")
             attempts = attempts + 1
-            time.sleep(SLEEP_TIME)
+            time.sleep(REDIS_WAIT)
 
     if not_connected:
-        logger.warning(".. cannot connect to Redis. bye.")
+        logger.warning("..cannot connect to Redis. bye.")
         sys.exit(1)
 
-    prevdb = r.client_info()["db"]
+    currdb = r.client_info()["db"]
     r.select(REDIS_DB.REF.value)
     k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
     a = r.json().get(k)
-    r.select(prevdb)
-    logger.info(f"Managed airport: {a}")
+    r.select(currdb)
 
     if a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT_ICAO:
-        logger.debug(f"loading ..")
+        logger.info(f"No managed airport: loading all ..")
         d = LoadApp(icao=MANAGED_AIRPORT_ICAO)
         logger.debug(f".. loaded")
         sys.exit(2)
 
     if len(sys.argv) > 1:
-        logger.debug(f"loading {sys.argv[1:]} ..")
+        logger.info(f"Managed airport: {a}")
+        logger.debug(f"loading or updating {sys.argv[1:]} ..")
         d = LoadApp(icao=MANAGED_AIRPORT_ICAO, data_to_load=sys.argv[1:])
-        logger.debug(f".. loaded")
+        if "info" not in sys.argv[1:]:
+            logger.info(f"Managed airport: info not updated")
+        logger.debug(f".. updated")
         sys.exit(3)
 
     sys.exit(0)

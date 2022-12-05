@@ -121,10 +121,21 @@ class Airline(Company):
 
     @classmethod
     def fromInfo(cls, info):
+        """
+        Builds and Airline instance from the dictionary object returned by :py:func:`getInfo()`.
+
+        :param      cls:   The cls
+        :type       cls:   { type_description }
+        :param      info:  The information
+        :type       info:  { type_description }
+        """
         return Airline(name=info["orgId"], iata=info["iata"], icao=info["icao"])
 
 
     def getInfo(self):
+        """
+        Returns a dictionary object with instance data.
+        """
         i = super().getInfo()
         i["iata"] = self.iata
         i["icao"] = self.icao

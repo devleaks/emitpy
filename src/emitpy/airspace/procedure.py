@@ -12,7 +12,7 @@ from turfpy.measurement import distance, bearing
 
 from emitpy.utils import ConvertDMSToDD, FT
 from emitpy.parameters import XPLANE_DIR
-from .airspace import Airspace, RestrictedSignificantPoint
+from .airspace import AirspaceBase, RestrictedSignificantPoint
 
 DEFAULT_DATA_DIR = os.path.join(XPLANE_DIR, "Resources", "default data")
 CUSTOM_DATA_DIR  = os.path.join(XPLANE_DIR, "Custom Data")
@@ -180,13 +180,13 @@ class SID(Procedure):
     def __init__(self, name: str):
         Procedure.__init__(self, name)
 
-    def getRoute(self, airspace: Airspace):
+    def getRoute(self, airspace: AirspaceBase):
         """
-        Returns an array of vertices from the Airspace
+        Returns an array of vertices from the AirspaceBase
         that follow the SID
 
         :param      airspace:  The airspace
-        :type       airspace:  Airspace
+        :type       airspace:  AirspaceBase
         """
         a = []
         for v in self.route.values():
@@ -211,13 +211,13 @@ class STAR(Procedure):
     def __init__(self, name: str):
         Procedure.__init__(self, name)
 
-    def getRoute(self, airspace: Airspace):
+    def getRoute(self, airspace: AirspaceBase):
         """
-        Returns an array of vertices from the Airspace
+        Returns an array of vertices from the AirspaceBase
         that follow the STAR
 
         :param      airspace:  The airspace
-        :type       airspace:  Airspace
+        :type       airspace:  AirspaceBase
         """
         a = []
         for v in self.route.values():
@@ -245,13 +245,13 @@ class APPCH(Procedure):
     def __init__(self, name: str):
         Procedure.__init__(self, name)
 
-    def getRoute(self, airspace: Airspace):
+    def getRoute(self, airspace: AirspaceBase):
         """
-        Returns an array of vertices from the Airspace
+        Returns an array of vertices from the AirspaceBase
         that follow the approach.
 
         :param      airspace:  The airspace
-        :type       airspace:  Airspace
+        :type       airspace:  AirspaceBase
         """
         interrupted = False
         a = []
@@ -287,7 +287,7 @@ class APPCH(Procedure):
 class RWY(Procedure):
     """
     A runway for starting a SID or terminating a STAR.
-    We distinguish the "aeronautical" RWY (in Airspace.Procedure) from the gegraphical/geometrical Runway (in Geo.Runway)
+    We distinguish the "aeronautical" RWY (in AirspaceBase.Procedure) from the gegraphical/geometrical Runway (in Geo.Runway)
 
     """
     def __init__(self, name: str, airport: str):
@@ -556,14 +556,14 @@ class CIFP:
             #         logger.warning(f":pairRunways: runway {k} for {self.icao} has no threshold, replaced by airport coordinates.")
 
 
-    def getRoute(self, procedure: Procedure, airspace: Airspace):
+    def getRoute(self, procedure: Procedure, airspace: AirspaceBase):
         """
         Get array of vertices representing the supplied procedure.
 
         :param      procedure:  The procedure
         :type       procedure:  Procedure
         :param      airspace:   The airspace
-        :type       airspace:   Airspace
+        :type       airspace:   AirspaceBase
         """
         return procedure.getRoute(airspace)
 

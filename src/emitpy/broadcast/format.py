@@ -24,6 +24,9 @@ FORMATTERS = {
 }
 
 class Format:
+    """
+    Format an Emission for broadcasting.
+    """
 
     def __init__(self, emit: "Emit", formatter = FormatterRaw):
         self.emit = emit
@@ -34,15 +37,28 @@ class Format:
 
     @staticmethod
     def getCombo():
+        """
+        Returns a list of available formatters.
+        """
         return [(k, v[0]) for k,v in FORMATTERS.items()]
 
 
     @staticmethod
     def getFormatter(name):
+        """
+        Returns Formatter from its name.
+
+        :param      name:  The name
+        :type       name:  { type_description }
+        """
         return FORMATTERS[name][1] if name in FORMATTERS.keys() else FormatterRaw
 
 
     def format(self):
+        """
+        Formats each emission point.
+        Effectively create a new list of (formatted) points.
+        """
         if self.emit.scheduled_emit is None or len(self.emit.scheduled_emit) == 0:
             logger.warning("Format::format: no emission point")
             return (False, "Format::format no emission point")
@@ -57,6 +73,12 @@ class Format:
 
 
     def saveFile(self, overwrite: bool = False):
+        """
+        Save formatted points.
+
+        :param      overwrite:  The overwrite
+        :type       overwrite:  bool
+        """
         basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE)
         fileformat = self.formatter.FILE_EXTENSION
         ident = self.emit.getId()

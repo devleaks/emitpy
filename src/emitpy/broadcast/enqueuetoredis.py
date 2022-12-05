@@ -13,7 +13,10 @@ logger = logging.getLogger("EnqueueToRedis")
 
 
 class EnqueueToRedis(Format):  # could/should inherit from Format
-
+    """
+    Special formatter that save data to emit in Redis
+    and enqueue data in the queue supplied at creation.
+    """
 
     def __init__(self, emit: "Emit", queue: Queue, redis = None):
         r = queue.redis if queue is not None else redis
@@ -28,6 +31,16 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
     @staticmethod
     def dequeue(redis, ident: str, queue: str):
+        """
+        Removes all entries for this emission from the queue.
+
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        :param      ident:  The identifier
+        :type       ident:  str
+        :param      queue:  The queue
+        :type       queue:  str
+        """
         # Remove ident entries from sending queue.
         # 1. Remove queued elements
         oldvalues = redis.smembers(ident)
@@ -46,6 +59,17 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
     @staticmethod
     def delete(redis, ident: str, queue: str = None):
+        """
+        Delete supplied emission from Redis. Dequeue emission first.
+
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        :param      ident:  The identifier
+        :type       ident:  str
+        :param      queue:  The queue
+        :type       queue:  str
+        """
+
         # Remove ident entries from sending queue if queue is provided.
         # Remove ident from list of emits (normally, this is done with expiration date).
 
@@ -62,6 +86,18 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
     @staticmethod
     def pias(redis, ident: str, queue: str):
+        """
+        Play It Again Sam: Enqueue again an existing emission.
+        First dequeue older emission entries if any.
+
+        :param      redis:  The redis
+        :type       redis:  { type_description }
+        :param      ident:  The identifier
+        :type       ident:  str
+        :param      queue:  The queue
+        :type       queue:  str
+        """
+
         # Play it again Sam. Re-enqueue an existing formatted set.
         # Ident must be a key name to a set of formatted, enqueued members
 
@@ -93,6 +129,12 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
 
     def getKey(self, extension):
+        """
+        Build key of emission
+
+        :param      extension:  The extension
+        :type       extension:  { type_description }
+        """
         # note: self.formatter is a class
         return key_path(self.emit.getKey(None), self.queue.name, extension)
 
@@ -100,6 +142,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
     def save(self, overwrite: bool = False):
         """
         Save formatted emission to Redis.
+        Overwrite emission if permitted only, otherwise a warning is raised.
         """
         if self.output is None or len(self.output) == 0:
             logger.warning(":save: no emission point")
@@ -126,6 +169,8 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
 
     def enqueue(self):
         """
+        Enqueue this emission for broadcast.
+
         Stores Sorted Set members in new variable so that we can remove them on update
         """
         if self.output is None or len(self.output) == 0:
