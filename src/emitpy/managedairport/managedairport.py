@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from emitpy.airspace import XPAirspace, Metar
 from emitpy.business import Airline, Company
-from emitpy.aircraft import AircraftType, AircraftPerformance
+from emitpy.aircraft import AircraftType, AircraftTypeWithPerformance
 from emitpy.airport import Airport, XPAirport
 from emitpy.business import AirportManager
 from emitpy.utils import Timezone
@@ -115,7 +115,7 @@ class ManagedAirport:
 
             logger.debug("..loading aircrafts..")
             AircraftType.loadAll()
-            AircraftPerformance.loadAll()
+            AircraftTypeWithPerformance.loadAll()
             logger.debug("..done")
 
         logger.debug("..loading airport manager..")
@@ -124,7 +124,7 @@ class ManagedAirport:
                            classId="Airport Operator",
                            typeId="Airport Operator",
                            name=self.operator)
-        manager = AirportManager(icao=self.icao, operator=operator, app=self._app)
+        manager = AirportManager(icao=self.icao, operator=operator)
         ret = manager.load(self._app.redis)
         if not ret[0]:
             logger.warning("..airport manager !** not loaded **!")
