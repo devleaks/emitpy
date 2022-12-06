@@ -594,7 +594,7 @@ class Airway(FeatureWithProps):
 # A I R   S P A C E
 #
 #
-class AirspaceBase(Graph, ABC):
+class Aerospace(Graph, ABC):
     """
     Airspace is a network of air routes.
     Vertices are airports, navaids, and fixes. Edges are airway segments.

@@ -88,7 +88,7 @@ class ManagedAirport:
             logger.debug("..done")
 
         # Now caching Airspace with pickle (~ 100MB)
-        airspace_cache = os.path.join(CACHE_DIR, "airspace.pickle")
+        airspace_cache = os.path.join(CACHE_DIR, "aerospace.pickle")
         if os.path.exists(airspace_cache):
             logger.debug("loading airspace from pickle..")
             with open(airspace_cache, "rb") as fp:
