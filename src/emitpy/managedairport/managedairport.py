@@ -7,7 +7,7 @@ from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
 
-from emitpy.airspace import XPAirspace, Metar
+from emitpy.airspace import XPAerospace, Metar
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftTypeWithPerformance
 from emitpy.airport import Airport, XPAirport
@@ -24,9 +24,10 @@ logger = logging.getLogger("ManagedAirport")
 
 DEFAULT_AIRPORT_OPERATOR = "AIRPORT_OPERATOR" # default value
 
+
 class ManagedAirport:
     """
-    Wrapper class to load all managed airport parts.
+    Wrapper class to load all managed airport parts: Aerospace, Airport Manager, and Managed Airport itself.
     """
 
     def __init__(self, icao, app):
@@ -95,7 +96,7 @@ class ManagedAirport:
                 airspace = pickle.load(fp)
             logger.debug("..done")
         else:
-            airspace = XPAirspace(load_airways=load_airways)
+            airspace = XPAerospace(load_airways=load_airways)
             logger.debug("loading airspace..")
             ret = airspace.load(self._app.redis)
             if not ret[0]:
@@ -133,12 +134,11 @@ class ManagedAirport:
         logger.debug("..setting managed airport resources..")
 
         self.airport.setAirspace(airspace)
-
-        # Set for resource usage,
-        # setEquipment is performed during manager's init() when loading equipment fleet.
-        manager.setRamps(self.airport.getRamps())
-        manager.setRunways(self.airport.getRunways())
         self.airport.setManager(manager)
+        ret = manager.init(self.airport)  # passed to get runways and ramps
+        if not ret[0]:
+            logger.warning("..airport manager !** not initialized **!")
+            return ret
 
         logger.debug("..updating metar..")
         self.update_metar()
@@ -248,7 +248,6 @@ class ManagedAirport:
         metar = Metar.new(icao=self.icao, redis=self._app.redis)
         self.airport.setMETAR(metar=metar)  # calls prepareRunways()
         logger.debug(":update_metar: ..done")
-
 
     def loadFromCache(self, dbid: int = 0):
         """

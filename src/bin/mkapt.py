@@ -1,6 +1,6 @@
 import logging
 from emitpy.business import AirportManager
-from emitpy.airspace import XPAirspace
+from emitpy.airspace import XPAerospace
 from emitpy.airport import XPAirport, GeoJSONAirport, OSMAirport
 from emitpy.flight import Arrival, Departure
 
@@ -11,7 +11,7 @@ from emitpy.parameters import MANAGED_AIRPORT
 
 def main():
 
-    aspc = XPAirspace()
+    aspc = XPAerospace()
     logger.debug("loading airspace..")
     aspc.load()
     logger.debug("..done")

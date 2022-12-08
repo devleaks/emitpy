@@ -95,6 +95,20 @@ class AirportManager:
         return [True, "AirportManager::loaded"]
 
 
+    def init(self, airport):
+        """
+        When Airport Manager has loaded its resource,
+        init() prepares resource allocation and monitoring.
+
+        :param      airport:  Managed airport
+        :type       airport:  MAnagedAirportBase
+        """
+        self.setRunways(airport.getRunways())
+        self.setRamps(airport.getRamps())
+        self.setEquipments(self.equipments)
+        return [True, "AirportManager::inited"]
+
+
     def loadAirport(self, redis = None):
         """
         Loads an airport's data file and place its content in self.data
@@ -358,7 +372,7 @@ class AirportManager:
                     # logger.debug(f":loadEquipments: ..added {vname}")
                 else:
                     logger.debug(f":loadEquipments: vehicle type {vcl} not found")
-            self.setEquipments(self.equipments)
+            # self.setEquipments(self.equipments)
             logger.debug(f":loadEquipments: ..done")
             return (True, "AirportManager::loadEquipments: loaded")
         else:
@@ -390,7 +404,7 @@ class AirportManager:
                     else:
                         logger.warning(f":loadEquipments: vehicle type {vcl} not found")
 
-                self.setEquipments(self.equipments)
+                # self.setEquipments(self.equipments)
                 logger.debug(f":loadEquipments: ..done")
                 return (True, "AirportManager::loadEquipments: loaded")
             logger.warning(f":loadEquipments: {business} not found")

@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, validator
 
 from emitpy.constants import ARRIVAL, DEPARTURE, EMIT_RATES, REDIS_DATABASE, REDIS_TYPE
 from emitpy.private import API_KEY
-from emitpy.aircraft import AircraftPerformance as Aircraft
+from emitpy.aircraft import AircraftTypeWithPerformance as Aircraft
 from emitpy.airport import Airport
 from emitpy.business import Airline
 from emitpy.service import Service, Equipment, Mission, MissionVehicle

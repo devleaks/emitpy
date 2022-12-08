@@ -4,7 +4,7 @@ sys.path.append('..')
 import logging
 from geojson import Feature, Point
 
-from emitpy.airspace import XPAirspace
+from emitpy.airspace import XPAerospace
 from emitpy.graph import Route
 
 logging.basicConfig(level=logging.DEBUG)
@@ -12,7 +12,7 @@ logger = logging.getLogger("Airspace")
 
 def main():
 
-    a = XPAirspace(load_airways=True)
+    a = XPAerospace(load_airways=True)
     logger.debug("loading..")
     a.load()
     logger.debug("..done")

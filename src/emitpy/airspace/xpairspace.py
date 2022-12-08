@@ -20,7 +20,7 @@ from emitpy.utils import FT
 from .aerospace import Aerospace, Terminal, Fix, SignificantPoint, AirwaySegment, CPIDENT, ControlledAirspace, Restriction
 from .aerospace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
 
-logger = logging.getLogger("XPAirspace")
+logger = logging.getLogger("XPAerospace")
 
 AIRWAYS = {
     "LOW": 1,
@@ -67,7 +67,7 @@ CUSTOM_DATA_DIR  = os.path.join(XPLANE_DIR, "Custom Data")
 # A I R   S P A C E   D A T A   I S S U E D   F R O M   X -P L A N E
 # (Alternatives are Navigraph, ARIAC 424, etc.)
 #
-class XPAirspace(Aerospace):
+class XPAerospace(Aerospace):
     """
     Airspace definition based on X-Plane data.
     """
@@ -179,7 +179,7 @@ class XPAirspace(Aerospace):
         file.close()
 
         logger.debug(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
-        return [True, "XPAirspace::Airport loaded"]
+        return [True, "XPAerospace::Airport loaded"]
 
 
     def getAirportIATA(self, iata):
@@ -241,7 +241,7 @@ class XPAirspace(Aerospace):
         file.close()
 
         logger.debug(":loadFixes: %d/%d fixes loaded.", len(self.vert_dict.keys()) - startLen, count)
-        return [True, "XPAirspace::Fixes loaded"]
+        return [True, "XPAerospace::Fixes loaded"]
 
 
     def loadNavaids(self):
@@ -328,7 +328,7 @@ class XPAirspace(Aerospace):
         file.close()
 
         logger.debug(":loadNavaids: %d/%d navaids loaded.", len(self.vert_dict.keys()) - startLen, count)
-        return [True, "XPAirspace::Navaids loaded"]
+        return [True, "XPAerospace::Navaids loaded"]
 
 
     def createIndex(self):
@@ -544,7 +544,7 @@ class XPAirspace(Aerospace):
         self.airways_loaded = True
 
         logger.debug(":loadAirwaySegments: %d segments loaded.", len(self.edges_arr))
-        return [True, "XPAirspace::AirwaySegments loaded"]
+        return [True, "XPAerospace::AirwaySegments loaded"]
 
 
     def loadHolds(self):
@@ -602,7 +602,7 @@ class XPAirspace(Aerospace):
         # logger.info(":loadHolds: %d holds loaded.", len(self.holds))
         logger.debug(f":loadHolds: {len(self.holds)} holds loaded.")
         # logger.debug(f":loadHolds: {self.holds.keys()}")
-        return [True, "XPAirspace::Holds loaded"]
+        return [True, "XPAerospace::Holds loaded"]
 
 
     def loadAirspaces(self):
@@ -666,4 +666,4 @@ class XPAirspace(Aerospace):
 
         logger.debug(f":loadAirspaces: loaded {len(self.airspaces)} boundaries")
 
-        return [True, "XPAirspace::loadAirspaces aispace loaded"]
+        return [True, "XPAerospace::loadAirspaces aispace loaded"]

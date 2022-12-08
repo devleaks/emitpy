@@ -196,7 +196,7 @@ class Broadcaster:
             self.redis.zrem(queue_key, *oldones)
             logger.debug(f":_do_trim: {self.name}: ..removed {len(oldones)} messages..done")
         else:
-            logger.debug(f":_do_trim: {self.name}: nothing to remove ..done")
+            logger.debug(f":_do_trim: {self.name}: ..nothing to remove ..done")
 
     def trim(self):
         """

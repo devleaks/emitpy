@@ -5,7 +5,7 @@ import sys
 sys.path.append('..')
 
 
-from emitpy.airspace import XPAirspace, Metar
+from emitpy.airspace import XPAerospace, Metar
 from emitpy.business import Airline
 from emitpy.aircraft import AircraftType, AircraftPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
@@ -22,7 +22,7 @@ logger = logging.getLogger("mkFlight")
 
 def main():
 
-    airspace = XPAirspace()
+    airspace = XPAerospace()
     logger.debug("loading airspace..")
     airspace.load()
     logger.debug("..done")
