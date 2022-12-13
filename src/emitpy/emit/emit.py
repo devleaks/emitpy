@@ -28,8 +28,6 @@ from emitpy.parameters import MANAGED_AIRPORT_AODB
 logger = logging.getLogger("Emit")
 
 
-
-
 class EmitPoint(FeatureWithProps):
     """
     An EmitPoint is a Feature<Point> with additional information for emission.

@@ -248,7 +248,7 @@ class FuelVehicleLargeTanker(FuelVehicle):
     def __init__(self, registration: str, operator: Company):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZG"
-        self.model = "tanker-large"
+        self.model = "large-tanker"
         self.model_name = "Fuel tanker large"
         self.max_capacity = 40
         self.flow = 1.5 / 60
@@ -264,7 +264,7 @@ class FuelVehicleMediumTanker(FuelVehicle):
     def __init__(self, registration: str, operator: Company):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZE"
-        self.model = "tanker-medium"
+        self.model = "medium-tanker"
         self.model_name = "Fuel tanker medium"
         self.max_capacity = 20
         self.flow = 0.9 / 60
@@ -410,7 +410,7 @@ class BaggageVehicleSmallTrain(BaggageVehicle):
     def __init__(self, registration: str, operator: Company):
         BaggageVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZI"
-        self.model = "train-small"
+        self.model = "small-train"
         self.model_name = "Baggage train (small)"
         self.max_capacity = 100
         self.flow = 10 / 60
@@ -426,7 +426,7 @@ class BaggageVehicleLargeTrain(BaggageVehicle):
     def __init__(self, registration: str, operator: Company):
         BaggageVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZJ"
-        self.model = "train-large"
+        self.model = "large-train"
         self.model_name = "Baggage train (large)"
         self.max_capacity = 100
         self.flow = 10 / 60
