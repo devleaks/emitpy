@@ -119,6 +119,9 @@ class Equipment(Identity):
             "model_name": self.model_name
         }
 
+    def getName(self):
+        return f"{self.name} ({self.icao24})"  # registration
+
     def setICAO24(self, icao24):
         self.icao24 = icao24
 
@@ -240,7 +243,7 @@ class FuelVehiclePump(FuelVehicle):
         }
         self.setup_time = 5 * 60    # in seconds
 
-class FuelVehicleTankerLarge(FuelVehicle):
+class FuelVehicleLargeTanker(FuelVehicle):
 
     def __init__(self, registration: str, operator: Company):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
@@ -256,7 +259,7 @@ class FuelVehicleTankerLarge(FuelVehicle):
         }
         self.setup_time = 5 * 60    # in seconds
 
-class FuelVehicleTankerMedium(FuelVehicle):
+class FuelVehicleMediumTanker(FuelVehicle):
 
     def __init__(self, registration: str, operator: Company):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
@@ -402,7 +405,7 @@ class BaggageVehicleTrain(BaggageVehicle):
         }
         self.setup_time = 0    # in seconds
 
-class BaggageVehicleTrainSmall(BaggageVehicle):
+class BaggageVehicleSmallTrain(BaggageVehicle):
 
     def __init__(self, registration: str, operator: Company):
         BaggageVehicle.__init__(self, registration=registration,  operator=operator)
@@ -418,7 +421,7 @@ class BaggageVehicleTrainSmall(BaggageVehicle):
         }
         self.setup_time = 0    # in seconds
 
-class BaggageVehicleTrainLarge(BaggageVehicle):
+class BaggageVehicleLargeTrain(BaggageVehicle):
 
     def __init__(self, registration: str, operator: Company):
         BaggageVehicle.__init__(self, registration=registration,  operator=operator)

@@ -10,7 +10,7 @@ import redis
 
 import emitpy
 from emitpy.managedairport import ManagedAirport
-from emitpy.business import Airline, Company
+from emitpy.business import Airline, Company, AirportManager
 from emitpy.aircraft import AircraftTypeWithPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
@@ -22,8 +22,8 @@ from emitpy.constants import SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPRO
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, AIRAC_CYCLE
 from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT, METAR_HISTORICAL, XPLANE_FEED
-from emitpy.airport import Airport, AirportWithProcedures
-from emitpy.airspace import Metar
+from emitpy.airport import Airport, AirportWithProcedures, XPAirport
+from emitpy.airspace import Metar, XPAerospace
 from emitpy.utils import NAUTICAL_MILE
 
 logger = logging.getLogger("EmitApp")
@@ -73,7 +73,7 @@ def BOOTSTRAP_REDIS():
     k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
     a = r.json().get(k)
     r.select(prevdb)
-    logger.info(f"BOOTSTRAP_REDIS: Managed airport: {a}")
+    logger.info(f"BOOTSTRAP_REDIS: Managed airport: {json.dumps(a, indent=2)}")
     return a is not None and MANAGED_AIRPORT_LAST_UPDATED in a and AIRAC_CYCLE in a
 
 
@@ -88,6 +88,12 @@ class EmitApp(ManagedAirport):
         self._use_redis = BOOTSTRAP_REDIS()
         if self._use_redis:
             self.init_redis()
+
+        # Here we set the "flavor" of main class we will use for the generation
+        # (there are currently, no other flavors... :-D )
+        self._aerospace = XPAerospace
+        self._managedairport = XPAirport
+        self._airportmanager = AirportManager
 
         ManagedAirport.__init__(self, icao=icao, app=self)
 
@@ -229,7 +235,14 @@ class EmitApp(ManagedAirport):
         fromto = "from" if movetype == ARRIVAL else "to"
         logger.info("*" * 110)
         logger.info(f"***** {airline}{flightnumber} {scheduled} {movetype} {fromto} {apt} {actype} {icao24} {acreg} {ramp} {runway}")
+        logger.debug(f"**** scheduled {FLIGHT_PHASE.TOUCH_DOWN.value if movetype == ARRIVAL else FLIGHT_PHASE.TAKE_OFF.value} {actual_datetime if actual_datetime is not None else scheduled}")
         logger.debug("*" * 109)
+
+        emit_rate_svc = emit_rate
+        if type(emit_rate) in [list, tuple]:
+            emit_rate_svc = emit_rate[1]
+            emit_rate = emit_rate[0]
+            logger.debug(f":do_flight: emit rates: flights: {emit_rate}, services: {emit_rate_svc}")
 
         logger.debug(":do_flight: airline, airport..")
         # Add pure commercial stuff
@@ -400,16 +413,24 @@ class EmitApp(ManagedAirport):
 
             self.airport.manager.saveAllocators(self.redis)
 
+        logger.info(":do_flight: SAVED " + ("*" * 92))
         if not do_services:
-            logger.info(":do_flight: SAVED " + ("*" * 92))
             logger.debug(":do_flight: ..done")
             return StatusInfo(0, "completed successfully", flight.getId())
+
+        logger.debug("*" * 110)
+        logger.debug(f"**** {airline.iata}{flightnumber} {scheduled} {movetype} {fromto} {apt} {actype} {icao24} {acreg} {ramp} {runway}")
+        logger.debug(f"* done schedule {FLIGHT_PHASE.TOUCH_DOWN.value if movetype == ARRIVAL else FLIGHT_PHASE.TAKE_OFF.value} {actual_datetime if actual_datetime is not None else scheduled}")
+
 
         logger.debug(":do_flight: ..servicing..")
         st = emit.getRelativeEmissionTime(sync)
         bt = emit.getRelativeEmissionTime(svc_sync)  # 0 for departure...
         td = bt - st
         blocktime = emit_time + timedelta(seconds=td)
+
+        logger.info(f"**** {airline.iata}{flightnumber} Services scheduled {FLIGHT_PHASE.ONBLOCK.value if movetype == ARRIVAL else FLIGHT_PHASE.OFFBLOCK.value} {blocktime}")
+        logger.debug("*" * 109)
 
         # @todo: pass service operator
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=self.operator)
@@ -427,7 +448,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(151, f"problem during flight service movement creation", ret[1])
 
         logger.debug(":do_flight: ..emission positions equipment..")
-        ret = flight_service.emit(emit_rate)
+        ret = flight_service.emit(emit_rate_svc)
         if not ret[0]:
             return StatusInfo(152, f"problem during flight service emission", ret[1])
 

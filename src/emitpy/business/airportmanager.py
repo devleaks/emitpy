@@ -395,14 +395,18 @@ class AirportManager:
                         for idx in range(int(vqty)):
                             vname = f"{vname_root}{idx:03d}"
                             vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=self.operator)  ## getattr(sys.modules[__name__], str) if same module...
-                            vehicle.setICAO24(AirportManager.randomICAO24(15))  # starts with F like fleet.
+                            icao24 = AirportManager.randomICAO24(15)
+                            vehicle.setICAO24(icao24)  # starts with F like fleet.
+                            if vname in self.equipments:
+                                logger.warning(f":loadEquipments: {vname} already exists, overriding")
                             self.equipments[vname] = vehicle
                             if vcl not in self.equipment_by_type:
                                 self.equipment_by_type[vcl] = []
                             self.equipment_by_type[vcl].append(vehicle)
-                            # logger.debug(f":loadEquipments: ..added {vname}")
+                            logger.debug(f":loadEquipments: ..added {vname} ({icao24})")
                     else:
                         logger.warning(f":loadEquipments: vehicle type {vcl} not found")
+                    logger.debug(f":loadEquipments: ..{vtype} done")
 
                 # self.setEquipments(self.equipments)
                 logger.debug(f":loadEquipments: ..done")
@@ -580,16 +584,22 @@ class AirportManager:
                 root = 1
             if root > 15:
                 root = 15
-            return f"{root:x}{random.getrandbits(20):x}"
+            r = ""
+            while len(r) < 6:  # prevent icao with less than 6 hexadecimal digit
+                r = f"{root:x}{random.getrandbits(20):x}"
+            return r
 
-        return f"{random.getrandbits(24):x}"
+        r = ""
+        while len(r) < 6:  # prevent icao with less than 6 hexadecimal digit
+            r = f"{random.getrandbits(24):x}"
+        return r
 
 
     def setEquipments(self, vehicles):
         self.equipments = vehicles
         logger.debug(f":selectEquipments: allocating..")
         self.equipment_allocator = AllocationTable(resources=self.equipments.values(),
-                                                 name="service-vehicles")
+                                                   name="equipment")
         logger.info(f":equipments: resources added: {len(self.equipment_allocator.resources.keys())}")
         logger.debug(f":equipments: ..done")
 

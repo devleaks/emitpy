@@ -5,6 +5,7 @@ import os.path
 import re
 import logging
 import random
+import json
 
 from math import inf
 from geojson import Point, Feature
@@ -247,6 +248,13 @@ class XPAirport(ManagedAirportBase):
         self.ramps = ramps
         # for k,r in ramps.items():
         #     print(f"{k},{r['geometry']['coordinates'][1]},{r['geometry']['coordinates'][0]},{r.getProp('orientation')},{r.getProp('sub-type')},{r.getProp('use')},{r.getProp('icao-width')},{r.getProp('operation-type')},{r.getProp('airline')}")
+        #
+        # with open("out.json", "w") as fp:
+        #     # fc = [FeatureWithProps.new(r) for r in ramps.values()]
+        #     json.dump({
+        #         "type": "FeatureCollection",
+        #         "features": ramps.values()
+        #     }, fp)
         logger.debug(f":loadRamps: added {len(ramps.keys())} ramps")  # : {ramps.keys()}
         return [True, "XPAirport::loadRamps loaded"]
 

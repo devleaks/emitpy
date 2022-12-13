@@ -151,6 +151,12 @@ class FeatureWithProps(Feature):
         for name, value in values.items():
             self.setProp(name, value)
 
+    def getMark(self):
+        return self.getProp(FEATPROP.MARK.value)
+
+    def setMark(self, mark):
+        return self.setProp(FEATPROP.MARK.value, mark)
+
         # For historical reasons, tags are kept in |-separated strings like tag1|tag2.
     def setTag(self, tagname: str, tagvalue: str):
         tags = self.getTags(tagname)

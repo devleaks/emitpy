@@ -142,17 +142,25 @@ class Movement(Messages):
             f.setAddToPause(duration)
 
 
-    def listMarks(self):
+    def getMarkList(self):
         """
         List all movement marks.
 
         :returns:   { array of movement marks }
         :rtype:     { ( str ) }
         """
+        # l = set()
+        # [l.add(f.getProp(FEATPROP.MARK.value)) for f in self.moves]
+        # if None in l:
+        #     l.remove(None)
+        # return l
         marks = []
         for f in self.moves:
             marks.append(f.getProp(FEATPROP.MARK.value))
-        return set(marks)
+        marks = set(marks)
+        if None in marks:
+             marks.remove(None)
+        return marks
 
 
     def listPauses(self):

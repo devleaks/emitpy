@@ -450,6 +450,28 @@ EMIT_RATES = [(str(x), str(x)) for x in (list(range(31)) + [60, 120, 300, 600, 9
 RATE_LIMIT = 10       # Maximum frequency when range of emission is limited to managed airport
 EMIT_RANGE = 5        # Maximum range (in kilometers) of emission when rate under RATE_LIMIT
 
+# Miscellaneous
+DEFAULT_FREQUENCY = 30  # a message every 30 seconds
+GSE_EMIT_WHEN_STOPPED = False
+
+
+########################################
+# Redis
+#
+# Broadcaster Queues
+INTERNAL_QUEUES = {
+    "raw": "raw",
+    "wire": "wire"
+}
+
+LIVETRAFFIC_QUEUE = "lt"            # should be lt
+LIVETRAFFIC_FORMATTER = "rttfc"     # {aitfc|rttfc|xpplanes}
+LIVETRAFFIC_VERBOSE = True
+
+# Redis Publish/Subscribe
+PUBSUB_CHANNEL_PREFIX = "emitpy:"
+QUEUE_DATA   = key_path(REDIS_DATABASE.QUEUES.value,"data")
+
 
 ########################################
 # geojson.io coloring for point and linestring features
@@ -579,17 +601,3 @@ class SERVICE_PHASE_COLOR(Enum):
 
 class MESSAGE_COLOR(Enum):
     DEFAULT = "#888888"
-
-# Broadcaster Queues
-INTERNAL_QUEUES = {
-    "raw": "raw",
-    "wire": "wire"
-}
-
-LIVETRAFFIC_QUEUE = "lt"            # should be lt
-LIVETRAFFIC_FORMATTER = "rttfc"     # {aitfc|rttfc|xpplanes}
-LIVETRAFFIC_VERBOSE = True
-
-# Redis Publish/Subscribe
-PUBSUB_CHANNEL_PREFIX = "emitpy:"
-QUEUE_DATA   = key_path(REDIS_DATABASE.QUEUES.value,"data")

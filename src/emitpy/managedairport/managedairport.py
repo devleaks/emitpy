@@ -1,17 +1,19 @@
-# Assembly class to collect airport, airport manager, airspace...
-import logging
+"""
+Assembly class to collect aerospace, managed airport, airport manager...
+"""
 import pickle
 import os
+import logging
 
+import emitpy
 from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
 
-from emitpy.airspace import XPAerospace, Metar
+from emitpy.airspace import Metar
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftTypeWithPerformance
-from emitpy.airport import Airport, XPAirport
-from emitpy.business import AirportManager
+from emitpy.airport import Airport
 from emitpy.utils import Timezone
 
 # All base directories will be checked and created if non existent
@@ -37,6 +39,7 @@ class ManagedAirport:
         self.airport = None
 
         self.airac_cycle = None
+        self.emitpy_version = emitpy.__version__
         self.last_updated = None
 
         self.operator = None
@@ -69,7 +72,7 @@ class ManagedAirport:
             logger.debug("..done")
         else:
             logger.debug("..loading managed airport..")
-            self.airport = XPAirport(
+            self.airport = self._app._managedairport(
                 icao=self.icao,
                 iata=self.iata,
                 name=self.name,
@@ -96,7 +99,7 @@ class ManagedAirport:
                 airspace = pickle.load(fp)
             logger.debug("..done")
         else:
-            airspace = XPAerospace(load_airways=load_airways)
+            airspace = self._app._aerospace(load_airways=load_airways)
             logger.debug("loading airspace..")
             ret = airspace.load(self._app.redis)
             if not ret[0]:
@@ -125,7 +128,7 @@ class ManagedAirport:
                            classId="Airport Operator",
                            typeId="Airport Operator",
                            name=self.operator)
-        manager = AirportManager(icao=self.icao, operator=operator)
+        manager = self._app._airportmanager(icao=self.icao, operator=operator)
         ret = manager.load(self._app.redis)
         if not ret[0]:
             logger.warning("..airport manager !** not loaded **!")
@@ -148,6 +151,10 @@ class ManagedAirport:
         return (True, "ManagedAirport::init done")
 
     def getAirportDetails(self):
+        if self.operator is None:
+            self.setAirportDetails()
+            if self.operator is None:
+                return {}
         return {
             "ICAO": self.icao,
             "IATA": self.iata,
@@ -181,6 +188,9 @@ class ManagedAirport:
             self.name = this_airport.display_name
             self.operator = DEFAULT_AIRPORT_OPERATOR
             logger.debug(f"setAirportDetails: found {self.icao}")
+        else:
+            self.operator = None
+            logger.warning(f"setAirportDetails: {self.icao} not found")
 
     def setAirportOperator(self, operator):
         self.operator = operator

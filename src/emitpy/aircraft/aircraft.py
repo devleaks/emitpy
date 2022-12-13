@@ -678,7 +678,6 @@ class AircraftTypeWithPerformance(AircraftType):
         Loads a ground support vehicle arrangement data file for a single aircraft type.
         """
         if self.gseprofile is None:
-            print(">"*20)
             if redis is not None:
                 key = key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, self.typeId.upper())
                 r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
