@@ -1,32 +1,25 @@
+import sys
+sys.path.append('..')
+
 import csv
 import os
 import json
 import random
 import traceback
-
-from datetime import datetime, tzinfo, timedelta
 import logging
 
-import sys
-sys.path.append('..')
+from datetime import datetime, tzinfo, timedelta
 
 from emitpy.emitapp import EmitApp
-from emitpy.parameters import MANAGED_AIRPORT
-from emitpy.service import Service
+from emitpy.parameters import MANAGED_AIRPORT_ICAO
 from emitpy.utils import Timezone
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("emitalot")
 
-e = EmitApp(MANAGED_AIRPORT)
 
-dohatime = Timezone(offset=MANAGED_AIRPORT["tzoffset"], name=MANAGED_AIRPORT["tzname"])
-heretime = Timezone(offset=2, name="Brussels")
-
-filename = os.path.join("..", "..", "data", "managedairport", "OTHH", "flights", "DEMO.csv")
-# First: 2019-04-03T03:31:28.911830+03:00
-# Last: 2019-04-07T14:38:07.612974+03:00
-with open(filename, 'r') as fp:
+filename = os.path.join("..", "..", "data", "managedairport", MANAGED_AIRPORT_ICAO, "flights", "DEMO.csv")
+with open(filename, "r") as fp:
     numlines = len(fp.readlines())
 
 file = open(filename, "r")
@@ -40,36 +33,47 @@ sorted(a, key=lambda x: (x['FLIGHT SCHEDULED TIME_x']))
 
 # print("Emitalot: number of turnarounds", len(a))
 
-icao = {}
-
 NUM_TURNAROUNDS = 1
-DO_SERVICE = False
+DO_SERVICE = True
 USE_TURNAROUND = False
 
-cnt = NUM_TURNAROUNDS
-cnt_begin = 0 # random.randint(0, len(a)) # random pair of flights
+
+cnt_begin = random.randint(0, len(a)) # random pair of flights
 cnt_end = min(cnt_begin + NUM_TURNAROUNDS, len(a))
 
-queue = "lt"
-rate = 10
 
-# for r in csvdata:
+icao24 = {}
+queue = "raw"
+rate = [10, 10]
+
+
+# Here we go
+e = EmitApp(MANAGED_AIRPORT_ICAO)
+
 for i in range(cnt_begin, cnt_end):
     r = a[i]
 
-    # if cnt < cnt_begin:
-    #     cnt = cnt + 1
-    #     continue
+    logger.info("+" + "-" * 100)
+    logger.info("| doing turnaround line " + str(i))
+    # logger.info("+" + "-" * 100)
 
-    if r['REGISTRATION NO_x'] not in icao.keys():
-        icao[r['REGISTRATION NO_x']] = f"{random.getrandbits(24):x}"
+    if r['REGISTRATION NO_x'] not in icao24.keys():
+        icao24[r['REGISTRATION NO_x']] = f"{random.getrandbits(24):x}"
 
     ret = None
+    arr = None
+    dep = None
 
     try:
-        dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
-        dtactual = datetime.now().replace(tzinfo=heretime) + timedelta(minutes=3) # datetime.strptime(r['FLIGHT ACTUAL TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
         movetype = "arrival" if r['IS ARRIVAL_x'] == 'True' else "departure"
+        dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+        dtactual = datetime.now().replace(tzinfo=e.local_timezone) + timedelta(minutes=2) # datetime.strptime(r['FLIGHT ACTUAL TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+
+        # Same hour but today:
+        # now = datetime.now().replace(tzinfo=e.local_timezone)
+        # dtactual = datetime(now.year, now.month, now.day, dt.hour, dt.minute).replace(tzinfo=e.timezone)
+        # This is to "time shift" to our local time
+        # dtactual = dtactual.replace(tzinfo=e.local_timezone)
 
         ret = e.do_flight(queue=queue,
                           emit_rate=rate,
@@ -80,99 +84,103 @@ for i in range(cnt_begin, cnt_end):
                           movetype=movetype,
                           actype=(r['AC TYPE_x'], r['AC SUB TYPE_x']),
                           ramp=r['BAY_x'],
-                          icao24=icao[r['REGISTRATION NO_x']],
+                          icao24=icao24[r['REGISTRATION NO_x']],
                           acreg=r['REGISTRATION NO_x'],
                           runway="RW16L",
                           do_services=DO_SERVICE and not USE_TURNAROUND,
                           actual_datetime=dtactual.isoformat())
 
         if ret.status != 0:
-            logger.warning(f"ERROR(arrival) around line {cnt}: {ret.status}" + ">=" * 30)
+            logger.warning(f"ERROR(arrival) around line {i}: {ret.status}" + ">=" * 30)
             logger.warning(ret)
             logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_x']}', '{r['FLIGHT NO_x']}',"
                 + f" '{dt.isoformat()}', '{r['AIRPORT_x']}',"
                 + f" 'arrival', ('{r['AC TYPE_x']}', '{r['AC SUB TYPE_x']}'), '{r['BAY_x']}',"
-                + f" '{icao[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L'))")
+                + f" '{icao24[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L'))")
+        else:
+            arr = ret.data
+            arr_est=dtactual.isoformat()
     except:
         if ret is not None:
-            logger.error(f"EXCEPTION(arrival) around line {cnt}: {ret.status}" + ">=" * 30)
+            logger.error(f"EXCEPTION(arrival) around line {i}: {ret.status}" + ">=" * 30)
             logger.error(ret)
 
         logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_x']}', '{r['FLIGHT NO_x']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT_x']}',"
             + f" 'arrival', ('{r['AC TYPE_x']}', '{r['AC SUB TYPE_x']}'), '{r['BAY_x']}',"
-            + f" '{icao[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L'))")
+            + f" '{icao24[r['REGISTRATION NO_x']]}', '{r['REGISTRATION NO_x']}', 'RW16L'))")
         logger.error(traceback.format_exc())
 
 
-    # try:
-    #     dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
-    #     dtactual = datetime.now().replace(tzinfo=dohatime) + timedelta(minutes=90)  # datetime.strptime(r['FLIGHT ACTUAL TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
-    #     movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
+    try:
+        movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
+        dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+        dtactual = datetime.now().replace(tzinfo=e.local_timezone) + timedelta(minutes=90)  # datetime.strptime(r['FLIGHT ACTUAL TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
 
-    #     ret = e.do_flight(queue=queue,
-    #                       emit_rate=rate,
-    #                       airline=r['AIRLINE CODE_y'],
-    #                       flightnumber=r['FLIGHT NO_y'],
-    #                       scheduled=dt.isoformat(),
-    #                       apt=r['AIRPORT_y'],
-    #                       movetype="departure",
-    #                       actype=(r['AC TYPE_y'], r['AC SUB TYPE_y']),
-    #                       ramp=r['BAY_y'],
-    #                       icao24=icao[r['REGISTRATION NO_y']],
-    #                       acreg=r['REGISTRATION NO_y'],
-    #                       runway="RW16L",
-    #                       do_services=DO_SERVICE and not USE_TURNAROUND,
-    #                       actual_datetime=dtactual.isoformat())
+        ret = e.do_flight(queue=queue,
+                          emit_rate=rate,
+                          airline=r['AIRLINE CODE_y'],
+                          flightnumber=r['FLIGHT NO_y'],
+                          scheduled=dt.isoformat(),
+                          apt=r['AIRPORT_y'],
+                          movetype="departure",
+                          actype=(r['AC TYPE_y'], r['AC SUB TYPE_y']),
+                          ramp=r['BAY_y'],
+                          icao24=icao24[r['REGISTRATION NO_y']],
+                          acreg=r['REGISTRATION NO_y'],
+                          runway="RW16L",
+                          do_services=DO_SERVICE and not USE_TURNAROUND,
+                          actual_datetime=dtactual.isoformat())
 
-    #     if ret.status != 0:
-    #         logger.warning(f"ERROR(departure) around line {cnt}: {ret.status}" + ">=" * 30)
-    #         logger.warning(ret)
-    #         logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
-    #             + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
-    #             + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
-    #             + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
-    # except:
-    #     if ret is not None:
-    #         logger.error(f"EXCEPTION(departure) around line {cnt}: {ret.status}" + ">=" * 30)
-    #         logger.error(ret)
-    #     logger.error(traceback.format_exc())
-    #     logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
-    #         + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
-    #         + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
-    #         + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
-
-
-    # if USE_TURNAROUND:
-    #     try:
-    #         dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=dohatime)
-    #         movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
-
-    #         ret = e.do_flight_services(queue="raw",
-    #                                    emit_rate=30)
-
-    #         if ret.status != 0:
-    #             logger.warning(f"ERROR(departure) around line {cnt}: {ret.status}" + ">=" * 30)
-    #             logger.warning(ret)
-    #             logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
-    #                 + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
-    #                 + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
-    #                 + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
-    #     except:
-    #         if ret is not None:
-    #             logger.error(f"EXCEPTION(departure) around line {cnt}: {ret.status}" + ">=" * 30)
-    #             logger.error(ret)
-    #         logger.error(traceback.format_exc())
-    #         logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
-    #             + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
-    #             + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
-    #             + f" '{icao[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
+        if ret.status != 0:
+            logger.warning(f"ERROR(departure) around line {i}: {ret.status}" + ">=" * 30)
+            logger.warning(ret)
+            logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
+                + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
+                + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
+                + f" '{icao24[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
+        else:
+            dep = ret.data
+            dep_est = dtactual.isoformat()
+    except:
+        if ret is not None:
+            logger.error(f"EXCEPTION(departure) around line {i}: {ret.status}" + ">=" * 30)
+            logger.error(ret)
+        logger.error(traceback.format_exc())
+        logger.warning(f"print(e.do_flight('{r['AIRLINE CODE_y']}', '{r['FLIGHT NO_y']}',"
+            + f" '{dt.isoformat()}', '{r['AIRPORT_y']}',"
+            + f" 'departure', ('{r['AC TYPE_y']}', '{r['AC SUB TYPE_y']}'), '{r['BAY_y']}',"
+            + f" '{icao24[r['REGISTRATION NO_y']]}', '{r['REGISTRATION NO_y']}', 'RW16L'))")
 
 
-    cnt = cnt + 1
+    if DO_SERVICE and USE_TURNAROUND:
+        try:
+            dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+            movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
 
-    # if cnt > cnt_end:
-    #     break
+            operator = "QAS"
+            ret = e.do_turnaround(queue=queue,
+                                  emit_rate=rate,
+                                  operator=operator,
+                                  arrival=arr,
+                                  departure=dep,
+                                  estimated=arr_est)
+
+            if ret.status != 0:
+                logger.warning(f"ERROR(turnaround) around line {i}: {ret.status}" + ">=" * 30)
+                logger.warning(ret)
+                logger.warning(f"print(e.do_turnaround(queue='{queue}'', emit_rate={rate}, operator='{operator}',"
+                             + f" arrival='{arr}', departure='{dep}', estimated='{arr_est}')")
+        except:
+            if ret is not None:
+                logger.error(f"EXCEPTION(departure) around line {i}: {ret.status}" + ">=" * 30)
+                logger.error(ret)
+            logger.error(traceback.format_exc())
+            logger.warning(f"print(e.do_turnaround(queue='{queue}'', emit_rate={rate}, operator='{operator}',"
+                         + f" arrival='{arr}', departure='{dep}', estimated='{arr_est}', departure_estimate='{dep_est}')")
+
+    logger.info("| done turnaround line " + str(i))
+    logger.info("+" + "-" * 100)
 
 ##
 # {

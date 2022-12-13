@@ -11,9 +11,15 @@ Gépès Cidesimal, geospatial specialist,
 
 
 Future releases tags:
-Felicity Ace
-Tricolor
 Titanic
+Toyama Maru
+Scilly naval disaster of 1707
+HMS Namur
+Indomptable
+Achille
+Redoutable
+
+
 
 ---
 
