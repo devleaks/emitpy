@@ -46,9 +46,9 @@ icao24 = {}
 queue = "raw"
 rate = [10, 10]
 
-
 # Here we go
 e = EmitApp(MANAGED_AIRPORT_ICAO)
+now = datetime.now().replace(tzinfo=e.local_timezone)
 
 for i in range(cnt_begin, cnt_end):
     r = a[i]
@@ -64,10 +64,16 @@ for i in range(cnt_begin, cnt_end):
     arr = None
     dep = None
 
+
+    first_dt = None
+
     try:
         movetype = "arrival" if r['IS ARRIVAL_x'] == 'True' else "departure"
         dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
-        dtactual = datetime.now().replace(tzinfo=e.local_timezone) + timedelta(minutes=2) # datetime.strptime(r['FLIGHT ACTUAL TIME_x'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+        if first_dt is None:
+            first_dt = dt
+        tdiff = dt - first_dt
+        dtactual = now + tdiff + timedelta(minutes=2)
 
         # Same hour but today:
         # now = datetime.now().replace(tzinfo=e.local_timezone)
@@ -115,7 +121,7 @@ for i in range(cnt_begin, cnt_end):
     try:
         movetype = "arrival" if r['IS ARRIVAL_y'] == 'True' else "departure"
         dt = datetime.strptime(r['FLIGHT SCHEDULED TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
-        dtactual = datetime.now().replace(tzinfo=e.local_timezone) + timedelta(minutes=90)  # datetime.strptime(r['FLIGHT ACTUAL TIME_y'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+        dtactual = now + tdiff + timedelta(minutes=90)
 
         ret = e.do_flight(queue=queue,
                           emit_rate=rate,
