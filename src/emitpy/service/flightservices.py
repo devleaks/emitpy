@@ -142,11 +142,11 @@ class FlightServices:
             equipment_model = sched[2] if len(sched) > 2 else None
             # should book vehicle a few minutes before and after...
             this_equipment = am.selectEquipment(operator=self.operator,
-                                                   service=this_service,
-                                                   model=equipment_model,
-                                                   reqtime=service_scheduled_dt,
-                                                   reqend=service_scheduled_end_dt,
-                                                   use=True)
+                                                service=this_service,
+                                                model=equipment_model,
+                                                reqtime=service_scheduled_dt,
+                                                reqend=service_scheduled_end_dt,
+                                                use=True)
 
             if this_equipment is None:
                 return (True, f"FlightServices::service: vehicle not found")

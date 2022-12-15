@@ -418,7 +418,7 @@ class AirportManager:
 
 
     def selectEquipment(self, operator: "Company", service: "Service", reqtime: datetime, reqend: datetime = None,
-                             model: str=None, registration: str = None, use: bool=True):
+                              model: str=None, registration: str = None, use: bool=True):
         """
         Selects a equipment for ground support.
         The airport manager keeps a list of all vehicle and their use.
@@ -555,8 +555,11 @@ class AirportManager:
             if use:
                 if reqend is None:
                     reqend = reqtime + timedelta(seconds=service.duration())
-                res = self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
+                # @warning: We should book the vehicle before setting it for service.
+                # However, service.getId() complains it has no vehicle set, we set the vehicle "first"
+                # so that it appears nicely in the .getId() call. (and does not provoke a warning.)
                 service.setVehicle(vehicle)
+                res = self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
                 logger.debug(f":selectEquipment: vehicle booked {vname} for {service.getId()}")
             else:
                 logger.debug(f":selectEquipment: found vehicle {vname} but not used")

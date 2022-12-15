@@ -709,9 +709,9 @@ class Emit(Messages):
 
 
     def getTimeBracket(self, as_string: bool = False):
-        if self._emit is not None and len(self._emit) > 0:
-            start = self._emit[0].getAbsoluteEmissionTime()
-            end   = self._emit[-1].getAbsoluteEmissionTime()
+        if self.scheduled_emit is not None and len(self.scheduled_emit) > 0:
+            start = self.scheduled_emit[0].getAbsoluteEmissionTime()
+            end   = self.scheduled_emit[-1].getAbsoluteEmissionTime()
             if not as_string:
                 return (start, end)
             startdt = datetime.fromtimestamp(start, tz=timezone.utc)
