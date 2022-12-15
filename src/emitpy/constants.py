@@ -92,6 +92,7 @@ TERMINATED = "terminated"
 
 
 ID_SEP = ":"
+ID_SEP_ALT = "-"
 TAG_SEP = "|"
 FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
 AIRAC_CYCLE = "AIRAC"

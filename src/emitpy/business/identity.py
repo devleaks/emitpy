@@ -2,7 +2,7 @@
 import json
 from enum import Enum
 
-from emitpy.constants import ID_SEP, REDIS_DATABASE
+from emitpy.constants import ID_SEP, ID_SEP_ALT, REDIS_DATABASE
 from emitpy.utils import key_path
 import emitpy
 
@@ -31,18 +31,32 @@ class Identity:
     """
     def __init__(self, orgId: str, classId: str, typeId: str, name: str):
         self.version = emitpy.__version__
-        self.orgId = orgId
-        self.classId = classId
-        self.typeId = typeId
-        self.name = name
+        self.orgId   =   orgId.replace(ID_SEP, ID_SEP_ALT)
+        self.classId = classId.replace(ID_SEP, ID_SEP_ALT)
+        self.typeId  =  typeId.replace(ID_SEP, ID_SEP_ALT)
+        self.name    = name  # name can contain :
 
         self.register()
 
 
     @classmethod
     def new(cls, orgId: str, classId: str, typeId: str, name: str):
-        thisone = orgId + ID_SEP + classId + ID_SEP + typeId + ID_SEP + name
+        thisone = Identity.mkId(orgId=orgId, classId=classId, typeId=typeId, name=name)
         return ALL_IDENTITIES[thisone] if thisone in ALL_IDENTITIES.keys() else cls(orgId=orgId, classId=classId, typeId=typeId, name=name)
+
+    @staticmethod
+    def mkId(orgId: str, classId: str, typeId: str, name: str):
+        return ID_SEP.join([orgId.replace(ID_SEP, ID_SEP_ALT),
+                            classId.replace(ID_SEP, ID_SEP_ALT),
+                            typeId.replace(ID_SEP, ID_SEP_ALT),
+                            name])
+
+    @staticmethod
+    def split(ident: str):
+        arr = ident.split(ID_SEP)
+        if len(arr) < 4:
+            print(f"Identity: invalid key {ident}")
+        return arr[0:3] + [ID_SEP.join(arr[3:])]
 
     def register(self):
         thisone = self.getId()
@@ -53,7 +67,7 @@ class Identity:
             ALL_IDENTITIES[thisone] = self
 
     def getId(self):
-        return self.orgId + ID_SEP + self.classId + ID_SEP + self.typeId + ID_SEP + self.name
+        return Identity.mkId(orgId=self.orgId, classId=self.classId, typeId=self.typeId, name=self.name)
 
     def getKey(self):
         return self.getId()
