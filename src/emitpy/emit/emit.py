@@ -248,8 +248,14 @@ class Emit(Messages):
         # 3. Save linestring with timestamp
         # Save for traffic analysis
         if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
-            logger.warning(":saveFile: no scheduled emission point for traffic")
-            return (False, "Emit::saveFile: no scheduled emission point for traffic")
+            logger.warning(":saveFile: no scheduled emission point")
+            # Try to save situation...
+            self.move.saveFile()
+            with open("debug.out", "w") as fp:
+                json.dump(self.getMeta(), fp, indent=4)
+                json.dump(self.getInfo(), fp, indent=4)
+                json.dump(self.move.getInfo(), fp, indent=4)
+            return (False, "Emit::saveFile: no scheduled emission point")
 
         logger.debug(f":saveFile: ***** there are {len(self.scheduled_emit)} points")
 

@@ -26,7 +26,7 @@ file.close()
 
 # Parameters
 #
-NUM_TURNAROUNDS = 1
+NUM_TURNAROUNDS = 5
 DO_SERVICE = True
 USE_TURNAROUND = False
 
@@ -35,7 +35,7 @@ rate = [10, 10]
 operator = "QAS"  # for services
 fixed_turnaround = timedelta(minutes=90)
 
-cnt_begin = 46 # random.randint(0, len(flights)) # random pair of flights
+cnt_begin = random.randint(0, len(flights)) # random pair of flights
 cnt_end = min(cnt_begin + NUM_TURNAROUNDS, len(flights))
 
 # Here we go..
