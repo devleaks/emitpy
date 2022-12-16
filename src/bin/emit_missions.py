@@ -36,7 +36,7 @@ sep = timedelta(minutes=4)
 
 name = "emit_mission"
 queue = "raw"
-rate = 1
+rate = 2
 operator = "HPD"  # for missions
 
 # Here we go..

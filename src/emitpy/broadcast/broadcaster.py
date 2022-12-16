@@ -5,14 +5,12 @@ import threading
 import socket
 import redis
 
-from emitpy.constants import REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE, PUBSUB_CHANNEL_PREFIX, LIVETRAFFIC_VERBOSE
-from emitpy.utils import key_path
-from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT
+from emitpy.constants import ID_SEP, LIVETRAFFIC_QUEUE, PUBSUB_CHANNEL_PREFIX, LIVETRAFFIC_VERBOSE
+from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT, BROADCASTER_VERBOSE, BROADCASTER_TICK
 from emitpy.parameters import XPLANE_FEED, XPLANE_HOSTNAME, XPLANE_PORT
 
 from .queue import Queue, RUN, STOP, QUIT
-
-QUIT_KEY = Queue.mkDataKey(QUIT)  # key_path(REDIS_DATABASE.QUEUES.value, QUIT)
+QUIT_KEY = Queue.mkDataKey(QUIT)
 
 logger = logging.getLogger("Broadcaster")
 
@@ -62,6 +60,7 @@ class Broadcaster:
             self._starttime = starttime
         # logger.debug(f":__init__: {self.name}: start_time: {self._starttime}, speed: {self.speed}")
         self.timeshift = None
+        self.total_sent = 0
 
         self.ping = PING_FREQUENCY
         self.heartbeat = BROADCASTER_HEARTBEAT
@@ -286,6 +285,7 @@ class Broadcaster:
         # l = min(30, len(data))
         # logger.debug(f":send_data: '{data[0:l]}'...")
         self.redis.publish(PUBSUB_CHANNEL_PREFIX + self.name, data)
+        self.total_sent = self.total_sent + 1
         return 0
 
 
@@ -348,9 +348,6 @@ class Broadcaster:
                     else:
                         logger.error(f":broadcast: {self.name}: trimmer is waiting but not set")
 
-                if self.heartbeat: # and last_sent < datetime.now()
-                    logger.debug(f":broadcast: {self.name}: listening..")
-
                 currval = self.redis.bzpopmin(queue_key, timeout=ZPOPMIN_TIMEOUT)
 
                 if currval is None:
@@ -363,8 +360,9 @@ class Broadcaster:
                         self.resetcompleted.wait()
                         # self.rdv = threading.Event()  # done in reset()
                         logger.info(f":broadcast: {self.name}: ..reset completed, restarting")
-                    # else:
-                    #     logger.debug(f":broadcast: {self.name}: nothing to send, bzpopmin timed out..")
+                    else:
+                        if self.heartbeat: # and last_sent < datetime.now()
+                            logger.debug(f":broadcast: {self.name}: nothing to send, bzpopmin timed out..")
                     continue
 
                 numval = self.redis.zcard(queue_key)
@@ -392,7 +390,8 @@ class Broadcaster:
                     logger.debug(f":broadcast: {self.name}: ..trim older events completed, restarted listening")
 
                 else:  # we need to send later, let's wait
-                    logger.debug(f":broadcast: {self.name}: {pretxt} need to send at {df(currval[2], tz)}, waiting {td(timetowait)}, speed={self.speed}, waiting={round(realtimetowait, 1)}")
+                    if BROADCASTER_VERBOSE or self.total_sent % BROADCASTER_TICK == 0:
+                        logger.debug(f":broadcast: {self.name}: {pretxt} need to send at {df(currval[2], tz)}, waiting {td(timetowait)}, speed={self.speed}, waiting={round(realtimetowait, 1)}")
 
                     if not self.rdv.wait(timeout=realtimetowait):
                         # we timed out, we need to send
@@ -453,6 +452,7 @@ class Broadcaster:
             logger.info(f":broadcast: {self.name}: quitting..")
             self.shutdown_flag.set()
         finally:
+            logger.info(f":broadcast: {self.name}: ..sent {self.total_sent} messages..")
             logger.info(f":broadcast: {self.name}: ..bye")
 
 
