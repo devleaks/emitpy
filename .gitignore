@@ -53,7 +53,7 @@ data/
 db/
 docs-md/
 docs/
-src/bin/
+tests/
 
 *.sqlite
 *.rdb

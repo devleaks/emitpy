@@ -26,7 +26,7 @@ class Equipment(Identity):
 
     """
     def __init__(self, registration: str, operator: Company):
-        Identity.__init__(self, operator, "GSE", type(self).__name__, registration)
+        Identity.__init__(self, operator.name, "GSE", type(self).__name__, registration)
 
         self.operator = operator
         self.registration = registration
