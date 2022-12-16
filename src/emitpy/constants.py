@@ -97,6 +97,10 @@ TAG_SEP = "|"
 FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
 AIRAC_CYCLE = "AIRAC"
 
+DEFAULT_VEHICLE = ":default"
+DEFAULT_VEHICLE_SHORT = "SV"
+
+
 class POI_COMBO(Enum):
     RAMP = "ramp"
     SERVICE = "svc"

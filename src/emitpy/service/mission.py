@@ -4,7 +4,7 @@ A Mission is a trip of a vehicle around the airport through a list of checkpoint
 import logging
 from datetime import datetime
 
-from emitpy.constants import FEATPROP, REDIS_DATABASE, ID_SEP
+from emitpy.constants import FEATPROP, REDIS_DATABASE, ID_SEP, key_path
 from emitpy.geo import FeatureWithProps
 from .ground_support import GroundSupport
 
@@ -28,8 +28,9 @@ class Mission(GroundSupport):
         """
         a = []
         a.append(("security", "Security"))
-        # a.append(("emergency", "Emergency"))
-        # a.append(("fire", "Fire"))
+        a.append(("emergency", "Emergency"))
+        a.append(("fire", "Fire"))
+        a.append(("police", "Police"))
         return a
 
 

@@ -1,3 +1,8 @@
+"""
+This script schedule a number of random missions from now on.
+Mission are equally spaced in time.
+
+"""
 import sys
 sys.path.append('..')
 
@@ -26,12 +31,12 @@ file.close()
 
 # Parameters
 #
-NUM_MISSIONS = 6
+NUM_MISSIONS = 2
 sep = timedelta(minutes=4)
 
-name = "emitamission"
+name = "emit_mission"
 queue = "raw"
-rate = 10
+rate = 1
 operator = "HPD"  # for missions
 
 # Here we go..
@@ -43,10 +48,14 @@ e = EmitApp(MANAGED_AIRPORT_ICAO)
 now = datetime.now().replace(tzinfo=e.local_timezone)
 first_dt = None
 
+stops = [a[0] for a in e.airport.getPOICombo()]
+
 logger.info("+" + "-" * 100)
 logger.info("|")
 for i in range(NUM_MISSIONS):
-    logger.info("| doing mission " + str(i))
+    mty = random.choice(["Fire"]) # "Police", "Security", "Fire",
+
+    logger.info(f"| doing mission {mty} {i}")
     logger.info("|")
 
     dt = now + i * sep
@@ -56,13 +65,13 @@ for i in range(NUM_MISSIONS):
     ret = e.do_mission(queue=queue,
                         emit_rate=rate,
                         operator=operator,
-                        checkpoints=[],
+                        checkpoints=random.choices(stops, k=random.randrange(2, 8)),
                         mission=name,
-                        equipment_model="Police",
-                        equipment_ident="R"+icao24+str(i),
+                        equipment_model=mty,
+                        equipment_ident=f"{mty[0]}-{i}-{icao24}",
                         equipment_icao24=icao24,
-                        equipment_startpos=f"ckpt:checkpoint:{random.randrange(30)}",
-                        equipment_endpos=f"ckpt:checkpoint:{random.randrange(30)}",
+                        equipment_startpos=random.choice(stops),
+                        equipment_endpos=random.choice(stops),
                         scheduled=dt.isoformat())
 
 

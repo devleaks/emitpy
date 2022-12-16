@@ -1,3 +1,9 @@
+"""
+This script loads a series of flights from a file.
+It sorts flights by actual flight time, or scheduled time if actual flight time is not avaialble.
+It then selects a number of consecutive flights and schedule them from now on.
+
+"""
 import sys
 sys.path.append('..')
 
@@ -108,3 +114,26 @@ for r in flights[cnt_begin:cnt_end]:
     logger.info("|")
     logger.info("+" + "-" * 100)
     logger.info("|")
+
+
+##
+# {
+#     'AC SUB TYPE': '351',
+#     'AC TYPE': '351',
+#     'AIRLINE CODE': 'QR',
+#     'AIRPORT': 'MCT',
+#     'BAY': 'E9',
+#     'FLIGHT ACTUAL TIME': '2019-04-01 00:43:00',
+#     'FLIGHT ID': '1739338',
+#     'FLIGHT NO': '1137',
+#     'FLIGHT SCHEDULED TIME': '2019-04-01 00:05:00',
+#     'FLIGHT STATUS': 'Y',
+#     'FLIGHT TOTAL DELAY': '38.0',
+#     'IS ARRIVAL': 'True',
+#     'LINK FLIGHT ID': '',
+#     'PAIRED': '1739432',
+#     'REGISTRATION NO': 'A7ANB',
+#     'TOTAL PAX COUNT': '138.0',
+#     'TURN AROUND STATUS': 'I',
+# }
+##

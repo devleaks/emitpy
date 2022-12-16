@@ -1,3 +1,10 @@
+"""
+This script loads a series of turnarounds (pairs of flights) from a file.
+It sorts turnaround by actual arrival flight time, or scheduled time if actual flight time is not available.
+It then selects a number of consecutive turnarounds and schedule them from now on,
+respecting the time difference between flights.
+Optionally, the time between arrival and departure can be set to a fixed value, ignoring the actual departure times.
+"""
 import sys
 sys.path.append('..')
 

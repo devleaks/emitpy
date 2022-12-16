@@ -20,13 +20,10 @@ from emitpy.resource import AllocationTable
 # from emitpy.service import FlightServices
 
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB
-from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT
+from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT, DEFAULT_VEHICLE, DEFAULT_VEHICLE_SHORT
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.utils import key_path, rejson, rejson_keys, Timezone
 from emitpy.emit import ReEmit
-
-DEFAULT_VEHICLE_SHORT = "SV"
-
 
 logger = logging.getLogger("AirportManager")
 
@@ -435,13 +432,6 @@ class AirportManager:
         :param      use:           The use
         :type       use:           bool
         """
-        def is_default_model(model):
-            if model is None:
-                return True
-
-            DEFAULT_VEHICLE = ":default"
-            return len(model) > len(DEFAULT_VEHICLE) and model[:-len(DEFAULT_VEHICLE)] != DEFAULT_VEHICLE
-
         vname = registration
 
         # If we have a registration, use that vehicle if it exists.
@@ -465,13 +455,14 @@ class AirportManager:
             vcl = svc_name + "Vehicle"
             vcl_short = svc_name[0:3].upper()
         elif str.__contains__(type(service).__name__, "Mission"):
-            svc_name = "mission"
+            svc_name = "Mission"
             vcl = "MissionVehicle"
             vcl_short = "MIS"
         else:
             logger.warning(f":selectEquipment: invalid service {type(service).__name__}")
 
-        if is_default_model(model):
+        # logger.debug(f":selectEquipment: looking for model {model}")
+        if model is None or model.endswith(DEFAULT_VEHICLE):  # is_default_model(model):
             vcl_short = vcl_short + DEFAULT_VEHICLE_SHORT  # Standard Vehicle
             logger.debug(f":selectEquipment: standard model is {vcl}, {vcl_short}")
         else:

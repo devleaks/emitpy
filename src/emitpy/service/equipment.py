@@ -8,13 +8,9 @@ from math import inf
 import re
 
 from emitpy.business import Identity, Company
-from emitpy.constants import SERVICE
+from emitpy.constants import SERVICE, DEFAULT_VEHICLE, DEFAULT_VEHICLE_SHORT
 
 logger = logging.getLogger("Equipment")
-
-DEFAULT_VEHICLE = ":default"
-DEFAULT_VEHICLE_SHORT = "SV"
-
 
 #####################################
 # SERVICE VEHICLE TYPES AND MODELS
@@ -580,7 +576,7 @@ class MissionVehiclePolice(MissionVehicle):
     def __init__(self, registration: str, operator: Company):
         MissionVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZY"
-        self.model = "Police"
+        self.model = "police"
         self.model_name = "Police vehicle"
         self.setup_time = 4
         self.flow = 1
