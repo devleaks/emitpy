@@ -79,7 +79,7 @@ class Emit(Messages):
             self.props = self.move.getInfo()  # collect common props from movement
             self.props["emit"] = self.getInfo() # add meta data about this emission
             # logger.debug(f":__init__: {len(self.moves)} move points to emit with props {json.dumps(self.props, indent=2)}")
-            logger.debug(f":__init__: {len(self.moves)} move points to emit with {len(self.props)} props")
+            logger.debug(f":__init__: {len(self.moves)} move points to emit with {len(self.props)} properties")
         # else:
             # We reconstruct an emit from cache/database
         #     self.emit_meta = EmitMeta.find({"emit_id": self.emit_id})
@@ -347,12 +347,10 @@ class Emit(Messages):
 
         def pause_at_vertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason):
             logger.debug(f":pause_at_vertex: pause i={idx} p={pause}, e={len(self._emit)}")
-            pos2 = pos.copy()
-            pos2.setMark(None) # clean mark during pause, other it gets replicated each time...
             if pause < self.frequency:  # may be emit before reaching next vertex:
                 if pause > time_to_next_emit:  # neet to emit before we reach next vertex
                     emit_time = curr_time + time_to_next_emit
-                    emit_point(idx, pos2, emit_time, reason, False) # waypt=False to emit
+                    emit_point(idx, pos, emit_time, reason, False) # waypt=False to emit
                     end_time = curr_time + pause
                     time_left = self.frequency - pause - time_to_next_emit
                     # logger.debug(f":pause_at_vertex: pause before next emit: emit at vertex i={idx} p={pause}, e={len(self._emit)}")
@@ -364,8 +362,10 @@ class Emit(Messages):
                     return (end_time, time_left)
             else:
                 emit_time = curr_time + time_to_next_emit
-                emit_point(idx, pos2, emit_time, reason, False)
+                emit_point(idx, pos, emit_time, reason, False)
                 pause_remaining = pause - time_to_next_emit
+                pos2 = pos.copy()
+                pos2.setMark(None) # clean mark during pause, otherwise it gets replicated each time...
                 # logger.debug(f":pause_at_vertex: pause at time remaining: {pause_remaining}")
                 while pause_remaining > 0:
                     emit_time = emit_time + self.frequency
@@ -407,11 +407,12 @@ class Emit(Messages):
         if self.emit_type == "service" and currpos.getMark() is not None:
             logger.debug(f":emit: adding {currpos.getMark()}..")
 
-        # Add first point
-        emit_point(curridx, currpos, total_time, "start")
 
         time_to_next_emit = randrange(self.frequency)  # we could actually random from (0..self.frequency) to randomly start broadcast
         first_time_to_next_emit = time_to_next_emit
+
+        # Add first point, we emit it if time_to_next_emit == 0
+        emit_point(curridx, currpos, total_time, "start", time_to_next_emit == 0)
 
         future_emit = self.frequency
         # future_emit = self.frequency - 0.2 * self.frequency + randrange(0.4 * self.frequency)  # random time between emission DANGEROUS!
@@ -445,8 +446,8 @@ class Emit(Messages):
                     logger.debug(f"..done moving on edge with time remaining to next emit. {time_to_next_emit} sec left before next emit, {time_to_next_vtx} to next vertex")
 
             if (time_to_next_emit > 0) and (time_to_next_emit < future_emit) and (time_to_next_vtx < time_to_next_emit):
-                ##logger.debug(":emit: RVBFE: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
                 # We will reach next vertex before we need to emit
+                ##logger.debug(":emit: RVBFE: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
                 if emit_details:
                     logger.debug(f"moving from to vertex with time remaining before next emit.. ({curridx}, {time_to_next_emit}, {time_to_next_vtx})")  # if we are here, we know we will not reach the next vertex
                 total_time = total_time + time_to_next_vtx
@@ -506,6 +507,13 @@ class Emit(Messages):
                 logger.debug(f":emit: <<< {curridx}: {round(total_time, 2)} sec , {round(total_dist/1000,3)} m / {round(total_dist_vtx/1000, 3)} m")
             curridx = curridx + 1
 
+        # need to add last point??
+        movemark = self.moves[-1].getMark()
+        emitmark = self._emit[-1].getMark()
+        logger.debug(f":emit: end points: {movemark}, {emitmark}")
+        if movemark != emitmark:
+            logger.debug(f":emit: end point not added, adding ({movemark}, {emitmark})")
+            emit_point(len(self.moves) - 1, currpos, total_time, "end", time_to_next_emit == 0)
 
         # Restriction
         # If frequency is high, we have thousands of points.
@@ -550,13 +558,15 @@ class Emit(Messages):
         emit_marks = self.getMarkList()
         # if self.emit_type == "service"
         if len(move_marks) != len(emit_marks):
+            logger.debug(f":emit: move: {type(self.move)}")
+
             logger.warning(f":emit: move mark list differs from emit mark list ({first_time_to_next_emit})")
+            logger.debug(f":emit: move mark list (len={len(move_marks)}): {move_marks}")
             miss = list(filter(lambda f: f not in move_marks, emit_marks))
             logger.debug(f":emit: not in move list: {miss}")
+            logger.debug(f":emit: mark list (len={len(emit_marks)}): {emit_marks}")
             miss = list(filter(lambda f: f not in emit_marks, move_marks))
             logger.debug(f":emit: not in emit list: {miss}")
-        logger.debug(f":emit: move mark list (len={len(move_marks)}): {move_marks}")
-        logger.debug(f":emit: mark list (len={len(emit_marks)}): {emit_marks}")
         logger.debug(f":emit: generated {len(self._emit)} points")
         # printFeatures(self._emit, "emit_point", True)
         self.version = self.version + 1

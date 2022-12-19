@@ -543,7 +543,6 @@ class EmitApp(ManagedAirport):
 
         logger.debug(":do_service: ..scheduling broadcast..")
         # default is to serve at scheduled time
-        logger.debug(emit.getMarkList())
         logger.debug(f":do_flight: ..{SERVICE_PHASE.SERVICE_START.value} at {scheduled}..")
         ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, scheduled_dt)
         if not ret[0]:
@@ -774,7 +773,6 @@ class EmitApp(ManagedAirport):
             return StatusInfo(304, f"problem during mission emission", ret[1])
 
         logger.debug(":do_mission: ..scheduling broadcast..")
-        logger.debug(emit.getMarkList())
         ret = emit.schedule(MISSION_PHASE.START.value, mission_time)
         if not ret[0]:
             return StatusInfo(305, f"problem during mission scheduling", ret[1])
@@ -814,7 +812,6 @@ class EmitApp(ManagedAirport):
     def do_schedule(self, queue, ident, sync, scheduled, do_services: bool = False):
         emit = ReEmit(ident, self.redis)
         emit.setManagedAirport(self)
-        # logger.debug(f":do_flight_services: do_schedule:mark list: {emit.getMarkList()}")
         emit_time = datetime.fromisoformat(scheduled)
         if emit_time.tzname() is None:  # has no time zone, uses local one
             emit_time = emit_time.replace(tzinfo=self.timezone)
@@ -899,7 +896,6 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(655, f"problem during save", ret[1])
 
-        # logger.debug(f":do_flight_services: do_schedule:mark list: {emit.getMarkList()}")
         emit_time = datetime.fromisoformat(scheduled)
         if emit_time.tzname() is None:  # has no time zone, uses local one
             emit_time = emit_time.replace(tzinfo=self.timezone)

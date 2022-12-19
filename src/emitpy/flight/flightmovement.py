@@ -1298,7 +1298,7 @@ class ArrivalMove(FlightMovement):
         prev = super().getMoves()
         if len(prev) == 0:
             return prev   # len(prev) == 0
-        start = prev[-1].time()
+        start = prev[-1].time()  # take time of last event of flight
         for f in self.taxipos:
             f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
         return prev + self.taxipos
@@ -1421,7 +1421,7 @@ class DepartureMove(FlightMovement):
         prev = self.taxipos
         if len(prev) == 0:
             return prev   # len(prev) == 0
-        start = prev[-1].time()
+        start = prev[-1].time()  # time of flight starts at end of taxi
         nextmv = super().getMoves()
         for f in nextmv:
             f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))

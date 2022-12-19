@@ -155,7 +155,7 @@ class Movement(Messages):
         #     l.remove(None)
         # return l
         marks = []
-        for f in self.moves:
+        for f in self.getMoves():
             marks.append(f.getProp(FEATPROP.MARK.value))
         marks = set(marks)
         if None in marks:
