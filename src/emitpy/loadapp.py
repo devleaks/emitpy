@@ -852,7 +852,7 @@ if __name__ == "__main__":
     a = r.json().get(k)
     r.select(currdb)
 
-    if a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT_ICAO:
+    if (a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT_ICAO) or (len(sys.argv) < 2):
         logger.info(f"No managed airport: loading all ..")
         d = LoadApp(icao=MANAGED_AIRPORT_ICAO)
         logger.debug(f".. loaded")
