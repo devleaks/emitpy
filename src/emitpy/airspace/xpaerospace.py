@@ -267,6 +267,34 @@ class XPAerospace(Aerospace):
                 line.strip()
 
             file.close()
+        elif v_format == "1200":
+            self.setAiracCycle(v_airac)
+            line = file.readline()
+            line.strip()
+
+            while line:
+                if line == "":
+                    pass
+                elif re.match("^I", line, flags=0):
+                    pass
+                elif re.match("^99", line, flags=0):
+                    pass
+                else:
+                    args = line.split()      # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
+                    if len(args) >= 6:       # name, region, airport, lat, lon, waypoint-type (ARINC 424)
+                        lat = float(args[0])
+                        lon = float(args[1])
+                        self.add_vertex(Fix(args[2], args[4], args[3], lat, lon, args[5], " ".join(args[6:])))
+                        count += 1
+
+                    else:
+                        if len(line) > 1:
+                            logger.warning(":loadFixes: invalid fix data %s.", line)
+
+                line = file.readline()
+                line.strip()
+
+            file.close()
         else:
             logger.warning(f":loadFixes: Fixes: unknown format {v_format}")
             return [False, "XPAerospace::Fixes unknown format"]

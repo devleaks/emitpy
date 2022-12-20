@@ -369,10 +369,12 @@ class Fix(SignificantPoint):
     Non navigational aid fix.
     (we currently do not store how the fix is located, relative to surrounding navaids.)
     """
-    # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
-    def __init__(self, ident, region, airport, lat, lon, waypoint_type: str):
+    # 1150: 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
+    # 1200: 46.646819444 -123.722388889  AAYRR KSEA K1 4530263 AAYRR
+    def __init__(self, ident, region, airport, lat, lon, waypoint_type: str, spoken_name: str = None):
         SignificantPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.waypoint_type = waypoint_type
+        self.spoken_name = spoken_name
 
 
 ################################
