@@ -234,7 +234,7 @@ class XPAerospace(Aerospace):
         filename = os.path.join(self.basename, "earth_fix.dat")
         ret = self.checkFile(filename)
         if not ret[0]:
-            return [False, "XPAerospace::Navaids could not find header"]
+            return [False, "XPAerospace::Fixes could not find header"]
 
         file = ret[0]
         v_format, v_airac, v_build, v_version, v_coypright = ret[1]
@@ -289,7 +289,7 @@ class XPAerospace(Aerospace):
         file = ret[0]
         v_format, v_airac, v_build, v_version, v_coypright = ret[1]
 
-        if v_format == "1150":
+        if v_format == "1150" or v_format == "1200":
             self.setAiracCycle(v_airac)
             line = file.readline()
             line.strip()
@@ -534,7 +534,7 @@ class XPAerospace(Aerospace):
         filename = os.path.join(self.basename, "earth_awy.dat")
         ret = self.checkFile(filename)
         if not ret[0]:
-            return [False, "XPAerospace::Navaids could not find header"]
+            return [False, "XPAerospace::AirwaySegments could not find header"]
 
         file = ret[0]
         v_format, v_airac, v_build, v_version, v_coypright = ret[1]
@@ -608,7 +608,7 @@ class XPAerospace(Aerospace):
         filename = os.path.join(self.basename, "earth_hold.dat")
         ret = self.checkFile(filename)
         if not ret[0]:
-            return [False, "XPAerospace::Navaids could not find header"]
+            return [False, "XPAerospace::Holds could not find header"]
 
         file = ret[0]
         v_format, v_airac, v_build, v_version, v_coypright = ret[1]
