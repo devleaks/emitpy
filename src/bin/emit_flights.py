@@ -9,7 +9,6 @@ sys.path.append('..')
 
 import csv
 import os
-import json
 import random
 from datetime import datetime, tzinfo, timedelta
 import logging
@@ -29,10 +28,10 @@ file.close()
 
 # Parameters
 #
-NUM_FLIGHTS = 2
+NUM_FLIGHTS = 4
 DO_SERVICE = True
 queue = "raw"
-rate = [10, 10]
+rate = [15, 10]
 
 cnt = 0
 cnt_begin = random.randint(0, len(flights))
@@ -48,6 +47,7 @@ now = datetime.now().replace(tzinfo=e.local_timezone)
 first_dt = None
 icao = {}
 
+logger.info("+" + "-" * 10 + f" {cnt_begin}-{cnt_end}")
 
 logger.info("+" + "-" * 100)
 logger.info("|")

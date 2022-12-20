@@ -851,12 +851,17 @@ if __name__ == "__main__":
     a = r.json().get(k)
     r.select(currdb)
 
-    if (a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT_ICAO) or (len(sys.argv) < 2):
+    if a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT_ICAO:
         logger.info(f"No managed airport: loading all ..")
         d = LoadApp(icao=MANAGED_AIRPORT_ICAO)
         logger.debug(f".. loaded")
         sys.exit(2)
 
+    if len(sys.argv) < 2:
+        logger.info(f"Managed airport already loaded:")
+        logger.info(json.dumps(a, indent=2))
+        logger.info(f"use «{sys.argv[0]} '*'» to reload everying or list data to reload like «{sys.argv[0]} apt airway info»")
+        logger.info("you can load actype, acperf, acequiv, actaprof, airport, airline, airroute, alfreq, alroute, alroutefreq, comp, gse, gsefleet, ramp, rwy, apoi, spoi, dpoi, cpoi, info")
     if len(sys.argv) > 1:
         logger.info(f"Managed airport: {a}")
         logger.debug(f"loading or updating {sys.argv[1:]} ..")
