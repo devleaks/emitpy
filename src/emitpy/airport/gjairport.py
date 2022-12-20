@@ -90,7 +90,7 @@ class GeoJSONAirport(ManagedAirportBase):
     def loadServiceDestinations(self):
         self.loadGeometries("servicepois.geojson")
 
-        if self.data is not None:  # parse runways
+        if self.data is not None and "features" in self.data:  # parse runways
             self.service_stops_geo = self.data
             self.data = None
             logger.info(":loadServiceDestinations: added %d features.", len(self.service_stops_geo["features"]))

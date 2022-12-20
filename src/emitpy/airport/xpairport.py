@@ -432,12 +432,8 @@ class XPAirport(ManagedAirportBase):
         The take-off Queue LineString is used to build a collection of queueing position for takeoffs.
         """
         self.loadGeometries("aeroway-pois.geojson")
-        if self.data is not None and self.data["features"] is not None:
-            self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
-
         self.aeroway_pois = {}
-
-        if self.data is not None:  # parse runways
+        if self.data is not None and "features" in self.data:  # parse runways
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
                 if poi_type is None:
@@ -467,11 +463,8 @@ class XPAirport(ManagedAirportBase):
         POIs contain mandatory properties to help identify depot and rest area functions and use.
         """
         self.loadGeometries("service-pois.geojson")
-        if self.data is not None and self.data["features"] is not None:
-            self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
-
         self.service_pois = {}
-        if self.data is not None:  # parse runways
+        if self.data is not None and "features" in self.data:  # parse runways
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
                 if poi_type is None:
@@ -509,11 +502,8 @@ class XPAirport(ManagedAirportBase):
         Loads a checkpoint for missions.
         """
         self.loadGeometries("check-pois.geojson")
-        if self.data is not None and self.data["features"] is not None:
-            self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
-
         self.check_pois = {}
-        if self.data is not None:
+        if self.data is not None and "features" in self.data:
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
                 if poi_type is not None and poi_type == "checkpoint":

@@ -16,7 +16,6 @@ import random
 import operator
 from abc import ABC, abstractmethod
 
-import geojson
 from turfpy.measurement import distance
 
 from emitpy.graph import Graph
@@ -25,7 +24,7 @@ from emitpy.geo import Location
 from emitpy.airspace import CIFP
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR
-from emitpy.geo import Ramp, Runway
+from emitpy.geo import FeatureWithProps, Ramp, Runway
 from emitpy.utils import FT, key_path, rejson
 
 logger = logging.getLogger("Airport")
@@ -732,7 +731,9 @@ class ManagedAirportBase(AirportWithProcedures):
         df = os.path.join(self.airport_base, "geometries", name)
         if os.path.exists(df):
             with open(df, "r") as fp:
-                self.data = geojson.load(fp)
+                self.data = json.load(fp)
+                if self.data is not None and self.data["features"] is not None:
+                    self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
             return [True, f"GeoJSONAirport::file {name} loaded"]
         logger.warning(f":file: {df} not found")
         return [False, "GeoJSONAirport::loadGeometries file %s not found", df]
