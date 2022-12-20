@@ -94,20 +94,21 @@ class ManagedAirport:
         # Now caching Airspace with pickle (~ 100MB)
         airspace_cache = os.path.join(CACHE_DIR, "aerospace.pickle")
         if os.path.exists(airspace_cache):
-            logger.debug("loading airspace from pickle..")
+            logger.debug("loading aerospace from pickle..")
             with open(airspace_cache, "rb") as fp:
                 airspace = pickle.load(fp)
             logger.debug("..done")
         else:
             airspace = self._app._aerospace(load_airways=load_airways)
-            logger.debug("loading airspace..")
+            logger.debug("loading aerospace..")
             ret = airspace.load(self._app.redis)
             if not ret[0]:
-                logger.warning("Airspace not loaded")
+                logger.warning("Aerospace not loaded")
                 return ret
-            logger.debug("..pickling airspace..")
-            with open(airspace_cache, "wb") as fp:
-                pickle.dump(airspace, fp)
+            if load_airways:  # we only save the airspace if it contains everything
+                logger.debug("..pickling aerospace..")
+                with open(airspace_cache, "wb") as fp:
+                    pickle.dump(airspace, fp)
             logger.debug("..done")
 
         logger.debug("loading managed airport..")
