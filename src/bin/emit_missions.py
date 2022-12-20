@@ -17,7 +17,6 @@ from datetime import datetime, tzinfo, timedelta
 
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
-from emitpy.utils import Timezone
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("emitamission")
@@ -31,12 +30,12 @@ file.close()
 
 # Parameters
 #
-NUM_MISSIONS = 2
+NUM_MISSIONS = 4
 sep = timedelta(minutes=4)
 
 name = "emit_mission"
 queue = "raw"
-rate = 2
+rate = 5
 operator = "HPD"  # for missions
 
 # Here we go..

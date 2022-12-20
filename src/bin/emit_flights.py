@@ -15,7 +15,6 @@ import logging
 
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
-from emitpy.service import Service
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("emitft")
@@ -28,9 +27,10 @@ file.close()
 
 # Parameters
 #
-NUM_FLIGHTS = 4
+NUM_FLIGHTS = 1
 DO_SERVICE = True
 queue = "raw"
+
 rate = [15, 10]
 
 cnt = 0
