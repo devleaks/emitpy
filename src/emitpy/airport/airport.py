@@ -678,7 +678,7 @@ class ManagedAirportBase(AirportWithProcedures):
 
     def getInfo(self):
         base = super().getInfo()
-        if base is not None:
+        if base is not None and hasattr(self, "info_source"):
             base["info_source"] = self.info_source
         return base
         # return {
