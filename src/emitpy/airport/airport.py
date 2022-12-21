@@ -356,10 +356,14 @@ class AirportWithProcedures(Airport):
         return base
 
     def getInfo(self):
-        return {
-            "airport": super().getInfo(),
-            "procedures": self.procedures.getInfo()
-        }
+        base = super().getInfo()
+        if base is not None:
+            base["procedures"] = self.procedures.getInfo()
+        return base
+        # return {
+        #     "airport": super().getInfo(),
+        #     "procedures": self.procedures.getInfo()
+        # }
 
 
     def load(self):
@@ -645,6 +649,7 @@ class ManagedAirportBase(AirportWithProcedures):
 
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
         AirportWithProcedures.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+        self.info_source = None
         self.airspace = None
         self.manager = None
         self.taxiways = Graph()
@@ -670,6 +675,16 @@ class ManagedAirportBase(AirportWithProcedures):
         :type       manager:  { type_description }
         """
         self.manager = manager
+
+    def getInfo(self):
+        base = super().getInfo()
+        if base is not None:
+            base["info_source"] = self.info_source
+        return base
+        # return {
+        #     "airport": super().getInfo(),
+        #     "procedures": self.procedures.getInfo()
+        # }
 
     def load(self):
         """
