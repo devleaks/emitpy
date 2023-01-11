@@ -367,9 +367,7 @@ class Flight(Messages):
         # SID
         if depapt.has_sids() and rwydep is not None:
             logger.debug(f":plan: using procedures for departure airport {depapt.icao}")
-            #sid = depapt.selectSID(rwydep)
-            print(depapt.procedures.SIDS["RW26R"].keys())
-            sid = depapt.procedures.SIDS["RW26R"]["SODE2P"]
+            sid = depapt.selectSID(rwydep)
             if sid is not None:  # inserts it
                 logger.debug(f":plan: {depapt.icao} using SID {sid.name}")
                 ret = depapt.procedures.getRoute(sid, self.managedAirport.airport.airspace)
@@ -402,8 +400,7 @@ class Flight(Messages):
         # RWY
         # self.meta["arrival"]["metar"] = depapt.getMetar()
         if arrapt.has_rwys():
-            rwyarr = arrapt.operational_rwys["RW34L"]
-
+            rwyarr = arrapt.selectRWY(self)
             logger.debug(f":plan: arrival airport {arrapt.icao} using runway {rwyarr.name}")
             if self.is_arrival():
                 self.setRWY(rwyarr)
@@ -419,9 +416,7 @@ class Flight(Messages):
         # STAR
         star = None  # used in APPCH
         if arrapt.has_stars() and rwyarr is not None:
-            # star = arrapt.selectSTAR(rwyarr)
-            star = arrapt.procedures.STARS["RW34L"]["BAYA1L"]
-
+            star = arrapt.selectSTAR(rwyarr)
             if star is not None:
                 logger.debug(f":plan: {arrapt.icao} using STAR {star.name}")
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
@@ -438,7 +433,6 @@ class Flight(Messages):
         # APPCH, we found airports with approaches and no STAR
         if arrapt.has_approaches() and rwyarr is not None:
             appch = arrapt.selectApproach(star, rwyarr)  # star won't be used, we can safely pass star=None
-            appch = arrapt.procedures.APPCHS["RW34L"]["I34L"]
             if appch is not None:
                 logger.debug(f":plan: {arrapt.icao} using APPCH {appch.name}")
                 ret = arrapt.procedures.getRoute(appch, self.managedAirport.airport.airspace)
