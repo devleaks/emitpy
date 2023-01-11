@@ -34,7 +34,7 @@ queue = "raw"
 rate = [15, 10]
 
 cnt = 0
-cnt_begin = 345 # random.randint(0, len(flights))
+cnt_begin = random.randint(0, len(flights))
 cnt_end = cnt_begin + NUM_FLIGHTS
 
 # Here we go..
@@ -43,7 +43,7 @@ logger.info(f"File contains {len(flights)} flights. Generating from from {cnt_be
 e = EmitApp(MANAGED_AIRPORT_ICAO)
 
 # Internal global vars
-now = datetime.fromisoformat("2022-12-28 15:55:38.145250+00:00") # datetime.now().replace(tzinfo=e.local_timezone)
+now = datetime.now().replace(tzinfo=e.local_timezone)
 first_dt = None
 icao = {}
 
