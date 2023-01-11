@@ -249,12 +249,29 @@ class Emit(Messages):
         # Save for traffic analysis
         if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
             logger.warning(":saveFile: no scheduled emission point")
+
+            basedir = os.path.join(MANAGED_AIRPORT_AODB, "debug")
+            if not os.path.exists(basedir):
+                os.mkdir(basedir)
+                logger.info(f":saveFile: directory {basedir} does not exist. created.")
+
             # Try to save situation...
+            fnbase = os.path.join(basedir, f"debug-{ident}-{datetime.now().isoformat()}-")
             self.move.saveFile()
-            # with open("debug.out", "w") as fp:
-            #     json.dump(self.getMeta(), fp, indent=4)
-            #     json.dump(self.getInfo(), fp, indent=4)
-            #     json.dump(self.move.getInfo(), fp, indent=4)
+            with open(fnbase + "meta.out", "w") as fp:
+                json.dump(self.getMeta(), fp, indent=4)
+            with open(fnbase + "debug-emit-info.out", "w") as fp:
+                json.dump(self.getInfo(), fp, indent=4)
+            with open(fnbase + "debug-emit-data.geojson", "w") as fp:
+                json.dump(FeatureCollection(features=cleanFeatures(self._emit)), fp, indent=4)
+            with open(fnbase + "debug-move-info.out", "w") as fp:
+                json.dump(self.move.getInfo(), fp, indent=4)
+            with open(fnbase + "debug-move-emit-data.geojson", "w") as fp:
+                json.dump(FeatureCollection(features=cleanFeatures(self.moves)), fp, indent=4)
+            with open(fnbase + "debug-move-move-data.geojson", "w") as fp:
+                json.dump(FeatureCollection(features=cleanFeatures(self.move.moves)), fp, indent=4)
+            logger.warning(f":saveFile: written debug files {fnbase}")
+
             return (False, "Emit::saveFile: no scheduled emission point")
 
         logger.debug(f":saveFile: ***** there are {len(self.scheduled_emit)} points")
@@ -415,8 +432,11 @@ class Emit(Messages):
             logger.debug(f":emit: adding {currpos.getMark()}..")
 
 
-        time_to_next_emit = randrange(self.frequency)  # we could actually random from (0..self.frequency) to randomly start broadcast
+        time_to_next_emit = 0 ## randrange(self.frequency)  # we could actually random from (0..self.frequency) to randomly start broadcast
+        # if time_to_next_emit == 0
+        #     time_to_next_emit = self.frequency
         first_time_to_next_emit = time_to_next_emit
+        logger.debug(f":emit: first_time_to_next_emit: {first_time_to_next_emit}")
 
         # Add first point, we emit it if time_to_next_emit == 0
         emit_point(curridx, currpos, total_time, "start", time_to_next_emit == 0)
@@ -435,6 +455,15 @@ class Emit(Messages):
             if emit_details:
                 logger.debug(f":emit: *****: {curridx}: {time_to_next_emit} sec to next emit, {time_to_next_vtx} sec to next vertex")
             ## logger.debug(":emit: START: %d: %f sec to next emit, %f sec to next vertex" % (curridx, time_to_next_emit, time_to_next_vtx))
+
+            if time_to_next_emit == 0:  # need to emit now
+                if emit_details:
+                    logger.debug(f":emit: time to emit now.. ({curridx}, {time_to_next_emit}, {time_to_next_vtx})")  # if we are here, we know we will not reach the next vertex
+                emit_point(curridx, currpos, total_time, f"time to emit now at {curridx}")
+                time_to_next_emit = future_emit
+                if emit_details:
+                    logger.debug(f":emit: done emiting now. continuing..")  # if we are here, we know we will not reach the next vertex
+                continue
 
             if (time_to_next_emit > 0) and (time_to_next_emit < future_emit) and (time_to_next_emit < time_to_next_vtx):
                 # We need to emit before next vertex
@@ -563,17 +592,23 @@ class Emit(Messages):
         ####logger.debug(f":emit: summary: {timedelta(seconds=total_time)} vs {timedelta(seconds=self.moves[-1].time())}, {round(total_dist/1000, 3)} vs {round(total_dist_vtx/1000, 3)} km, {len(self.moves)} vs {len(self._emit)}")
         move_marks = self.move.getMarkList()
         emit_marks = self.getMarkList()
+        emit_moves_marks = self.getMoveMarkList()
         # if self.emit_type == "service"
         if len(move_marks) != len(emit_marks):
             logger.debug(f":emit: move: {type(self.move)}")
 
             logger.warning(f":emit: move mark list differs from emit mark list ({first_time_to_next_emit})")
+
             logger.debug(f":emit: move mark list (len={len(move_marks)}): {move_marks}")
             miss = list(filter(lambda f: f not in move_marks, emit_marks))
             logger.debug(f":emit: not in move list: {miss}")
+
+            logger.debug(f":emit: emit.moves (move.getMoves()) mark list (len={len(emit_moves_marks)}): {emit_moves_marks}")
+
             logger.debug(f":emit: mark list (len={len(emit_marks)}): {emit_marks}")
             miss = list(filter(lambda f: f not in emit_marks, move_marks))
             logger.debug(f":emit: not in emit list: {miss}")
+
         logger.debug(f":emit: generated {len(self._emit)} points")
         # printFeatures(self._emit, "emit_point", True)
         self.version = self.version + 1
@@ -649,6 +684,14 @@ class Emit(Messages):
     def getMarkList(self):
         l = set()
         [l.add(f.getMark()) for f in self._emit]
+        if None in l:
+            l.remove(None)
+        return l
+
+
+    def getMoveMarkList(self):
+        l = set()
+        [l.add(f.getMark()) for f in self.moves]
         if None in l:
             l.remove(None)
         return l
