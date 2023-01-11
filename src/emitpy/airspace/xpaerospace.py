@@ -128,6 +128,36 @@ class XPAerospace(Aerospace):
         return self.airac_cycle
 
 
+    def load(self):
+        status = super().load()
+        if not status[0]:
+            return status
+        return self.loadUser()
+
+
+    def loadUser(self):
+        return [True, f"Aerospace USER DATA not loaded ({type(self).__name__})"]
+
+        status = self.loadNavaids(prefix = "user")
+        if not status[0]:
+            return status
+
+        status = self.loadFixes(prefix = "user")
+        if not status[0]:
+            return status
+
+        if self.load_airways:
+            status = self.loadAirwaySegments(prefix = "user")
+            if not status[0]:
+                return status
+
+        status = self.loadHolds(prefix = "user")
+        if not status[0]:
+            return status
+
+        return [True, f"Aerospace USER DATA loaded ({type(self).__name__})"]
+
+
     def loadAirports(self):
         """
         Loads all airports from a csv file.
@@ -225,13 +255,13 @@ class XPAerospace(Aerospace):
         logger.warning(f":checkFile: could not find header in {filename}")
         return [False, []]
 
-    def loadFixes(self):
+    def loadFixes(self, prefix: str = "earth"):
         """
         Loads X-Plane fixes database.
         """
         startLen = len(self.vert_dict.keys())
         count = 0
-        filename = os.path.join(self.basename, "earth_fix.dat")
+        filename = os.path.join(self.basename, prefix + "_fix.dat")
         ret = self.checkFile(filename)
         if not ret[0]:
             return [False, "XPAerospace::Fixes could not find header"]
@@ -303,13 +333,13 @@ class XPAerospace(Aerospace):
         return [True, "XPAerospace::Fixes loaded"]
 
 
-    def loadNavaids(self):
+    def loadNavaids(self, prefix: str = "earth"):
         """
         Loads X-Plane navigation aids database. Additional data (frequencies, etc.) is not loaded.
         """
         startLen = len(self.vert_dict.keys())
         count = 0
-        filename = os.path.join(self.basename, "earth_nav.dat")
+        filename = os.path.join(self.basename, prefix + "_nav.dat")
         ret = self.checkFile(filename)
         if not ret[0]:
             return [False, "XPAerospace::Navaids could not find header"]
@@ -550,7 +580,7 @@ class XPAerospace(Aerospace):
         return d
 
 
-    def loadAirwaySegments(self):
+    def loadAirwaySegments(self, prefix: str = "earth"):
         """
         Loads airway segments from X-Plane segments database.
         """
@@ -559,7 +589,7 @@ class XPAerospace(Aerospace):
         #   LAS K2  3 SUVIE K2 11 N 2 180 450 J100-J9
         #
         #
-        filename = os.path.join(self.basename, "earth_awy.dat")
+        filename = os.path.join(self.basename, prefix + "_awy.dat")
         ret = self.checkFile(filename)
         if not ret[0]:
             return [False, "XPAerospace::AirwaySegments could not find header"]
@@ -620,7 +650,7 @@ class XPAerospace(Aerospace):
         return [True, "XPAerospace::AirwaySegments loaded"]
 
 
-    def loadHolds(self):
+    def loadHolds(self, prefix: str = "earth"):
         """
         Loads holding positions and patterns from X-Plane holds databaes.
         """
@@ -633,7 +663,7 @@ class XPAerospace(Aerospace):
                 return (lat > latmin) and (lat < latmax) and (lon > lonmin) and (lon < lonmax)
             return True
 
-        filename = os.path.join(self.basename, "earth_hold.dat")
+        filename = os.path.join(self.basename, prefix + "_hold.dat")
         ret = self.checkFile(filename)
         if not ret[0]:
             return [False, "XPAerospace::Holds could not find header"]

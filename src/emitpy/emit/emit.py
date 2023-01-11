@@ -352,27 +352,34 @@ class Emit(Messages):
                     emit_time = curr_time + time_to_next_emit
                     emit_point(idx, pos, emit_time, reason, False) # waypt=False to emit
                     end_time = curr_time + pause
-                    time_left = self.frequency - pause - time_to_next_emit
-                    # logger.debug(f":pause_at_vertex: pause before next emit: emit at vertex i={idx} p={pause}, e={len(self._emit)}")
+                    time_left = self.frequency - (pause - time_to_next_emit)
+                    logger.debug(f":pause_at_vertex: pause before next emit: emit at vertex i={idx} p={pause}, e={len(self._emit)}")
                     return (end_time, time_left)
-                else:  # pause but carry on later
+                else:  # pause a little but not enough to emit
                     end_time = curr_time + pause
                     time_left = time_to_next_emit - pause
-                    # logger.debug(f":pause_at_vertex: pause but do not emit: no emission i={idx} p={pause}, e={len(self._emit)}")
+                    logger.debug(f":pause_at_vertex: pause a little but do not emit at vertex: no emission i={idx} p={pause}, e={len(self._emit)}")
                     return (end_time, time_left)
             else:
+                # we first emit at vertex at due time, if we had a mark, we WRITE it.
                 emit_time = curr_time + time_to_next_emit
                 emit_point(idx, pos, emit_time, reason, False)
+                # then we will pause at vertex long enough until we restart moving at end of pause
                 pause_remaining = pause - time_to_next_emit
-                pos2 = pos.copy()
+                has_mark = pos.getMark()
+                pos2 = pos.copy()  # then if we had a mark, we ERASE IT so that it does not get copied each time
                 pos2.setMark(None) # clean mark during pause, otherwise it gets replicated each time...
                 # logger.debug(f":pause_at_vertex: pause at time remaining: {pause_remaining}")
+                debug = True
                 while pause_remaining > 0:
                     emit_time = emit_time + self.frequency
                     emit_point(idx, pos2, emit_time, reason, False)
-                    # logger.debug(f":pause_at_vertex: more pause: {pause_remaining}")
+                    if debug:
+                        logger.debug(f":pause_at_vertex: more pause: {pause_remaining} ({len(self._emit)}), no mark written (has mark {has_mark})")
+                        debug = False
                     pause_remaining = pause_remaining - self.frequency
-                time_left = pause_remaining + self.frequency
+                time_left = self.frequency + pause_remaining  # pause_remaining < 0 !
+                logger.debug(f":pause_at_vertex: end pause: {time_left} ({len(self._emit)}), no mark written (has mark {has_mark})")
                 return (emit_time, time_left)
         #
         #

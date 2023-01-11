@@ -387,9 +387,9 @@ class CIFP:
         self.RWYS = {}
 
         self.basename = DEFAULT_DATA_DIR
-        fn = os.path.join(CUSTOM_DATA_DIR, "earth_nav.dat")
-        if os.path.exists(fn):
-            logger.debug(f":init: custom data directory exist, using it")
+        fn = os.path.join(CUSTOM_DATA_DIR, "CIFP")
+        if os.path.isdir(fn):
+            logger.debug(f":init: CIFP custom data directory exist, using it")
             self.basename = CUSTOM_DATA_DIR
 
         self.loadFromFile()

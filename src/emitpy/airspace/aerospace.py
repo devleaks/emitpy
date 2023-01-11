@@ -660,7 +660,7 @@ class Aerospace(Graph, ABC):
 
 
     @abstractmethod
-    def loadFixes(self):
+    def loadFixes(self, prefix: str = "earth"):
         """
         Loads fixes.
         """
@@ -668,7 +668,7 @@ class Aerospace(Graph, ABC):
 
 
     @abstractmethod
-    def loadNavaids(self):
+    def loadNavaids(self, prefix: str = "earth"):
         """
         Loads navaids.
         """
@@ -676,7 +676,7 @@ class Aerospace(Graph, ABC):
 
 
     @abstractmethod
-    def loadAirwaySegments(self):
+    def loadAirwaySegments(self, prefix: str = "earth"):
         """
         Loads airway segments.
         """
@@ -692,7 +692,7 @@ class Aerospace(Graph, ABC):
 
 
     @abstractmethod
-    def loadHolds(self):
+    def loadHolds(self, prefix: str = "earth"):
         """
         Loads holding points, their characteristics, and their restrictions.
         """

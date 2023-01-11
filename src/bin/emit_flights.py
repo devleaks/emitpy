@@ -34,7 +34,7 @@ queue = "raw"
 rate = [15, 10]
 
 cnt = 0
-cnt_begin = random.randint(0, len(flights))
+cnt_begin = 345 # random.randint(0, len(flights))
 cnt_end = cnt_begin + NUM_FLIGHTS
 
 # Here we go..
@@ -43,7 +43,7 @@ logger.info(f"File contains {len(flights)} flights. Generating from from {cnt_be
 e = EmitApp(MANAGED_AIRPORT_ICAO)
 
 # Internal global vars
-now = datetime.now().replace(tzinfo=e.local_timezone)
+now = datetime.fromisoformat("2022-12-28 15:55:38.145250+00:00") # datetime.now().replace(tzinfo=e.local_timezone)
 first_dt = None
 icao = {}
 
@@ -56,6 +56,8 @@ for r in flights[cnt_begin:cnt_end]:
     IS ARRIVAL;AIRLINE CODE;FLIGHT NO;AIRPORT;FLIGHT SCHEDULED TIME;FLIGHT ACTUAL TIME;
     REGISTRATION NO;AC TYPE;AC TYPE IATA;RAMP
     """
+    ret = None
+
     if r['REGISTRATION NO'] not in icao.keys():
         icao[r['REGISTRATION NO']] = f"{random.getrandbits(24):x}"
 
@@ -92,7 +94,7 @@ for r in flights[cnt_begin:cnt_end]:
                           do_services=DO_SERVICE,
                           actual_datetime=dtnow.isoformat())
 
-        if ret.status != 0:
+        if ret is not None and ret.status != 0:
             logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
             logger.warning(ret)
             logger.warning(f"print(e.do_flight('raw', 30, '{r['AIRLINE CODE']}', '{r['FLIGHT NO']}',"
@@ -101,8 +103,12 @@ for r in flights[cnt_begin:cnt_end]:
                 + f" '{icao[r['REGISTRATION NO']]}', '{r['REGISTRATION NO']}', 'RW16L'))")
 
     except Exception as ex:
-        logger.error(f"EXCEPTION around line {cnt}: {ret.status}" + ">=" * 30)
-        logger.error(ret)
+        if ret is not None:
+            logger.error(f"EXCEPTION around line {cnt}: {ret.status}" + ">=" * 30)
+            # logger.error(ret, exc_info=True)
+        else:
+            logger.error("EXCEPTION but no return status", exc_info=True)
+
         ## logger.error(e)
         logger.warning(f"print(e.do_flight('raw', 30, '{r['AIRLINE CODE']}', '{r['FLIGHT NO']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT']}',"
