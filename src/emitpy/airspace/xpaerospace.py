@@ -128,8 +128,8 @@ class XPAerospace(Aerospace):
         return self.airac_cycle
 
 
-    def load(self):
-        status = super().load()
+    def load(self, redis = None):
+        status = super().load(redis=redis)
         if not status[0]:
             return status
         return self.loadUser()
