@@ -6,15 +6,12 @@ import os
 import logging
 
 import emitpy
-from timezonefinder import TimezoneFinder
-from zoneinfo import ZoneInfo
-from datetime import datetime, timezone
+from datetime import datetime
 
 from emitpy.airspace import Metar
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftTypeWithPerformance
 from emitpy.airport import Airport
-from emitpy.utils import Timezone
 
 # All base directories will be checked and created if non existent
 from emitpy.constants import FEATPROP
@@ -43,14 +40,9 @@ class ManagedAirport:
         self.last_updated = None
 
         self.operator = None
-
-        self.tzoffset = None
-        self.tzname = None
         self.timezone = None
 
         self.setAirportDetails()
-        self.setTimezone()
-
 
     def init(self, load_airways: bool = True):
         """
@@ -90,6 +82,8 @@ class ManagedAirport:
             with open(airport_cache, "wb") as fp:
                 pickle.dump(self.airport, fp)
             logger.debug("..done")
+
+        self.timezone = self.airport.getTimezone()
 
         # Now caching Airspace with pickle (~ 100MB)
         airspace_cache = os.path.join(CACHE_DIR, "aerospace.pickle")
@@ -218,34 +212,6 @@ class ManagedAirport:
                     os.makedirs(d)
                     logger.info(f":mkdirs: created directory {d}")
         return (True, "ManagedAirport::init done")
-
-    def setTimezone(self):
-        """
-        Build a python datetime tzinfo object for the airport local timezone.
-        Since python does not have a reference to all timezone, we rely on:
-        - pytz, a python implementation of  (at https://pythonhosted.org/pytz/, https://github.com/stub42/pytz)
-        - timezonefinder, a python package that finds the timezone of a (lat,lon) pair (https://github.com/jannikmi/timezonefinder).
-        """
-        if self.tzoffset is not None and self.tzname is not None:
-            self.timezone =  Timezone(offset=self.tzoffset, name=self.tzname)
-            logger.debug(":setTimezone: timezone set from offset/name")
-        elif self.latitude is not None:
-            tf = TimezoneFinder()
-            tzname = tf.timezone_at(lng=self.longitude, lat=self.latitude)
-            if tzname is not None:
-                tzinfo = ZoneInfo(tzname)
-                if tzinfo is not None:
-                    self.tzname = tzname
-                    self.tzoffset = round(datetime.now(tz=tzinfo).utcoffset().seconds / 3600, 1)
-                    # self.timezone = tzinfo  # is 100% correct too
-                    self.timezone = Timezone(offset=self.tzoffset, name=self.tzname)
-                    logger.debug(f":setTimezone: timezone set from TimezoneFinder ({tzname})")
-                else:
-                    logger.error(":setTimezone: ZoneInfo timezone not found")
-            else:
-                logger.error(":setTimezone: TimezoneFinder timezone not found")
-        else:
-            logger.error(":setTimezone: cannot set airport timezone")
 
     def update_metar(self):
         """

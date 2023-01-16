@@ -353,8 +353,8 @@ class Ramp(FeatureWithProps):
         self.ac_nose = None
 
     def getInfo(self):
-        a = self.getName()[0]  # Special OTHH
-        if a == "5":
+        a = self.getName()[0]
+        if a == "5":  # Special OTHH
             a = "J"
 
         return {

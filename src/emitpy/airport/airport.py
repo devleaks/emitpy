@@ -16,6 +16,10 @@ import random
 import operator
 from abc import ABC, abstractmethod
 
+from timezonefinder import TimezoneFinder
+from zoneinfo import ZoneInfo
+from datetime import datetime, timezone
+
 from turfpy.measurement import distance
 
 from emitpy.graph import Graph
@@ -25,7 +29,7 @@ from emitpy.airspace import CIFP
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR
 from emitpy.geo import FeatureWithProps, Ramp, Runway
-from emitpy.utils import FT, key_path, rejson
+from emitpy.utils import Timezone, FT, key_path, rejson
 
 logger = logging.getLogger("Airport")
 
@@ -52,6 +56,10 @@ class Airport(Location):
         self._rawdata = {}
         self.airlines = {}
         self.hub = {}
+
+        self.tzname = None
+        self.tzoffset = None
+        self.timezone = None
 
     @staticmethod
     def loadAll():
@@ -318,6 +326,37 @@ class Airport(Location):
             redis.delete(key_path(base, self.icao[0:2], self.getKey()))
             # redis.set(key_path(base, self.icao[0:2], self.getKey()), json.dumps(self.getInfo()))
             redis.json().set(key_path(base, self.icao[0:2], self.getKey()), "$", self.getInfo())
+
+
+    def getTimezone(self):
+        """
+        Build a python datetime tzinfo object for the airport local timezone.
+        Since python does not have a reference to all timezone, we rely on:
+        - pytz, a python implementation of  (at https://pythonhosted.org/pytz/, https://github.com/stub42/pytz)
+        - timezonefinder, a python package that finds the timezone of a (lat,lon) pair (https://github.com/jannikmi/timezonefinder).
+        """
+        if self.tzoffset is not None and self.tzname is not None:
+            self.timezone =  Timezone(offset=self.tzoffset, name=self.tzname)
+            logger.debug(":setTimezone: timezone set from offset/name")
+        elif self.latitude is not None and self.longitude is not None:
+            tf = TimezoneFinder()
+            tzname = tf.timezone_at(lng=self.longitude, lat=self.latitude)
+            if tzname is not None:
+                tzinfo = ZoneInfo(tzname)
+                if tzinfo is not None:
+                    self.tzname = tzname
+                    self.tzoffset = round(datetime.now(tz=tzinfo).utcoffset().seconds / 3600, 1)
+                    # self.timezone = tzinfo  # is 100% correct too
+                    self.timezone = Timezone(offset=self.tzoffset, name=self.tzname)
+                    logger.debug(f":getTimezone: timezone set from TimezoneFinder ({tzname})")
+                else:
+                    logger.error(":getTimezone: ZoneInfo timezone not found")
+            else:
+                logger.error(":getTimezone: TimezoneFinder timezone not found")
+        else:
+            logger.error(":getTimezone: cannot set airport timezone")
+
+        return self.timezone
 
 
 
