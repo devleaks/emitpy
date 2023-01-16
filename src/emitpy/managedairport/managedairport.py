@@ -1,14 +1,12 @@
 """
 Assembly class to collect aerospace, managed airport, airport manager...
 """
-import pickle
 import os
 import logging
 
 import emitpy
 from datetime import datetime
 
-from emitpy.airspace import Metar
 from emitpy.business import Airline, Company
 from emitpy.aircraft import AircraftType, AircraftTypeWithPerformance
 from emitpy.airport import Airport
@@ -56,56 +54,15 @@ class ManagedAirport:
             return status
 
         # Now caching ManagedAirport with pickle (~ 100MB)
-        airport_cache = os.path.join(MANAGED_AIRPORT_CACHE, "airport.pickle")
-        if os.path.exists(airport_cache):
-            logger.debug("loading managed airport from pickle..")
-            with open(airport_cache, "rb") as fp:
-                self.airport = pickle.load(fp)
-            logger.debug("..done")
-        else:
-            logger.debug("..loading managed airport..")
-            self.airport = self._app._managedairport(
-                icao=self.icao,
-                iata=self.iata,
-                name=self.name,
-                city=self.city,
-                country=self.country,
-                region=self.region,
-                lat=self.latitude,
-                lon=self.longitude,
-                alt=self.altitude)
-            ret = self.airport.load()
-            if not ret[0]:
-                logger.warning("Managed airport not loaded")
-                return ret
-            logger.debug("..pickling airport..")
-            with open(airport_cache, "wb") as fp:
-                pickle.dump(self.airport, fp)
-            logger.debug("..done")
+        logger.debug("loading managed airport..")
 
+        self.airport = self._app._managedairport.new(cache=MANAGED_AIRPORT_CACHE, apt=self.getAirportDetails())
+        logger.debug("..initializing managed airport..")
         self.timezone = self.airport.getTimezone()
 
         # Now caching Airspace with pickle (~ 100MB)
-        airspace_cache = os.path.join(CACHE_DIR, "aerospace.pickle")
-        if os.path.exists(airspace_cache):
-            logger.debug("loading aerospace from pickle..")
-            with open(airspace_cache, "rb") as fp:
-                airspace = pickle.load(fp)
-            logger.debug("..done")
-        else:
-            airspace = self._app._aerospace(load_airways=load_airways)
-            logger.debug("loading aerospace..")
-            ret = airspace.load(self._app.redis)
-            if not ret[0]:
-                logger.warning("Aerospace not loaded")
-                return ret
-            if load_airways:  # we only save the airspace if it contains everything
-                logger.debug("..pickling aerospace..")
-                with open(airspace_cache, "wb") as fp:
-                    pickle.dump(airspace, fp)
-            logger.debug("..done")
-
-        logger.debug("loading managed airport..")
+        logger.debug("..loading airspace..")
+        airspace = self._app._aerospace.new(cache=CACHE_DIR, load_airways=load_airways, redis=self._app.redis)
 
         if not self._app._use_redis:  # load from data files
             logger.debug("..loading airlines..")
@@ -126,7 +83,7 @@ class ManagedAirport:
         manager = self._app._airportmanager(icao=self.icao, operator=operator)
         ret = manager.load(self._app.redis)
         if not ret[0]:
-            logger.warning("..airport manager !** not loaded **!")
+            logger.error("..airport manager !** not loaded **!")
             return ret
 
         logger.debug("..setting managed airport resources..")
@@ -135,7 +92,7 @@ class ManagedAirport:
         self.airport.setManager(manager)
         ret = manager.init(self.airport)  # passed to get runways and ramps
         if not ret[0]:
-            logger.warning("..airport manager !** not initialized **!")
+            logger.error("..airport manager !** not initialized **!")
             return ret
 
         logger.debug("..updating metar..")
@@ -161,8 +118,6 @@ class ManagedAirport:
             "elevation": self.altitude, # meters ASL
             "lat": self.latitude,
             "lon": self.longitude,
-            "tzoffset": self.tzoffset,
-            "tzname": self.tzname,
             "operator": self.operator
         }
 
@@ -220,11 +175,7 @@ class ManagedAirport:
         at regular interval. (It will, sometimes, be automatic (Thread).)
         (Let's dream, someday, it will load, parse and interpret TAF.)
         """
-        logger.debug(":update_metar: collecting METAR..")
-        # Prepare airport for each movement
-        metar = Metar.new(icao=self.icao, redis=self._app.redis)
-        self.airport.setMETAR(metar=metar)  # calls prepareRunways()
-        logger.debug(":update_metar: ..done")
+        self.airport.update_metar()  # calls prepareRunways()
 
     def loadFromCache(self, dbid: int = 0):
         """

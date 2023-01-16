@@ -20,7 +20,7 @@ from emitpy.broadcast import Format, EnqueueToRedis, Queue
 from emitpy.constants import SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, LIVETRAFFIC_QUEUE, LIVETRAFFIC_FORMATTER
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, AIRAC_CYCLE
-from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT, METAR_HISTORICAL, XPLANE_FEED
+from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT, XPLANE_FEED
 from emitpy.airport import Airport, AirportWithProcedures, XPAirport
 from emitpy.airspace import Metar, XPAerospace
 from emitpy.utils import NAUTICAL_MILE
@@ -268,15 +268,10 @@ class EmitApp(ManagedAirport):
 
         logger.debug(":do_flight: ..collecting metar for remote airport..")
         dt2 = datetime.now().astimezone(self.timezone) - timedelta(days=1)
-        if METAR_HISTORICAL and scheduled_dt < dt2:  # issues with web site to fetch historical metar.
-            logger.debug(f":do_flight: ..historical.. ({scheduled})")
-            remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis, method="MetarHistorical")
-            remote_metar.setDatetime(moment=scheduled_dt)
-            if not remote_metar.hasMetar():  # couldn't fetch historical, use current
-                remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
+        if scheduled_dt < dt2:
+            remote_apt.update_metar(moment=scheduled_dt, redis=self.redis) 
         else:
-            remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
-        remote_apt.setMETAR(metar=remote_metar)  # calls prepareRunways()
+            remote_apt.update_metar(redis=self.redis) 
         logger.debug(":do_flight: ..done")
 
         logger.debug(":do_flight: loading aircraft..")

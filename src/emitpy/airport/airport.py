@@ -12,6 +12,7 @@ import os
 import csv
 import json
 import logging
+import pickle
 import random
 import operator
 from abc import ABC, abstractmethod
@@ -25,9 +26,9 @@ from turfpy.measurement import distance
 from emitpy.graph import Graph
 from emitpy.geo import Location
 
-from emitpy.airspace import CIFP
+from emitpy.airspace import CIFP, Metar
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
-from emitpy.parameters import DATA_DIR
+from emitpy.parameters import DATA_DIR, METAR_HISTORICAL
 from emitpy.geo import FeatureWithProps, Ramp, Runway
 from emitpy.utils import Timezone, FT, key_path, rejson
 
@@ -338,9 +339,9 @@ class Airport(Location):
         if self.tzoffset is not None and self.tzname is not None:
             self.timezone =  Timezone(offset=self.tzoffset, name=self.tzname)
             logger.debug(":setTimezone: timezone set from offset/name")
-        elif self.latitude is not None and self.longitude is not None:
+        elif self.lat() is not None and self.lon() is not None:
             tf = TimezoneFinder()
-            tzname = tf.timezone_at(lng=self.longitude, lat=self.latitude)
+            tzname = tf.timezone_at(lng=self.lon(), lat=self.lat())
             if tzname is not None:
                 tzinfo = ZoneInfo(tzname)
                 if tzinfo is not None:
@@ -358,6 +359,27 @@ class Airport(Location):
 
         return self.timezone
 
+
+    def update_metar(self, moment: str = None, redis = None):
+        """
+        Update METAR data for managed airport.
+        If self instance is loaded for a long time, this procedure should be called
+        at regular interval. (It will, sometimes, be automatic (Thread).)
+        (Let's dream, someday, it will load, parse and interpret TAF.)
+        """
+
+        # if moment is not None and METAR_HISTORICAL:  # issues with web site to fetch historical metar.
+        #     logger.debug(f":update_metar: ..historical.. ({scheduled})")
+        #     remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis, method="MetarHistorical")
+        #     remote_metar.setDatetime(moment=scheduled_dt)
+        #     if not remote_metar.hasMetar():  # couldn't fetch historical, use current
+        #         remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
+
+        logger.debug(":update_metar: collecting METAR..")
+        # Prepare airport for each movement
+        metar = Metar.new(icao=self.icao, redis=redis)
+        self.setMETAR(metar=metar)  # calls prepareRunways()
+        logger.debug(":update_metar: ..done")
 
 
 # ################################
@@ -697,6 +719,40 @@ class ManagedAirportBase(AirportWithProcedures):
         self.ramps = {}                 # GeoJSON Features
         self.service_destinations = {}  # GeoJSON Features
 
+
+    @classmethod
+    def new(cls, cache, apt):
+        airport = None
+        airport_cache = os.path.join(cache, "airport.pickle")
+        if os.path.exists(airport_cache):
+            logger.debug("loading managed airport from pickle..")
+            with open(airport_cache, "rb") as fp:
+                airport = pickle.load(fp)
+            logger.debug("..done")
+        else:
+            logger.debug("creating managed airport..")
+            airport = cls(
+                icao=apt["ICAO"],
+                iata=apt["IATA"],
+                name=apt["name"],
+                city=apt["city"],
+                country=apt["country"],
+                region=apt["regionName"],
+                lat=apt["lat"],
+                lon=apt["lon"],
+                alt=apt["elevation"])
+            logger.debug("..loading managed airport..")
+            ret = airport.load()
+            if not ret[0]:
+                logger.error("..managed airport **not loaded!**")
+                return ret
+            logger.debug("..pickling airport..")
+            with open(airport_cache, "wb") as fp:
+                pickle.dump(airport, fp)
+            logger.debug("..done")
+        return airport
+
+
     def setAirspace(self, airspace):
         """
         Set airport airspace definition.
@@ -953,4 +1009,3 @@ class ManagedAirportBase(AirportWithProcedures):
                         logger.debug(f":pairRunways: {self.icao}: {r.getProp(FEATPROP.NAME.value)} and {rw} paired as {uuid}")
                     else:
                         logger.warning(f":pairRunways: {self.icao}: {rw} ont found to pair {r.getProp(FEATPROP.NAME.value)}")
-

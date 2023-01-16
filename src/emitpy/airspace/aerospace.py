@@ -3,6 +3,8 @@
 # The Airspace class is a network of air routes. It is an abstract class for building application-usable airspaces
 # used for aircraft movements.
 #
+import os
+import pickle
 import logging
 import math
 import json
@@ -63,6 +65,7 @@ class Restriction:
         self.speedmax = speedmax
         # Bank angle constrains
         self.angle = None           # Bank angle in °.
+
 
     def getInfo(self):
         return {
@@ -617,6 +620,31 @@ class Aerospace(Graph, ABC):
         self.all_points = {}
         self.holds = {}
         self.airspaces = {}
+
+
+    @classmethod
+    def new(cls, load_airways: bool, cache: str, redis):
+        airspace = None
+        airspace_cache = os.path.join(cache, "aerospace.pickle")
+        if os.path.exists(airspace_cache):
+            logger.debug("loading aerospace from pickle..")
+            with open(airspace_cache, "rb") as fp:
+                airspace = pickle.load(fp)
+            logger.debug("..done")
+        else:
+            logger.debug("creating aerospace..")
+            airspace = cls(load_airways=load_airways)
+            logger.debug("..loading aerospace..")
+            ret = airspace.load(redis)
+            if not ret[0]:
+                logger.error("..aerospace **not loaded!**")
+                return ret
+            if load_airways:  # we only save the airspace if it contains everything
+                logger.debug("..pickling aerospace..")
+                with open(airspace_cache, "wb") as fp:
+                    pickle.dump(airspace, fp)
+            logger.debug("..done")
+        return airspace
 
 
     def load(self, redis = None):
