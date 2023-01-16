@@ -8,13 +8,13 @@ import random
 import json
 
 from math import inf
-from geojson import Point, Feature
+from geojson import Point, Feature, FeatureCollection
 from turfpy.measurement import distance, destination, bearing
 
 from emitpy.graph import Vertex, Edge, USAGE_TAG
 from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, FeatureWithProps, ls_length, ls_point_at
 from emitpy.parameters import DATA_DIR, XPLANE_DIR, MANAGED_AIRPORT_DIR
-from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE
+from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE, SERVICE
 from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP
 from emitpy.utils import key_path, rejson
 
@@ -433,6 +433,9 @@ class XPAirport(ManagedAirportBase):
         """
         self.loadGeometries("aeroway-pois.geojson")
         self.aeroway_pois = {}
+        if self.data is None:
+            self.data = self.getDefaultAerowaysPOIS()
+            logger.warning(f":loadAerowaysPOIS: no feature found, using defaults")
         if self.data is not None and "features" in self.data:  # parse runways
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
@@ -464,6 +467,9 @@ class XPAirport(ManagedAirportBase):
         """
         self.loadGeometries("service-pois.geojson")
         self.service_pois = {}
+        if self.data is None:
+            self.data = self.getDefaultServicePOIS()
+            logger.warning(f":loadServicePOIS: no feature found, using defaults")
         if self.data is not None and "features" in self.data:  # parse runways
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
@@ -503,6 +509,9 @@ class XPAirport(ManagedAirportBase):
         """
         self.loadGeometries("check-pois.geojson")
         self.check_pois = {}
+        if self.data is None:
+            self.data = self.getDefaultServicePOIS()
+            logger.warning(f":loadCheckpointPOIS: no feature found, using defaults")
         if self.data is not None and "features" in self.data:
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
@@ -951,4 +960,41 @@ class XPAirport(ManagedAirportBase):
         # logger.debug(f":getCombo: {self.all_pois_combo.keys()}")
         return self.getPOICombo()
 
+    def getDefaultAerowaysPOIS(self):
+        return None
+        
+    def getDefaultCheckpoints(self):
+        return FeatureCollection(features=[FeatureWithProps(
+            geometry=self.geometry(),
+            properties={
+                "poi-type": "checkpoint",
+                "service": "checkpoint",
+                "name": "default checkpoint"
+        })])
 
+    def getDefaultServicePOIS(self):
+        return FeatureCollection(features=self.getCentralRestArea() + self.getCentralDepots())
+
+    def getCentralRestArea(self):
+        return [FeatureWithProps(
+            geometry=self.geometry(),
+            properties={
+                "poi-type": "rest-area",
+                "service": "*",
+                "name": "default central parking"
+        })]
+
+    def getCentralDepot(self, service: str):
+        return FeatureWithProps(
+            geometry=self.geometry(),
+            properties={
+                "poi-type": "service",
+                "service": service,
+                "name": "default depot " + str(service)
+            })
+
+    def getCentralDepots(self):
+        fc = []
+        for s in SERVICES:
+            fc.append(self.getCentralDepot(s.value))
+        return fc
