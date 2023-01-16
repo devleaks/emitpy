@@ -270,28 +270,31 @@ class Flight(Messages):
 
     def _setRunway(self, move):
         if self.rwy is not None:
-            self.runway = move.getRunway(self.rwy)
-            if self.runway is not None:
-                name = self.runway.getResourceId()
-                # if name[0:2] != "RW":  # add it
-                #     logger.debug(f":_setRunway: correcting: RW+{name}")
-                #     name = "RW" + name
-                am = self.managedAirport.airport.manager
-                if name in am.runway_allocator.resources.keys():
-                    reqtime = self.scheduled_dt + timedelta(minutes=20)  # time to taxi
-                    reqduration = RWY_DEPARTURE_SLOT if self.is_departure() else RWY_ARRIVAL_SLOT
-                    reqend  = reqtime + timedelta(seconds=reqduration)  # time to take-off + WTC spacing
-                    #
-                    # @TODO: If not available, should take next availability and "queue"
-                    #
-                    if am.runway_allocator.isAvailable(name, reqtime, reqend):
-                        res = am.runway_allocator.book(name, reqtime, reqend, self.getId())
-                    logger.debug(f":_setRunway: flight {self.getName()}: runway {name} ({self.rwy.name})")
+            if move is not None:
+                self.runway = move.getRunway(self.rwy)
+                if self.runway is not None:
+                    name = self.runway.getResourceId()
+                    # if name[0:2] != "RW":  # add it
+                    #     logger.debug(f":_setRunway: correcting: RW+{name}")
+                    #     name = "RW" + name
+                    am = self.managedAirport.airport.manager
+                    if name in am.runway_allocator.resources.keys():
+                        reqtime = self.scheduled_dt + timedelta(minutes=20)  # time to taxi
+                        reqduration = RWY_DEPARTURE_SLOT if self.is_departure() else RWY_ARRIVAL_SLOT
+                        reqend  = reqtime + timedelta(seconds=reqduration)  # time to take-off + WTC spacing
+                        #
+                        # @TODO: If not available, should take next availability and "queue"
+                        #
+                        if am.runway_allocator.isAvailable(name, reqtime, reqend):
+                            res = am.runway_allocator.book(name, reqtime, reqend, self.getId())
+                        logger.debug(f":_setRunway: flight {self.getName()}: runway {name} ({self.rwy.name})")
+                    else:
+                        logger.warning(f":_setRunway: resource {name} not found, runway unchanged")
+                    logger.debug(f":_setRunway: {self.getName()}: {name}")
                 else:
-                    logger.warning(f":_setRunway: resource {name} not found, runway unchanged")
-                logger.debug(f":_setRunway: {self.getName()}: {name}")
+                    logger.warning(f":_setRunway: no runway, runway unchanged")
             else:
-                logger.warning(f":_setRunway: no runway, runway unchanged")
+                 logger.warning(f":_setRunway: no move, runway unchanged")
         else:
             logger.warning(f":_setRunway: no RWY, runway unchanged")
 
@@ -359,10 +362,11 @@ class Flight(Messages):
             self.dep_procs = [rwydep]
             self.meta["departure"]["procedure"] = (rwydep.name)
         else:  # no runway, we leave from airport
-            logger.warning(f":plan: departure airport {rwydep.icao} has no runway, first point is departure airport")
-            waypoints = depapt
-            waypoints[0].setProp("_plan_segment_type", "origin")
-            waypoints[0].setProp("_plan_segment_name", depapt.icao)
+            logger.warning(f":plan: departure airport {depapt.icao} has no runway, first point is departure airport")
+            dep = depapt.copy()  # depapt.getTerminal().copy() would be more correct
+            dep.setProp("_plan_segment_type", "origin")
+            dep.setProp("_plan_segment_name", depapt.icao)
+            waypoints.append(dep)
 
         # SID
         if depapt.has_sids() and rwydep is not None:
@@ -412,6 +416,7 @@ class Flight(Messages):
             self.meta["arrival"]["procedure"] = (rwyarr.name)
         else:  # no star, we are done, we arrive in a straight line
             logger.warning(f":plan: arrival airport {arrapt.icao} has no runway, last point is arrival airport")
+            waypoints.append(arrapt) # and rwyarr is None
 
         # STAR
         star = None  # used in APPCH
@@ -449,7 +454,6 @@ class Flight(Messages):
                 logger.warning(f":plan: arrival airport {arrapt.icao} has no APPCH for {rwyarr.name} ")
         else:
             logger.warning(f":plan: arrival airport {arrapt.icao} has no APPCH")
-
 
         idx = 0
         for f in waypoints:

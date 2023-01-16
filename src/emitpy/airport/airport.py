@@ -26,7 +26,7 @@ from turfpy.measurement import distance
 from emitpy.graph import Graph
 from emitpy.geo import Location
 
-from emitpy.airspace import CIFP, Metar
+from emitpy.airspace import CIFP, Metar, Terminal
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR, METAR_HISTORICAL
 from emitpy.geo import FeatureWithProps, Ramp, Runway
@@ -61,6 +61,9 @@ class Airport(Location):
         self.tzname = None
         self.tzoffset = None
         self.timezone = None
+
+        # this is the airway network representation of this airport
+        self.terminal = Terminal(name=icao, lat=lat, lon=lon, alt=alt, iata=iata, longname=name, country=country, city=city)
 
     @staticmethod
     def loadAll():
@@ -166,7 +169,6 @@ class Airport(Location):
         return None
 
 
-
     @staticmethod
     def findIATA(iata: str, redis = None):
         """
@@ -247,6 +249,14 @@ class Airport(Location):
 
     def __str__(self):
         return f"{self['properties']['name']}, {self['properties']['city']}, {self['properties']['country']} ({self.iata}, {self.icao})"
+
+
+    def getId(self):
+        return self.terminal.getId()
+
+
+    def getTerminal(self):
+        return self.terminal
 
 
     def loadFromFile(self):
