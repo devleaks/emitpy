@@ -15,7 +15,7 @@ from emitpy.graph import Vertex, Edge, USAGE_TAG
 from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, FeatureWithProps, ls_length, ls_point_at
 from emitpy.parameters import DATA_DIR, XPLANE_DIR, MANAGED_AIRPORT_DIR
 from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE, SERVICE
-from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP
+from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP, QUEUE_GAP
 from emitpy.utils import key_path, rejson
 
 from .airport import ManagedAirportBase
@@ -58,15 +58,17 @@ class XPAirport(ManagedAirportBase):
     Managed Airport represetation extracted from X-Plane airport data files (apt.dat).
     """
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
+
         ManagedAirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+
+        self.loaded = False
+
         self.scenery_pack = False
         self.lines = []
+
+        self.service_destinations = {}  # lines
+
         self.atc_ground = None
-        self.loaded = False
-        self.procedures = None
-        self.aeroway_pois = None
-        self.service_pois = None
-        self.check_pois = {}
         self.airport_base = MANAGED_AIRPORT_DIR
         self.runway_exits = {}
         self.takeoff_queues = {}
@@ -82,11 +84,11 @@ class XPAirport(ManagedAirportBase):
         status = super().load()
         if not status[0]:
             return status
-        logger.debug(f":load: ..done. loading complement.. {status}")
+        logger.debug(f":load: ..done. loading complement..")
         status = self.makeAdditionalAerowayPOIS()
         if not status[0]:
             return status
-        logger.debug(f":load: ..done")
+        logger.debug(f":load: ..complement done")
         return [True, ":XPAirport::load loaded"]
 
 
@@ -201,15 +203,17 @@ class XPAirport(ManagedAirportBase):
             if aptline.linecode() == 100:  # runway
                 args = aptline.content().split()
                 runway = mkPolygon(float(args[8]), float(args[9]), float(args[17]), float(args[18]), float(args[0]))
-                runways[args[7]] = Runway(args[7], float(args[0]), float(args[8]), float(args[9]), float(args[17]), float(args[18]), runway)
-                runways[args[16]] = Runway(args[16], float(args[0]), float(args[17]), float(args[18]), float(args[8]), float(args[9]), runway)
-
+                runways[args[7]]  = Runway(name=args[7], width=float(args[0]), lat1=float(args[8]), lon1=float(args[9]), lat2=float(args[17]), lon2=float(args[18]), surface=runway)
+                runways[args[16]] = Runway(name=args[16], width=float(args[0]), lat1=float(args[17]), lon1=float(args[18]), lat2=float(args[8]), lon2=float(args[9]), surface=runway)
         self.runways = runways
         logger.debug(f":loadRunways: added {len(runways.keys())} runways: {runways.keys()}")
+
         logger.debug(f":loadRunways: pairing..")
         self.pairRunways()
         logger.debug(f":loadRunways: ..paired")
+
         return [True, "XPAirport::loadRunways loaded"]
+
 
     def loadRamps(self):
         """
@@ -270,7 +274,7 @@ class XPAirport(ManagedAirportBase):
         """
         def addVertex(aptline):
             args = aptline.content().split()
-            return self.taxiways.add_vertex(Vertex(node=args[3], point=Point((float(args[1]), float(args[0]))), usage=[ args[2]], name=" ".join(args[3:])))
+            return self.taxiways.add_vertex(Vertex(node=args[3], point=Point((float(args[1]), float(args[0]))), usage=[args[2]], name=" ".join(args[3:])))
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
@@ -312,6 +316,11 @@ class XPAirport(ManagedAirportBase):
                     logger.debug(":loadTaxiways: not enough params %d %s.", aptline.linecode(), aptline.content())
             else:
                 edge = False
+
+        # loadRunways() should be called before loadTaxiways()
+        logger.debug(f":loadTaxiways: finding exits..")
+        self.findRunwayExits()
+        logger.debug(f":loadTaxiways: ..found")
 
         self.taxiways.purge()
         # Info 6
@@ -431,30 +440,34 @@ class XPAirport(ManagedAirportBase):
         - Take-off Queue LineString.
         The take-off Queue LineString is used to build a collection of queueing position for takeoffs.
         """
-        self.loadGeometries("aeroway-pois.geojson")
-        self.aeroway_pois = {}
-        if self.data is None:
-            self.data = self.getDefaultAerowaysPOIS()
-            logger.warning(f":loadAerowaysPOIS: no feature found, using defaults")
-        if self.data is not None and "features" in self.data:  # parse runways
-            for f in self.data["features"]:
-                poi_type = f.getProp(FEATPROP.POI_TYPE.value)
-                if poi_type is None:
-                    logger.warning(f":loadAerowaysPOIS: feature with no poi type {f}, skipping")
-                else:
-                    poi_rwy = f.getProp(FEATPROP.RUNWAY.value)
-                    if poi_rwy is None:
-                        logger.warning(f":loadAerowaysPOIS: poi runway exit has no runway {f}, skipping")
-                    else:
-                        poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.aeroway_pois))
-                        n = poi_type + ":" + poi_rwy + ":" + poi_name
-                        f.setProp(FEATPROP.NAME.value, n)
-                        self.aeroway_pois[n] = f
 
-            logger.info(":loadAerowaysPOIS: loaded %d features.", len(self.aeroway_pois))
-            self.data = None
+        # Replaced by ManagedAirportBase.findRunwayExits
+        # Queues are currently unused.
 
-        logger.debug(f":loadAerowaysPOIS: added {len(self.aeroway_pois)} points of interest: {self.aeroway_pois.keys()}")
+        # self.loadGeometries("aeroway-pois.geojson")
+        # self.aeroway_pois = {}
+        # if self.data is None:
+        #     self.data = self.getDefaultAerowaysPOIS()
+        #     logger.warning(f":loadAerowaysPOIS: no feature found, using defaults")
+        # if self.data is not None and "features" in self.data:  # parse runways
+        #     for f in self.data["features"]:
+        #         poi_type = f.getProp(FEATPROP.POI_TYPE.value)
+        #         if poi_type is None:
+        #             logger.warning(f":loadAerowaysPOIS: feature with no poi type {f}, skipping")
+        #         else:
+        #             poi_rwy = f.getProp(FEATPROP.RUNWAY.value)
+        #             if poi_rwy is None:
+        #                 logger.warning(f":loadAerowaysPOIS: poi runway exit has no runway {f}, skipping")
+        #             else:
+        #                 poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.aeroway_pois))
+        #                 n = poi_type + ":" + poi_rwy + ":" + poi_name
+        #                 f.setProp(FEATPROP.NAME.value, n)
+        #                 self.aeroway_pois[n] = f
+
+        #     logger.info(":loadAerowaysPOIS: loaded %d features.", len(self.aeroway_pois))
+        #     self.data = None
+
+        # logger.debug(f":loadAerowaysPOIS: added {len(self.aeroway_pois)} points of interest: {self.aeroway_pois.keys()}")
         return [True, "XPAirport::loadAerowaysPOIS loaded"]
 
     def loadServicePOIS(self):
@@ -600,8 +613,6 @@ class XPAirport(ManagedAirportBase):
             de = distance(qe, rwypt)
             if de < db:  # need to inverse coordinates, we start from the TAKE-OFF HOLD position (=queue id 0)
                 line["geometry"]["coordinates"].reverse()
-
-            QUEUE_GAP = 200  # meters
 
             maxlen = ls_length(line["geometry"])
             logger.debug(f":makeQueue: {name} takeoff queue is {round(maxlen, 0)}m")

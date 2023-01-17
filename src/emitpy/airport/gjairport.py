@@ -78,7 +78,7 @@ class GeoJSONAirport(ManagedAirportBase):
 
 
     def loadPOIS(self):
-        status = self.loadServiceDestinations()
+        status = self.loadServicePOIS()
 
         if not status[0]:
             return status
@@ -87,14 +87,14 @@ class GeoJSONAirport(ManagedAirportBase):
         return [True, "GeoJSONAirport::loadPOIS loaded"]
 
 
-    def loadServiceDestinations(self):
-        self.loadGeometries("servicepois.geojson")
+    def loadServicePOIS(self):
+        self.loadJSONOrYAMLFromFile("servicepois.geojson")
 
-        if self.data is not None and "features" in self.data:  # parse runways
+        if self.data is not None:  # parse runways
             self.service_stops_geo = self.data
             self.data = None
-            logger.info(":loadServiceDestinations: added %d features.", len(self.service_stops_geo["features"]))
+            logger.info(":loadServicePOIS: added %d features.", len(self.service_stops_geo["features"]))
 
 
-        logger.debug(":loadServiceDestinations: added %d service destinations", len(self.service_destinations.keys()))
-        return [True, "GeoJSONAirport::loadServiceDestination loaded"]
+        logger.debug(":loadServicePOIS: added %d service destinations", len(self.service_pois.keys()))
+        return [True, "GeoJSONAirport::loadServicePOIS loaded"]

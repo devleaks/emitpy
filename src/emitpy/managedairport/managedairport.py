@@ -42,6 +42,7 @@ class ManagedAirport:
 
         self.setAirportDetails()
 
+
     def init(self, load_airways: bool = True):
         """
         Load entire managed airport data together with airport manager.

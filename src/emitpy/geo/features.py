@@ -3,7 +3,7 @@ GeoJSON Features with special meaning or type (class).
 """
 import copy
 import inspect
-from geojson import Polygon, Point, Feature
+from geojson import Polygon, Point, LineString, Feature
 from turfpy.measurement import bearing, destination
 from jsonpath import JSONPath
 
@@ -494,7 +494,9 @@ class Runway(FeatureWithProps):
             "type": "runway",
             "name": name,
             "width": width,
-            "orientation": brng})
+            "orientation": brng,
+            "line": LineString([(lon1,lat1), (lon2,lat2)])
+        })
 
     def getInfo(self):
         return {

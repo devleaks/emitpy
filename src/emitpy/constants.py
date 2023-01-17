@@ -367,6 +367,7 @@ class POI_TYPE(Enum):
     RAMP_SERVICE_POINT = "ramp-service-point"
     QUEUE_POSITION = "toq-pos"
 
+QUEUE_GAP = 200  # meters
 
 class RAMP_TYPE(Enum):
     JETWAY = "jetway"
@@ -414,6 +415,7 @@ class FEATPROP(Enum):
     GROUNDED = "grounded"
     HEADING = "heading"
     ICAO24 = "icao24"
+    LINE = "line"
     MARK = "_mark"
     MESSAGE_ID = "message-id"
     MISSION = "mission"

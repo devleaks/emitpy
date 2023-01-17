@@ -294,12 +294,12 @@ class LoadApp(ManagedAirport):
             else:
                 logger.info(f"{status[1]}")
 
-        if "*" in what or "dpoi" in what:
-            status = self.loadServiceDestinations()
-            if not status[0]:
-                return status
-            else:
-                logger.info(f"{status[1]}")
+        # if "*" in what or "dpoi" in what:
+        #     status = self.loadServiceDestinations()
+        #     if not status[0]:
+        #         return status
+        #     else:
+        #         logger.info(f"{status[1]}")
 
         if "*" in what or "cpoi" in what:
             status = self.loadCheckpoints()
@@ -633,13 +633,13 @@ class LoadApp(ManagedAirport):
         return (True, f"LoadApp::loadServicePOIS: loaded service points of interest")
 
 
-    def loadServiceDestinations(self):
-        for k, v in self.airport.service_destinations.items():
-            self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.GROUNDSUPPORT_DESTINATION.value, k), Path.root_path(), v)
-            # self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), k))
+    # def loadServiceDestinations(self):
+    #     for k, v in self.airport.service_destinations.items():
+    #         self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.GROUNDSUPPORT_DESTINATION.value, k), Path.root_path(), v)
+    #         # self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), k))
 
-        logger.debug(f":loadServiceDestinations: loaded {len(self.airport.service_destinations)}")
-        return (True, f"LoadApp::loadServiceDestinations: loaded service points of interest")
+    #     logger.debug(f":loadServiceDestinations: loaded {len(self.airport.service_destinations)}")
+    #     return (True, f"LoadApp::loadServiceDestinations: loaded service points of interest")
 
 
     def loadCheckpoints(self):
@@ -861,7 +861,7 @@ if __name__ == "__main__":
         logger.info(f"Managed airport already loaded:")
         logger.info(json.dumps(a, indent=2))
         logger.info(f"use «{sys.argv[0]} '*'» to reload everying or list data to reload like «{sys.argv[0]} apt airway info»")
-        logger.info("you can load actype, acperf, acequiv, actaprof, airport, airline, airroute, alfreq, alroute, alroutefreq, comp, gse, gsefleet, ramp, rwy, apoi, spoi, dpoi, cpoi, info")
+        logger.info("you can load any of the following: actype, acperf, acequiv, actaprof, airport, airline, airroute, alfreq, alroute, alroutefreq, comp, gse, gsefleet, ramp, rwy, apoi, spoi, cpoi, info")
     if len(sys.argv) > 1:
         logger.info(f"Managed airport: {a}")
         logger.debug(f"loading or updating {sys.argv[1:]} ..")

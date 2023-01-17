@@ -66,12 +66,20 @@ class Edge(FeatureWithProps):
         self.weight = weight    # weight = distance to next vertext
         self.directed = directed  # if edge is directed src to dst, False = twoway
 
-        for s in self.getTags(USAGE_TAG):
-            if str.lower(str(self.usage[:8])) == "taxiway_" and len(self.usage) == 9:
-                w = str.upper(self.usage[8])  # should check for A-F return...
+        if type(usage) == str:
+            usage = [usage]
+
+        for s in usage:
+            if s.lower().startswith("taxiway_") and len(s) == 9:
+                w = str.upper(s[8])  # should check for A-F return...
                 self.setProp("width-code", w)
                 if w not in list("ABCDEF"):
-                    logger.warning(f":edge: invalid runway widthcode '{w}'")
+                    logger.warning(f":edge: invalid runway widthcode '{w}', ignoring")
+            if s.lower().startswith("taxiway"):
+                self.setTag(USAGE_TAG, "taxiway")
+            if s.lower().startswith("runway"):
+                self.setTag(USAGE_TAG, "runway")
+
 
     def getKey(self):
         return self.start.getId()+"-"+self.end.getId()

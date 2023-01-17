@@ -22,7 +22,7 @@ from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, AIRAC_CYCLE
 from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT, XPLANE_FEED
 from emitpy.airport import Airport, AirportWithProcedures, XPAirport
-from emitpy.airspace import Metar, XPAerospace
+from emitpy.airspace import XPAerospace
 from emitpy.utils import NAUTICAL_MILE
 
 logger = logging.getLogger("EmitApp")

@@ -21,15 +21,15 @@ from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
 
-from turfpy.measurement import distance
+from turfpy.measurement import distance, point_to_line_distance
 
-from emitpy.graph import Graph
+from emitpy.graph import Graph, USAGE_TAG
 from emitpy.geo import Location
 
 from emitpy.airspace import CIFP, Metar, Terminal
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR, METAR_HISTORICAL
-from emitpy.geo import FeatureWithProps, Ramp, Runway
+from emitpy.geo import FeatureWithProps, Ramp, Runway, cleanFeatures
 from emitpy.utils import Timezone, FT, key_path, rejson
 
 logger = logging.getLogger("Airport")
@@ -347,7 +347,7 @@ class Airport(Location):
         - timezonefinder, a python package that finds the timezone of a (lat,lon) pair (https://github.com/jannikmi/timezonefinder).
         """
         if self.tzoffset is not None and self.tzname is not None:
-            self.timezone =  Timezone(offset=self.tzoffset, name=self.tzname)
+            self.timezone = Timezone(offset=self.tzoffset, name=self.tzname)
             logger.debug(":setTimezone: timezone set from offset/name")
         elif self.lat() is not None and self.lon() is not None:
             tf = TimezoneFinder()
@@ -727,7 +727,10 @@ class ManagedAirportBase(AirportWithProcedures):
         self.service_roads = Graph()
         self.runways = {}               # GeoJSON Features
         self.ramps = {}                 # GeoJSON Features
-        self.service_destinations = {}  # GeoJSON Features
+
+        self.aeroway_pois = None
+        self.service_pois = None
+        self.check_pois = {}
 
 
     @classmethod
@@ -1019,3 +1022,26 @@ class ManagedAirportBase(AirportWithProcedures):
                         logger.debug(f":pairRunways: {self.icao}: {r.getProp(FEATPROP.NAME.value)} and {rw} paired as {uuid}")
                     else:
                         logger.warning(f":pairRunways: {self.icao}: {rw} ont found to pair {r.getProp(FEATPROP.NAME.value)}")
+
+
+    def findRunwayExits(self):
+        fc = {}
+        for rwy, runway in self.runways.items():
+            width = float(runway["properties"]["width"]) / 1000  # meters
+            line = FeatureWithProps(geometry=runway["properties"]["line"])
+            cnt = 0
+            for k, v in self.taxiways.vert_dict.items():
+                d = point_to_line_distance(v, line)
+                if d < width:
+                    name = f"runway-exit:RW{rwy}:{cnt}"
+                    fc[name] = FeatureWithProps(id=name, geometry=v["geometry"], properties={
+                        "poi-type": "runway-exit",
+                        "runway": "RW"+rwy,
+                        "name": str(cnt)
+                    })
+                    cnt = cnt + 1
+            logger.debug(f":findRunwayExits: {self.icao}: {rwy} found {cnt} exits")
+
+        self.aeroway_pois = fc
+        # with open("out.geojson", "w") as fp:
+        #     json.dump(FeatureCollection(features=cleanFeatures(fc)), fp)

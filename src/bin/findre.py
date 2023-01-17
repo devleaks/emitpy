@@ -1,28 +1,30 @@
-"""
-This script loads a series of turnarounds (pairs of flights) from a file.
-It sorts turnaround by actual arrival flight time, or scheduled time if actual flight time is not available.
-It then selects a number of consecutive turnarounds and schedule them from now on,
-respecting the time difference between flights.
-Optionally, the time between arrival and departure can be set to a fixed value, ignoring the actual departure times.
-"""
 import sys
 sys.path.append('..')
 
-import csv
-import os
-import json
-import random
-import traceback
 import logging
+from emitpy.airport import XPAirport
 
-from datetime import datetime, tzinfo, timedelta
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("mkApt")
 
-from emitpy.emitapp import EmitApp
+from emitpy.constants import FEATPROP
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
-from emitpy.utils import Timezone
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("findre")
+def main():
 
+    this_airport = XPAirport.findICAO(MANAGED_AIRPORT_ICAO)
+    apt = XPAirport(
+                icao=this_airport.icao,
+                iata=this_airport.iata,
+                name=this_airport.display_name,
+                city=this_airport.getProp(FEATPROP.CITY.value),
+                country=this_airport.getProp(FEATPROP.COUNTRY.value),
+                region=this_airport.region,
+                lat=this_airport.lat(),
+                lon=this_airport.lon(),
+                alt=this_airport.altitude())
+    logger.debug("loading airport..")
+    apt.load()
+    logger.debug("..done")
 
-e = EmitApp(MANAGED_AIRPORT_ICAO)
+main()
