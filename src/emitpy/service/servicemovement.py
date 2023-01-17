@@ -50,7 +50,7 @@ class ServiceMove(Movement):
         speeds = self.service.vehicle.speed
 
         startpos = self.service.vehicle.getPosition()
-        # logger.debug(":move: start position %s" % (startpos))
+        logger.debug(f":move: start position {self.service.vehicle.getId()} {startpos}")
         service_type = type(self.service).__name__.replace("Service", "").lower()
 
         startpos.setSpeed(0)  # starts at rest

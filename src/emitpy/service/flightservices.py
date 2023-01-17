@@ -149,7 +149,7 @@ class FlightServices:
                                                 use=True)
 
             if this_equipment is None:
-                return (True, f"FlightServices::service: vehicle not found")
+                return (False, f"FlightServices::service: vehicle not found for {sname}")
 
             equipment_startpos = self.airport.selectRandomServiceDepot(sname)
             this_equipment.setPosition(equipment_startpos)
@@ -157,6 +157,8 @@ class FlightServices:
             equipment_endpos = self.airport.selectRandomServiceRestArea(sname)
             this_equipment.setNextPosition(equipment_endpos)
 
+            if equipment_startpos is None or equipment_endpos is None:
+                logger.warning(f":service: positions: {equipment_startpos} -> {equipment_endpos}")
             # logger.debug(".. moving ..")
             # move = ServiceMove(this_service, self.airport)
             # move.move()

@@ -551,9 +551,9 @@ class AirportManager:
                 # so that it appears nicely in the .getId() call. (and does not provoke a warning.)
                 service.setVehicle(vehicle)
                 res = self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
-                logger.debug(f":selectEquipment: vehicle booked {vname} for {service.getId()}")
+                logger.debug(f":selectEquipment: vehicle booked {vehicle.getResourceId()} for {service.getId()}")
             else:
-                logger.debug(f":selectEquipment: found vehicle {vname} but not used")
+                logger.debug(f":selectEquipment: found vehicle {vehicle.getResourceId()} but not used")
             return vehicle
 
         logger.warning(f":selectEquipment: returning no vehicle {vcl} for {service.getId()}")
