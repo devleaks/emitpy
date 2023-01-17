@@ -3,7 +3,7 @@ A Service Vehicle is a vehicle used to perform a service or maintenance operatio
 It has a Service Vehicle Type that is ued to represent it.
 """
 import logging
-import importlib
+import importlib, inspect
 from math import inf
 import re
 
@@ -49,28 +49,43 @@ class Equipment(Identity):
         self.setup_time = 0
         self.flow = 1  # quantity per minutes
 
+
     @staticmethod
     def getCombo():
-        # No meta code introspection! vehicle types (and models) are manually hardcoded.
+        """
+        Returns (display_name, internal_name) tuple for all vehicle types.
+        """
         a = []
-        for s in SERVICE:
-            if s.value == "fuel":
-                a.append(("pump", "Fuel Jet Pump"))
-                a.append(("tanker_large", "Large Fuel Tanker"))
-                a.append(("tanker_medium", "Medium Fuel Tanker"))
-            else:
-                a.append((s.value+DEFAULT_VEHICLE, s.value[0].upper()+s.value[1:]+" Vehicle"))
+        for name, cls in inspect.getmembers(importlib.import_module(name=".service.equipment", package="emitpy"), inspect.isclass):
+            if name.__contains__("Vehicle"):
+                a.append((name, name))
         return a
 
     @staticmethod
     def getModels(service: str = "catering"):
+        """
+        Returns (display_name, internal_name) tuple for each possible vehicle models for supplied service type.
+
+        :param      service:  The service
+        :type       service:  str
+        """
+        def toSnake(s):
+            return ''.join(['_'+i.lower() if i.isupper() else i for i in s]).lstrip('_')
+
+        def toCamel(s):
+            return ''.join(map(str.title, s.split('_')))
+
         a = []
-        if service == "fuel":
-            a.append(("pump", "Fuel Jet Pump"))
-            a.append(("tanker_large", "Large Fuel Tanker"))
-            a.append(("tanker_medium", "Medium Fuel Tanker"))
-        elif service in [item.value for item in SERVICE]:
-            a.append((service+DEFAULT_VEHICLE, service[0].upper()+service[1:]+" Vehicle"))
+        base = service[0].upper() + service[1:].lower() + "Vehicle"
+        for name, cls in inspect.getmembers(importlib.import_module(name=".service.equipment", package="emitpy"), inspect.isclass):
+            if name.startswith(base):
+                model = name.replace(base, "")
+                if len(model) > 0:
+                    model = toSnake(model)
+                else:
+                    model = "default"
+                print(name, model, toCamel(model))
+                a.append((model, name))
         return a
 
     @staticmethod
