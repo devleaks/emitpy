@@ -1006,6 +1006,6 @@ class XPAirport(ManagedAirportBase):
 
     def getCentralDepots(self):
         fc = []
-        for s in SERVICES:
+        for s in SERVICE:
             fc.append(self.getCentralDepot(s.value))
         return fc

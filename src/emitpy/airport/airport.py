@@ -738,7 +738,7 @@ class ManagedAirportBase(AirportWithProcedures):
         airport = None
         airport_cache = os.path.join(cache, "airport.pickle")
         if os.path.exists(airport_cache):
-            logger.debug("loading managed airport from pickle..")
+            logger.debug(f"loading managed airport from pickle.. ({airport_cache})")
             with open(airport_cache, "rb") as fp:
                 airport = pickle.load(fp)
             logger.debug("..done")
