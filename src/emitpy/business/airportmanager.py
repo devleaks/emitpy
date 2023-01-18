@@ -433,6 +433,7 @@ class AirportManager:
         :type       use:           bool
         """
         vname = registration
+        vehicle = None
 
         # If we have a registration, use that vehicle if it exists.
         if vname is not None and vname in self.equipments.keys():
@@ -441,44 +442,52 @@ class AirportManager:
             if use: # there is no check that the vehicle is available  !!!!!!! @todo
                 if reqend is None:
                     reqend = reqtime + timedelta(seconds=service.duration())
-                res = self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
+                # @warning: We should book the vehicle before setting it for service.
+                # However, service.getId() complains it has no vehicle set, we set the vehicle "first"
+                # so that it appears nicely in the .getId() call. (and does not provoke a warning.)
                 service.setVehicle(vehicle)
+                res = self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
                 logger.debug(f":selectEquipment: using {vehicle.registration} (**even if not available**)")
             return vehicle
 
-        # We determine the type of vehicle
+        if vname is not None:
+            logger.debug(f":selectEquipment: requested vehicle {vname} not found")
+        else:
+            logger.debug(f":selectEquipment: finding suitable vehicle for {type(service).__name__}..")
+
+        # If not, we determine the type of vehicle we need
         svc_name = None
         vcl = None
         vcl_short = None
-        if str.__contains__(type(service).__name__, "Service"):
+        if (type(service).__name__).__contains__("Service"):
             svc_name = (type(service).__name__).replace("Service", "")
             vcl = svc_name + "Vehicle"
             vcl_short = svc_name[0:3].upper()
-        elif str.__contains__(type(service).__name__, "Mission"):
+        elif (type(service).__name__).__contains__("Mission"):
             svc_name = "Mission"
             vcl = "MissionVehicle"
             vcl_short = "MIS"
         else:
             logger.warning(f":selectEquipment: invalid service {type(service).__name__}")
 
-        # logger.debug(f":selectEquipment: looking for model {model}")
+        logger.debug(f":selectEquipment: service {svc_name}, base vehicle {vcl}, looking for model {model}")
         if model is None or model.endswith(DEFAULT_VEHICLE):  # is_default_model(model):
             vcl_short = vcl_short + DEFAULT_VEHICLE_SHORT  # Standard Vehicle
             logger.debug(f":selectEquipment: standard model is {vcl}, {vcl_short}")
         else:
-            model = model.replace("-", "_")  # now model is snake_case
+            model = model.replace("-", "_")  # now model is snake_case (was kebab-case)
             mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
             vcl = vcl + mdl
             vcl_short = vcl_short + mdl[0:2].upper()
             logger.debug(f":selectEquipment: model {model} is {vcl}, {vcl_short}")
 
+        logger.debug(f":selectEquipment: service {svc_name}, use vehicle {vcl}: {vcl_short}, reg={vname}")
         servicevehicleclasses = importlib.import_module(name=".service.equipment", package="emitpy")
-        vehicle = None
 
-        # If we have a registration, but vehicle does not exist, we need to create it.
+        # If we have a registration, but the vehicle instance does not exist, we need to create it.
         if vname is not None:
             if hasattr(servicevehicleclasses, vcl):
-                logger.debug(f":selectEquipment: creating {vname} {vcl}..")
+                logger.debug(f":selectEquipment: creating new {vcl} with registration {vname}..")
                 vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
                 vehicle.setICAO24(AirportManager.randomICAO24(10))  # starts with A
                 self.equipments[vname] = vehicle
@@ -487,13 +496,15 @@ class AirportManager:
                 self.equipment_by_type[vcl].append(vehicle)
                 #  need to add it to alloc table and book it
                 self.equipment_allocator.add(vehicle)
+                logger.debug(f":selectEquipment: ..created")
             else:
-                logger.error(f":selectEquipment: no vehicle class {vcl}")
+                logger.error(f":selectEquipment: ..not created. No vehicle type {vcl}.")
+                return None
 
         # no registration, we can try to find any vehicle of requested type
         else:
-
             if vcl in self.equipment_by_type:
+                logger.debug(f":selectEquipment: trying to find a suitable {vcl}..")
                 idx = 0
                 vehicle = None
                 res = None
@@ -501,30 +512,11 @@ class AirportManager:
                     v = self.equipment_by_type[vcl][idx]
                     if self.equipment_allocator.isAvailable(v.getResourceId(), reqtime, reqend):
                         vehicle = v
-                        logger.debug(f":selectEquipment: reusing {vcl} {vehicle.registration}..")
+                        logger.debug(f":selectEquipment: ..found: reusing {vcl} {vehicle.registration}..")
                     idx = idx + 1
 
-                if vehicle is None:
-                    logger.debug(f":selectEquipment: no vehicle of type {vcl} available, adding one (more €)")
-
-                    vname = f"{vcl_short}{self.equipment_number:03d}"
-                    self.equipment_number = self.equipment_number + 1
-                    # create vehicle
-                    if hasattr(servicevehicleclasses, vcl):
-                        logger.debug(f":selectEquipment: creating {vname} {vcl}..")
-                        vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
-                        vehicle.setICAO24(AirportManager.randomICAO24(10))  # starts with A
-                        self.equipments[vname] = vehicle
-                        if vcl not in self.equipment_by_type:
-                            self.equipment_by_type[vcl] = []
-                        self.equipment_by_type[vcl].append(vehicle)
-                        #  need to add it to alloc table and book it
-                        self.equipment_allocator.add(vehicle)
-                    else:
-                        logger.error(f":selectEquipment: no vehicle class {vcl}")
-
-            else: # no existing vehicle of that type, create it
-                # create a new random registration
+            if vehicle is None:
+                logger.debug(f":selectEquipment: ..no vehicle of type {vcl} available. Adding one..")
                 vname = f"{vcl_short}{self.equipment_number:03d}"
                 self.equipment_number = self.equipment_number + 1
                 # create vehicle
@@ -538,10 +530,12 @@ class AirportManager:
                     self.equipment_by_type[vcl].append(vehicle)
                     #  need to add it to alloc table and book it
                     self.equipment_allocator.add(vehicle)
+                    logger.debug(f":selectEquipment: ..added")
                 else:
-                    logger.error(f":selectEquipment: no vehicle class {vcl}")
+                    logger.error(f":selectEquipment: ..not created. No vehicle type {vcl}.")
+                    return None
 
-        # If we have a vehicle, use it if requested, returned it
+        # If we have a vehicle, book it if requested, and returned it
         if vehicle is not None:
             if use:
                 if reqend is None:
