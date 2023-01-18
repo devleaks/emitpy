@@ -63,7 +63,15 @@ class SERVICE(Enum):
 # File databases
 #
 DATA = "data"  # root data dir
-AODB = "aodb"  # root AODB dir
+AODB = "db"    # root AODB dir
+
+
+class AODB_DIRECTORIES(Enum):
+    FLIGHTS = "flights"
+    MISSIONS = "missions"
+    SERVICES = "services"
+    MOVEMENTS = "moves"
+    DEBUG = "debug"
 
 MANAGED_AIRPORT_KEY = "managed"
 MANAGED_AIRPORT_LAST_UPDATED = "last-updated"

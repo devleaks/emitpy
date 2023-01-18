@@ -231,7 +231,7 @@ class Emit(Messages):
         basedir = os.path.join(MANAGED_AIRPORT_AODB, db)
         if not os.path.exists(basedir):
             os.mkdir(basedir)
-            logger.info(f":saveFile: directory {basedir} does not exist. created.")
+            logger.info(f":saveFile: directory {basedir} did not exist. created.")
 
         basename = os.path.join(basedir, ident)
         # 1. Save "raw emits"

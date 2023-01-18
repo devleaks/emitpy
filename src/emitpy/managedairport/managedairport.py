@@ -12,7 +12,7 @@ from emitpy.aircraft import AircraftType, AircraftTypeWithPerformance
 from emitpy.airport import Airport
 
 # All base directories will be checked and created if non existent
-from emitpy.constants import FEATPROP
+from emitpy.constants import FEATPROP, AODB_DIRECTORIES
 from emitpy.parameters import HOME_DIR, DATA_DIR, TEMP_DIR
 from emitpy.parameters import CACHE_DIR, METAR_DIR
 from emitpy.parameters import MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_CACHE
@@ -160,6 +160,7 @@ class ManagedAirport:
         if not ok:
             return (False, "ManagedAirport::mkdirs missing mandatory base directories")
 
+        # Global directories
         dirs = [TEMP_DIR, CACHE_DIR, METAR_DIR, MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_CACHE]
         for d in dirs:
             if not os.path.exists(d):
@@ -167,6 +168,16 @@ class ManagedAirport:
                 if create:
                     os.makedirs(d)
                     logger.info(f":mkdirs: created directory {d}")
+
+        # Managed airport sub directories
+        for sd in AODB_DIRECTORIES:
+            d = os.path.join(MANAGED_AIRPORT_AODB, sd.value)
+            if not os.path.exists(d):
+                logger.warning(f":mkdirs: directory {d} does not exist")
+                if create:
+                    os.makedirs(d)
+                    logger.info(f":mkdirs: created directory {d}")
+
         return (True, "ManagedAirport::init done")
 
     def update_metar(self):

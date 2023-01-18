@@ -49,10 +49,7 @@ class Metar(ABC):
         self.atmap = None   # Eurocontrol ATMAP coefficient
         self.redis = redis
 
-        # this is now checked/created in managedairport at startup
-        # if redis is None:
-        #     pathlib.Path(METAR_DIR).mkdir(parents=True, exist_ok=True)
-        if redis is None and not os.path.exists(METAR_DIR) or  not os.path.isdir(METAR_DIR):
+        if redis is None and not os.path.exists(METAR_DIR) or not os.path.isdir(METAR_DIR):
             logger.warning(f":__init__: no Metar directory {METAR_DIR}")
 
     @staticmethod
