@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, Flag
 #
 # 1. Vehicle
 AIRCRAFT = "aircraft"
-GSE = "gse"
+GSE      = "gse"
 # CAR = "car"
 # BUS = "bus"
 # LORRY = "lorry"
@@ -17,20 +17,22 @@ GSE = "gse"
 
 
 # 2. Companies
-AIRLINE = "airline"
+AIRLINE  = "airline"
+FLIGHT_OPERATOR = "flight-operator"
+
 # TRANSPORTER = "transporter"
 # LOGISTICS = "logistics"
-HANDLER = "handler"  # GSE, etc.
+HANDLER  = "handler"    # GSE, etc.
 OPERATOR = "operator"  # GSE, etc.
 
 
 # 3. Airports (detailed and managed)
 AIRLINES = "airlines"
 AIRPORTS = "airports"
-ROUTES = "routes"
+ROUTES   = "routes"
 
 PASSENGER = "pax"
-CARGO = "cargo"
+CARGO    = "cargo"
 
 #
 # TYPES
@@ -48,7 +50,7 @@ PARCEL = "parcel"
 
 # 3. GSE types
 class SERVICE(Enum):
-    PASSENGER = "pasenger"
+    PASSENGER = "passenger"
     CLEANING = "cleaning"
     SEWAGE = "sewage"
     CATERING = "catering"
@@ -65,12 +67,12 @@ class SERVICE(Enum):
 DATA = "data"  # root data dir
 AODB = "db"    # root AODB dir
 
-
 class AODB_DIRECTORIES(Enum):
     FLIGHTS = "flights"
     MISSIONS = "missions"
     SERVICES = "services"
     MOVEMENTS = "moves"
+    METAR = "metar"
     DEBUG = "debug"
 
 MANAGED_AIRPORT_KEY = "managed"
@@ -116,16 +118,6 @@ class POI_COMBO(Enum):
     CHECKPOINT = "ckpt"
 
 
-########################################
-# Redis databases and keys
-#
-# Type of data stored into files
-class MOVE_TYPE(Enum):
-    FLIGHT = "flight"
-    SERVICE = "service"
-    MISSION = "mission"
-
-
 class FILE_FORMAT(Enum):
     FLIGHT_PLAN = "1-plan"
     FLIGHT = "2-flight"
@@ -136,6 +128,16 @@ class FILE_FORMAT(Enum):
     BROADCAST = "5-broadcast"
     KML = "kml"
     TRAFFIC = "trf"
+
+
+########################################
+# Redis databases and keys
+#
+# Redis key builder with domains
+#
+def key_path(*args):  # difficult to "import" without circular issues
+    a = map(lambda x: x if x is not None else "", args)
+    return ID_SEP.join(a)
 
 
 # "Categories" of data stored, used as domain separator
@@ -155,7 +157,6 @@ class REDIS_DATABASE(Enum):
     EMIT_METAS = "emit-meta"
     UNKNOWN = "unknowndb"
 
-
 class REDIS_DB(IntEnum):
     APP = 0    # App data, dynamic
     REF = 1    # App data, static
@@ -172,15 +173,6 @@ REDIS_DATABASES = {
     "unknowndb": REDIS_DATABASE.UNKNOWN.value  # should be symmetric to avoid issues
 }
 
-#
-# R  E  D  I  S
-#
-# Redis key builder with domains
-def key_path(*args):  # difficult to "import" without circular issues
-    a = map(lambda x: x if x is not None else "", args)
-    return ID_SEP.join(a)
-
-
 # Type of data stored into keys
 class REDIS_TYPE(Enum):
     EMIT = "e"
@@ -189,7 +181,6 @@ class REDIS_TYPE(Enum):
     EMIT_KML = "k"
     FORMAT = "f"
     QUEUE = "q"
-
 
 # Type of data stored into keys
 class REDIS_LOVS(Enum):
@@ -248,6 +239,8 @@ class REDIS_PREFIX(Enum):
     MISSION = "mission"
     RAMPS = "ramps"
     RUNWAYS = "runways"
+    TAR_PROFILES = key_path("business", "turnaround-profiles")
+    GSE_PROFILES = key_path("business", "ramp-gse-profiles")
 
 
 ########################################
@@ -309,6 +302,13 @@ DEPARTURE = "departure"
 RWY_DEPARTURE_SLOT = 180  # seconds
 RWY_ARRIVAL_SLOT   = 180  # seconds (note: possible issues if not symmetric)
 
+# Type of data stored into files
+class MOVE_TYPE(Enum):
+    FLIGHT = "flight"
+    SERVICE = "service"
+    MISSION = "mission"
+
+
 class FLIGHT_PHASE(Enum):
     OFFBLOCK = "OFFBLOCK"
     PUSHBACK = "PUSHBACK"
@@ -355,6 +355,15 @@ class MISSION_PHASE(Enum):
     CHECKPOINT = "checkpoint"
     EN_ROUTE = "enroute"
     END = "end"
+
+
+class TAR_SERVICE(Enum):
+    TYPE = "type"
+    START = "start"
+    DURATION = "duration"
+    ALERT = "alert"
+    WARN  = "warn"
+    MODEL = "model"
 
 
 class SERVICE_PHASE(Enum):
@@ -420,6 +429,7 @@ class FEATPROP(Enum):
     EMIT_RELATIVE_TIME = "emit-relative-time"
     FLIGHT_PLAN_INDEX = "plan-index"
     FLIGHT_PLANDB_INDEX = "fpdb-index"
+    JETWAY = "jetway"
     GROUNDED = "grounded"
     HEADING = "heading"
     ICAO24 = "icao24"

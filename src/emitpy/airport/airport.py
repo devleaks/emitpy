@@ -637,7 +637,7 @@ class AirportWithProcedures(Airport):
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        if metar.metar is not None:
+        if metar is not None and metar.metar is not None:
             self.metar = metar.metar
             logger.debug(f":setMETAR: {self.metar}")
             logger.debug(f":setMETAR: ATMAP: {metar.getInfo()}")
@@ -651,7 +651,8 @@ class AirportWithProcedures(Airport):
                     logger.debug(f":setMETAR: wind direction {wind_dir.value():.1f}")
                     self.operational_rwys = self.procedures.getOperationalRunways(wind_dir.value())
         else:
-            logger.debug(":setMETAR: no metar")
+            self.operational_rwys = self.procedures.getRunways()
+            logger.debug(":setMETAR: no metar, using all runways")
 
     def selectRWY(self, flight: 'Flight'):
         """
@@ -720,7 +721,6 @@ class ManagedAirportBase(AirportWithProcedures):
 
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
         AirportWithProcedures.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
-        self.info_source = None
         self.airspace = None
         self.manager = None
         self.taxiways = Graph()
@@ -786,13 +786,25 @@ class ManagedAirportBase(AirportWithProcedures):
 
     def getInfo(self):
         base = super().getInfo()
-        if base is not None and hasattr(self, "info_source"):
-            base["info_source"] = self.info_source
+        if base is not None:
+            base["info_source"] = type(self).__name__
         return base
         # return {
         #     "airport": super().getInfo(),
         #     "procedures": self.procedures.getInfo()
         # }
+
+    def getSummary(self):
+        base = self.getInfo()
+        base["procedures"] = self.procedures.getInfo()
+        base["runways"] = list(self.runways.keys())
+        base["taxiway-network"] = (len(self.taxiways.vert_dict.keys()), len(self.taxiways.edges_arr))
+        base["ramps"] = list(self.ramps.keys())
+        base["aeroways-pois"] = list(self.aeroway_pois.keys())
+        base["serviceroad-network"] = (len(self.service_roads.vert_dict.keys()), len(self.service_roads.edges_arr))
+        base["service-pois"] = list(self.service_pois.keys())
+        base["check-pois"] = list(self.check_pois.keys())
+        return base
 
     def load(self):
         """

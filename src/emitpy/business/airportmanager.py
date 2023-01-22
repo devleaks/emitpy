@@ -758,3 +758,59 @@ class AirportManager:
     def getFlights(self):
         return self.flights
 
+    def getTurnaroundProfile(self, flight, redis):
+        """
+        Loads a turnaround profile data file from turnaround characteristics (should pass entire flight).
+        """
+        # C-cargo-arrival-tiedown-tarprf
+        ac_class = flight.aircraft.actype.getClass()
+        is_cargo = flight.is_cargo()
+        is_arrival = flight.is_arrival()
+        is_jetway = flight.has_jetway()
+
+        tar_profile = None
+        profile_name = ac_class
+        class_pos = len(profile_name) - 1
+        _STD_CLASS = "C"  # from emitpy.aircraft import _STD_CLASS
+
+        if is_cargo:
+            profile_name = profile_name + "-cargo"
+        else:
+            profile_name = profile_name + "-pax"
+
+        if is_arrival:
+            profile_name = profile_name + "-arrival"
+        else:
+            profile_name = profile_name + "-departure"
+
+        if is_jetway:
+            profile_name = profile_name + "-jetway"
+        else:
+            profile_name = profile_name + "-tiedown"
+
+        logger.debug(f":loadTurnaroundProfile: {profile_name}")
+
+        if redis:
+            key = key_path(REDIS_PREFIX.TAR_PROFILES.value, profile_name.replace("-", ":"))
+
+        else:  # no redis
+            dirname = os.path.join(MANAGED_AIRPORT_DIR, "services", "ta-profiles")
+            filename = os.path.join(dirname, profile_name + ".yaml")
+            if os.path.exists(filename):
+                with open(filename, "r") as fp:
+                    tar_profile = yaml.safe_load(fp)
+                    logger.debug(f":loadTurnaroundProfile: {profile_name} loaded")
+            else:
+                logger.debug(f":loadTurnaroundProfile: {profile_name} does not exist, trying default..")
+                profile_name = list(profile_name)
+                profile_name[class_pos] = _STD_CLASS
+                profile_name = ''.join(profile_name)  # https://stackoverflow.com/questions/10631473/str-object-does-not-support-item-assignment
+                filename = os.path.join(dirname, profile_name + ".yaml")
+                if os.path.exists(filename):
+                    with open(filename, "r") as fp:
+                        tar_profile = yaml.safe_load(fp)
+                        logger.debug(f":loadTurnaroundProfile: ..standard {profile_name} loaded")
+                else:
+                    logger.error(f":loadTurnaroundProfile: ..standard {profile_name} not found ({filename})")
+
+        return tar_profile

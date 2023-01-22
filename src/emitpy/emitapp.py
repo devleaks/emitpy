@@ -86,7 +86,7 @@ class EmitApp(ManagedAirport):
 
         self._use_redis = BOOTSTRAP_REDIS()
         if self._use_redis:
-            self.init_redis()
+            self.init_redis(icao)
 
         # Here we set the "flavor" of main class we will use for the generation
         # (there are currently, no other flavors... :-D )
@@ -136,7 +136,7 @@ class EmitApp(ManagedAirport):
         # logger.warning("=" * 90)
 
 
-    def init_redis(self):
+    def init_redis(self, icao):
         # (Mandatory) use of Redis starts here
         # Redis is sometimes slow to start, wait for it a bit
         not_connected = True
@@ -158,10 +158,10 @@ class EmitApp(ManagedAirport):
         if not_connected:
             logger.error(":init: cannot connect to redis")
             return
-        ret = self.check_data()
+        ret = self.check_data(icao)
         if not ret[0]:
             logger.error(ret[1])
-            return
+            exit(1)
         # Init "Global Airport Status" structure.
         # For later use. Used for testing only.
         # self.redis.select(REDIS_DB.CACHE.value)
@@ -181,14 +181,17 @@ class EmitApp(ManagedAirport):
         return None
 
 
-    def check_data(self):
+    def check_data(self, icao):
         prevdb = self.redis.client_info()["db"]
         self.redis.select(REDIS_DB.REF.value)
         k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
         a = self.redis.json().get(k)
         self.redis.select(prevdb)
-        if a is not None and MANAGED_AIRPORT_LAST_UPDATED in a and AIRAC_CYCLE in a:
-            return (True, f"last loaded on {a[MANAGED_AIRPORT_LAST_UPDATED]}, nav data airac cycle {a[AIRAC_CYCLE]}")
+        if a is not None:
+            if a["ICAO"] != icao:
+                return (False, f"EmitApp::check_data: airport '{a['ICAO']}' in Redis does not match managed airport '{icao}'")
+            if MANAGED_AIRPORT_LAST_UPDATED in a and AIRAC_CYCLE in a:
+                return (True, f"last loaded on {a[MANAGED_AIRPORT_LAST_UPDATED]}, nav data airac cycle {a[AIRAC_CYCLE]}")
         return (False, f"EmitApp::check_data: key '{k}' not found, data not available in Redis")
 
 
@@ -246,7 +249,16 @@ class EmitApp(ManagedAirport):
         logger.debug(":do_flight: airline, airport..")
         # Add pure commercial stuff
         airline = Airline.find(airline, self.redis)
+        if airline is None:
+            print(">>>", Airline._DB.keys())
+            logger.error(":do_flight: airline not found")
+            return StatusInfo(1, "error", None)
+
         remote_apt = Airport.find(apt, self.redis)
+        if remote_apt is None:
+            logger.error(":do_flight: remote airport not found")
+            return StatusInfo(1, "error", None)
+
         aptrange = self.airport.miles(remote_apt)
         logger.debug(":do_flight: ..done")
 

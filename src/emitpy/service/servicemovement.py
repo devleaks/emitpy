@@ -50,7 +50,8 @@ class ServiceMove(Movement):
         speeds = self.service.vehicle.speed
 
         startpos = self.service.vehicle.getPosition()
-        logger.debug(f":move: start position {self.service.vehicle.getId()} {startpos}")
+        if startpos is None:
+            logger.warning(f":move: no start position for {self.service.vehicle.getId()}")
         service_type = type(self.service).__name__.replace("Service", "").lower()
 
         startpos.setSpeed(0)  # starts at rest
@@ -159,7 +160,6 @@ class ServiceMove(Movement):
         # after service, may first go to ramp rest area before leaving ramp.
         #
         # find end position if none is given
-
         finalpos = self.service.vehicle.next_position
         if finalpos is None:
             finalpos = self.airport.selectRandomServiceRestArea(service_type)

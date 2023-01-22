@@ -29,14 +29,28 @@ Make sure constraints are on vertices (uniform).
 Make sure constraints that are on edges are carried on vertices (uniform too, possible conflict).
 
 ---
-Reinstaure:
-save to file
 
 Read from file/dict, not Redis
-
-pickle airspace: OK
-pickle managed airport?
-pickle airport manager: No.
-
-
 Redis only if queue?
+
+---
+
+service-pois: when loading, check that each service has at least 1 depot, 1 parking.
+if not: either suppress service or add depot and/or parking at airport's center.
+
+---
+
+simplify aircraft types to narrow-body, wide-body?
+add turnaround profiles for them
+
+---
+Correct: LoadAirlines in loadapp to load flight operators as well
+
+---
+Ramp: Add: hasJetway()
+Flight: Add cargo/pax + service choice, shortcut: cargo fligth are not Jetway
+
+May be add a rule in airport to tell whether Ramp has jetway?
+
+airport.hasJetway(ramp) -> bool
+based on list of ramp with jetways, supplied in airport.yaml?

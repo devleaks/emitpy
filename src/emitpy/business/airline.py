@@ -13,7 +13,7 @@ from turfpy import measurement
 from .company import Company
 from emitpy.airport import Airport
 from emitpy.constants import AIRLINE, AIRLINE_DATABASE, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
-from emitpy.parameters import DATA_DIR
+from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.utils import toNm, key_path, rejson
 
 logger = logging.getLogger("Airline")
@@ -25,6 +25,7 @@ class Airline(Company):
     """
     _DB = {}
     _DB_IATA = {}
+    _DB_NAME = {}
 
     def __init__(self, name: str, iata: str, icao: str):
         Company.__init__(self, name, AIRLINE, "", iata)
@@ -36,20 +37,59 @@ class Airline(Company):
 
 
     @staticmethod
-    def loadAll():
+    def loadAll(airport_icao:str = None):
         """
         Loads all airlines from a file.
         """
         filename = os.path.join(DATA_DIR, AIRLINE_DATABASE, "airlines.csv")
-        file = open(filename, "r")
-        csvdata = csv.DictReader(file)
-        for row in csvdata:
-            # ICAO,IATA,Airline,Callsign,Country
-            a = Airline(name=row["Airline"], icao=row["ICAO"], iata=row["IATA"])
-            Airline._DB[row["ICAO"]] = a
-            Airline._DB_IATA[row["IATA"]] = a
-        file.close()
+        if airport_icao is not None:
+            filename = os.path.join(MANAGED_AIRPORT_DIR, "airlines", "airlines.csv")
+
+        if os.path.exists(filename):
+            file = open(filename, "r")
+            csvdata = csv.DictReader(file)
+            for row in csvdata:
+                # ICAO,IATA,Airline,Callsign,Country
+                a = Airline(name=row["Airline"], icao=row["ICAO"], iata=row["IATA"])
+                Airline._DB[row["ICAO"]] = a
+                Airline._DB_IATA[row["IATA"]] = a
+                Airline._DB_NAME[row["Airline"]] = a
+            file.close()
+        else:
+            logger.warning(f":loadAll: file {filename} not found, no airline loaded")
         logger.debug(f":loadAll: loaded {len(Airline._DB)} airlines")
+
+    @staticmethod
+    def loadFlightOperators(airport_icao:str = None):
+        """
+        Loads flight operators from a file.
+        Generate a fictious iata (Znn) and icao (FOnn) codes for a given name.
+        """
+        LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXY0123456789"
+        filename = os.path.join(DATA_DIR, AIRLINE_DATABASE, "flight-operators.csv")
+        if airport_icao is not None:
+            filename = os.path.join(MANAGED_AIRPORT_DIR, "airlines", "flight-operators.csv")
+
+        cnt = 0
+        kk = ""
+        if os.path.exists(filename):
+            file = open(filename, "r")
+            csvdata = csv.DictReader(file)
+            for row in csvdata:
+                # Name
+                if row["NAME"] not in Airline._DB_NAME.keys():
+                    kk = LETTERS[int(cnt / len(LETTERS))] + LETTERS[int(cnt % len(LETTERS))]
+                    row["ICAO"] = 'ZZ' + kk
+                    row["IATA"] = 'Z' + kk
+                    a = Airline(name=row["NAME"], icao=row["ICAO"], iata=row["IATA"])
+                    Airline._DB[row["ICAO"]] = a
+                    Airline._DB_IATA[row["IATA"]] = a
+                    Airline._DB_NAME["ZZ-" + row["NAME"]] = a
+                    cnt = cnt + 1
+            file.close()
+        else:
+            logger.debug(f":loadFightOperators: file {filename} not found, no flight operator loaded")
+        logger.debug(f":loadFightOperators: loaded {cnt} flight operators (~Z{kk})")
 
     @staticmethod
     def find(code: str, redis = None):
@@ -102,7 +142,23 @@ class Airline(Company):
             else:
                 logger.warning(f":findIATA: no such key {k}")
         else:
-            return Airline._DB_IATA[iata] if iata in Airline._DB_IATA else None
+            return Airline._DB_IATA.get(iata)
+        return None
+
+    @staticmethod
+    def findName(name: str, redis = None):
+        """
+        Finds an airline through its IATA 2 letter code.
+        """
+        if redis is not None:
+            name = name.replace("'", "").replace('"', "")  # remove ' and "
+            ac = rejson(redis=redis, key=REDIS_PREFIX.AIRLINE_NAMES.value, db=REDIS_DB.REF.value, path=f"$..orgId='{name}'")
+            if ac is not None:
+                return Airline.fromInfo(info=ac)
+            else:
+                logger.warning(f":findName: no such key {k}")
+        else:
+            return Airline._DB_NAME.get(name)
         return None
 
     @staticmethod

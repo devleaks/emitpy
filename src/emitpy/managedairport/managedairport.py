@@ -3,6 +3,7 @@ Assembly class to collect aerospace, managed airport, airport manager...
 """
 import os
 import logging
+import json
 
 import emitpy
 from datetime import datetime
@@ -67,7 +68,8 @@ class ManagedAirport:
 
         if not self._app._use_redis:  # load from data files
             logger.debug("..loading airlines..")
-            Airline.loadAll()
+            Airline.loadAll(self.icao)
+            Airline.loadFlightOperators(self.icao)
             logger.debug("..done")
 
             logger.debug("..loading aircrafts..")
@@ -101,6 +103,10 @@ class ManagedAirport:
         logger.debug("..done")
 
         self._inited = True
+
+#        if self._app._use_redis:
+        logger.debug(json.dumps(self.airport.getSummary(), indent=2))
+
         return (True, "ManagedAirport::init done")
 
     def getAirportDetails(self):

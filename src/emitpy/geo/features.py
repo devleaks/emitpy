@@ -369,6 +369,12 @@ class Ramp(FeatureWithProps):
     def getResourceId(self):
         return self.getName()
 
+    def hasJetway(self) -> bool:
+        test = self.getProp(FEATPROP.JETWAY.value)
+        if test == True:
+            return True
+        return False
+
     def busy(self):
         self["properties"]["available"] = False
 

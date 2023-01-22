@@ -1,5 +1,6 @@
 # Everything Flight
 import logging
+import yaml
 from datetime import datetime, timedelta, timezone
 
 from emitpy.airspace import FlightRoute
@@ -31,6 +32,7 @@ class Flight(Messages):
         self.aircraft = aircraft
         self.ramp = None              # GeoJSON Feature
         self.runway = None            # GeoJSON Feature
+        self.tarprofile = None
         self.turnaround = None
         self.codeshare = None
         self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
@@ -175,12 +177,36 @@ class Flight(Messages):
         return self.operator.iata + " " + self.number + " " + self.scheduled_dt.strftime("%H:%M")
 
 
+    def is_cargo(self):
+        """
+        Returns whether a flight is a pure cargo/freit flight.
+        """
+        return self.flight_type == PAYLOAD.CARGO
+
+
+    def has_jetway(self):
+        """
+        Returns whether flight is at a stand with a jetway.
+        """
+        if self.ramp is not None:
+            if hasattr(self.ramp, "has_jetway"):
+                return self.ramp.has_jetway()
+            return self.ramp.getProp(FEATPROP.JETWAY.value)
+        return False
+
+
     def is_arrival(self) -> bool:
         if self.managedAirport is not None:
             return self.arrival.icao == self.managedAirport.icao
         logger.warning(f":is_arrival: no managedAirport, cannot determine")
         return None
 
+
+    def getTurnaroundProfile(self, redis = None):
+        if self.tarprofile is not None:
+            return self.tarprofile
+        self.tarprofile = self.managedAirport.airport.manager.getTurnaroundProfile(self, redis)
+        return self.tarprofile
 
     def get_move(self) -> str:
         if self.is_arrival():

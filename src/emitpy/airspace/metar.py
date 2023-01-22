@@ -229,7 +229,12 @@ class MetarFPDB(Metar):
         self.init()
 
     def fetch(self):
-        metar = fpdb.weather.fetch(icao=self.icao, key=FLIGHT_PLAN_DATABASE_APIKEY)
+        metar = None
+        try:
+            metar = fpdb.weather.fetch(icao=self.icao, key=FLIGHT_PLAN_DATABASE_APIKEY)
+        except:
+            metar = None
+            logger.error("fetch: error fetching METAR, ignoring METAR", exc_info=True)
         """
         Flightplandb returns something like:
         {

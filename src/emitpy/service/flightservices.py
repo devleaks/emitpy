@@ -12,7 +12,7 @@ import emitpy.service
 from emitpy.flight import Flight
 from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import Format, EnqueueToRedis
-from emitpy.constants import SERVICE_PHASE, ARRIVAL, DEPARTURE, REDIS_TYPE, REDIS_DATABASE, ID_SEP, key_path
+from emitpy.constants import TAR_SERVICE, SERVICE_PHASE, ARRIVAL, DEPARTURE, REDIS_TYPE, REDIS_DATABASE, ID_SEP, key_path
 
 logger = logging.getLogger("FlightServices")
 
@@ -104,42 +104,50 @@ class FlightServices:
 
     def service(self):
         # From dict, make append appropriate service to list
-        tarprofile = self.flight.aircraft.actype.getTurnaroundProfile(move=self.flight.get_move(),
-                                                                      ramp=self.ramp.getProp("sub-type"),
-                                                                      redis=self.app.use_redis())
         gseprofile = self.flight.aircraft.actype.getGSEProfile(redis=self.app.use_redis())
-        if tarprofile is None:
-            return (False, f"FlightServices::run: no turnaround profile for {self.flight.aircraft.actype.typeId}")
-
         if gseprofile is None:
-            logger.warning(f"FlightServices::run: no GSE ramp profile for {self.flight.aircraft.actype.typeId}")
+            logger.warning(f"service: no GSE ramp profile for {self.flight.aircraft.actype.typeId}")
+
+        tarprofile = self.flight.getTurnaroundProfile(redis=self.app.use_redis())
+        if tarprofile is None:
+            return (False, f"FlightServices::service: no turnaround profile for {self.flight.aircraft.actype.typeId}")
 
         if "services" not in tarprofile:
-            return (False, f"FlightServices::run: no services in turnaround profile for {self.flight.aircraft.actype}")
+            return (False, f"FlightServices::service: no service in turnaround profile for {self.flight.aircraft.actype}")
 
         svcs = tarprofile["services"]
 
         am = self.airport.manager
 
+        # services:
+        # - alert: 5
+        #   duration: 20
+        #   model: train
+        #   service: baggage
+        #   start: 10
+        #   warn: 0
+
         for svc in svcs:
-            sname, sched = list(svc.items())[0]
+            sname = svc.get(TAR_SERVICE.TYPE.value)
+            scheduled = svc.get(TAR_SERVICE.START.value)
+            duration = svc.get(TAR_SERVICE.DURATION.value)
+
             logger.debug(f":service: creating service {sname}..")
 
-            service_scheduled_dt = self.flight.scheduled_dt + timedelta(minutes=sched[0])
-            service_scheduled_end_dt = self.flight.scheduled_dt + timedelta(minutes=(sched[0]+sched[1]))
+            service_scheduled_dt = self.flight.scheduled_dt + timedelta(minutes=scheduled)
+            service_scheduled_end_dt = self.flight.scheduled_dt + timedelta(minutes=(scheduled+duration))
             this_service = Service.getService(sname)(scheduled=service_scheduled_dt,
                                                      ramp=self.flight.ramp,
                                                      operator=self.operator)
 
-            duration = sched[1]
             if self.flight.load_factor != 1.0:  # Wow
                 duration = duration * self.flight.load_factor
 
-            this_service.setPTS(relstartime=sched[0], duration=duration)
+            this_service.setPTS(relstartime=scheduled, duration=duration)
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             this_service.setRamp(self.ramp)
-            equipment_model = sched[2] if len(sched) > 2 else None
+            equipment_model = svc.get(TAR_SERVICE.MODEL.value)
             # should book vehicle a few minutes before and after...
             this_equipment = am.selectEquipment(operator=self.operator,
                                                 service=this_service,
@@ -165,12 +173,9 @@ class FlightServices:
             # move.save()
 
             logger.debug(f":service: .. adding ..")
-            self.services.append({
-                "type": sname,
-                "service": this_service,
-                "scheduled": sched[0],
-                "duration": sched[1]
-            })
+            s2 = svc.copy()
+            s2["service"] = this_service
+            self.services.append(s2)
             logger.debug(":service: .. done")
 
         return (True, "FlightServices::service: completed")
@@ -206,9 +211,9 @@ class FlightServices:
         # ONBLOCK time for arrival
         # OFFBLOCK time for departure
         for service in self.services:
-            logger.debug(f":schedule: scheduling {service['type']}..")
-            stime = scheduled + timedelta(minutes=service["scheduled"])  # nb: service["scheduled"] can be negative
-            service["emit"].addToPause(SERVICE_PHASE.SERVICE_START.value, service["duration"] * 60)  # seconds
+            logger.debug(f":schedule: scheduling {service[TAR_SERVICE.TYPE.value]}..")
+            stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
+            service["emit"].addToPause(SERVICE_PHASE.SERVICE_START.value, service[TAR_SERVICE.DURATION.value] * 60)  # seconds
             service["emit"].schedule(SERVICE_PHASE.SERVICE_START.value, stime)
             logger.debug(f":schedule: there are {len(service['emit'].scheduled_emit)} scheduled emit points")
             logger.debug(f":schedule: ..done")
@@ -217,7 +222,7 @@ class FlightServices:
 
     def enqueuetoredis(self, queue):
         for service in self.services:
-            logger.debug(f":enqueuetoredis: enqueuing '{service['type']}'..")
+            logger.debug(f":enqueuetoredis: enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
             formatted = EnqueueToRedis(service["emit"], queue)
             ret = formatted.format()
             if not ret[0]:

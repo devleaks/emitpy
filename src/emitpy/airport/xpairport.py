@@ -74,6 +74,7 @@ class XPAirport(ManagedAirportBase):
         self.takeoff_queues = {}
         self.all_pois_combo = {}
 
+
     def load(self):
         """
         Loads X-Plane airport from apt.dat definition file.
@@ -393,6 +394,11 @@ class XPAirport(ManagedAirportBase):
         status = self.loadCheckpointPOIS()
         if not status[0]:
             return status
+
+        status = self.checkPOIS()
+        if not status[0]:
+            return status
+
         logger.debug(":loadPOIS: loaded")
         return [True, "GeoJSONAirport::loadPOIS loaded"]
 
@@ -1009,3 +1015,63 @@ class XPAirport(ManagedAirportBase):
         for s in SERVICE:
             fc.append(self.getCentralDepot(s.value))
         return fc
+
+    # ############
+    def checkPOIS(self):
+        status = self.checkAerowaysPOIS()
+        if not status[0]:
+            return status
+        status = self.checkCheckpoints()
+        if not status[0]:
+            return status
+        status = self.checkServicePOIS()
+        if not status[0]:
+            return status
+        return [True, "XPAirport::checkPOIS"]
+
+    def checkAerowaysPOIS(self):
+        i = len(self.aeroway_pois)
+        if i == 0:
+            logger.info(f":checkAerowaysPOIS: there is no aeroway POI")
+            return [True, "XPAirport::checkAerowaysPOIS"]
+        logger.info(f":checkAerowaysPOIS: there are {i} aeroways POI")
+        return [True, "XPAirport::checkAerowaysPOIS"]
+
+    def checkCheckpoints(self):
+        i = len(self.check_pois)
+        if i == 0:
+            logger.warning(f":getDefaultCheckpoints: there is no check point")
+            return [False, "XPAirport::checkCheckpoints"]
+        logger.info(f":checkDefaultCheckpoints: there are {i} check points")
+        return [True, "XPAirport::checkCheckpoints"]
+
+    def checkServicePOIS(self):
+        status = self.checkDepots()
+        if not status[0]:
+            return status
+        status = self.checkRestAreas()
+        if not status[0]:
+            return status
+        return [True, "XPAirport::checkServicePOIS"]
+
+    def checkDepots(self):
+        ok = True
+        for s in SERVICE:
+            l = self.getDepots(s.value)
+            if len(l) == 0:
+                ok = False
+                logger.warning(f":checkDepots: no depot for { s.value }")
+            else:
+                logger.debug(f":checkDepots: service {s.value} has {len(l)} depot(s)")
+        return [ok, "XPAirport::checkDepots"]
+
+    def checkRestAreas(self):
+        ok = True
+        for s in SERVICE:
+            l = self.getRestAreas(s.value)
+            if len(l) == 0:
+                ok = False
+                logger.warning(f":checkRestAreas: no depot for { s.value }")
+            else:
+                logger.debug(f":checkRestAreas: service {s.value} has {len(l)} depot(s)")
+        return [ok, "XPAirport::checkRestAreas"]

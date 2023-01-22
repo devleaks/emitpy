@@ -409,11 +409,10 @@ class CIFP:
         return {
             "type": "CIFP",
             "terminal": self.icao,
-            "sids": list(self.SIDS.keys()),
-            "stars": list(self.STARS.keys()),
-            "sids": list(self.SIDS.keys()),
-            "approaches": list(self.APPCHS.keys()),
-            "runways": list(self.RWYS.keys())
+            "runways": list(self.RWYS.keys()),
+            "stars": dict([(k, list(v.keys())) for k,v in self.STARS.items()]),
+            "approaches": dict([(k, list(v.keys())) for k,v in self.APPCHS.items()]),
+            "sids": dict([(k, list(v.keys())) for k,v in self.SIDS.items()])
         }
 
 
