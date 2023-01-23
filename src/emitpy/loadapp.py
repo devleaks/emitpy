@@ -406,39 +406,21 @@ class LoadApp(ManagedAirport):
 
     def loadTurnaroundProfiles(self):
 
-        def loadProfile(actype):
-
-            def loadFromFile(fn):
-                filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, fn)
-                data = None
-                if os.path.exists(filename):
-                    with open(filename, "r") as file:
-                        if filename[-5:] == ".yaml":
-                            data = yaml.safe_load(file)
-                        else:  # JSON or GeoJSON
-                            data = json.load(file)
-                    return data
-                else:
-                    logger.warning(f":loadFromFile: file not found {filename}")
-                return None
-            #
-            # Turnaround Profiles
-            tarprofile = {
-                RAMP_TYPE.JETWAY.value: {},
-                RAMP_TYPE.TIE_DOWN.value: {}
-            }
-            at_least_one = False
-            for move in ["arrival", "departure"]:
-                for rt in RAMP_TYPE:
-                    tarprofile[rt.value][move] = loadFromFile(f"{actype}-{move}-{rt.value}-tarprf.yaml")
-                    if tarprofile[rt.value][move] is not None:
-                        logger.debug(f":loadTurnaroundProfile: loaded for aircraft class {actype}, {move}, ramp type {rt.value}")
-                        at_least_one = True
-            if at_least_one:
-                self.redis.json().set(key_path(REDIS_PREFIX.AIRCRAFT_TARPROFILES.value, actype), Path.root_path(), tarprofile)
-                logger.debug(f":loadTurnaroundProfiles: loaded service data for aircraft class {actype}")
+        def loadFromFile(fn):
+            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, fn)
+            data = None
+            if os.path.exists(filename):
+                with open(filename, "r") as file:
+                    if filename[-5:] == ".yaml":
+                        data = yaml.safe_load(file)
+                    else:  # JSON or GeoJSON
+                        data = json.load(file)
+                return data
             else:
-                logger.debug(f":loadTurnaroundProfiles: no service data for aircraft class {actype}")
+                logger.warning(f":loadFromFile: file not found {filename}")
+            return None
+
+        for actype in "ABCDEF":  # one day, we'll loop over each ac type...
             #
             # RAMP Service Vehicle Positions around aircraft
             gseprofile = loadFromFile(f"{actype}-gseprf.yaml")
@@ -448,8 +430,17 @@ class LoadApp(ManagedAirport):
             else:
                 logger.debug(f":loadTurnaroundProfiles: no GSE profile for aircraft class {actype}")
 
-        for acclass in "ABCDEF":  # one day, we'll loop over each ac type...
-            loadProfile(acclass)
+        #
+        # Turnaround Profiles
+        dirname = os.path.join(MANAGED_AIRPORT_DIR, "services", "ta-profiles")
+        for f in os.listdir(dirname):
+            if f.endswith(".yaml"):
+                tarname = f.replace('.yaml', '')
+                key = key_path(REDIS_PREFIX.TAR_PROFILES.value, tarname.replace("-", ":"))
+                with open(os.path.join(dirname, f), "r") as fp:
+                    tarprofile = yaml.safe_load(fp)
+                    self.redis.json().set(key, Path.root_path(), tarprofile)
+                    logger.debug(f":loadTurnaroundProfiles: loaded turnaround profile for {tarname}")
 
         return (True, f"LoadApp::loadTurnaroundProfiles: loaded turnaround profile for aircraft classes")
 
