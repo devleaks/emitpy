@@ -55,7 +55,7 @@ class Identity:
     def split(ident: str):
         arr = ident.split(ID_SEP)
         if len(arr) < 4:
-            print(f"Identity: invalid key {ident}")
+            print(f"Identity: invalid key {ident}")  # no logger here...
         return arr[0:3] + [ID_SEP.join(arr[3:])]
 
     def register(self):
