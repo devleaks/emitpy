@@ -762,7 +762,7 @@ class AirportManager:
         """
         Loads a turnaround profile data file from turnaround characteristics (should pass entire flight).
         """
-        # C-cargo-arrival-tiedown-tarprf
+        # C-cargo-arrival-tiedown
         ac_class = flight.aircraft.actype.getClass()
         is_cargo = flight.is_cargo()
         is_arrival = flight.is_arrival()
@@ -792,7 +792,16 @@ class AirportManager:
 
         if redis:
             key = key_path(REDIS_PREFIX.TAR_PROFILES.value, profile_name.replace("-", ":"))
-
+            tar_profile = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+            if tar_profile is None:
+                logger.debug(f":loadTurnaroundProfile: {profile_name} does not exist, trying default..")
+                profile_name = list(profile_name)
+                profile_name[class_pos] = _STD_CLASS
+                profile_name = ''.join(profile_name)  # https://stackoverflow.com/questions/10631473/str-object-does-not-support-item-assignment
+                key = key_path(REDIS_PREFIX.TAR_PROFILES.value, profile_name.replace("-", ":"))
+                tar_profile = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
+                if tar_profile is None:
+                    logger.error(f":loadTurnaroundProfile: ..standard {profile_name} not found ({key})")
         else:  # no redis
             dirname = os.path.join(MANAGED_AIRPORT_DIR, "services", "ta-profiles")
             filename = os.path.join(dirname, profile_name + ".yaml")
