@@ -19,20 +19,17 @@ from emitpy.geo import Movement, FeatureWithProps
 from emitpy.emit import Emit
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("emitst")
+logger = logging.getLogger("emit_test")
 
-filename = os.path.join("..", "..", "db", MANAGED_AIRPORT_ICAO, "debug", "debug-CleaningService:D4:2019-04-01T15.10.00+03.00:CLESV000-2023-01-11T16:51:04.483081-debug-move-move-data.geojson")
-file = open(filename, "r")
-movedata = json.load(file)
-file.close()
+filename = os.path.join("..", "..", "db", MANAGED_AIRPORT_ICAO, "debug", "debug-BaggageService:A8:2019-04-01T13.25.00+03.00:BAGTR031-2023-01-22T15:25:46.647373-debug-move-move-data.geojson")
+movedata = None
+with open(filename, "r") as file:
+    movedata = json.load(file)
 
 a = EmitApp(MANAGED_AIRPORT_ICAO)
 
 m = Movement(airport=a._managedairport)
 m.moves = FeatureWithProps.betterFeatures(movedata["features"])
-
-print(len(m.moves))
-
 e = Emit(move=m)
 e.emit_type = "service"
 e.emit(frequency=10)
