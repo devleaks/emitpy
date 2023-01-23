@@ -258,8 +258,9 @@ loggerta = logging.getLogger("Turnaround")
 
 class Turnaround:
     """
-    Convenience wrapper around a pair of linked, related flight.
     Calls FlightServices on a pair of flights.
+    Convenience wrapper around a pair of linked, related flight and their FlightServices.
+    Add ability to tow aircraft between arrival and departure. (currently unused.)
     """
 
     def __init__(self, arrival: Flight, departure: Flight, operator: "Company"):
@@ -268,10 +269,12 @@ class Turnaround:
         self.departure = FlightServices(departure, operator)
         self.airport = None
         arrival.setLinkedFlight(linked_flight=departure)  # will do the reverse as well
-        if self.towed():
+        if self.is_towed():
             loggerta.warning(":init: aircraft towed between linked flights")
+            # Should here create an aircraft/tow service
+            # Can be scheduled later.
 
-    def isTowed(self) -> bool:
+    def is_towed(self) -> bool:
         return self.arrival.flight.ramp != self.departure.flight.ramp
 
     def getTowMovement(self):
