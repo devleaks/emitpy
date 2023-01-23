@@ -100,22 +100,26 @@ def line_arc(center, radius, start, end, steps=8):
 
 
 def standard_turn_flyby(l0, l1, radius, precision=8):
+    local_debug = False
     b_in = bearing(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
     b_out = bearing(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
     turnAngle = turn(b_in, b_out)
 
     # Eliminate almost straight turns
     if abs(turnAngle) < 10:
-        logger.debug(f"standard_turn: small turn, skipping (turn={turnAngle:f}°)")
+        if local_debug:
+            logger.debug(f"standard_turn: small turn, skipping (turn={turnAngle:f}°)")
         return None
 
     # Eliminate half turns and almost half turns
     if abs(turnAngle) > 150:
-        logger.debug(f"standard_turn: turn too large, skipping (turn={turnAngle:f}°)")
+        if local_debug:
+            logger.debug(f"standard_turn: turn too large, skipping (turn={turnAngle:f}°)")
         return None
 
     if abs(turnAngle) > 120:
-        logger.debug(f"standard_turn: large turn (turn={turnAngle:f}°)")
+        if local_debug:
+            logger.debug(f"standard_turn: large turn (turn={turnAngle:f}°)")
 
     # Eliminate short segement turns (impossible)
     d_in = distance(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
@@ -123,7 +127,8 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
 
     r = 1.5 * radius / 1000  # km
     if d_in < r or d_out < r:
-        logger.debug(f"standard_turn: segment too small, skipping in={d_in:f} out={d_out:f} (r={r:f}, turn={turnAngle:f}°)")
+        if local_debug:
+            logger.debug(f"standard_turn: segment too small, skipping in={d_in:f} out={d_out:f} (r={r:f}, turn={turnAngle:f}°)")
         return None
 
     # Here we go
@@ -141,7 +146,8 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
     center = line_intersect(l0b, l1b)
     if center is None:
         logger.warning(f"standard_turn: no arc center (turn={turnAngle:f}°)")
-        logger.debug(f"standard_turn: no arc center ({FeatureCollection(features=[l0b, l1b])})")
+        if local_debug:
+            logger.debug(f"standard_turn: no arc center ({FeatureCollection(features=[l0b, l1b])})")
         return None
 
     arc0 = b_out + 90 if turnAngle > 0 else b_in - 90
