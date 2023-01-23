@@ -84,7 +84,6 @@ class Equipment(Identity):
                     model = toSnake(model)
                 else:
                     model = "default"
-                print(name, model, toCamel(model))
                 a.append((model, name))
         return a
 
@@ -555,6 +554,16 @@ class AircraftVehiclePushback(AircraftVehicle):
         self.model = "pushback"
         self.model_name = "Pushback vehicle"
         self.setup_time = 4
+        self.flow = 1
+
+class AircraftVehicleTow(AircraftVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        AircraftVehicle.__init__(self, registration=registration,  operator=operator)
+        self.icao = "ZZZT"
+        self.model = "tow"
+        self.model_name = "Tow vehicle"
+        self.setup_time = 5
         self.flow = 1
 
 class AircraftVehicleMarshall(AircraftVehicle):
