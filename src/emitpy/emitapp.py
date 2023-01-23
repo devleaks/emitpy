@@ -250,7 +250,6 @@ class EmitApp(ManagedAirport):
         # Add pure commercial stuff
         airline = Airline.find(airline, self.redis)
         if airline is None:
-            print(">>>", Airline._DB.keys())
             logger.error(":do_flight: airline not found")
             return StatusInfo(1, "error", None)
 
