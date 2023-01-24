@@ -7,12 +7,12 @@ from emitpy.constants import FEATPROP, FLIGHT_DATABASE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
 # Generic, yet another flavor of vanilla:
-from .formatter import FormatterRaw, FormatterFlat, TrafficFormatter
+from .formatter import FormatterRaw, FormatterFlat, FormatterWire, TrafficFormatter
 
 # For X-Plane LiveTraffic and XPPlanes plugins:
 from .formatter import AITFCFormatter, RTTFCFormatter, XPPlanesFormatter
 
-logger = logging.getLogger("Formatter")
+logger = logging.getLogger("Format")
 
 FORMATTERS = {
     "flat": ("Flattened JSON", FormatterFlat),
@@ -20,7 +20,8 @@ FORMATTERS = {
     "rttfc": ("X-Plane LiveTraffic", RTTFCFormatter),
     "xpplanes": ("XPPlanes shim", XPPlanesFormatter),
     "traffic": ("Traffic.py Library", TrafficFormatter),
-    "raw": ("Raw JSON", FormatterRaw)
+    "wire": ("Message formatter", FormatterWire),
+    "raw": ("Raw JSON", FormatterRaw)  # default, should always be available
 }
 
 class Format:
@@ -67,7 +68,7 @@ class Format:
         br = filter(lambda f: f.getProp(FEATPROP.BROADCAST.value), self.emit.scheduled_emit)
         bq = sorted(br, key=lambda f: f.getRelativeEmissionTime())
         self.output = list(map(self.formatter, bq))
-        logger.debug(f':run: formatted {len(self.output)} / {len(self.emit.scheduled_emit)}, version {self.version}')
+        logger.debug(f':format: formatted {len(self.output)} / {len(self.emit.scheduled_emit)}, version {self.version}')
         self.version = self.version + 1
         return (True, "Format::format completed")
 
@@ -91,6 +92,56 @@ class Format:
         with open(filename, "w") as fp:
             for l in self.output:
                 fp.write(str(l)+"\n")
-
         logger.debug(f":save: saved {fn}")
+
         return (True, "Format::save saved")
+
+
+class FormatMessage(Format):
+
+    def __init__(self, emit: "Emit", formatter = FormatterWire):
+        Format.__init__(self, emit=emit, formatter=formatter)
+
+    def format(self):
+        """
+        Formats each emission point.
+        Effectively create a new list of (formatted) points.
+        """
+        messages = self.emit.getMessages()
+
+        if messages is None or len(messages) == 0:
+            logger.warning(":format: no message")
+            return (False, "FormatMessage::format no message")
+
+        self.output = []  # reset if called more than once
+        br = filter(lambda f: f.getAbsoluteEmissionTime(), messages)
+        bq = sorted(br, key=lambda f: f.getAbsoluteEmissionTime())
+        self.output = list(map(self.formatter, bq))
+        logger.debug(f':format: formatted {len(self.output)} / {len(messages)} messages, version {self.version}')
+        self.version = self.version + 1
+        return (True, "FormatMessage::format completed")
+
+    def saveFile(self, overwrite: bool = False):
+        """
+        Save formatted points.
+
+        :param      overwrite:  The overwrite
+        :type       overwrite:  bool
+        """
+        basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE)
+        fileformat = self.formatter.FILE_EXTENSION
+        ident = self.emit.getId()
+        fn = f"{ident}-7-messages.{fileformat}"
+        filename = os.path.join(basename, fn)
+        if os.path.exists(filename) and not overwrite:
+            logger.warning(f":save: file {filename} already exist, not saved")
+            return (False, "FormatMessage::save file already exist")
+
+        with open(filename, "w") as fp:
+            for l in self.output:
+                fp.write(str(l)+"\n")
+        logger.debug(f":save: saved {fn}")
+
+        return (True, "FormatMessage::save saved")
+
+

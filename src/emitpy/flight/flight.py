@@ -365,9 +365,7 @@ class Flight(Messages):
         normplan = self.flightroute.route()
         waypoints = []
 
-        self.addMessage(FlightboardMessage(flight_id=self.getId(),
-                                           is_arrival=self.is_arrival(),
-                                           airport=self.getRemoteAirport().icao))
+        self.addMessage(FlightboardMessage(flight=self))
 
         # ###########################
         # DEPARTURE AND CRUISE

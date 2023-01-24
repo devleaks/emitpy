@@ -104,8 +104,8 @@ class ManagedAirport:
 
         self._inited = True
 
-#        if self._app._use_redis:
-        logger.debug(json.dumps(self.airport.getSummary(), indent=2))
+        # if self._app._use_redis:
+        # logger.debug(json.dumps(self.airport.getSummary(), indent=2))
 
         return (True, "ManagedAirport::init done")
 

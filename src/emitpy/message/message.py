@@ -7,11 +7,14 @@ EmitPy Messages are limited to the ManagedAirport scope.
 """
 import uuid
 import json
+import logging
 from datetime import datetime, timedelta
 from enum import Enum
 
 from emitpy.utils import key_path
-from emitpy.constants import MESSAGE_COLOR, FLIGHT_TIME_FORMAT
+from emitpy.constants import MESSAGE_DATABASE, MESSAGE_COLOR, FLIGHT_TIME_FORMAT
+
+logger = logging.getLogger("Message")
 
 
 class MESSAGE_CATEGORY(Enum):
@@ -49,18 +52,6 @@ class Message:
         self.ident = f"{uuid.uuid4()}"
         self.data = kwargs
 
-        self.category = category
-        self.status = kwargs.get("status", MESSAGE_STATUS.CREATED.value)
-
-        # Related object
-        self.entity = kwargs.get("entity", None)
-
-        # Timing information
-        self.move = kwargs.get("move", None)
-        self.relative_sync = None  # mark in move
-        self.relative_time = 0     # seconds relative to above
-        self.absolute_time = None
-
         # Message display
         self.source = kwargs.get("source", None)    # ~ From:
         self.subject = kwargs.get("subject", None)
@@ -69,11 +60,21 @@ class Message:
         self.link = kwargs.get("link", None)
         self.payload = kwargs.get("payload", None)
 
-        # Message meta-data
-        self.priority = kwargs.get("priority", 3)
-
         self.icon = kwargs.get("icon", MESSAGE_ICON.DEFAULT.value)
         self.color = kwargs.get("color", MESSAGE_COLOR.DEFAULT.value)
+
+        # Message meta-data
+        self.priority = kwargs.get("priority", 3)
+        self.category = category
+        self.status = kwargs.get("status", MESSAGE_STATUS.CREATED.value)
+
+        # Message timing information data and meta-data
+        self.entity = kwargs.get("entity", None)  # parent entity can be emit, movement(flight, mission, service), or flight
+        self.relative_sync = kwargs.get("sync", None)      # mark in parent entity, if any
+
+        self.scheduled_time = kwargs.get("scheduled_time", None)  # scheduled emission time
+        self.relative_time = kwargs.get("relative_time", 0)  # seconds relative to above for emission
+        self.absolute_time = None
 
 
     def __str__(self):
@@ -91,19 +92,17 @@ class Message:
             "icon": self.icon,
             "icon-color": self.category,
             "status": self.status,
-            "absolute_emission_time": self.absolute_time
+            "absolute_emission_time": self.absolute_time.isoformat() if self.absolute_time is not None else None
         })
 
     def getId(self):
         return self.ident
 
-
     def getKey(self, extension: str):
         return key_path(MESSAGE_DATABASE, self.getId(), extension)
 
-
     def getInfo(self):
-        return {
+        r = {
             "id": self.ident,
             "type": type(self).__name__,
             "category": self.category,
@@ -114,32 +113,22 @@ class Message:
             "priority": self.priority,
             "icon": self.icon,
             "icon-color": self.category,
-            "status": self.status,
-            "absolute_emission_time": self.absolute_time
+            "status": self.status
         }
+        r["absolute_emission_time"] = None
+        if self.absolute_time is not None:
+            r["absolute_emission_time"] = self.absolute_time.isoformat()
+        return r
 
-
-    def setRelativeSchedule(self, entity, sync:str, relative_time: int = 0):
-        """
-        Sets the emission time of this message relative to sync in entity.
-
-        :param      entity:         The entity
-        :type       entity:         { type_description }
-        :param      sync:           The synchronize
-        :type       sync:           str
-        :param      relative_time:  The relative time
-        :type       relative_time:  int
-        """
-        pass
-
-
-    def schedule(self, reftime):
-        self.absolute_time = reftime + timedelta(seconds=self.relative_time)
+    def schedule(self, moment):
+        self.absolute_time = moment + timedelta(seconds=self.relative_time)
         return self.absolute_time
 
-
-    def send(self):
-        pass
+    def getAbsoluteEmissionTime(self):
+        if self.absolute_time is not None:
+            return self.absolute_time
+        else:
+            return self.scheduled_time + timedelta(seconds=self.relative_time)
 
 
 class Messages:
@@ -155,80 +144,38 @@ class Messages:
     def getMessages(self):
         return self.messages
 
+    def scheduleMessages(self, reftime: datetime):
+        for m in self.messages:
+            m.schedule(reftime)
+        logger.debug(f":scheduleMessages: scheduled relative to {reftime}")
+
     def saveMessages(self, redis, key: str):
         for m in self.messages:
-            self.redis.sadd(key, json.dumps(m.getInfo()))
+            redis.sadd(key, json.dumps(m.getInfo()))
         logger.debug(f":save: saved {redis.smembers(key)} messages")
 
 
 # ########################################
+#
 # MESSAGE TYPES
 #
-class MovementMessage(Message):
-    """
-    A MovementMessage is a message sent during a Movement (flight, service, mission).
-    """
-    def __init__(self,
-                 subject: str,
-                 move: "Movement",
-                 sync: str,
-                 info: dict = None):
-        Message.__init__(self,
-                         subject=subject,
-                         category=MESSAGE_CATEGORY.MOVEMENT.value,
-                         move=move,
-                         sync=sync,
-                         payload=info)
-
-    def getInfo(self):
-        a = super().getInfo()
-        return a
-
-
-class ServiceMessage(Message):
-
-    def __init__(self,
-                 subject: str,
-                 move: "Movement",
-                 sync: str,
-                 info: dict,
-                 service: str):
-        """
-        A ServiceMessage is sent when a service starts or terminates.
-        """
-        Message.__init__(self,
-                         subject=subject,
-                         category=MESSAGE_CATEGORY.SERVICE.value,
-                         move=move,
-                         sync=sync,
-                         payload=info,
-                         service=service)
-
-        self.service_event = service
-
-    def getInfo(self):
-        a = super().getInfo()
-        a["service-event"] = self.service_event
-        return a
-
-
 class FlightboardMessage(Message):
     """
     A FlightboardMessage is a message about a scheduled arrival or departure flight from the ManagedAirport.
     """
     def __init__(self,
-                 flight_id,
-                 is_arrival: bool,
-                 airport):
+                 flight: "Flight"):
         Message.__init__(self,
-                         category=MESSAGE_CATEGORY.FLIGHTBOARD.value)
+                         category=MESSAGE_CATEGORY.FLIGHTBOARD.value,
+                         entity=flight)
 
-        a = flight_id.split("-")
-        self.scheduled = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
+        self.scheduled_time = flight.scheduled_dt
 
     def getInfo(self):
         a = super().getInfo()
-        a["scheduled-utc"] = self.scheduled
+        a["scheduled-utc"] = None
+        if self.scheduled_time is not None:
+            a["scheduled-utc"] = self.scheduled_time.isoformat()
         return a
 
 
@@ -244,31 +191,111 @@ class EstimatedTimeMessage(Message):
         Message.__init__(self,
                          category=MESSAGE_CATEGORY.FLIGHTINFO.value)
 
-        self.estimated = et
+        self.is_arrival = is_arrival
+        a = flight_id.split("-")
+        self.scheduled_time = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
+        self.estimated_time = et
 
 
     def getInfo(self):
         a = super().getInfo()
-        a["estimated"] = self.estimated.isoformat()
+        a["estimated"] = self.estimated_time.isoformat()
         return a
 
 
-class NewScheduling(Message):
-
+class MovementMessage(Message):
+    """
+    A MovementMessage is a message sent during a Movement (flight, service, mission).
+    """
     def __init__(self,
-                 move_type: str,
-                 move_id: str,
+                 subject: str,
+                 move: "Movement",
                  sync: str,
-                 scheduled: datetime,
-                 update_time: datetime):
-        """
-        A NewScheduling is sent when a re-scheduling of an emission is requested.
-        """
+                 info: dict = None,
+                 **kwargs):
+
         Message.__init__(self,
-                         category=MESSAGE_CATEGORY.SCHEDULE.value,
-                         msgsubtype=move_type,
-                         entity=move_id,
-                         subentity=sync)
+                         subject=subject,
+                         category=MESSAGE_CATEGORY.MOVEMENT.value,
+                         entity=move,
+                         sync=sync,
+                         payload=info,
+                         **kwargs)
+
+class FlightMessage(MovementMessage):
+    """
+    A FilghtMessage is a message sent during a flight.
+    """
+    def __init__(self,
+                 subject: str,
+                 flight: "FlightMovement",
+                 sync: str,
+                 info: dict = None):
+
+        MovementMessage.__init__(self,
+                         subject=subject,
+                         move=flight,
+                         sync=sync,
+                         info=info)
+
+
+class MissionMessage(MovementMessage):
+    """
+    A MovementMessage is a message sent during a mission.
+    """
+    def __init__(self,
+                 subject: str,
+                 mission: "MissionMovement",
+                 sync: str,
+                 info: dict = None):
+
+        MovementMessage.__init__(self,
+                         subject=subject,
+                         move=mission,
+                         sync=sync,
+                         info=info)
+
+
+class ServiceMessage(MovementMessage):
+    """
+    A ServiceMessage is sent when a service starts or terminates.
+    """
+    def __init__(self,
+                 subject: str,
+                 service: "ServiceMovement",
+                 sync: str,
+                 info: dict):
+
+        MovementMessage.__init__(self,
+                         subject=subject,
+                         move=service,
+                         sync=sync,
+                         info=info)
+
+        self.service_event = sync
+
+    def getInfo(self):
+        a = super().getInfo()
+        a["service-event"] = self.service_event
+        return a
+
+
+# class NewScheduling(Message):
+
+#     def __init__(self,
+#                  move_type: str,
+#                  move_id: str,
+#                  sync: str,
+#                  scheduled: datetime,
+#                  update_time: datetime):
+#         """
+#         A NewScheduling is sent when a re-scheduling of an emission is requested.
+#         """
+#         Message.__init__(self,
+#                          category=MESSAGE_CATEGORY.SCHEDULE.value,
+#                          msgsubtype=move_type,
+#                          entity=move_id,
+#                          subentity=sync)
 
 # class ETDMessage(Message):
 

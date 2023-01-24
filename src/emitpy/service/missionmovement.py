@@ -9,7 +9,7 @@ from emitpy.service import Mission
 from emitpy.graph import Route
 from emitpy.utils import compute_time as doTime
 from emitpy.constants import FEATPROP, MISSION_PHASE, MISSION_COLOR, MOVE_TYPE
-from emitpy.message import MovementMessage, ServiceMessage
+from emitpy.message import MissionMessage
 
 logger = logging.getLogger("ServiceMove")
 
@@ -55,12 +55,12 @@ class MissionMove(Movement):
         self.moves.append(pos)
         logger.debug(f":move: start added")
 
-        self.addMessage(MovementMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.START.value}",
+        self.addMessage(MissionMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.START.value}",
                                         move=self,
                                         sync=MISSION_PHASE.START.value,
                                         info=self.getInfo()))
 
-        self.addMessage(ServiceMessage(subject=f"Mission {self.getId()} has started",
+        self.addMessage(MissionMessage(subject=f"Mission {self.getId()} has started",
                                        move=self,
                                        sync=MISSION_PHASE.START.value,
                                        info=self.getInfo(),
@@ -142,7 +142,7 @@ class MissionMove(Movement):
             self.moves.append(pos)
             logger.debug(f":move: checkpoint added")
 
-            self.addMessage(ServiceMessage(subject=f"Mission {self.getId()} reached control point",
+            self.addMessage(MissionMessage(subject=f"Mission {self.getId()} reached control point",
                                            move=self,
                                            sync=MISSION_PHASE.CHECKPOINT.value,
                                            info=self.getInfo(),
@@ -209,13 +209,13 @@ class MissionMove(Movement):
         pos.setColor(MISSION_COLOR.END.value)
         self.moves.append(pos)
 
-        self.addMessage(ServiceMessage(subject=f"Mission {self.getId()} has ended",
+        self.addMessage(MissionMessage(subject=f"Mission {self.getId()} has ended",
                                        move=self,
                                        sync=MISSION_PHASE.END.value,
                                        info=self.getInfo(),
                                        service=MISSION_PHASE.END.value))
 
-        self.addMessage(MovementMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.END.value}",
+        self.addMessage(MissionMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.END.value}",
                                         move=self,
                                         sync=MISSION_PHASE.END.value,
                                         info=self.getInfo()))

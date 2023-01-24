@@ -32,6 +32,8 @@ class MovePoint(FeatureWithProps):
 class Movement(Messages):
 
     def __init__(self, airport: "ManagedAirportBase"):
+        Messages.__init__(self)
+
         self.airport = airport
         self.moves = []  # Array of Features<Point>
         self.messages = []  # Array of Messages
@@ -86,6 +88,15 @@ class Movement(Messages):
 
     def getMoves(self):
         return self.moves
+
+    def getMessages(self):
+        m = super().getMessages()
+        logger.debug(f":getMessages: added super()")
+        s = self.getSource()
+        if s is not None:
+            m = m + s.getMessages()
+            logger.debug(f":getMessages: added source")
+        return m
 
     def getSource(self):
         # Abstract

@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, timedelta
 
 from .equipment import Equipment
+from emitpy.message import Messages
 
 logger = logging.getLogger("GroundSupport")
 
@@ -31,9 +32,11 @@ class PTSTime:
                 self.pts_scheduled + timedelta(minutes=(self.pts_reltime + sepf.pts_duration)))
 
 
-class GroundSupport:
+class GroundSupport(Messages):
 
     def __init__(self, operator: "Company", scheduled: int = 0, duration: int = 0):
+        Messages.__init__(self)
+
         self.operator = operator
 
         self.pts_reltime     = scheduled  # relative scheduled service date/time in minutes after/before(negative) on-block/off-block

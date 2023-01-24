@@ -6,13 +6,13 @@ import json
 
 from emitpy.constants import REDIS_TYPE, ID_SEP, QUEUE_DATA
 from emitpy.utils import key_path
-from .format import Format
+from .format import FormatMessage
 from .queue import Queue
 
-logger = logging.getLogger("EnqueueToRedis")
+logger = logging.getLogger("EnqueueMessageToRedis")
 
 
-class EnqueueToRedis(Format):  # could/should inherit from Format
+class EnqueueMessagesToRedis(FormatMessage):  # could/should inherit from Format
     """
     Special formatter that save data to emit in Redis
     and enqueue data in the queue supplied at creation.
@@ -23,8 +23,8 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         if r is None:
             logger.warning(f":__init__: no redis")
             return
-        formatter = Format.getFormatter(queue.formatter_name)
-        Format.__init__(self, emit, formatter)
+        formatter = FormatMessage.getFormatter(queue.formatter_name)
+        FormatMessage.__init__(self, emit, formatter)
         self.queue = queue
         self.redis = r
 
@@ -78,10 +78,10 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         if len(a[-1]) == 1 and a[-1] in [e.value for e in REDIS_TYPE]:
             ident = ID_SEP.join(a[:-1])
         if queue is not None:
-            EnqueueToRedis.dequeue(redis, ident, queue)
+            EnqueueMessagesToRedis.dequeue(redis, ident, queue)
         redis.delete(ident)
         logger.debug(f":delete: deleted {ident}")
-        return (True, f"EnqueueToRedis::delete deleted {ident}")
+        return (True, f"EnqueueMessagesToRedis::delete deleted {ident}")
 
 
     @staticmethod
@@ -125,7 +125,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         logger.debug(f":pias: executing..")
         oset.execute()
         logger.debug(f":pias: ..done")
-        return (True, f"EnqueueToRedis::pias enqueued {ident}")
+        return (True, f"EnqueueMessagesToRedis::pias enqueued {ident}")
 
 
     def getKey(self, extension):
@@ -146,14 +146,14 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         """
         if self.output is None or len(self.output) == 0:
             logger.warning(":save: no emission point")
-            return (False, "EnqueueToRedis::save: no emission point")
+            return (False, "EnqueueMessagesToRedis::save: no emission point")
 
         # note: self.formatter is a class
         formatted_id = key_path(self.emit.getKey(None), self.formatter.NAME, REDIS_TYPE.FORMAT.value)
         n = self.redis.scard(formatted_id)
         if n > 0 and not overwrite:
             logger.warning(f":save: key {formatted_id} already exist, not saved")
-            return (False, "EnqueueToRedis::save key already exist")
+            return (False, "EnqueueMessagesToRedis::save key already exist")
 
         oset = self.redis.pipeline()
         if n > 0:
@@ -164,7 +164,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset.sadd(formatted_id, *tosave)
         oset.execute()
         logger.debug(f":save: key {formatted_id} saved {len(tosave)} entries")
-        return (True, "EnqueueToRedis::save completed")
+        return (True, "EnqueueMessagesToRedis::save completed")
 
 
     def enqueue(self):
@@ -175,7 +175,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         """
         if self.output is None or len(self.output) == 0:
             logger.warning(":enqueue: no emission point")
-            return (False, "EnqueueToRedis::enqueue: no emission point")
+            return (False, "EnqueueMessagesToRedis::enqueue: no emission point")
 
         enq_id = self.getKey(REDIS_TYPE.QUEUE.value)
         oldvalues = self.redis.smembers(enq_id)
@@ -209,4 +209,19 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         logger.debug(f":enqueue: pipeline: {retval}")
         logger.debug(f":enqueue: removed {retval[0]}/{len(oldvalues)} old entries")
         logger.debug(f":enqueue: enqueued")
-        return (True, "EnqueueToRedis::enqueue completed")
+        return (True, "EnqueueMessagesToRedis::enqueue completed")
+
+
+# class EnqueueMessagesToRedis(EnqueueToRedis, FormatMessage):
+#     """
+#     Special formatter that save messages to emit in Redis
+#     and enqueue messages in the queue supplied at creation.
+#     """
+#     def __init__(self, emit: "Emit", queue: Queue, redis = None):
+#         r = queue.redis if queue is not None else redis
+#         if r is None:
+#             logger.warning(f":__init__: no redis")
+#             return
+#         EnqueueToRedis.__init__(self, emit=emit, queue=queue, redis=redis)
+#         formatter = FormatMessage.getFormatter(queue.formatter_name)
+#         FormatMessage.__init__(self, emit=emit, formatter=formatter)

@@ -137,6 +137,15 @@ class Emit(Messages):
         return None
 
 
+    def getMessages(self):
+        m = super().getMessages()  # this emit's messages
+        logger.debug(f":getMessages: added super()")
+        if self.move is not None:
+            m = m + self.move.getMessages()
+            logger.debug(f":getMessages: added source")
+        return m
+
+
     def getMeta(self):
         """
         Emit identifier augmented with data from the movement.
@@ -214,21 +223,45 @@ class Emit(Messages):
         #     logger.debug(f":save: saved kml")
 
         # 3. Save messages for broadcast
-        if self.move is not None:
-            mid = self.getKey(REDIS_TYPE.EMIT_MESSAGE.value)
-            for m in self.move.getMessages():
-                redis.sadd(mid, json.dumps(m.getInfo()))
-            logger.debug(f":save: saved {redis.scard(mid)} messages")
+        mid = self.getKey(REDIS_TYPE.EMIT_MESSAGE.value)
+        for m in self.getMessages():
+            redis.sadd(mid, json.dumps(m.getInfo()))
+        logger.debug(f":save: saved {redis.scard(mid)} messages")
 
         logger.debug(f":save: saved {move_id}")
         return self.saveMeta(redis)
+
+
+    def write_debug(self):
+        logger.warning(":write_debug: writing debug files..")
+        basedir = os.path.join(MANAGED_AIRPORT_AODB, "debug")
+        if not os.path.exists(basedir):
+            os.mkdir(basedir)
+            logger.info(f":write_debug: directory {basedir} does not exist. created.")
+
+        # Try to save situation...
+        ident = self.getId()
+        fnbase = os.path.join(basedir, f"debug-{ident}-{datetime.now().isoformat()}-")
+        self.move.saveFile()
+        with open(fnbase + "meta.out", "w") as fp:
+            json.dump(self.getMeta(), fp, indent=4)
+        with open(fnbase + "debug-emit-info.out", "w") as fp:
+            json.dump(self.getInfo(), fp, indent=4)
+        with open(fnbase + "debug-emit-data.geojson", "w") as fp:
+            json.dump(FeatureCollection(features=cleanFeatures(self._emit)), fp, indent=4)
+        with open(fnbase + "debug-move-info.out", "w") as fp:
+            json.dump(self.move.getInfo(), fp, indent=4)
+        with open(fnbase + "debug-move-emit-data.geojson", "w") as fp:
+            json.dump(FeatureCollection(features=cleanFeatures(self.moves)), fp, indent=4)
+        with open(fnbase + "debug-move-move-data.geojson", "w") as fp:
+            json.dump(FeatureCollection(features=cleanFeatures(self.move.moves)), fp, indent=4)
+        logger.warning(f":write_debug: ..written debug files {fnbase}")
 
 
     def saveFile(self):
         """
         Save flight paths to file for emitted positions.
         """
-
         ident = self.getId()
         db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
         basedir = os.path.join(MANAGED_AIRPORT_AODB, db)
@@ -250,31 +283,12 @@ class Emit(Messages):
 
         # 3. Save linestring with timestamp
         # Save for traffic analysis
+        logger.debug(f":saveFile: {self.getInfo()}")
+        logger.debug(f":saveFile: emit_point={len(self.scheduled_emit)} positions")
+
         if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
             logger.warning(":saveFile: no scheduled emission point")
-
-            basedir = os.path.join(MANAGED_AIRPORT_AODB, "debug")
-            if not os.path.exists(basedir):
-                os.mkdir(basedir)
-                logger.info(f":saveFile: directory {basedir} does not exist. created.")
-
-            # Try to save situation...
-            fnbase = os.path.join(basedir, f"debug-{ident}-{datetime.now().isoformat()}-")
-            self.move.saveFile()
-            with open(fnbase + "meta.out", "w") as fp:
-                json.dump(self.getMeta(), fp, indent=4)
-            with open(fnbase + "debug-emit-info.out", "w") as fp:
-                json.dump(self.getInfo(), fp, indent=4)
-            with open(fnbase + "debug-emit-data.geojson", "w") as fp:
-                json.dump(FeatureCollection(features=cleanFeatures(self._emit)), fp, indent=4)
-            with open(fnbase + "debug-move-info.out", "w") as fp:
-                json.dump(self.move.getInfo(), fp, indent=4)
-            with open(fnbase + "debug-move-emit-data.geojson", "w") as fp:
-                json.dump(FeatureCollection(features=cleanFeatures(self.moves)), fp, indent=4)
-            with open(fnbase + "debug-move-move-data.geojson", "w") as fp:
-                json.dump(FeatureCollection(features=cleanFeatures(self.move.moves)), fp, indent=4)
-            logger.warning(f":saveFile: written debug files {fnbase}")
-
+            self.write_debug()
             return (False, "Emit::saveFile: no scheduled emission point")
 
         logger.debug(f":saveFile: ***** there are {len(self.scheduled_emit)} points")
@@ -469,8 +483,8 @@ class Emit(Messages):
         logger.debug(f":emit: first_time_to_next_emit: {first_time_to_next_emit}")
 
         # Add first point, we emit it if time_to_next_emit == 0, we emit if waypt == False
-        if time_to_next_emit != 0:  # otherwise, will be added in first loop
-            emit_point(curridx, currpos, total_time, "start", waypt=time_to_next_emit != 0)
+        # if time_to_next_emit != 0:  # otherwise, will be added in first loop
+        emit_point(curridx, currpos, total_time, "start", waypt=time_to_next_emit != 0)
 
         future_emit = self.frequency
         # future_emit = self.frequency - 0.2 * self.frequency + randrange(0.4 * self.frequency)  # random time between emission DANGEROUS!
@@ -691,22 +705,20 @@ class Emit(Messages):
         ####logger.debug(f":emit: summary: {timedelta(seconds=total_time)} vs {timedelta(seconds=self.moves[-1].time())}, {round(total_dist/1000, 3)} vs {round(total_dist_vtx/1000, 3)} km, {len(self.moves)} vs {len(self._emit)}")
         move_marks = self.move.getMarkList()
         emit_marks = self.getMarkList()
-        emit_moves_marks = self.getMoveMarkList()
+        # emit_moves_marks = self.getMoveMarkList()
         # if self.emit_type == "service"
         if len(move_marks) != len(emit_marks):
-            logger.debug(f":emit: move: {type(self.move)}")
-
-            logger.warning(f":emit: move mark list differs from emit mark list ({first_time_to_next_emit})")
+            logger.warning(f":emit: move mark list differs from emit mark list (first_time_to_next_emit={first_time_to_next_emit})")
 
             logger.debug(f":emit: move mark list (len={len(move_marks)}): {move_marks}")
             miss = list(filter(lambda f: f not in move_marks, emit_marks))
             logger.debug(f":emit: not in move list: {miss}")
+            # logger.debug(f":emit: emit.moves (move.getMoves()) mark list (len={len(emit_moves_marks)}): {emit_moves_marks}")
 
-            logger.debug(f":emit: emit.moves (move.getMoves()) mark list (len={len(emit_moves_marks)}): {emit_moves_marks}")
-
-            logger.debug(f":emit: mark list (len={len(emit_marks)}): {emit_marks}")
+            logger.debug(f":emit: emit mark list (len={len(emit_marks)}): {emit_marks}")
             miss = list(filter(lambda f: f not in emit_marks, move_marks))
             logger.debug(f":emit: not in emit list: {miss}")
+            self.write_debug()
 
         logger.debug(f":emit: generated {len(self._emit)} points")
         # printFeatures(self._emit, "emit_point", True)
@@ -854,6 +866,7 @@ class Emit(Messages):
             logger.debug(f":schedule: {self.offset_name} offset {self.offset} sec")
             when = moment + timedelta(seconds=(- offset))
             logger.debug(f":schedule: emit_point starts at {when} ({when.timestamp()})")
+            self.scheduled_emit = []  # brand new scheduling, reset previous one
             for e in self._emit:
                 p = EmitPoint.new(e)
                 t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
@@ -868,9 +881,29 @@ class Emit(Messages):
             ret = self.updateEstimatedTime()
             if not ret[0]:
                 return ret
+            ret = self.scheduleMessages(sync, moment)
+            if not ret[0]:
+                logger.warning(f":schedule: scheduleMessages returned {ret[1]}, ignoring")
             return (True, "Emit::schedule completed")
 
-        return (False, f"Emit::schedule sync {sync} not found")
+        logger.warning(f":schedule: {sync} mark not found")
+        return (False, f"Emit::schedule {sync} mark not found")
+
+
+    def scheduleMessages(self, sync, moment: datetime):
+        logger.debug(f":scheduleMessages: {sync} at {moment}..")
+        for m in self.getMessages():
+            when = moment
+            if m.relative_sync is not None:
+                offset = self.getRelativeEmissionTime(m.relative_sync)
+                if offset is not None:
+                    when = moment + timedelta(seconds=(- offset))
+                    logger.debug(f":scheduleMessages: {m.relative_sync} offset={offset}sec")
+                else:
+                    logger.warning(f":scheduleMessages: {m.relative_sync} mark not found, using moment with no offset")
+            m.schedule(when)
+        logger.debug(f":scheduleMessages: ..scheduled")
+        return (True, "Emit::scheduleMessages completed")
 
 
     def getTimeBracket(self, as_string: bool = False):
@@ -898,7 +931,6 @@ class Emit(Messages):
     def getRelativeEmissionTime(self, sync: str):
         f = findFeatures(self._emit, {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
-            self.scheduled_emit = []
             r = f[0]
             logger.debug(f":getRelativeEmissionTime: found {sync}")
             offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)

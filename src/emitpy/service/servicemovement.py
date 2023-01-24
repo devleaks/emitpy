@@ -13,7 +13,7 @@ from emitpy.service import Service
 from emitpy.graph import Route
 from emitpy.utils import compute_time as doTime
 from emitpy.constants import FEATPROP, SERVICE_PHASE, MOVE_TYPE
-from emitpy.message import MovementMessage, ServiceMessage
+from emitpy.message import ServiceMessage
 
 logger = logging.getLogger("ServiceMove")
 
@@ -58,8 +58,8 @@ class ServiceMove(Movement):
         startpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.START.value)
         self.moves.append(startpos)
 
-        self.addMessage(MovementMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.START.value}",
-                                        move=self,
+        self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.START.value}",
+                                        service=self,
                                         sync=SERVICE_PHASE.START.value,
                                         info=self.getInfo()))
 
@@ -150,10 +150,9 @@ class ServiceMove(Movement):
         self.service.vehicle.setPosition(ramp_stop)
 
         self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has started",
-                                       move=self,
+                                       service=self,
                                        sync=SERVICE_PHASE.SERVICE_START.value,
-                                       info=self.getInfo(),
-                                       service=SERVICE_PHASE.SERVICE_START.value))
+                                       info=self.getInfo()))
 
         # .. servicing ..
         # before service, may first go to ramp rest area.
@@ -184,10 +183,9 @@ class ServiceMove(Movement):
         self.moves.append(svc_end)
 
         self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has ended",
-                                       move=self,
+                                       service=self,
                                        sync=SERVICE_PHASE.SERVICE_END.value,
-                                       info=self.getInfo(),
-                                       service=SERVICE_PHASE.SERVICE_END.value))
+                                       info=self.getInfo()))
         # ###
         # If there is a stop poi named "REST" and if the service has pause_after > 0
         # we first go to the rest position and wait pause_after minutes.
@@ -231,8 +229,8 @@ class ServiceMove(Movement):
         self.moves.append(finalpos)
         self.service.vehicle.setPosition(finalpos)
 
-        self.addMessage(MovementMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.END.value}",
-                                        move=self,
+        self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.END.value}",
+                                        service=self,
                                         sync=SERVICE_PHASE.END.value,
                                         info=self.getInfo()))
 

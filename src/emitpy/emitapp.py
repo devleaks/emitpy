@@ -15,7 +15,7 @@ from emitpy.aircraft import AircraftTypeWithPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
 from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit
-from emitpy.broadcast import Format, EnqueueToRedis, Queue
+from emitpy.broadcast import Format, EnqueueToRedis, FormatMessage, EnqueueMessagesToRedis, Queue
 # pylint: disable=W0611
 from emitpy.constants import SERVICE_PHASE, MISSION_PHASE, FLIGHT_PHASE, FEATPROP, ARRIVAL, LIVETRAFFIC_QUEUE, LIVETRAFFIC_FORMATTER
 from emitpy.constants import INTERNAL_QUEUES, ID_SEP, REDIS_TYPE, REDIS_DB, key_path, REDIS_DATABASE, REDIS_PREFIX
@@ -411,12 +411,31 @@ class EmitApp(ManagedAirport):
             if not ret[0] and not ret[1].endswith("already exist"):
                 return StatusInfo(108, f"problem during formatted output save", ret[1])
 
+        logger.debug(":do_flight: ..sending messages..")
+        formatted_message = None
         if self._use_redis:
-            ret = formatted.enqueue()
+            formatted_message = EnqueueMessagesToRedis(emit=emit, queue=self.queues["wire"], redis=self.redis)
+        else:
+            formatted_message = FormatMessage(emit=emit)
+        if formatted_message is None:
+            return StatusInfo(111, f"problem during formatting of messages", ret[1])
+        else:
+            ret = formatted_message.format()
             if not ret[0]:
-                return StatusInfo(109, f"problem during enqueue", ret[1])
+                return StatusInfo(107, f"problem during formatting of messages", ret[1])
 
-            self.airport.manager.saveAllocators(self.redis)
+        if SAVE_TO_FILE:
+            logger.debug(":do_flight: ..saving messages..")
+            ret = formatted_message.saveFile(overwrite=True)
+            # Redis: "EnqueueToRedis::save key already exist"
+            # File:  "Format::save file already exist"
+            if not ret[0] and not ret[1].endswith("already exist"):
+                return StatusInfo(108, f"problem during formatted output save", ret[1])
+
+        if self._use_redis:
+            ret = formatted_message.enqueue()
+            if not ret[0]:
+                return StatusInfo(109, f"problem during enqueue of messages", ret[1])
 
         logger.info(":do_flight: SAVED " + ("*" * 92))
         if not do_services:

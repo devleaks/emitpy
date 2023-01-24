@@ -10,12 +10,10 @@ class FormatterWire:
     def __init__(self, message: "Message"):
         self.name = "wire"
         self.message = message
-
-        self.ts = message.getAbsoluteEmissionTime()
-        self.message["emitpy-format"] = self.name
+        self.ts = message.getAbsoluteEmissionTime().timestamp()
 
     def __str__(self):
-        return json.dumps(self.message)
+        return str(self.message)
 
     @staticmethod
     def getAbsoluteTime(m):
