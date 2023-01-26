@@ -283,9 +283,15 @@ class ReEmit(Emit):
             is_arrival = self.getMeta("$.move.is_arrival")
             if fid is not None:
                 am = self.managedAirport.airport.manager
+
+                TIME_NEW_ET_ADVANCE_WARNING=-1800
                 self.addMessage(EstimatedTimeMessage(flight_id=fid,
-                                                     is_arrival=is_arrival,
-                                                     et=et))
+                                                 is_arrival=is_arrival,
+                                                 scheduled_time=et,
+                                                 relative_time=TIME_NEW_ET_ADVANCE_WARNING,
+                                                 et=et))
+                logger.debug(f":updateResources: sent new estimate message {fid}: {et}")
+
                 # 3. For flight: update runway, ramp
                 rwy = self.getMeta("$.props.flight.runway.resource")
                 et_from = et - timedelta(minutes=3)

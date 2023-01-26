@@ -321,9 +321,9 @@ class FlightMovement(Movement):
             logger.debug(f":vnav: takeoff at {rwy.name}, {takeoff_distance:f}")
 
             self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TAKE_OFF.value}",
-                                            flight=self,
-                                            sync=FLIGHT_PHASE.TAKE_OFF.value,
-                                            info=self.getInfo()))
+                                          flight=self,
+                                          sync=FLIGHT_PHASE.TAKE_OFF.value,
+                                          info=self.getInfo()))
             is_grounded = False
 
             # initial climb, commonly accepted to above 1500ft AGL
@@ -368,9 +368,9 @@ class FlightMovement(Movement):
             logger.debug(":vnav: origin added first point")
 
             self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TAKE_OFF.value}",
-                                            flight=self,
-                                            sync=FLIGHT_PHASE.TAKE_OFF.value,
-                                            info=self.getInfo()))
+                                          flight=self,
+                                          sync=FLIGHT_PHASE.TAKE_OFF.value,
+                                          info=self.getInfo()))
             is_grounded = False
 
             # initial climb, commonly accepted to above 1500ft AGL
@@ -589,9 +589,9 @@ class FlightMovement(Movement):
             logger.debug(f":vnav:(rev) touch down at {rwy.name}, {LAND_TOUCH_DOWN:f}, {alt:f}")
 
             self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TOUCH_DOWN.value}",
-                                            flight=self,
-                                            sync=FLIGHT_PHASE.TOUCH_DOWN.value,
-                                            info=self.getInfo()))
+                                          flight=self,
+                                          sync=FLIGHT_PHASE.TOUCH_DOWN.value,
+                                          info=self.getInfo()))
             is_grounded = False
 
             # we move to the final fix at max FINAL_ALT ft, landing speed, FINAL_VSPEED (ft/min), from touchdown
@@ -654,9 +654,9 @@ class FlightMovement(Movement):
             logger.debug(":vnav:(rev) destination added as last point")
 
             self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TOUCH_DOWN.value}",
-                                            flight=self,
-                                            sync=FLIGHT_PHASE.TOUCH_DOWN.value,
-                                            info=self.getInfo()))
+                                          flight=self,
+                                          sync=FLIGHT_PHASE.TOUCH_DOWN.value,
+                                          info=self.getInfo()))
             is_grounded = False
 
             # we move to the final fix at max 3000ft, approach speed from airport last point, vspeed=FINAL_VSPEED
@@ -1107,9 +1107,8 @@ class FlightMovement(Movement):
         logger.debug(f":add_tmo: added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down")
 
         self.addMessage(FlightMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.TEN_MILE_OUT.value}",
-                                        flight=self,
-                                        sync=FLIGHT_PHASE.TEN_MILE_OUT.value,
-                                        info=self.getInfo()))
+                                      flight=self,
+                                      sync=FLIGHT_PHASE.TEN_MILE_OUT.value))
 
         return (True, "Movement::add_tmo added")
 
@@ -1139,9 +1138,8 @@ class FlightMovement(Movement):
         logger.debug(f":add_faraway: added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from airport")
 
         self.addMessage(FlightMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.FAR_AWAY.value}",
-                                        flight=self,
-                                        sync=FLIGHT_PHASE.FAR_AWAY.value,
-                                        info=self.getInfo()))
+                                      flight=self,
+                                      sync=FLIGHT_PHASE.FAR_AWAY.value))
 
         return (True, "Movement::add_faraway added")
 
@@ -1191,9 +1189,8 @@ class TowMovement(Movement):
             logger.debug(f":tow: tow start: {parkingpos}")
 
         self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value}",
-                                        flight=self,
-                                        sync=FLIGHT_PHASE.OFFBLOCK.value,
-                                        info=self.getInfo()))
+                                      flight=self,
+                                      sync=FLIGHT_PHASE.OFFBLOCK.value))
 
         # we call the move from packing position to taxiway network the "pushback"
         pushback_end = self.airport.taxiways.nearest_point_on_edge(parking)
@@ -1394,9 +1391,8 @@ class ArrivalMove(FlightMovement):
         fc.append(parkingpos)
 
         self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.ONBLOCK.value}",
-                                        flight=self,
-                                        sync=FLIGHT_PHASE.ONBLOCK.value,
-                                        info=self.getInfo()))
+                                      flight=self,
+                                      sync=FLIGHT_PHASE.ONBLOCK.value))
 
         if show_pos:
             logger.debug(f":taxi:in: taxi end: {parking}")
@@ -1450,9 +1446,8 @@ class DepartureMove(FlightMovement):
         fc.append(parkingpos)
 
         self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value}",
-                                        flight=self,
-                                        sync=FLIGHT_PHASE.OFFBLOCK.value,
-                                        info=self.getInfo()))
+                                      flight=self,
+                                      sync=FLIGHT_PHASE.OFFBLOCK.value))
 
         if show_pos:
             logger.debug(f":taxi:out: taxi start: {parkingpos}")

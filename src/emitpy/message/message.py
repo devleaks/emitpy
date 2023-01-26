@@ -72,8 +72,9 @@ class Message:
         self.entity = kwargs.get("entity", None)  # parent entity can be emit, movement(flight, mission, service), or flight
         self.relative_sync = kwargs.get("sync", None)      # mark in parent entity, if any
 
-        self.scheduled_time = kwargs.get("scheduled_time", None)  # scheduled emission time
         self.relative_time = kwargs.get("relative_time", 0)  # seconds relative to above for emission
+
+        self.scheduled_time = kwargs.get("scheduled_time", None)  # scheduled emission time
         self.absolute_time = None
 
 
@@ -164,12 +165,26 @@ class FlightboardMessage(Message):
     A FlightboardMessage is a message about a scheduled arrival or departure flight from the ManagedAirport.
     """
     def __init__(self,
-                 flight: "Flight"):
+                 flight: "Flight",
+                 **kwargs):
+
+        self.operator = flight.operator.icao
+        self.flight_number = str(flight.number)
+        self.is_arrival = flight.is_arrival()
+        self.airport = flight.departure.icao if self.is_arrival else flight.arrival.icao
+        self.scheduled_time = flight.scheduled_dt
+
+        title = "ARRIVAL " if self.is_arrival else "DEPARTURE "
+        title = title + self.operator + self.flight_number + " "
+        title = title + ("FROM " if self.is_arrival else "TO ")
+        title = title + self.airport + " AT "
+        title = title + self.scheduled_time.isoformat()
+
         Message.__init__(self,
                          category=MESSAGE_CATEGORY.FLIGHTBOARD.value,
-                         entity=flight)
-
-        self.scheduled_time = flight.scheduled_dt
+                         entity=flight,
+                         subject=title,
+                         **kwargs)
 
     def getInfo(self):
         a = super().getInfo()
@@ -186,10 +201,12 @@ class EstimatedTimeMessage(Message):
     def __init__(self,
                  flight_id: str,
                  is_arrival: bool,
-                 et: datetime):
+                 et: datetime,
+                 **kwargs):
 
         Message.__init__(self,
-                         category=MESSAGE_CATEGORY.FLIGHTINFO.value)
+                         category=MESSAGE_CATEGORY.FLIGHTINFO.value,
+                         **kwargs)
 
         self.is_arrival = is_arrival
         a = flight_id.split("-")
@@ -238,6 +255,11 @@ class FlightMessage(MovementMessage):
                          sync=sync,
                          info=info)
 
+    def getInfo(self):
+        a = super().getInfo()
+        a["flight-event"] = self.relative_sync
+        return a
+
 
 class MissionMessage(MovementMessage):
     """
@@ -254,6 +276,11 @@ class MissionMessage(MovementMessage):
                          move=mission,
                          sync=sync,
                          info=info)
+
+    def getInfo(self):
+        a = super().getInfo()
+        a["mission-event"] = self.relative_sync
+        return a
 
 
 class ServiceMessage(MovementMessage):
@@ -272,11 +299,9 @@ class ServiceMessage(MovementMessage):
                          sync=sync,
                          info=info)
 
-        self.service_event = sync
-
     def getInfo(self):
         a = super().getInfo()
-        a["service-event"] = self.service_event
+        a["service-event"] = self.relative_sync
         return a
 
 

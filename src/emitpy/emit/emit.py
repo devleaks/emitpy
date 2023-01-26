@@ -1013,8 +1013,11 @@ class Emit(Messages):
             is_arrival = source.is_arrival()
             am = source.managedAirport.airport.manager
 
+            TIME_NEW_ET_ADVANCE_WARNING=-1800
             self.addMessage(EstimatedTimeMessage(flight_id=fid,
                                                  is_arrival=is_arrival,
+                                                 scheduled_time=et,
+                                                 relative_time=TIME_NEW_ET_ADVANCE_WARNING,
                                                  et=et))
             logger.debug(f":updateResources: sent new estimate message {fid}: {et}")
 

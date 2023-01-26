@@ -365,7 +365,15 @@ class Flight(Messages):
         normplan = self.flightroute.route()
         waypoints = []
 
-        self.addMessage(FlightboardMessage(flight=self))
+        sync = FLIGHT_PHASE.OFFBLOCK.value
+        if self.is_arrival():
+            sync = FLIGHT_PHASE.ONBLOCK.value
+
+        # Flightboard message sent one hour (3600 secs) before actual scheduled time.
+        FLIGHTBOARD_INFO_TIME=-3600  # could be params or constant
+        self.addMessage(FlightboardMessage(flight=self,
+                                           relative_time=FLIGHTBOARD_INFO_TIME,
+                                           relative_sync=sync))
 
         # ###########################
         # DEPARTURE AND CRUISE

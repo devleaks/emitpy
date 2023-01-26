@@ -1,8 +1,11 @@
 #
 import json
+from datetime import datetime, timezone
 from enum import Enum
 
 from emitpy.constants import ID_SEP, ID_SEP_ALT, REDIS_DATABASE
+from emitpy.constants import FLIGHT_TIME_FORMAT
+
 from emitpy.utils import key_path
 import emitpy
 
@@ -89,3 +92,43 @@ class Identity:
         """
         redis.set(key_path(REDIS_DATABASE.UNKNOWN.value, self.getKey()), json.dumps(self.getInfo()))
         return (True, f"{type(self).__name__}::save: saved")
+
+
+class FlightId:
+
+    def __init__(self, airline: str, flight_number: str, scheduled: "datetime", flight: str = None):
+        self.airline = airline
+        self.flight_number = flight_number
+        self.scheduled = scheduled
+        self.remote_airport = destination
+
+    def getId(self, use_localtime: bool = False):
+        if use_localtime:
+            return self.airline + self.flight_number + "-S" + self.scheduled.strftime(FLIGHT_TIME_FORMAT)
+        return self.airline + self.flight_number + "-S" + self.scheduled.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
+
+    @staticmethod
+    def makeId(airline: str, flight_number: str, scheduled: "datetime"):
+        return airline + flight_number + "-S" + scheduled.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
+
+    @staticmethod
+    def parseId(flight_id):
+        """
+        Parses IATA flight identifier as built by getId().
+        Returns dict of parsed values.
+
+        :param      flight_id:  The flight identifier
+        :type       flight_id:  { type_description }
+        """
+        a = flight_id.split("-")
+        scheduled_utc = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
+        return {
+            "airline": a[0][0:2],
+            "flight_number": a[2:],
+            "scheduled": scheduled_utc,
+            "flight": a[0]
+        }
+
+    @classmethod
+    def new(cls, flight_id: str):
+        return cls(**FlightId.parse(flight_id=flight_id))
