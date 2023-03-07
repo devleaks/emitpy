@@ -16,7 +16,7 @@ logger = logging.getLogger("Flight")
 
 class Flight(Messages):
 
-    def __init__(self, operator: Airline, number: str, scheduled: datetime, departure: Airport, arrival: Airport, aircraft: Aircraft, linked_flight: 'Flight' = None):
+    def __init__(self, operator: Airline, number: str, scheduled: datetime, departure: Airport, arrival: Airport, aircraft: Aircraft, linked_flight: 'Flight' = None, load_factor: float = 1.0):
         Messages.__init__(self)
         self.number = number
         self.departure = departure
@@ -27,11 +27,11 @@ class Flight(Messages):
         self.scheduled = scheduled.isoformat()
         self.estimated = None
         self.actual = None
-        self.schedule_history = []  # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
+        self.schedule_history = []      # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
         self.operator = operator
         self.aircraft = aircraft
-        self.ramp = None              # GeoJSON Feature
-        self.runway = None            # GeoJSON Feature
+        self.ramp = None                # GeoJSON Feature
+        self.runway = None              # GeoJSON Feature
         self.tarprofile = None
         self.turnaround = None
         self.codeshare = None
@@ -41,13 +41,13 @@ class Flight(Messages):
         self.flightplan_wpts = []
         self.dep_procs = None
         self.arr_procs = None
-        self.rwy = None               # RWY object
+        self.rwy = None                 # RWY object
         self.meta = {
             "departure": {},
             "arrival": {}
         }
         self.flight_type = PAYLOAD.PAX
-        self.load_factor = 1.0        # 100% capacity, estimated, both passengers and cargo.
+        self.load_factor = load_factor  # 100% capacity, estimated, both passengers and cargo.
 
         try:
             if int(number) > 5000:
@@ -515,8 +515,8 @@ class Flight(Messages):
 
 class Arrival(Flight):
 
-    def __init__(self, number: str, scheduled: datetime, managedAirport: Airport, origin: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
-        Flight.__init__(self, number=number, scheduled=scheduled, departure=origin, arrival=managedAirport.airport, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
+    def __init__(self, number: str, scheduled: datetime, managedAirport: Airport, origin: Airport, operator: Airline, aircraft: Aircraft, load_factor: float = 1.0, linked_flight: 'Flight' = None):
+        Flight.__init__(self, number=number, scheduled=scheduled, departure=origin, arrival=managedAirport.airport, operator=operator, aircraft=aircraft, load_factor=load_factor, linked_flight=linked_flight)
         self.managedAirport = managedAirport
 
     def _setRunway(self):
@@ -533,8 +533,8 @@ class Arrival(Flight):
 
 class Departure(Flight):
 
-    def __init__(self, number: str, scheduled: datetime, managedAirport: Airport, destination: Airport, operator: Airline, aircraft: Aircraft, linked_flight: 'Flight' = None):
-        Flight.__init__(self, number=number, scheduled=scheduled, departure=managedAirport.airport, arrival=destination, operator=operator, aircraft=aircraft, linked_flight=linked_flight)
+    def __init__(self, number: str, scheduled: datetime, managedAirport: Airport, destination: Airport, operator: Airline, aircraft: Aircraft, load_factor: float = 1.0, linked_flight: 'Flight' = None):
+        Flight.__init__(self, number=number, scheduled=scheduled, departure=managedAirport.airport, arrival=destination, operator=operator, aircraft=aircraft, load_factor=load_factor, linked_flight=linked_flight)
         self.managedAirport = managedAirport
 
     def _setRunway(self):

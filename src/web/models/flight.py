@@ -30,6 +30,7 @@ class CreateFlight(BaseModel):
     emit_rate: int = Field(30, description="Emission rate for positions (sent every ... seconds)")
     queue: str = Field(..., description="Name of emission broadcast queue for positions; also determine emission data format")
     create_services: bool = False
+    load_factor: float = Field(1.0, description="Load factor for flight, 0 is empty, 1 is full")
     flight_actual_date: date = Field(None, description="Flight actual date in managed airport local time")
     flight_actual_time: time = Field(None, description="Flight actual time in managed airport local time")
 

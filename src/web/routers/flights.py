@@ -58,6 +58,7 @@ async def create_flight(
                 icao24=flight_in.icao24,
                 acreg=flight_in.aircraft_reg,
                 runway=flight_in.runway,
+                load_factor=flight_in.load_factor,
                 do_services=flight_in.create_services,
                 actual_datetime=at)
     except Exception as ex:

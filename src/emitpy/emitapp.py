@@ -233,7 +233,7 @@ class EmitApp(ManagedAirport):
         logger.debug(":shutdown: ..done")
 
 
-    def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway, do_services: bool = False, actual_datetime: str = None):
+    def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway, load_factor:float = 1.0, do_services: bool = False, actual_datetime: str = None):
         fromto = "from" if movetype == ARRIVAL else "to"
         logger.info("*" * 110)
         logger.info(f"***** {airline}{flightnumber} {scheduled} {movetype} {fromto} {apt} {actype} {icao24} {acreg} {ramp} {runway}")
@@ -314,14 +314,16 @@ class EmitApp(ManagedAirport):
                              scheduled=scheduled_dt,
                              managedAirport=self,
                              origin=remote_apt,
-                             aircraft=aircraft)
+                             aircraft=aircraft,
+                             load_factor=load_factor)
         else:
             flight = Departure(operator=airline,
                                number=flightnumber,
                                scheduled=scheduled_dt,
                                managedAirport=self,
                                destination=remote_apt,
-                               aircraft=aircraft)
+                               aircraft=aircraft,
+                               load_factor=load_factor)
         flight.setFL(reqfl)
         rampval = self.airport.getRamp(ramp, redis=self.use_redis())
         if rampval is None:
