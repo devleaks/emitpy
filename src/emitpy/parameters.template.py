@@ -51,6 +51,8 @@ REDIS_CONNECT = {
     "port": 6379,
     "db": 0
 }
+REDIS_ATTEMPTS = 2
+REDIS_WAIT = 1
 
 
 # ######################
@@ -66,12 +68,12 @@ ALLOW_KEYGEN = True  # Whether to mount api to generate keys, should be false in
 #
 # Broadcaster
 BROADCASTER_HEARTBEAT = False
-
-# Sources of some data
-METAR_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations"
+BROADCASTER_VERBOSE = True
+BROADCASTER_TICK = 1000
 
 # Sources of some data
 METAR_HISTORICAL = False  # unreliable, limited, does not work
+
 
 # X-Plane location
 XPLANE_DIR = os.path.join("<x-plane-home-directory>")
