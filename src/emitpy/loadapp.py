@@ -410,11 +410,13 @@ class LoadApp(ManagedAirport):
             filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, fn)
             data = None
             if os.path.exists(filename):
+                logger.debug(f":loadTurnaroundProfiles: loadFromFile {filename}..")
                 with open(filename, "r") as file:
                     if filename[-5:] == ".yaml":
                         data = yaml.safe_load(file)
                     else:  # JSON or GeoJSON
                         data = json.load(file)
+                logger.debug(f":loadTurnaroundProfiles: loadFromFile {filename} .. loaded")
                 return data
             else:
                 logger.warning(f":loadFromFile: file not found {filename}")
