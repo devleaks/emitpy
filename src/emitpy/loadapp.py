@@ -436,7 +436,7 @@ class LoadApp(ManagedAirport):
         # Turnaround Profiles
         dirname = os.path.join(MANAGED_AIRPORT_DIR, "services", "ta-profiles")
         for f in os.listdir(dirname):
-            if f.endswith(".yaml"):
+            if not f.startswith(".") and f.endswith(".yaml"):
                 tarname = f.replace('.yaml', '')
                 key = key_path(REDIS_PREFIX.TAR_PROFILES.value, tarname.replace("-", ":"))
                 tarprofile = loadFromFile(os.path.join(dirname, f))
