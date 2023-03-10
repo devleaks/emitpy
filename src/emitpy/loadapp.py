@@ -439,10 +439,12 @@ class LoadApp(ManagedAirport):
             if f.endswith(".yaml"):
                 tarname = f.replace('.yaml', '')
                 key = key_path(REDIS_PREFIX.TAR_PROFILES.value, tarname.replace("-", ":"))
-                with open(os.path.join(dirname, f), "r") as fp:
-                    tarprofile = yaml.safe_load(fp)
+                tarprofile = loadFromFile(os.path.join(dirname, f))
+                if tarprofile is not None:
                     self.redis.json().set(key, Path.root_path(), tarprofile)
                     logger.debug(f":loadTurnaroundProfiles: loaded turnaround profile for {tarname}")
+                else:
+                    logger.debug(f":loadTurnaroundProfiles: no turnaround profile for {tarname}")
 
         return (True, f"LoadApp::loadTurnaroundProfiles: loaded turnaround profile for aircraft classes")
 
