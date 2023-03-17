@@ -119,7 +119,6 @@ class Flight(Messages):
             "ramp": self.ramp.getInfo() if self.ramp is not None else {},
             "runway": self.runway.getInfo() if self.runway is not None else {},  # note: this is the GeoJSON feature, not the RWY procedure
             "is_arrival": self.is_arrival()  # simply useful denormalisation...
-            # "metar": self.metar,
             # "meta": self.meta
         }
 
