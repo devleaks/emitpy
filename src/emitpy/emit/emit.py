@@ -832,6 +832,8 @@ class Emit(Messages):
                         "ts": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
                         "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)
                     }
+                    t = round(f.getProp(FEATPROP.EMIT_REL_TIME.value),  1)
+                    logger.debug(f":getTimedMarkList: {m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)}")
         return l
 
 
@@ -869,6 +871,7 @@ class Emit(Messages):
             return (False, f"Emit::schedule no emit id")
 
         logger.debug(f":schedule: mark list: {self.getMarkList()}")
+        self.getTimedMarkList()
 
         offset = self.getRelativeEmissionTime(sync)
         if offset is not None:
