@@ -286,6 +286,15 @@ class ServiceMove(Movement):
         Simulates a vehicle that goes back and forth between the aircraft and a depot
         until all load is loaded/unloaded.
         """
+        #
+        # Should check all data available before starting process:
+        # - Service has quantity
+        # - Service has depot where to load/drop
+        # - Vehicle has "capacity"
+        # - Quantity/capacity does not involve "too many" roundtrips (max ~10)
+        # - Vehicle or service have "load/unload time" (direct value or computed from capacity + flow)
+        # - Vehicle or service have "setup/unsetup time" (optional)
+        #
         # BEGINNING OF LOOP, go to ramp
         #
         speeds = self.service.vehicle.speed
