@@ -597,8 +597,9 @@ class XPAirport(ManagedAirportBase):
         if redis:
             k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RAMPS.value, name)
             r = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
-            f = FeatureWithProps.new(r)
-            return Ramp(name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=r["geometry"]["coordinates"], orientation=f.getProp("orientation"), use=f.getProp("use"))
+            if r is not None:
+                f = FeatureWithProps.new(r)
+                return Ramp(name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=r["geometry"]["coordinates"], orientation=f.getProp("orientation"), use=f.getProp("use"))
         return self.ramps[name] if name in self.ramps.keys() else None
 
     def makeAdditionalAerowayPOIS(self):
