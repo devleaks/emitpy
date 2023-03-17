@@ -49,14 +49,14 @@ class Flight(Messages):
         self.flight_type = PAYLOAD.PAX
         self.load_factor = load_factor  # 100% capacity, estimated, both passengers and cargo.
 
-        try:
-            if int(number) > 5000:
-                if int(number) > 9900:
-                    self.flight_type = PAYLOAD.TECH
-                else:
-                    self.flight_type = PAYLOAD.CARGO
-        except ValueError:
-            self.flight_type = PAYLOAD.PAX
+        # try:
+        #     if int(number) > 5000:
+        #         if int(number) > 9900:
+        #             self.flight_type = PAYLOAD.TECH
+        #         else:
+        #             self.flight_type = PAYLOAD.CARGO
+        # except ValueError:
+        #     self.flight_type = PAYLOAD.PAX
 
         if linked_flight is not None and linked_flight.linked_flight is None:
             linked_flight.setLinkedFlight(self) # will do self.setLinkedFlight(linked_flight)
@@ -181,6 +181,13 @@ class Flight(Messages):
         Returns whether a flight is a pure cargo/freit flight.
         """
         return self.flight_type == PAYLOAD.CARGO
+
+
+    def set_cargo(self):
+        """
+        Set flight as pure cargo/freit flight.
+        """
+        self.flight_type = PAYLOAD.CARGO
 
 
     def has_jetway(self):
