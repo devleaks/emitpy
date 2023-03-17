@@ -234,7 +234,7 @@ class EmitApp(ManagedAirport):
         logger.debug(":shutdown: ..done")
 
 
-    def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway: str = None, load_factor:float = 1.0, do_services: bool = False, actual_datetime: str = None):
+    def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway: str = None, load_factor:float = 1.0, is_cargo: bool = False, do_services: bool = False, actual_datetime: str = None):
         fromto = "from" if movetype == ARRIVAL else "to"
         logger.info("*" * 110)
         logger.info(f"***** {airline}{flightnumber} {scheduled} {movetype} {fromto} {apt} {actype} {icao24} {acreg} {ramp} {runway}")
@@ -325,6 +325,8 @@ class EmitApp(ManagedAirport):
                                destination=remote_apt,
                                aircraft=aircraft,
                                load_factor=load_factor)
+        if is_cargo:
+            flight.set_cargo()
         if runway is not None and runway != "":
             self.airport.setRunwaysInUse(runway)
         flight.setFL(reqfl)
