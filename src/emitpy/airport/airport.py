@@ -637,13 +637,13 @@ class AirportWithProcedures(Airport):
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        if metar is not None and metar.metar is not None:
-            self.metar = metar.metar
-            logger.debug(f":setMETAR: {self.metar}")
-            logger.debug(f":setMETAR: ATMAP: {metar.getInfo()}")
+        if metar is not None:
+            self.metar = metar
+            logger.debug(f":setMETAR: {metar.getInfo()}")
+            logger.debug(f":setMETAR: ATMAP: {metar.getAtmap()}")
             if self.procedures is not None:
                 # set which runways are usable
-                wind_dir = self.metar.wind_dir
+                wind_dir = self.metar.getWindDirection()
                 if wind_dir is None:  # wind dir is variable, any runway is fine
                     logger.debug(":setMETAR: no wind direction")
                     self.operational_rwys = self.procedures.getRunways()
@@ -696,12 +696,11 @@ class AirportWithProcedures(Airport):
         """
         landing = 1.1
         if self.metar is not None:
-            if self.metar.precip_1hr is not None:
-                prec = self.metar.precip_1hr.value(units="CM")
-                if prec > 0.5:
-                    landing = 1.75
-                elif prec > 0 or self.metar.precip_1hr.istrace():
-                    landing = 1.4
+            prec = self.metar.getPrecipitation()
+            if prec > 0.5:
+                landing = 1.75
+            elif prec > 0:
+                landing = 1.4
         return landing
 
 
@@ -727,6 +726,8 @@ class ManagedAirportBase(AirportWithProcedures):
         self.service_roads = Graph()
         self.runways = {}               # GeoJSON Features
         self.ramps = {}                 # GeoJSON Features
+
+        self.runways_in_use = []
 
         self.aeroway_pois = None
         self.service_pois = None
@@ -946,6 +947,17 @@ class ManagedAirportBase(AirportWithProcedures):
         l = sorted(self.runways.values(),key=lambda x: x.getName())
         a = [(a.getName(), "RW" + a.getName()) for a in l]
         return a
+
+    def setRunwaysInUse(self, runways):
+        if type(runways) in [list, tuple]:
+            self.runways_in_use = runways
+        elif type(runways) == Runway:
+            if runways not in self.runways_in_use:
+                self.runways_in_use.append(runways)
+        elif runways == str:
+            rwy = self.getRunway(runways)
+            if rwy is not None:
+                self.setRunwaysInUse(rwy)
 
     def getRunway(self, rwy: str) -> Runway:
         """
