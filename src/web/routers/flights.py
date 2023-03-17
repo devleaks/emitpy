@@ -5,12 +5,10 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from datetime import datetime, date, time, timedelta
-from typing import Optional, Literal, List
 
-from pydantic import BaseModel, Field, validator
+from emitpy.emitapp import StatusInfo
 
 from ..models import CreateFlight, ScheduleFlight, DeleteFlight, NotAvailable
-from emitpy.emitapp import StatusInfo
 
 
 router = APIRouter(
@@ -58,6 +56,7 @@ async def create_flight(
                 icao24=flight_in.icao24,
                 acreg=flight_in.aircraft_reg,
                 runway=flight_in.runway,
+                is_cargo=flight_in.is_cargo,
                 load_factor=flight_in.load_factor,
                 do_services=flight_in.create_services,
                 actual_datetime=at)
