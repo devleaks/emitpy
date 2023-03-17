@@ -249,15 +249,21 @@ async def startup():
     # + redis_connect info
     logger.info(f":startup: {APP_NAME} taking off from «{MANAGED_AIRPORT_ICAO}»..")
     app.state.emitpy = EmitApp(MANAGED_AIRPORT_ICAO)
-    logger.info(f":startup: {APP_NAME} ..positive climb. gear up. Starting hypercaster..")
-    app.state.hypercaster = Hypercaster()
-    logger.info(f":startup: {APP_NAME} ..hypercaster running")
+    if app.state.emitpy.use_redis() is not None:
+        logger.info(f":startup: {APP_NAME} ..positive climb. gear up. Starting hypercaster..")
+        app.state.hypercaster = Hypercaster()
+        logger.info(f":startup: {APP_NAME} ..hypercaster running")
+    else:
+        logger.info(f":startup: {APP_NAME} ..positive climb. gear up.")
+        logger.warning(f":startup: {APP_NAME} No Redis, no queue, file storage only.")
 
 
 @app.on_event("shutdown")
 async def shutdown():
     logger.info(f":shutdown {APP_NAME} cleared for landing..")
-    app.state.hypercaster.shutdown()  # shutdown last as it might not terminate properly...
+    if app.state.emitpy.use_redis() is not None:
+        app.state.hypercaster.shutdown()  # shutdown last as it might not terminate properly...
+        logger.info(f":shutdown {APP_NAME} ..final..")
     logger.info(f":shutdown {APP_NAME} ..landed. taxiing to gate..")
     app.state.emitpy.shutdown()
     logger.info(f":shutdown {APP_NAME} ..on block")
