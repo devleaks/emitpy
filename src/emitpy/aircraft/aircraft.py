@@ -398,7 +398,7 @@ class AircraftTypeWithPerformance(AircraftType):
 
 
     @staticmethod
-    def findAircraftForRange(reqrange: int, pax: int = 0, cargo: int = 0):
+    def findAircraftForRange(reqrange: int, pax: int = 0, cargo: int = 0, restricted_list: list = None, redis = None):
         """
         Find an aircraft suitable for the requested flight range.
 
@@ -411,17 +411,23 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         rdiff = inf
         best = None
-        for ac in AircraftTypeWithPerformance._DB_PERF.keys():
-            if AircraftTypeWithPerformance._DB_PERF[ac].available  and ("cruise_range" in AircraftTypeWithPerformance._DB_PERF[ac].perfraw):
-                r = int(AircraftTypeWithPerformance._DB_PERF[ac].perfraw["cruise_range"]) * NAUTICAL_MILE  # km
+        valid_list = restricted_list if restricted_list is not None else AircraftTypeWithPerformance._DB_PERF.keys()
+        for ac in valid_list:
+            acperf = None
+            if redis:
+                AircraftTypeWithPerformance.findAircraftByType(actype=ac, acsubtype=None, redis=redis)
+            else:
+                acperf = AircraftTypeWithPerformance._DB_PERF[ac]
+            if acperf is not None and acperf.available  and ("cruise_range" in acperf.perfraw):
+                r = int(acperf.perfraw["cruise_range"]) * NAUTICAL_MILE  # km
                 if r > reqrange:
                     rd = r - reqrange
                     # logger.debug(":findAircraft: can use %s: %f (%f)" % (ac, r, rd))
                     if rd < rdiff:
                         rdiff = rd
-                        best = ac
+                        best = acperf
                         # logger.debug(":findAircraft: best %f" % rdiff)
-        return AircraftTypeWithPerformance._DB_PERF[best]
+        return best
 
 
     @staticmethod
