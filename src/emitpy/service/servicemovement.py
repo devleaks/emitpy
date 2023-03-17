@@ -46,7 +46,28 @@ class ServiceMove(Movement):
         return self.service
 
 
+    def no_move(self):
+        """
+        No movement associated with this service, just emit ServiceMessage at service time.
+        """
+        self.addMessage(ServiceMessage(subject=f"none {SERVICE_PHASE.START.value}",
+                                        service=self,
+                                        sync=SERVICE_PHASE.START.value,
+                                        info=self.getInfo()))
+        self.addMessage(ServiceMessage(subject=f"none {SERVICE_PHASE.START.value}",
+                                        service=self,
+                                        sync=SERVICE_PHASE.START.value,
+                                        info=self.getInfo()))
+        logger.debug(f":no_move: {self.service.name} added 2 messages")
+
+
     def move(self):
+        if self.service.vehicle is None:  # Service with no vehicle movement
+            logger.warning(f":move: service {type(self.service).__name__} {self.service.name} has no vehicle, assuming event report only")
+            self.no_move()
+            logger.debug(f":move: generated {len(self.moves)} points")
+            return (True, "Service::move completed")
+
         speeds = self.service.vehicle.speed
 
         startpos = self.service.vehicle.getPosition()
@@ -130,6 +151,10 @@ class ServiceMove(Movement):
             ramp_npe[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
             self.moves.append(ramp_npe[0])
 
+        self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}",
+                                        service=self,
+                                        sync=SERVICE_PHASE.ARRIVED.value,
+                                        info=self.getInfo()))
         # ###
         # If there is a stop poi named "STANDBY" and if the service has pause_before > 0
         # we first go to the standby position and wait pause_before minutes.
@@ -205,6 +230,11 @@ class ServiceMove(Movement):
             ramp_leave.setSpeed(speeds["slow"])
             ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
             self.moves.append(ramp_leave)
+
+        self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}",
+                                        service=self,
+                                        sync=SERVICE_PHASE.LEAVE.value,
+                                        info=self.getInfo()))
 
         logger.debug(f":move: route from {ramp_nv[0].id} to {endnv[0].id}")
         r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)

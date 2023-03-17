@@ -358,6 +358,8 @@ class MISSION_PHASE(Enum):
     END = "end"
 
 
+EVENT_ONLY_MESSAGE = "event"
+
 class TAR_SERVICE(Enum):
     TYPE = "type"
     START = "start"
@@ -365,6 +367,7 @@ class TAR_SERVICE(Enum):
     ALERT = "alert"
     WARN  = "warn"
     MODEL = "model"
+    EVENT = "event"
 
 
 class SERVICE_PHASE(Enum):

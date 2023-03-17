@@ -11,11 +11,10 @@ import emitpy.service
 
 from emitpy.flight import Flight
 from emitpy.emit import Emit, ReEmit
-from emitpy.broadcast import Format, EnqueueToRedis
-from emitpy.constants import TAR_SERVICE, SERVICE_PHASE, ARRIVAL, DEPARTURE, REDIS_TYPE, REDIS_DATABASE, ID_SEP, key_path
+from emitpy.broadcast import Format, FormatMessage, EnqueueToRedis, EnqueueMessagesToRedis
+from emitpy.constants import TAR_SERVICE, SERVICE_PHASE, ARRIVAL, DEPARTURE, REDIS_TYPE, REDIS_DATABASE, ID_SEP, EVENT_ONLY_MESSAGE, key_path
 
 logger = logging.getLogger("FlightServices")
-
 
 class FlightServices:
 
@@ -78,6 +77,9 @@ class FlightServices:
         self.airport = managedAirport.airport
 
 
+    # #######################
+    # Saving to file or Redis
+    #
     def save(self, redis):
         for service in self.services:
             logger.debug(f":save: saving to redis {service['type']}..")
@@ -102,6 +104,9 @@ class FlightServices:
         return (True, "FlightServices::saveFile: completed")
 
 
+    # #######################
+    # Servicing
+    #
     def service(self):
         # From dict, make append appropriate service to list
         gseprofile = self.flight.aircraft.actype.getGSEProfile(redis=self.app.use_redis())
@@ -130,7 +135,7 @@ class FlightServices:
         for svc in svcs:
             sname = svc.get(TAR_SERVICE.TYPE.value)
             scheduled = svc.get(TAR_SERVICE.START.value)
-            duration = svc.get(TAR_SERVICE.DURATION.value)
+            duration = svc.get(TAR_SERVICE.DURATION.value, 0)
 
             logger.debug(f":service: creating service {sname}..")
 
@@ -147,30 +152,34 @@ class FlightServices:
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             this_service.setRamp(self.ramp)
-            equipment_model = svc.get(TAR_SERVICE.MODEL.value)
-            # should book vehicle a few minutes before and after...
-            this_equipment = am.selectEquipment(operator=self.operator,
-                                                service=this_service,
-                                                model=equipment_model,
-                                                reqtime=service_scheduled_dt,
-                                                reqend=service_scheduled_end_dt,
-                                                use=True)
+            if sname == EVENT_ONLY_MESSAGE:  # TA service with no vehicle, we just emit messages on the wire
+                this_service.event = svc.get(TAR_SERVICE.EVENT.value)  # Important to set it here, since not provided at creation
+                # this_service.setVehicle(None)
+            else:
+                equipment_model = svc.get(TAR_SERVICE.MODEL.value)
+                # should book vehicle a few minutes before and after...
+                this_equipment = am.selectEquipment(operator=self.operator,
+                                                    service=this_service,
+                                                    model=equipment_model,
+                                                    reqtime=service_scheduled_dt,
+                                                    reqend=service_scheduled_end_dt,
+                                                    use=True)  # this will attach this_equipment to this_service
 
-            if this_equipment is None:
-                return (False, f"FlightServices::service: vehicle not found for {sname}")
+                if this_equipment is None:
+                    return (False, f"FlightServices::service: vehicle not found for {sname}")
 
-            equipment_startpos = self.airport.selectRandomServiceDepot(sname)
-            this_equipment.setPosition(equipment_startpos)
+                equipment_startpos = self.airport.selectRandomServiceDepot(sname)
+                this_equipment.setPosition(equipment_startpos)
 
-            equipment_endpos = self.airport.selectRandomServiceRestArea(sname)
-            this_equipment.setNextPosition(equipment_endpos)
+                equipment_endpos = self.airport.selectRandomServiceRestArea(sname)
+                this_equipment.setNextPosition(equipment_endpos)
 
-            if equipment_startpos is None or equipment_endpos is None:
-                logger.warning(f":service: positions: {equipment_startpos} -> {equipment_endpos}")
-            # logger.debug(".. moving ..")
-            # move = ServiceMove(this_service, self.airport)
-            # move.move()
-            # move.save()
+                if equipment_startpos is None or equipment_endpos is None:
+                    logger.warning(f":service: positions: {equipment_startpos} -> {equipment_endpos}")
+                # logger.debug(".. moving ..")
+                # move = ServiceMove(this_service, self.airport)
+                # move.move()
+                # move.save()
 
             logger.debug(f":service: .. adding ..")
             s2 = svc.copy()
@@ -181,6 +190,9 @@ class FlightServices:
         return (True, "FlightServices::service: completed")
 
 
+    # #######################
+    # Moving
+    #
     def move(self):
         for service in self.services:
             logger.debug(f":move: moving {service['type']}..")
@@ -194,6 +206,9 @@ class FlightServices:
         return (True, "FlightServices::move: completed")
 
 
+    # #######################
+    # Emitting
+    #
     def emit(self, emit_rate: int):
         for service in self.services:
             logger.debug(f":emit: emitting {service['type']}..")
@@ -206,37 +221,45 @@ class FlightServices:
         return (True, "FlightServices::emit: completed")
 
 
+    # #######################
+    # Scheduling
+    #
     def schedule(self, scheduled: datetime):
         # The scheduled date time recevied should be
         # ONBLOCK time for arrival
         # OFFBLOCK time for departure
         for service in self.services:
+            emit = service["emit"]
+            if emit.has_no_move_ok():
+                logger.debug(f":schedule: service {service[TAR_SERVICE.TYPE.value]} does not need scheduling")
+                continue
             logger.debug(f":schedule: scheduling {service[TAR_SERVICE.TYPE.value]}..")
             stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
-            service["emit"].addToPause(SERVICE_PHASE.SERVICE_START.value, service[TAR_SERVICE.DURATION.value] * 60)  # seconds
-            service["emit"].schedule(SERVICE_PHASE.SERVICE_START.value, stime)
-            logger.debug(f":schedule: there are {len(service['emit'].scheduled_emit)} scheduled emit points")
+            emit.addToPause(SERVICE_PHASE.SERVICE_START.value, service.get(TAR_SERVICE.DURATION.value, 0) * 60)  # seconds
+            ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, stime)
+            if not ret[0]:
+                return ret
+            logger.debug(f":schedule: there are {len(emit.scheduled_emit)} scheduled emit points")
             logger.debug(f":schedule: ..done")
         return (True, "FlightServices::schedule: completed")
 
 
-    def enqueuetoredis(self, queue):
+    def scheduleMessages(self, scheduled: datetime):
         for service in self.services:
-            logger.debug(f":enqueuetoredis: enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
-            formatted = EnqueueToRedis(service["emit"], queue)
-            ret = formatted.format()
+            emit = service["emit"]
+            logger.debug(f":schedule: scheduling {service[TAR_SERVICE.TYPE.value]}..")
+            stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
+            ret = emit.scheduleMessages(SERVICE_PHASE.SERVICE_START.value, stime)
             if not ret[0]:
                 return ret
-            # ret = formatted.save()
-            # if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
-            #     return ret
-            ret = formatted.enqueue()
-            if not ret[0]:
-                return ret
-            logger.debug(f"..done")
-        return (True, "FlightServices::enqueuetoredis: completed")
+            logger.debug(f":schedule: there are {len(emit.getMessages())} scheduled messages")
+            logger.debug(f":schedule: ..done")
+        return (True, "FlightServices::scheduleMessages: completed")
 
 
+    # #######################
+    # Formatting
+    #
     def format(self, saveToFile: bool = False):
         for service in self.services:
             logger.debug(f":format: formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
@@ -250,7 +273,65 @@ class FlightServices:
                 if not ret[0]:
                     return ret
             logger.debug(f"..done")
+        return (True, "FlightServices::format: completed")
+
+
+    def formatMessages(self, saveToFile: bool = False):
+        for service in self.services:
+            logger.debug(f":format: formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
+            formatted = FormatMessage(service["emit"])
+            ret = formatted.format()
+            if not ret[0]:
+                return ret
+            if saveToFile:
+                ret = formatted.saveFile()
+                logger.debug(f"..saved to file..")
+                if not ret[0]:
+                    return ret
+            logger.debug(f"..done")
+        return (True, "FlightServices::formatmessages: completed")
+
+
+    # #######################
+    # To Redis
+    #
+    def enqueueToRedis(self, queue):
+        for service in self.services:
+            emit = service["emit"]
+            if emit.has_no_move_ok():
+                logger.debug(f":enqueuetoredis: service {service[TAR_SERVICE.TYPE.value]} does not need scheduling")
+                continue
+            logger.debug(f":enqueuetoredis: enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
+            formatted = EnqueueToRedis(emit, queue)
+            ret = formatted.format()
+            if not ret[0]:
+                return ret
+            # ret = formatted.save()
+            # if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
+            #     return ret
+            ret = formatted.enqueue()
+            if not ret[0]:
+                return ret
+            logger.debug(f"..done")
         return (True, "FlightServices::enqueuetoredis: completed")
+
+
+    def enqueueMessagesToRedis(self, queue):
+        for service in self.services:
+            emit = service["emit"]
+            logger.debug(f":enqueuemessagestoredis: enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
+            formatted = EnqueueMessagesToRedis(emit, queue)
+            ret = formatted.format()
+            if not ret[0]:
+                return ret
+            # ret = formatted.save()
+            # if not ret[0] and ret[1] != "EnqueueToRedis::save key already exist":
+            #     return ret
+            ret = formatted.enqueue()
+            if not ret[0]:
+                return ret
+            logger.debug(f"..done")
+        return (True, "FlightServices::enqueuemessagestoredis: completed")
 
 
 loggerta = logging.getLogger("Turnaround")

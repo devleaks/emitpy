@@ -57,7 +57,7 @@ def BOOTSTRAP_REDIS():
         try:
             pong = r.ping()
             not_connected = False
-            logger.info("BOOTSTRAP_REDIS: ..connected.")
+            logger.debug("BOOTSTRAP_REDIS: ..connected.")
         except redis.RedisError:
             logger.warning(f"BOOTSTRAP_REDIS: ..cannot connect, retrying ({attempts+1}/{REDIS_ATTEMPTS}, sleeping {REDIS_WAIT} secs)..")
             attempts = attempts + 1
@@ -72,7 +72,7 @@ def BOOTSTRAP_REDIS():
     k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
     a = r.json().get(k)
     r.select(prevdb)
-    logger.info(f"BOOTSTRAP_REDIS: Managed airport: {json.dumps(a, indent=2)}")
+    logger.debug(f"BOOTSTRAP_REDIS: Managed airport: {json.dumps(a, indent=2)}")
     return a is not None and MANAGED_AIRPORT_LAST_UPDATED in a and AIRAC_CYCLE in a
 
 
@@ -187,6 +187,7 @@ class EmitApp(ManagedAirport):
         k = key_path(REDIS_PREFIX.AIRPORT.value, MANAGED_AIRPORT_KEY)
         a = self.redis.json().get(k)
         self.redis.select(prevdb)
+        logger.info(f"check_data: found managed airport in Redis: {json.dumps(a, indent=2)}")
         if a is not None:
             if a["ICAO"] != icao:
                 return (False, f"EmitApp::check_data: airport '{a['ICAO']}' in Redis does not match managed airport '{icao}'")
@@ -233,7 +234,7 @@ class EmitApp(ManagedAirport):
         logger.debug(":shutdown: ..done")
 
 
-    def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway, load_factor:float = 1.0, do_services: bool = False, actual_datetime: str = None):
+    def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway: str = None, load_factor:float = 1.0, do_services: bool = False, actual_datetime: str = None):
         fromto = "from" if movetype == ARRIVAL else "to"
         logger.info("*" * 110)
         logger.info(f"***** {airline}{flightnumber} {scheduled} {movetype} {fromto} {apt} {actype} {icao24} {acreg} {ramp} {runway}")
@@ -324,6 +325,8 @@ class EmitApp(ManagedAirport):
                                destination=remote_apt,
                                aircraft=aircraft,
                                load_factor=load_factor)
+        if runway is not None and runway != "":
+            self.airport.setRunwaysInUse(runway)
         flight.setFL(reqfl)
         rampval = self.airport.getRamp(ramp, redis=self.use_redis())
         if rampval is None:
@@ -381,6 +384,10 @@ class EmitApp(ManagedAirport):
         ret = emit.schedule(sync, emit_time)
         if not ret[0]:
             return StatusInfo(105, f"problem during schedule", ret[1])
+
+        ret = emit.scheduleMessages(sync, emit_time)
+        if not ret[0]:
+            return StatusInfo(105, f"problem during schedule of messages", ret[1])
 
         logger.debug(":do_flight: ..saving..")
         if SAVE_TO_FILE or SAVE_TRAFFIC:
@@ -483,7 +490,12 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(153, f"problem during flight service scheduling", ret[1])
 
-        logger.debug(":do_flight: ..saving equipment..")
+        logger.debug(":do_flight: ..scheduling messages..")
+        ret = flight_service.scheduleMessages(blocktime)
+        if not ret[0]:
+            return StatusInfo(153, f"problem during flight service scheduling of messages", ret[1])
+
+        logger.debug(":do_flight: ..saving equipment and messages..")
         if SAVE_TO_FILE or SAVE_TRAFFIC:
             ret = flight_service.saveFile()
             if not ret[0]:
@@ -494,7 +506,13 @@ class EmitApp(ManagedAirport):
 
         logger.debug(":do_flight: ..broadcasting positions..")
         if self._use_redis:
-            ret = flight_service.enqueuetoredis(self.queues[queue])  # also enqueues...
+            ret = flight_service.enqueueToRedis(self.queues[queue])  # also enqueues...
+            if not ret[0]:
+                return StatusInfo(156, f"problem during enqueue of services", ret[1])
+
+        logger.debug(":do_flight: ..broadcasting messages..")
+        if self._use_redis:
+            ret = flight_service.enqueueMessagesToRedis(self.queues["wire"])  # also enqueues...
             if not ret[0]:
                 return StatusInfo(156, f"problem during enqueue of services", ret[1])
 

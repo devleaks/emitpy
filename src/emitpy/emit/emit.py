@@ -76,7 +76,7 @@ class Emit(Messages):
             # We create an emit from a movement
             self.emit_id = self.move.getId()
             m = self.move.getInfo()
-            self.emit_type = m["type"] if "type" in m else REDIS_DATABASE.UNKNOWN.value
+            self.emit_type = m.get("type", REDIS_DATABASE.UNKNOWN.value)
             # self.emit_meta = EmitMeta()
             self.moves = self.move.getMoves()
             self.props = self.move.getInfo()  # collect common props from movement
@@ -160,6 +160,13 @@ class Emit(Messages):
             self.emit_meta["time"] = source.getScheduleHistory(as_string=True)
         # logger.debug(f":getMeta: {self.emit_meta}")
         return self.emit_meta
+
+
+    def has_no_move_ok(self):
+        svc = self.getSource()
+        if type(svc).__name__ == "EventService":  # isinstance(svc, EventService)
+            return True
+        return False
 
 
     def getKey(self, extension: str):
@@ -448,6 +455,10 @@ class Emit(Messages):
         #
         #
         if self.moves is None or len(self.moves) == 0:
+            if self.has_no_move_ok():
+                svc = self.getSource()
+                logger.warning(f":emit: service {type(svc).__name__} {svc.name} has no vehicle, assuming event report only")
+                return (True, "Emit::emit: no moves, assuming event report only")
             logger.warning(":emit: no move")
             return (False, "Emit::emit: no moves")
         #
@@ -861,6 +872,7 @@ class Emit(Messages):
 
         offset = self.getRelativeEmissionTime(sync)
         if offset is not None:
+            offset = int(offset)  # pylint E1130
             self.offset_name = sync
             self.offset = offset
             logger.debug(f":schedule: {self.offset_name} offset {self.offset} sec")
@@ -881,9 +893,10 @@ class Emit(Messages):
             ret = self.updateEstimatedTime()
             if not ret[0]:
                 return ret
-            ret = self.scheduleMessages(sync, moment)
-            if not ret[0]:
-                logger.warning(f":schedule: scheduleMessages returned {ret[1]}, ignoring")
+            # May be should not do it here...
+            # ret = self.scheduleMessages(sync, moment)
+            # if not ret[0]:
+            #     return ret
             return (True, "Emit::schedule completed")
 
         logger.warning(f":schedule: {sync} mark not found")

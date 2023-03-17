@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Union
 from types import NoneType
 
-from emitpy.constants import SERVICE, ID_SEP
+from emitpy.constants import SERVICE, ID_SEP, REDIS_DATABASE
 from emitpy.utils import key_path
 from .ground_support import GroundSupport
 from .equipment import Equipment
@@ -56,8 +56,8 @@ class Service(GroundSupport):
             logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no ramp")
         if self.scheduled is None:
             logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no schedule")
-        if self.vehicle is None:
-            logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no vehicle")
+        # if self.vehicle is None:
+        #     logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no vehicle")
         return key_path(type(self).__name__, r, s, v)
 
     def getInfo(self):
@@ -67,9 +67,9 @@ class Service(GroundSupport):
             "service-identifier": self.getId(),
             "operator": self.operator.getInfo(),
             "ramp": self.ramp.getInfo(),
-            "vehicle": self.vehicle.getInfo(),
-            "icao24": self.vehicle.icao24,
-            "registration": self.vehicle.registration,
+            "vehicle": self.vehicle.getInfo() if self.vehicle is not None else "novehicle",
+            "icao24": self.vehicle.icao24 if self.vehicle is not None else "novehicle",
+            "registration": self.vehicle.registration if self.vehicle is not None else "novehicle",
             "scheduled": self.scheduled.isoformat(),
             "quantity": self.quantity,
             "flight": self.flight.getId() if self.flight is not None else None
@@ -109,6 +109,13 @@ class Service(GroundSupport):
 # Specific ground handling services
 #
 #
+# Message Only Service (no vehicle movement)
+#
+class EventService(Service):
+
+    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
+        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
+
 # PAX
 #
 class PassengerService(Service):

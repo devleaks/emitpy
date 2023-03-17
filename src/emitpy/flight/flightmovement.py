@@ -1127,19 +1127,22 @@ class FlightMovement(Movement):
         # idx points at
         left = FARAWAY - prev
         # logger.debug("add_faraway: %d: left=%f, FARAWAY=%f" % (idx, left, FARAWAY))
-        brng = bearing(self.moves[idx], self.moves[idx + 1])
-        tmopt = destination(self.moves[idx], left, brng, {"units": "km"})
+        if idx < len(self.moves) - 1:
+            brng = bearing(self.moves[idx], self.moves[idx + 1])
+            tmopt = destination(self.moves[idx], left, brng, {"units": "km"})
 
-        tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
-        tmomp.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.FAR_AWAY.value)
+            tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
+            tmomp.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.FAR_AWAY.value)
 
-        d = distance(start, tmomp)
-        self.moves.insert(idx, tmomp)
-        logger.debug(f":add_faraway: added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from airport")
+            d = distance(start, tmomp)
+            self.moves.insert(idx, tmomp)
+            logger.debug(f":add_faraway: added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from airport")
 
-        self.addMessage(FlightMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.FAR_AWAY.value}",
-                                      flight=self,
-                                      sync=FLIGHT_PHASE.FAR_AWAY.value))
+            self.addMessage(FlightMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.FAR_AWAY.value}",
+                                          flight=self,
+                                          sync=FLIGHT_PHASE.FAR_AWAY.value))
+        else:
+            logger.debug(f":add_faraway: less than {FARAWAY} miles, no FAR_AWAY point added")
 
         return (True, "Movement::add_faraway added")
 

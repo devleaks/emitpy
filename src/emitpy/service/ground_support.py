@@ -27,9 +27,9 @@ class PTSTime:
             return (self.pts_actual_start, self.pts_actual_end)
         if timetype == "estimated" and self.pts_estimated is not None:
             return (self.pts_estimated + timedelta(minutes=self.pts_reltime),
-                    self.pts_estimated + timedelta(minutes=(self.pts_reltime + sepf.pts_duration)))
+                    self.pts_estimated + timedelta(minutes=(self.pts_reltime + self.pts_duration)))
         return (self.pts_scheduled + timedelta(minutes=self.pts_reltime),
-                self.pts_scheduled + timedelta(minutes=(self.pts_reltime + sepf.pts_duration)))
+                self.pts_scheduled + timedelta(minutes=(self.pts_reltime + self.pts_duration)))
 
 
 class GroundSupport(Messages):
@@ -60,6 +60,7 @@ class GroundSupport(Messages):
         self.next_position = None
         self.route = []
         self.name = None
+        self.event = None
         self.quantity = None
 
     def getId(self):
@@ -71,7 +72,8 @@ class GroundSupport(Messages):
             "operator": self.operator.getInfo(),
             "schedule": self.pts_reltime,
             "duration": self.pts_duration,
-            "name": self.name
+            "name": self.name,
+            "event": self.event
         }
 
     def getScheduleHistory(self, as_string: bool = False):
