@@ -70,6 +70,7 @@ create_flight.add_argument("acreg", type=str)
 create_flight.add_argument("acicao", type=str)
 create_flight.add_argument("ramp", type=str)
 create_flight.add_argument("runway", type=str)
+create_flight.add_argument("loadfactor", type=float)
 create_flight.add_argument("emit_rate", type=float)
 create_flight.add_argument("queue", type=str)
 create_flight.add_argument("--doservice", action='store_true', help="creates services associated with this flight")
@@ -359,6 +360,7 @@ while loop:
                     "call_sign": parsed.actype,
                     "icao24": parsed.acicao,
                     "runway": parsed.runway,
+                    "load_factor": parsed.loadfactor,
                     "emit_rate": parsed.emitrate,
                     "queue": parsed.queue,
                     "create_services": parsed.doservice
