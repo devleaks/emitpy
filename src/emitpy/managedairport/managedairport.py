@@ -193,7 +193,7 @@ class ManagedAirport:
         at regular interval. (It will, sometimes, be automatic (Thread).)
         (Let's dream, someday, it will load, parse and interpret TAF.)
         """
-        self.airport.update_metar()  # calls prepareRunways()
+        self.airport.update_metar(redis=self._app.use_redis())  # calls prepareRunways()
 
     def loadFromCache(self, dbid: int = 0):
         """
