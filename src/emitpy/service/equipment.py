@@ -46,8 +46,8 @@ class Equipment(Identity):
         self.max_capacity = 1
         self.current_load = 0
 
-        self.setup_time = 0
-        self.flow = 1  # quantity per minutes
+        self.setup_time = 0  # unsetup time is the same
+        self.flow = 1        # quantity per minute to load, unload, symmetric time
 
 
     @staticmethod

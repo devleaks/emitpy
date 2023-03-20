@@ -17,6 +17,8 @@ from emitpy.message import ServiceMessage
 
 logger = logging.getLogger("ServiceMove")
 
+MOVE_LOOP = ["BaggageService"]  # , "cargo"
+
 
 class ServiceMove(Movement):
     """
@@ -62,6 +64,15 @@ class ServiceMove(Movement):
 
 
     def move(self):
+        if type(self.service).__name__ in MOVE_LOOP:
+            logger.debug(f":move: moving loop for {type(self.service).__name__}..")
+            ret = self.move_loop()
+            if ret[0]:
+                logger.debug(f":move: ..moved")
+                return (True, "Service::move completed")  # return ret?
+            logger.warning(ret[1])
+            logger.debug(f":move: ..loop did not complete successfully, using normal move..")
+
         if self.service.vehicle is None:  # Service with no vehicle movement
             logger.warning(f":move: service {type(self.service).__name__} {self.service.name} has no vehicle, assuming event report only")
             self.no_move()
@@ -288,13 +299,36 @@ class ServiceMove(Movement):
         """
         #
         # Should check all data available before starting process:
-        # - Service has quantity
-        # - Service has depot where to load/drop
-        # - Vehicle has "capacity"
-        # - Quantity/capacity does not involve "too many" roundtrips (max ~10)
-        # - Vehicle or service have "load/unload time" (direct value or computed from capacity + flow)
-        # - Vehicle or service have "setup/unsetup time" (optional)
+        # CHECK: Quantity/capacity does not involve "too many" roundtrips (max ~10)
+        # CHECK: Vehicle or service have "load/unload time" (direct value or computed from capacity + flow)
+        # CHECK: Vehicle or service have "setup/unsetup time" (optional)
         #
+        return (False, "Service::move_loop currently not usable or not implemented")
+
+        # CHECK: Service has vehicle
+        vehicle = self.service.vehicle
+        if vehicle is None:
+            return (False, "Service::move_loop: service has no vehicle")
+
+        # CHECK: Vehicle has "capacity"
+        if vehicle.max_capacity is None:
+            return (False, "Service::move_loop: service vehicle has no capacity")
+
+        if vehicle.max_capacity == inf:
+            return (False, "Service::move_loop: service vehicle has infinite capacity, we travel once only")
+
+        # CHECK: Service has quantity
+        if self.service.quantity is None or self.service.quantity <= 0:
+            return (False, "Service::move_loop: service has no quantity")
+
+        # CHECK: Service has speed of service:
+        if self.service.flow is None or self.service.quantity <= 0:
+            return (False, "Service::move_loop: service has no service speed (flow)")
+
+        if self.service.setup_time is None:
+            logger.debug(":move_loop: forced service setup time to 0")
+            self.service.setup_time = 0
+
         # BEGINNING OF LOOP, go to ramp
         #
         speeds = self.service.vehicle.speed
@@ -379,121 +413,124 @@ class ServiceMove(Movement):
 
         self.service.vehicle.setPosition(ramp_stop)
 
+        # Prepare nearest depot
+        nearest_depot = self.airport.getNearestServiceDepot(service_type, ramp_stop)
+        # CHECK: Service has depot where to load/drop?
+        if nearest_depot is None:
+            return (False, "Service::move_loop: service has no depot")
+        nd_npe = self.airport.service_roads.nearest_point_on_edge(nearest_depot)
+        if nd_npe[0] is None:
+                logger.warning(":move: no nearest_point_on_edge for nearest_depot")
+        nd_nv = self.airport.service_roads.nearest_vertex(nearest_depot)
+        if nd_nv[0] is None:
+            logger.warning(":move: no nearest_vertex for nearest_depot")
+
+        # route ramp -> nearest depot
+        logger.debug(f":move: route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id} (vertices)")
+        go_unload = Route(self.airport.service_roads, ramp_nv[0].id, nd_nv[0].id)
+        if not go_unload.found():
+            logger.warning(":move: no route from ramp to nearest depot")
+        go_load = Route(self.airport.service_roads, nd_nv[0].id, ramp_nv[0].id)
+        if not go_load.found():
+            logger.warning(":move: no route from nearest depot to ramp")
+        logger.debug(":move: ready to loop")
+        vehicle = self.service.vehicle
+        service = self.service
+        logger.debug(f":move: vehicle capacity {vehicle.max_capacity}, current load {vehicle.current_load}")
+        equipment_capacity = vehicle.max_capacity - vehicle.current_load  # may not be empty when it arrives
+
         # .. servicing ..
         # before service, may first go to ramp rest area.
         # after service, may first go to ramp rest area before leaving ramp.
         #
         # LOOP, go to next position
-        looping = True
-        if looping:
-            # Prepare nearest depot
-            nearest_depot = self.airport.getNearestServiceDepot(service_type, ramp_stop)
-            nd_npe = self.airport.service_roads.nearest_point_on_edge(nearest_depot)
-            if nd_npe[0] is None:
-                    logger.warning(":move: no nearest_point_on_edge for nearest_depot")
-            nd_nv = self.airport.service_roads.nearest_vertex(nearest_depot)
-            if nd_nv[0] is None:
-                logger.warning(":move: no nearest_vertex for nearest_depot")
-            # route ramp -> nearest depot
-            logger.debug(f":move: route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id} (vertices)")
-            go_unload = Route(self.airport.service_roads, ramp_nv[0].id, nd_nv[0].id)
-            if not go_unload.found():
-                logger.warning(":move: no route from ramp to nearest depot")
-            go_load = Route(self.airport.service_roads, nd_nv[0].id, ramp_nv[0].id)
-            if not go_load.found():
-                logger.warning(":move: no route from nearest depot to ramp")
-            logger.debug(":move: ready to loop")
-            vehicle = self.service.vehicle
-            service = self.service
-            logger.debug(f":move: vehicle capacity {vehicle.max_capacity}, current load {vehicle.current_load}")
-            equipment_capacity = vehicle.max_capacity - vehicle.current_load  # may not be empty when it arrives
-            while self.service.quantity > 0:
-                #
-                # Fill vehicle, decrease service quantity
-                if vehicle.max_capacity == inf:  # infinite capacity; served in one trip
-                    vehicle.current_load = service.quantity
-                    svc_duration = vehicle.service_duration(service.quantity)
-                    service.quantity = 0
-                elif service.quantity < equipment_capacity:  # one last trip
-                    vehicle.current_load = vehicle.current_load + service.quantity
-                    svc_duration = vehicle.service_duration(service.quantity)
-                    logger.debug(f":move: loaded {service.quantity}, 0 remaining")
-                    service.quantity = 0
-                else:
-                    logger.debug(f":move: loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining")
-                    vehicle.current_load = vehicle.max_capacity
-                    svc_duration = vehicle.service_duration(vehicle.max_capacity)
-                    service.quantity = service.quantity - equipment_capacity
+        while self.service.quantity > 0:
+            #
+            # Fill vehicle, decrease service quantity
+            if vehicle.max_capacity == inf:  # infinite capacity; served in one trip
+                vehicle.current_load = service.quantity
+                svc_duration = vehicle.service_duration(service.quantity)
+                service.quantity = 0
+            elif service.quantity < equipment_capacity:  # one last trip
+                vehicle.current_load = vehicle.current_load + service.quantity
+                svc_duration = vehicle.service_duration(service.quantity)
+                logger.debug(f":move: loaded {service.quantity}, 0 remaining")
+                service.quantity = 0
+            else:
+                logger.debug(f":move: loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining")
+                vehicle.current_load = vehicle.max_capacity
+                svc_duration = vehicle.service_duration(vehicle.max_capacity)
+                service.quantity = service.quantity - equipment_capacity
 
-                logger.debug(f":move: loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining, load duration={svc_duration}")
-                ramp_stop.setPause(svc_duration)
+            logger.debug(f":move: loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining, load duration={svc_duration}")
+            ramp_stop.setPause(svc_duration)
 
-                # go to nearest depot
-                # ramp->network edge
-                pos = MovePoint.new(ramp_npe[0])
-                pos.setSpeed(speeds["slow"])
-                self.moves.append(pos)
-                # network edge->network vertex
-                pos = MovePoint.new(nd_nv[0])
-                pos.setProp("_serviceroad", nd_nv[0].id)
-                pos.setSpeed(speeds["slow"])
-                self.moves.append(pos)
-                # network vertex->network vertex
-                if go_unload.found():
-                    for vtx in go_unload.get_vertices():
-                        # vtx = self.airport.service_roads.get_vertex(vid)
-                        pos = MovePoint.new(vtx)
-                        pos.setProp("_serviceroad", vtx.id)
-                        pos.setSpeed(speeds["normal"])
-                        self.moves.append(pos)
-                else:
-                    logger.debug(f":move: no route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id}")
-                # network vertex->network edge (close to depot)
-                pos = MovePoint.new(nd_npe[0])
-                pos.setSpeed(speeds["slow"])
-                self.moves.append(pos)
-                # network edge-> depot
-                pos = MovePoint.new(nearest_depot)
-                pos.setSpeed(speeds["slow"])
-                self.moves.append(pos)
+            # go to nearest depot
+            # ramp->network edge
+            pos = MovePoint.new(ramp_npe[0])
+            pos.setSpeed(speeds["slow"])
+            self.moves.append(pos)
+            # network edge->network vertex
+            pos = MovePoint.new(nd_nv[0])
+            pos.setProp("_serviceroad", nd_nv[0].id)
+            pos.setSpeed(speeds["slow"])
+            self.moves.append(pos)
+            # network vertex->network vertex
+            if go_unload.found():
+                for vtx in go_unload.get_vertices():
+                    # vtx = self.airport.service_roads.get_vertex(vid)
+                    pos = MovePoint.new(vtx)
+                    pos.setProp("_serviceroad", vtx.id)
+                    pos.setSpeed(speeds["normal"])
+                    self.moves.append(pos)
+            else:
+                logger.debug(f":move: no route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id}")
+            # network vertex->network edge (close to depot)
+            pos = MovePoint.new(nd_npe[0])
+            pos.setSpeed(speeds["slow"])
+            self.moves.append(pos)
+            # network edge-> depot
+            pos = MovePoint.new(nearest_depot)
+            pos.setSpeed(speeds["slow"])
+            self.moves.append(pos)
 
-                #
-                # Empty vehicle
-                vehicle.setPosition(pos)
-                svc_duration = vehicle.service_duration(vehicle.current_load)
-                logger.debug(f":move: unloaded {vehicle.current_load}, {service.quantity} remaining, unload duration={svc_duration}")
-                pos.setPause(svc_duration)
+            #
+            # Empty vehicle
+            vehicle.setPosition(pos)
+            svc_duration = vehicle.service_duration(vehicle.current_load)
+            logger.debug(f":move: unloaded {vehicle.current_load}, {service.quantity} remaining, unload duration={svc_duration}")
+            pos.setPause(svc_duration)
 
-                vehicle.current_load = 0
-                equipment_capacity = vehicle.max_capacity
+            vehicle.current_load = 0
+            equipment_capacity = vehicle.max_capacity
 
-                # go back to ramp
-                # depot ->network edge (close to depot)
-                pos = MovePoint.new(nd_npe[0])
-                pos.setSpeed(speeds["slow"])
-                self.moves.append(pos)
-                # network edge->network vertex (close to depot)
-                pos = MovePoint.new(nd_nv[0])
-                pos.setSpeed(speeds["slow"])
-                self.moves.append(pos)
-                # network vertex->network vertex
-                if go_load.found():
-                    for vtx in go_load.get_vertices():
-                        # vtx = self.airport.service_roads.get_vertex(vid)
-                        pos = MovePoint.new(vtx)
-                        pos.setProp("_serviceroad", vtx.id)
-                        pos.setSpeed(speeds["normal"])
-                        self.moves.append(pos)
-                else:
-                    logger.debug(f":move: no route from nearest depot {nd_nv[0].id} to ramp {ramp_nv[0].id}")
-                # ramp->network edge
-                pos = MovePoint.new(ramp_npe[0])
-                pos.setSpeed(speeds["slow"])
-                self.moves.append(pos)
-                # network edge->ramp
-                pos = MovePoint.new(ramp_stop)
-                pos.setSpeed(speeds["slow"])
-                self.moves.append(pos)
+            # go back to ramp
+            # depot ->network edge (close to depot)
+            pos = MovePoint.new(nd_npe[0])
+            pos.setSpeed(speeds["slow"])
+            self.moves.append(pos)
+            # network edge->network vertex (close to depot)
+            pos = MovePoint.new(nd_nv[0])
+            pos.setSpeed(speeds["slow"])
+            self.moves.append(pos)
+            # network vertex->network vertex
+            if go_load.found():
+                for vtx in go_load.get_vertices():
+                    # vtx = self.airport.service_roads.get_vertex(vid)
+                    pos = MovePoint.new(vtx)
+                    pos.setProp("_serviceroad", vtx.id)
+                    pos.setSpeed(speeds["normal"])
+                    self.moves.append(pos)
+            else:
+                logger.debug(f":move: no route from nearest depot {nd_nv[0].id} to ramp {ramp_nv[0].id}")
+            # ramp->network edge
+            pos = MovePoint.new(ramp_npe[0])
+            pos.setSpeed(speeds["slow"])
+            self.moves.append(pos)
+            # network edge->ramp
+            pos = MovePoint.new(ramp_stop)
+            pos.setSpeed(speeds["slow"])
+            self.moves.append(pos)
 
 
         # END OF LOOP, go to next position

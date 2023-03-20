@@ -231,7 +231,7 @@ class FlightServices:
         for service in self.services:
             emit = service["emit"]
             if emit.has_no_move_ok():
-                logger.debug(f":schedule: service {service[TAR_SERVICE.TYPE.value]} does not need scheduling")
+                logger.debug(f":schedule: service {service[TAR_SERVICE.TYPE.value]} does not need scheduling of positions")
                 continue
             logger.debug(f":schedule: scheduling {service[TAR_SERVICE.TYPE.value]}..")
             stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
@@ -262,8 +262,12 @@ class FlightServices:
     #
     def format(self, saveToFile: bool = False):
         for service in self.services:
+            emit = service["emit"]
+            if emit.has_no_move_ok():
+                logger.debug(f":format: service {service[TAR_SERVICE.TYPE.value]} does not need formatting of positions")
+                continue
             logger.debug(f":format: formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
-            formatted = Format(service["emit"])
+            formatted = Format(emit)
             ret = formatted.format()
             if not ret[0]:
                 return ret
@@ -299,7 +303,7 @@ class FlightServices:
         for service in self.services:
             emit = service["emit"]
             if emit.has_no_move_ok():
-                logger.debug(f":enqueuetoredis: service {service[TAR_SERVICE.TYPE.value]} does not need scheduling")
+                logger.debug(f":enqueuetoredis: service {service[TAR_SERVICE.TYPE.value]} does not need enqueueing positions")
                 continue
             logger.debug(f":enqueuetoredis: enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
             formatted = EnqueueToRedis(emit, queue)
