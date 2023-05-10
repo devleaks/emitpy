@@ -53,17 +53,25 @@ class ServiceMove(Movement):
         No movement associated with this service, just emit ServiceMessage at service time.
         """
         self.addMessage(ServiceMessage(subject=f"none {SERVICE_PHASE.START.value}",
-                                        service=self,
-                                        sync=SERVICE_PHASE.START.value,
-                                        info=self.getInfo()))
+                                       service=self,
+                                       sync=SERVICE_PHASE.START.value,
+                                       info=self.getInfo()))
         self.addMessage(ServiceMessage(subject=f"none {SERVICE_PHASE.START.value}",
-                                        service=self,
-                                        sync=SERVICE_PHASE.START.value,
-                                        info=self.getInfo()))
+                                       service=self,
+                                       sync=SERVICE_PHASE.START.value,
+                                       info=self.getInfo()))
         logger.debug(f":no_move: {self.service.name} added 2 messages")
 
 
     def move(self):
+        # Special case 1: Service "event reporting only", no move
+        if self.service.vehicle is None:  # Service with no vehicle movement
+            logger.warning(f":move: service {type(self.service).__name__} {self.service.name} has no vehicle, assuming event report only")
+            self.no_move()
+            logger.debug(f":move: generated {len(self.moves)} points")
+            return (True, "Service::move completed")
+
+        # Special case 2: Service vehicle going back and forth between ramp and depot
         if type(self.service).__name__ in MOVE_LOOP:
             logger.debug(f":move: moving loop for {type(self.service).__name__}..")
             ret = self.move_loop()
@@ -73,12 +81,7 @@ class ServiceMove(Movement):
             logger.warning(ret[1])
             logger.debug(f":move: ..loop did not complete successfully, using normal move..")
 
-        if self.service.vehicle is None:  # Service with no vehicle movement
-            logger.warning(f":move: service {type(self.service).__name__} {self.service.name} has no vehicle, assuming event report only")
-            self.no_move()
-            logger.debug(f":move: generated {len(self.moves)} points")
-            return (True, "Service::move completed")
-
+        # Normal case:
         speeds = self.service.vehicle.speed
 
         startpos = self.service.vehicle.getPosition()
@@ -91,9 +94,9 @@ class ServiceMove(Movement):
         self.moves.append(startpos)
 
         self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.START.value}",
-                                        service=self,
-                                        sync=SERVICE_PHASE.START.value,
-                                        info=self.getInfo()))
+                                       service=self,
+                                       sync=SERVICE_PHASE.START.value,
+                                       info=self.getInfo()))
 
         # starting position to network
         startnp = self.airport.service_roads.nearest_point_on_edge(startpos)
@@ -163,9 +166,9 @@ class ServiceMove(Movement):
             self.moves.append(ramp_npe[0])
 
         self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}",
-                                        service=self,
-                                        sync=SERVICE_PHASE.ARRIVED.value,
-                                        info=self.getInfo()))
+                                       service=self,
+                                       sync=SERVICE_PHASE.ARRIVED.value,
+                                       info=self.getInfo()))
         # ###
         # If there is a stop poi named "STANDBY" and if the service has pause_before > 0
         # we first go to the standby position and wait pause_before minutes.
@@ -243,9 +246,9 @@ class ServiceMove(Movement):
             self.moves.append(ramp_leave)
 
         self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}",
-                                        service=self,
-                                        sync=SERVICE_PHASE.LEAVE.value,
-                                        info=self.getInfo()))
+                                       service=self,
+                                       sync=SERVICE_PHASE.LEAVE.value,
+                                       info=self.getInfo()))
 
         logger.debug(f":move: route from {ramp_nv[0].id} to {endnv[0].id}")
         r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)
@@ -271,9 +274,9 @@ class ServiceMove(Movement):
         self.service.vehicle.setPosition(finalpos)
 
         self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.END.value}",
-                                        service=self,
-                                        sync=SERVICE_PHASE.END.value,
-                                        info=self.getInfo()))
+                                       service=self,
+                                       sync=SERVICE_PHASE.END.value,
+                                       info=self.getInfo()))
 
         ret = doTime(self.moves)
         if not ret[0]:
@@ -287,7 +290,6 @@ class ServiceMove(Movement):
 
         # printFeatures(self.moves, "route")
         # printFeatures([Feature(geometry=asLineString(self.moves))], "route")
-
         logger.debug(f":move: generated {len(self.moves)} points")
         return (True, "Service::move completed")
 
@@ -297,12 +299,7 @@ class ServiceMove(Movement):
         Simulates a vehicle that goes back and forth between the aircraft and a depot
         until all load is loaded/unloaded.
         """
-        #
-        # Should check all data available before starting process:
-        # CHECK: Quantity/capacity does not involve "too many" roundtrips (max ~10)
-        # CHECK: Vehicle or service have "load/unload time" (direct value or computed from capacity + flow)
-        # CHECK: Vehicle or service have "setup/unsetup time" (optional)
-        #
+        # Temp disabled
         return (False, "Service::move_loop currently not usable or not implemented")
 
         # CHECK: Service has vehicle
@@ -321,13 +318,18 @@ class ServiceMove(Movement):
         if self.service.quantity is None or self.service.quantity <= 0:
             return (False, "Service::move_loop: service has no quantity")
 
+        # CHECK: Vehicle or service have "load/unload time" (direct value or computed from capacity + flow)
         # CHECK: Service has speed of service:
         if self.service.flow is None or self.service.quantity <= 0:
             return (False, "Service::move_loop: service has no service speed (flow)")
 
+        # CHECK: Vehicle or service have "setup/unsetup time" (optional)
         if self.service.setup_time is None:
             logger.debug(":move_loop: forced service setup time to 0")
             self.service.setup_time = 0
+
+        # CHECK: Quantity/capacity does not involve "too many" roundtrips (max ~10)
+
 
         # BEGINNING OF LOOP, go to ramp
         #
@@ -437,8 +439,9 @@ class ServiceMove(Movement):
         vehicle = self.service.vehicle
         service = self.service
         logger.debug(f":move: vehicle capacity {vehicle.max_capacity}, current load {vehicle.current_load}")
-        equipment_capacity = vehicle.max_capacity - vehicle.current_load  # may not be empty when it arrives
 
+        # Availability on first trip:
+        equipment_capacity = vehicle.max_capacity - vehicle.current_load  # may not be empty when it arrives
         # .. servicing ..
         # before service, may first go to ramp rest area.
         # after service, may first go to ramp rest area before leaving ramp.
@@ -447,7 +450,7 @@ class ServiceMove(Movement):
         while self.service.quantity > 0:
             #
             # Fill vehicle, decrease service quantity
-            if vehicle.max_capacity == inf:  # infinite capacity; served in one trip
+            if vehicle.max_capacity == inf:  # infinite capacity; served in one trip, should not come here...
                 vehicle.current_load = service.quantity
                 svc_duration = vehicle.service_duration(service.quantity)
                 service.quantity = 0

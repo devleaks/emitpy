@@ -15,6 +15,7 @@ from turfpy.measurement import distance, bearing, destination
 
 from redis.commands.json.path import Path
 
+import emitpy
 from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, Movement, asLineString, toTraffic
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, Timezone
 from emitpy.message import Messages, EstimatedTimeMessage
@@ -121,6 +122,7 @@ class Emit(Messages):
         if self.emit_type is None and ty != REDIS_DATABASE.UNKNOWN.value:
             self.emit_type = ty
         return {
+            FEATPROP.VERSION.value: emitpy.__version__,
             "type": "emit",
             "emit-type": self.emit_type if self.emit_type is not None else ty,
             "ident": self.emit_id,
@@ -154,9 +156,10 @@ class Emit(Messages):
         self.emit_meta = self.getInfo()
         self.emit_meta["props"] = self.props
         self.emit_meta["marks"] = self.getTimedMarkList()
+        if self.move is not None:
+            self.emit_meta["move"] = self.move.getInfo()
         source = self.getSource()
         if source is not None:
-            self.emit_meta["move"] = source.getInfo()
             self.emit_meta["time"] = source.getScheduleHistory(as_string=True)
         # logger.debug(f":getMeta: {self.emit_meta}")
         return self.emit_meta

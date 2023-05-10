@@ -21,7 +21,7 @@ from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
 from emitpy.utils import Timezone
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("emitalot")
 
 
@@ -33,7 +33,7 @@ file.close()
 
 # Parameters
 #
-NUM_TURNAROUNDS = 5
+NUM_TURNAROUNDS = 1
 DO_SERVICE = True
 USE_TURNAROUND = False
 
@@ -42,7 +42,7 @@ rate = [10, 10]
 operator = "QAS"  # for services
 fixed_turnaround = timedelta(minutes=90)
 
-cnt_begin = random.randint(0, len(flights)) # random pair of flights
+cnt_begin = 564 # random.randint(0, len(flights)) # random pair of flights
 cnt_end = min(cnt_begin + NUM_TURNAROUNDS, len(flights))
 
 # Here we go..

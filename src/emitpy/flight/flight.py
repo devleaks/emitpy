@@ -27,7 +27,6 @@ class Flight(Messages):
         self.scheduled = scheduled.isoformat()
         self.estimated = None
         self.actual = None
-        self.schedule_history = []      # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
         self.operator = operator
         self.aircraft = aircraft
         self.ramp = None                # GeoJSON Feature
@@ -147,20 +146,6 @@ class Flight(Messages):
         a = flight_id.split("-")
         scheduled_utc = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
         return (a[0], scheduled_utc, a[0][0:2], a[2:])
-
-    def getScheduleHistory(self, as_string: bool = False):
-        """
-        Gets the schedule history.
-        """
-        if as_string:
-            a = []
-            for f in self.schedule_history:
-                f0 = f[0] if type(f[0]) == str else f[0].isoformat()
-                f2 = f[2] if type(f[2]) == str else f[2].isoformat()
-                a.append((f0, f[1], f2))
-            return a
-        return self.schedule_history
-
 
     def getName(self) -> str:
         """

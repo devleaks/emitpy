@@ -77,7 +77,6 @@ class Message:
         self.scheduled_time = kwargs.get("scheduled_time", None)  # scheduled emission time
         self.absolute_time = None
 
-
     def __str__(self):
         """
         Structure that is sent to clients ("The Wire")
@@ -138,6 +137,7 @@ class Messages:
     """
     def __init__(self):
         self.messages = []
+        self.schedule_history = []      # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
 
     def addMessage(self, message: Message):
         self.messages.append(message)
@@ -154,6 +154,16 @@ class Messages:
         for m in self.messages:
             redis.sadd(key, json.dumps(m.getInfo()))
         logger.debug(f":save: saved {redis.smembers(key)} messages")
+
+    def getScheduleHistory(self, as_string: bool = False):
+        if as_string:
+            a = []
+            for f in self.schedule_history:
+                f0 = f[0] if type(f[0]) == str else f[0].isoformat()
+                f2 = f[2] if type(f[2]) == str else f[2].isoformat()
+                a.append((f0, f[1], f2))
+            return a
+        return self.schedule_history
 
 
 # ########################################
@@ -269,13 +279,15 @@ class MissionMessage(MovementMessage):
                  subject: str,
                  mission: "MissionMovement",
                  sync: str,
-                 info: dict = None):
+                 info: dict = None,
+                 **kwargs):
 
         MovementMessage.__init__(self,
                          subject=subject,
                          move=mission,
                          sync=sync,
-                         info=info)
+                         info=info,
+                         **kwargs)
 
     def getInfo(self):
         a = super().getInfo()

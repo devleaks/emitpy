@@ -21,13 +21,6 @@ from emitpy.parameters import MANAGED_AIRPORT_ICAO
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("emitamission")
 
-
-filename = os.path.join("..", "..", "data", "managedairport", MANAGED_AIRPORT_ICAO, "flights", "2019_W15_ROTATION_RAW.csv")
-file = open(filename, "r")
-csvdata = csv.DictReader(file)
-flights = sorted(csvdata, key=lambda x: (x['FLIGHT ACTUAL TIME_x']))
-file.close()
-
 # Parameters
 #
 NUM_MISSIONS = 4
@@ -36,7 +29,7 @@ sep = timedelta(minutes=4)
 name = "emit_mission"
 queue = "raw"
 rate = 5
-operator = "HPD"  # for missions
+operator = "LAS"  # for missions
 
 # Here we go..
 #

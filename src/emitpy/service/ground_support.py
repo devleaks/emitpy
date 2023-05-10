@@ -49,7 +49,6 @@ class GroundSupport(Messages):
         self.estimated = None
         self.actual = None
         self.actual_end = None
-        self.schedule_history = []
 
         self.pause_before = 0  # currently unused
         self.pause_after = 0   # currently unused
@@ -75,16 +74,6 @@ class GroundSupport(Messages):
             "name": self.name,
             "event": self.event
         }
-
-    def getScheduleHistory(self, as_string: bool = False):
-        if as_string:
-            a = []
-            for f in self.schedule_history:
-                f0 = f[0] if type(f[0]) == str else f[0].isoformat()
-                f2 = f[2] if type(f[2]) == str else f[2].isoformat()
-                a.append((f0, f[1], f2))
-            return a
-        return self.schedule_history
 
     def setPTS(self, relstartime: int, duration: int):
         self.pts_reltime   = relstartime

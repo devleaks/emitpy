@@ -645,7 +645,7 @@ class EmitApp(ManagedAirport):
         emit = ReEmit(emit_ident, self.redis)
         emit.setManagedAirport(self)
 
-        scheduled = emit.getMeta("$.move.scheduled")
+        scheduled = emit.getMeta("$.move.flight.scheduled")
         if scheduled is None:
             logger.warning(f":do_flight_services: cannot get flight scheduled time {emit.getMeta()}")
             return StatusInfo(250, "cannot get flight scheduled time from meta", emit_ident)
@@ -659,7 +659,7 @@ class EmitApp(ManagedAirport):
             emit_time_dt = emit_time_dt.replace(tzinfo=self.timezone)
             logger.debug(":do_flight_services: estimated time has no time zone, added managed airport local time zone")
 
-        is_arrival = emit.getMeta("$.move.is_arrival")
+        is_arrival = emit.getMeta("$.move.flight.is_arrival")
         if is_arrival is None:
             logger.warning(f":do_flight_services: cannot get flight movement")
         if is_arrival:
@@ -680,25 +680,25 @@ class EmitApp(ManagedAirport):
         # Need to create a flight container with necessary data
         logger.debug(":do_flight_services: Creating flight shell..")
         logger.debug(f":do_flight_services: ..is {'arrival' if is_arrival else 'departure'}..")
-        airline_code = emit.getMeta("$.move.airline.iata")
+        airline_code = emit.getMeta("$.move.flight.airline.iata")
         logger.debug(f":do_flight_services: ..got airline code {airline_code}..")
         airline = Airline.find(airline_code, self.redis)
         airport_code = None
         if is_arrival:
-            airport_code = emit.getMeta("$.move.departure.airport.icao")
+            airport_code = emit.getMeta("$.move.flight.departure.icao")
         else:
-            airport_code = emit.getMeta("$.move.arrival.airport.icao")
+            airport_code = emit.getMeta("$.move.flight.arrival.icao")
         logger.debug(f":do_flight_services: ..got remote airport code {airport_code}..")
         remote_apt = Airport.find(airport_code, self.redis)
-        actype_code = emit.getMeta("$.move.aircraft.actype.base-type.actype")
+        actype_code = emit.getMeta("$.move.flight.aircraft.actype.base-type.actype")
         logger.debug(f":do_flight_services: ..got actype code {actype_code}..")
         acperf = AircraftTypeWithPerformance.find(icao=actype_code, redis=self.use_redis())
         acperf.load()
-        acreg  = emit.getMeta("$.move.aircraft.acreg")
-        icao24 = emit.getMeta("$.move.aircraft.icao24")
+        acreg  = emit.getMeta("$.move.flight.aircraft.acreg")
+        icao24 = emit.getMeta("$.move.flight.aircraft.icao24")
         logger.debug(f":do_flight_services: ..got aircraft {acreg}, {icao24}..")
         aircraft = Aircraft(registration=acreg, icao24= icao24, actype=acperf, operator=airline)
-        flightnumber = emit.getMeta("$.move.flightnumber")
+        flightnumber = emit.getMeta("$.move.flight.flightnumber")
         logger.debug(f":do_flight_services: ..got flight number {flightnumber}..")
         flight = None
         if is_arrival:
@@ -715,7 +715,7 @@ class EmitApp(ManagedAirport):
                                managedAirport=self,
                                destination=remote_apt,
                                aircraft=aircraft)
-        rampcode = emit.getMeta("$.move.ramp.name")
+        rampcode = emit.getMeta("$.move.flight.ramp.name")
         logger.debug(f":do_flight_services: ..got ramp {rampcode}..")
         rampval = self.airport.getRamp(rampcode, redis=self.use_redis())
         if rampval is None:
@@ -757,7 +757,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(165, f"problem during flight service save in Redis", ret[1])
 
         logger.debug(":do_flight_services: ..broadcasting positions..")
-        ret = flight_service.enqueuetoredis(self.queues[queue])
+        ret = flight_service.enqueueToRedis(self.queues[queue])
         if not ret[0]:
             return StatusInfo(166, f"problem during enqueue of services", ret[1])
 
@@ -932,7 +932,7 @@ class EmitApp(ManagedAirport):
                                                             flight_id=ident,
                                                             redis_type=REDIS_TYPE.EMIT.value)
 
-        is_arrival = emit.getMeta("$.move.is_arrival")
+        is_arrival = emit.getMeta("$.move.flight.is_arrival")
         logger.debug(f":do_schedule: ..is {'arrival' if is_arrival else 'departure'}..")
         if is_arrival:
             svc_sync = FLIGHT_PHASE.ONBLOCK.value

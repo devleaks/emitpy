@@ -56,9 +56,9 @@ class MissionMove(Movement):
         logger.debug(f":move: start added")
 
         self.addMessage(MissionMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.START.value}",
-                                        move=self,
-                                        sync=MISSION_PHASE.START.value,
-                                        info=self.getInfo()))
+                                       move=self,
+                                       sync=MISSION_PHASE.START.value,
+                                       info=self.getInfo()))
 
         self.addMessage(MissionMessage(subject=f"Mission {self.getId()} has started",
                                        move=self,

@@ -13,7 +13,7 @@ class Formatter:
 
         self.ts = feature.getAbsoluteEmissionTime()
         if "properties" in self.feature:
-            self.feature["properties"]["emitpy-format"] = self.name
+            self.feature["properties"][FEATPROP.EMIT_FORMAT.value] = self.name
 
     def __str__(self):
         return json.dumps(self.feature)

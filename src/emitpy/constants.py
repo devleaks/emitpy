@@ -427,6 +427,7 @@ class FEATPROP(Enum):
     EMIT_ABS_TIME_FMT = "emit-absolute-time-human"
     EMIT_ABSOLUTE_TIME = "emit-absolute-time"
     EMIT_ABSOLUTE_TIME_FMT = "emit-absolute-time-human"
+    EMIT_FORMAT = "emit-format"
     EMIT_INDEX = "emit-index"
     EMIT_REASON = "emit-reason"
     EMIT_REL_TIME = "emit-relative-time"

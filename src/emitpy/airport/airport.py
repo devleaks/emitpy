@@ -135,8 +135,6 @@ class Airport(Location):
                 k = key_path(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value))
             ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value, path=f".{code}")
             if ac is not None:
-                if len(code) == 4:
-                    return Airport.fromInfo(info=ac)
                 return Airport.fromFeature(info=ac)
             else:
                 logger.warning(f"Airport::find: no such key {k}")
@@ -348,7 +346,7 @@ class Airport(Location):
         """
         if self.tzoffset is not None and self.tzname is not None:
             self.timezone = Timezone(offset=self.tzoffset, name=self.tzname)
-            logger.debug(":setTimezone: timezone set from offset/name")
+            logger.debug(":getTimezone: timezone set from offset/name")
         elif self.lat() is not None and self.lon() is not None:
             tf = TimezoneFinder()
             tzname = tf.timezone_at(lng=self.lon(), lat=self.lat())

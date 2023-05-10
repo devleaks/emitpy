@@ -17,7 +17,8 @@ from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("emitft")
+logger = logging.getLogger("emit_flights")
+
 
 filename = os.path.join("..", "..", "data", "managedairport", MANAGED_AIRPORT_ICAO, "flights", "flight_table.csv")
 file = open(filename, "r")
@@ -28,13 +29,13 @@ file.close()
 # Parameters
 #
 NUM_FLIGHTS = 1
-DO_SERVICE = True
+DO_SERVICE = False
 queue = "raw"
 
 rate = [15, 10]
 
 cnt = 0
-cnt_begin = random.randint(0, len(flights))
+cnt_begin = random.randint(0, len(flights)-1)
 cnt_end = cnt_begin + NUM_FLIGHTS
 
 # Here we go..

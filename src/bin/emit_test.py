@@ -21,7 +21,7 @@ from emitpy.emit import Emit
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("emit_test")
 
-filename = os.path.join("..", "..", "db", MANAGED_AIRPORT_ICAO, "debug", "debug-BaggageService:A8:2019-04-01T13.25.00+03.00:BAGTR031-2023-01-22T15:25:46.647373-debug-move-move-data.geojson")
+filename = os.path.join("..", "..", "db", MANAGED_AIRPORT_ICAO, "debug", "debug-QR193-S201904010610-2023-01-23T17:41:25.004552-debug-move-move-data.geojson")
 movedata = None
 with open(filename, "r") as file:
     movedata = json.load(file)
