@@ -614,10 +614,13 @@ class Hypercaster:
                 hyperlogger.debug(f":terminate_queue: {queue} has already been deleted, do nothing")
                 return
         if hasattr(self.queues[queue], "broadcaster"):
-            if hasattr(self.queues[queue].broadcaster, "shutdown_flag"):
+            if hasattr(self.queues[queue].broadcaster, "shutdown_flag") and self.queues[queue].broadcaster.shutdown_flag is not None:
                 self.queues[queue].broadcaster.shutdown_flag.set()
                 hyperlogger.debug(f":terminate_queue: {queue} awakening wait() on send..")
-                self.queues[queue].broadcaster.rdv.set()
+                if hasattr(self.queues[queue].broadcaster, "rdv") and self.queues[queue].broadcaster.rdv is not None:
+                    self.queues[queue].broadcaster.rdv.set()
+                else:
+                    hyperlogger.warning(f":terminate_queue: {queue} has no rdv")  # error?
                 # now that we have notified the queue's broadcaster, we don't need it anymore
                 self.queues[queue].broadcaster = None
                 hyperlogger.debug(f":terminate_queue: {queue} notified")
