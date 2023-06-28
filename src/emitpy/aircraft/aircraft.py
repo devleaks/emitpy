@@ -105,6 +105,7 @@ class AircraftType(Identity):
                                                                   typeId=row["ICAO Code"],
                                                                   name=row["Model"],
                                                                   data=row)
+                AircraftType._DB[row["ICAO Code"]].setClass()
         logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft types")
         AircraftType.loadAircraftEquivalences()
 
@@ -266,9 +267,15 @@ class AircraftType(Identity):
             # logger.warning(f":setClass: guessed class {try_class} for {self.typeId} (wingspan={ws})")
             ac_class = try_class
 
-        if ac_class is not None and ac_class in "ABCDEF":
-            self._ac_class = ac_class
-        logger.warning(f":setClass: invalid class {ac_class}")
+        if ac_class is not None:
+            if ac_class in "ABCDEF":
+                # logger.debug(f":setClass: {self.name} class {ac_class} {'<' * 40}")
+                self._ac_class = ac_class
+            else:
+                logger.warning(f":setClass: {self.name} invalid class {ac_class}")
+        else:
+            pass
+            # logger.warning(f":setClass: {self.name} cannot determine class")
 
 
     def getClass(self) -> str:
@@ -279,6 +286,10 @@ class AircraftType(Identity):
         :returns:   The class.
         :rtype:     str
         """
+        if self._ac_class is not None:
+            return self._ac_class
+        # tries to set it
+        self.setClass()
         if self._ac_class is not None:
             return self._ac_class
         logger.warning(f":getClass: no class for {self.typeId}")

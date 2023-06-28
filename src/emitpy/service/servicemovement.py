@@ -52,21 +52,28 @@ class ServiceMove(Movement):
         """
         No movement associated with this service, just emit ServiceMessage at service time.
         """
-        self.addMessage(ServiceMessage(subject=f"none {SERVICE_PHASE.START.value}",
-                                       service=self,
-                                       sync=SERVICE_PHASE.START.value,
-                                       info=self.getInfo()))
-        self.addMessage(ServiceMessage(subject=f"none {SERVICE_PHASE.START.value}",
-                                       service=self,
-                                       sync=SERVICE_PHASE.START.value,
-                                       info=self.getInfo()))
-        logger.debug(f":no_move: {self.service.name} added 2 messages")
+        if self.service.pts_duration == 0:
+            self.addMessage(ServiceMessage(subject=f"«{self.service.event}» occured",
+                                           service=self,
+                                           sync=SERVICE_PHASE.START.value,
+                                           info=self.getInfo()))
+            logger.debug(f":no_move: {self.service.name} added 1 messages")
+        else:
+            self.addMessage(ServiceMessage(subject=f"«{self.service.event}» {SERVICE_PHASE.START.value}",
+                                           service=self,
+                                           sync=SERVICE_PHASE.START.value,
+                                           info=self.getInfo()))
+            self.addMessage(ServiceMessage(subject=f"«{self.service.event}» {SERVICE_PHASE.END.value}",
+                                           service=self,
+                                           sync=SERVICE_PHASE.END.value,
+                                           info=self.getInfo()))
+            logger.debug(f":no_move: {self.service.name} added 2 messages")
 
 
     def move(self):
         # Special case 1: Service "event reporting only", no move
         if self.service.vehicle is None:  # Service with no vehicle movement
-            logger.warning(f":move: service {type(self.service).__name__} {self.service.name} has no vehicle, assuming event report only")
+            logger.debug(f":move: service {type(self.service).__name__} «{self.service.event}» has no vehicle, assuming event report only")
             self.no_move()
             logger.debug(f":move: generated {len(self.moves)} points")
             return (True, "Service::move completed")

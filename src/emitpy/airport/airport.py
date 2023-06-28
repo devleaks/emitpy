@@ -196,7 +196,9 @@ class Airport(Location):
         """
         if redis is not None:
             k = key_path(REDIS_DATABASE.LOVS.value, REDIS_LOVS.AIRPORTS.value)
-            return rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
+            # return rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
+            temp = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
+            return {"airports": [{"iata": k, "name": v} for k,v in temp.items()]}
 
         l = filter(lambda a: len(a.airlines) > 0, Airport._DB_IATA.values())
         m = [(a.iata, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
@@ -932,8 +934,11 @@ class ManagedAirportBase(AirportWithProcedures):
         :rtype:     { return_type_description }
         """
         l = sorted(self.ramps.values(),key=lambda x: x.getName())
-        a = [(a.getName(), a.getName()) for a in l]
-        return a
+        # a = [(a.getName(), a.getName()) for a in l]
+        # return a
+        a = [{"name": a.getName(), "id": a.getName()} for a in l]
+        return {"ramps": a}
+
 
     def getRunwayCombo(self):
         """

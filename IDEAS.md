@@ -11,7 +11,8 @@ Gépès Cidesimal, geospatial specialist,
 
 
 Future releases tags:
-Titanic
+13: Titanic
+14: Titan
 Toyama Maru
 Scilly naval disaster of 1707
 HMS Namur
@@ -54,3 +55,13 @@ May be add a rule in airport to tell whether Ramp has jetway?
 
 airport.hasJetway(ramp) -> bool
 based on list of ramp with jetways, supplied in airport.yaml?
+
+---
+To do:
+-----
+
+add pax/cargo to API
+make some parameters optionals
+runway not used?
+
+create arbitrary event

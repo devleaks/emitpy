@@ -497,6 +497,11 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(153, f"problem during flight service scheduling of messages", ret[1])
 
+        # Debugging
+        logger.debug(":do_flight: ..scheduling summary..")
+        ret = flight_service.print(blocktime)
+        logger.debug(ret)
+
         logger.debug(":do_flight: ..saving equipment and messages..")
         if SAVE_TO_FILE or SAVE_TRAFFIC:
             ret = flight_service.saveFile()

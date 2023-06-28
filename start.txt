@@ -1,0 +1,14 @@
+start.txt
+
+
+cd
+cd Developer/oscars/emitpy/src
+redis-stack-server
+
+cd
+cd Developer/Github/redis-commander
+node bin/redis-commander.js
+
+cd
+cd Developer/oscars/emitpy/src
+python api.py

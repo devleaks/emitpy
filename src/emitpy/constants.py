@@ -38,7 +38,7 @@ CARGO    = "cargo"
 # TYPES
 #
 # 1. load types
-class PAYLOAD(Flag):
+class PAYLOAD(Enum):
     PAX = "pax"
     CARGO = "cargo"
     TECH = "tech"

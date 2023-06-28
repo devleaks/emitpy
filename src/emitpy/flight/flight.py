@@ -25,7 +25,9 @@ class Flight(Messages):
         self.managedAirport = None
         self.scheduled_dt = scheduled
         self.scheduled = scheduled.isoformat()
+        self.estimated_dt = None
         self.estimated = None
+        self.actual_dt = None
         self.actual = None
         self.operator = operator
         self.aircraft = aircraft
@@ -186,23 +188,17 @@ class Flight(Messages):
         return False
 
 
-    def is_arrival(self) -> bool:
-        if self.managedAirport is not None:
-            return self.arrival.icao == self.managedAirport.icao
-        logger.warning(f":is_arrival: no managedAirport, cannot determine")
-        return None
-
-
     def getTurnaroundProfile(self, redis = None):
         if self.tarprofile is not None:
             return self.tarprofile
         self.tarprofile = self.managedAirport.airport.manager.getTurnaroundProfile(self, redis)
         return self.tarprofile
 
-    def get_move(self) -> str:
-        if self.is_arrival():
-            return ARRIVAL
-        return DEPARTURE
+    def is_arrival(self) -> bool:
+        if self.managedAirport is not None:
+            return self.arrival.icao == self.managedAirport.icao
+        logger.warning(f":is_arrival: no managedAirport, cannot determine")
+        return None
 
 
     def is_departure(self) -> bool:
@@ -212,16 +208,37 @@ class Flight(Messages):
         return None
 
 
+    def get_move(self) -> str:
+        if self.is_arrival():
+            return ARRIVAL
+        return DEPARTURE
+
+
+    def get_oooi(self, gate: bool = False) -> str:
+        # Returns the flight phase name corresponding to the movement
+        # ACARS OOOI (Out of the gate, Off the ground, On the ground, and Into the gate)
+        if gate:
+            if self.is_arrival():
+                return FLIGHT_PHASE.ONBLOCK.value
+            return FLIGHT_PHASE.OFFBLOCK.value
+
+        if self.is_arrival():
+            return FLIGHT_PHASE.TOUCH_DOWN.value
+        return FLIGHT_PHASE.TAKE_OFF.value
+
+
     def getRemoteAirport(self) -> Airport:
         return self.departure if self.is_arrival() else self.arrival
 
 
     def setLinkedFlight(self, linked_flight: 'Flight') -> None:
         # Should check if already defined and different
-        self.linked_flight = linked_flight
         if linked_flight.linked_flight is None:
+            self.linked_flight = linked_flight
             linked_flight.linked_flight = self
-        logger.debug(f":setLinkedFlight: {self.getId()} linked to {linked_flight.getId()}")
+            logger.debug(f":setLinkedFlight: {self.getId()} linked to {linked_flight.getId()}")
+        else:
+            logger.warning(f":setLinkedFlight: {linked_flight.getId()} already linked")
 
 
     def setFL(self, flight_level: int) -> None:
@@ -335,13 +352,16 @@ class Flight(Messages):
             return
         return self.flightroute.print()
 
+
     def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):
-        self.estimated = dt
+        self.estimated_dt = dt
+        self.estimated = dt.isoformat()
         self.schedule_history.append((dt.isoformat(), "ET", info_time.isoformat()))
 
 
     def setActualTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):
-        self.actual = dt
+        self.actual_dt = dt
+        self.actual = dt.isoformat()
         self.schedule_history.append((dt.isoformat(), "AT", info_time.isoformat()))
 
 

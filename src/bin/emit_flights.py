@@ -29,7 +29,7 @@ file.close()
 # Parameters
 #
 NUM_FLIGHTS = 1
-DO_SERVICE = False
+DO_SERVICE = True
 queue = "raw"
 
 rate = [15, 10]

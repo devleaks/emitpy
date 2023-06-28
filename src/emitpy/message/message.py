@@ -81,19 +81,7 @@ class Message:
         """
         Structure that is sent to clients ("The Wire")
         """
-        return json.dumps({
-            "id": self.ident,
-            "category": self.category,
-            "subject": self.subject,
-            "body": self.body,
-            "link": self.link,
-            "payload": self.payload,
-            "priority": self.priority,
-            "icon": self.icon,
-            "icon-color": self.category,
-            "status": self.status,
-            "absolute_emission_time": self.absolute_time.isoformat() if self.absolute_time is not None else None
-        })
+        return json.dumps(self.getInfo())
 
     def getId(self):
         return self.ident

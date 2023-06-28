@@ -22,6 +22,9 @@ class PTSTime:
         self.pts_actual_start = None
         self.pts_actual_end   = None
 
+        self.pts_warn        = None
+        self.pts_alert       = None
+
     def getStartEndTimes(self, timetype: str = "scheduled"):
         if timetype == "actual":
             return (self.pts_actual_start, self.pts_actual_end)
@@ -44,6 +47,9 @@ class GroundSupport(Messages):
         self.pts_scheduled   = None       # absolute time for above
         self.pts_estimated   = None
         self.pts_actual      = None
+
+        self.pts_warn        = None
+        self.pts_alert       = None
 
         self.scheduled = None  # scheduled service date/time = pts_refscheduled + pts_scheduled
         self.estimated = None
@@ -75,9 +81,13 @@ class GroundSupport(Messages):
             "event": self.event
         }
 
-    def setPTS(self, relstartime: int, duration: int):
+    def setPTS(self, relstartime: int, duration: int, warn: int = None, alert: int = None):
         self.pts_reltime   = relstartime
         self.pts_duration  = duration
+        if warn is not None:
+            self.pts_warn = warn
+        if alert is not None:
+            self.pts_alert = alert
 
     def setName(self, name: str):
         self.name = name

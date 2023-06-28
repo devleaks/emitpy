@@ -1,8 +1,11 @@
 """
 Creates all services required for a flight, depends on movement, ramp, and actype.
 """
+import io
 import logging
 from datetime import datetime, timedelta
+
+from tabulate import tabulate
 
 from .service import Service
 from .servicemovement import ServiceMove
@@ -125,17 +128,26 @@ class FlightServices:
         am = self.airport.manager
 
         # services:
-        # - alert: 5
-        #   duration: 20
+        #   type: baggage
         #   model: train
-        #   service: baggage
+        #   start: 10
+        #   duration: 20
+        #   alert: 5
+        #   warn: 0
+        #
+        # event:
+        #   type: event
+        #   event: First passenger exits aircraft
         #   start: 10
         #   warn: 0
-
+        #   alert: 5
+        #
         for svc in svcs:
             sname = svc.get(TAR_SERVICE.TYPE.value)
             scheduled = svc.get(TAR_SERVICE.START.value)
             duration = svc.get(TAR_SERVICE.DURATION.value, 0)
+            warn_time = svc.get(TAR_SERVICE.WARN.value)
+            alert_time = svc.get(TAR_SERVICE.ALERT.value)
 
             logger.debug(f":service: creating service {sname}..")
 
@@ -148,12 +160,13 @@ class FlightServices:
             if self.flight.load_factor != 1.0:  # Wow
                 duration = duration * self.flight.load_factor
 
-            this_service.setPTS(relstartime=scheduled, duration=duration)
+            this_service.setPTS(relstartime=scheduled, duration=duration, warn=warn_time, alert=alert_time)
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             this_service.setRamp(self.ramp)
             if sname == EVENT_ONLY_MESSAGE:  # TA service with no vehicle, we just emit messages on the wire
                 this_service.event = svc.get(TAR_SERVICE.EVENT.value)  # Important to set it here, since not provided at creation
+                logger.debug(f":service: created event only {this_service.event}..")
                 # this_service.setVehicle(None)
             else:
                 equipment_model = svc.get(TAR_SERVICE.MODEL.value)
@@ -236,6 +249,9 @@ class FlightServices:
             logger.debug(f":schedule: scheduling {service[TAR_SERVICE.TYPE.value]}..")
             stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
             emit.addToPause(SERVICE_PHASE.SERVICE_START.value, service.get(TAR_SERVICE.DURATION.value, 0) * 60)  # seconds
+            ##
+            ## @todo: Check! if multiple call to schedule provoke addition to addToPause, may be make a setPause? resetPause?
+            ##
             ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, stime)
             if not ret[0]:
                 return ret
@@ -255,6 +271,84 @@ class FlightServices:
             logger.debug(f":schedule: there are {len(emit.getMessages())} scheduled messages")
             logger.debug(f":schedule: ..done")
         return (True, "FlightServices::scheduleMessages: completed")
+
+
+    # #######################
+    # Summary
+    # (Mainly for debugging purpose.)
+    #
+    #   flight information | on/off block time
+    #   Refueling | start_rel | duration | warn | alert | start time | warn time | alert time | end time | warn time | alert time
+    def print(self, scheduled: datetime):
+        output = io.StringIO()
+
+        print("\n", file=output)
+        print(self.flight, file=output)
+        print(f"block time: {scheduled.isoformat()}", file=output)
+
+        print(f"PRECISION TIME SCHEDULE", file=output)
+        PTS_HEADERS = ["event", "start", "duration", "warn", "alert", "start time", "warn time", "alert time", "end time", "end warn time", "end alert time"]
+        table = []
+        for service in self.services:
+            s = service["service"]
+            line = []
+            sty = type(s).__name__.replace("Service", "").lower()
+            if sty == EVENT_ONLY_MESSAGE:
+                sty = s.event
+            line.append(sty)
+            line.append(s.pts_reltime)
+            line.append(s.pts_duration)
+            line.append(s.pts_warn)
+            line.append(s.pts_alert)
+            line.append(scheduled + timedelta(minutes=s.pts_reltime))
+            if s.pts_warn is not None:
+                line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_warn))
+            else:
+                line.append(None)
+            if s.pts_alert is not None:
+                line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_alert))
+            else:
+                line.append(None)
+            line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_duration))
+            if s.pts_warn is not None:
+                line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_duration + s.pts_warn))
+            else:
+                line.append(None)
+            if s.pts_alert is not None:
+                line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_duration + s.pts_alert))
+            else:
+                line.append(None)
+            table.append(line)
+        print(tabulate(table, headers=PTS_HEADERS), file=output)
+
+        print(f"MESSAGES", file=output)
+        MESSAGE_HEADERS = ["object", "emission time", "subject"]
+        table = []
+        for m in self.flight.getMessages():
+            line = []
+            line.append("flight")
+            line.append(m.getAbsoluteEmissionTime())
+            line.append(m.subject)
+            table.append(line)
+
+        for service in self.services:
+            s = service["service"]
+            sty = type(s).__name__.replace("Service", "").lower()
+            if sty == EVENT_ONLY_MESSAGE:
+                sty = s.event
+            s = service["move"]
+            msgs = s.getMessages()
+            for m in s.getMessages():
+                line = []
+                line.append(sty)
+                line.append(m.getAbsoluteEmissionTime())
+                line.append(m.subject)
+                table.append(line)
+
+        print(tabulate(table, headers=MESSAGE_HEADERS), file=output)
+        contents = output.getvalue()
+        output.close()
+        return contents
 
 
     # #######################
