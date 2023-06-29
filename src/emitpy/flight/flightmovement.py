@@ -45,6 +45,7 @@ class FlightMovement(Movement):
         self.holdingpoint = None
         self.taxipos = []  # Array of Features<Point>
         self.tows = []  # list of tow movements
+        self.flight.set_movement(self)
 
 
     @staticmethod
@@ -87,15 +88,16 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
-        status = self.add_tmo()
-        if not status[0]:
-            logger.warning(status[1])
-            return status
+        if self.flight.is_arrival():
+            status = self.add_tmo()
+            if not status[0]:
+                logger.warning(status[1])
+                return status
 
-        status = self.add_faraway()
-        if not status[0]:
-            logger.warning(status[1])
-            return status
+            status = self.add_faraway()
+            if not status[0]:
+                logger.warning(status[1])
+                return status
 
         status = self.interpolate()
         if not status[0]:
@@ -320,7 +322,7 @@ class FlightMovement(Movement):
             groundmv = takeoff_distance
             logger.debug(f":vnav: takeoff at {rwy.name}, {takeoff_distance:f}")
 
-            self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TAKE_OFF.value}",
+            self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TAKE_OFF.value} from {self.flight.departure.icao}",
                                           flight=self,
                                           sync=FLIGHT_PHASE.TAKE_OFF.value,
                                           info=self.getInfo()))
@@ -367,7 +369,7 @@ class FlightMovement(Movement):
                                    ix=fcidx)
             logger.debug(":vnav: origin added first point")
 
-            self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TAKE_OFF.value}",
+            self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TAKE_OFF.value} from {self.flight.departure.icao}",
                                           flight=self,
                                           sync=FLIGHT_PHASE.TAKE_OFF.value,
                                           info=self.getInfo()))
@@ -588,7 +590,7 @@ class FlightMovement(Movement):
                              ix=len(fc)-fcidx)
             logger.debug(f":vnav:(rev) touch down at {rwy.name}, {LAND_TOUCH_DOWN:f}, {alt:f}")
 
-            self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TOUCH_DOWN.value}",
+            self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TOUCH_DOWN.value} at {self.flight.arrival.icao}",
                                           flight=self,
                                           sync=FLIGHT_PHASE.TOUCH_DOWN.value,
                                           info=self.getInfo()))
@@ -653,7 +655,7 @@ class FlightMovement(Movement):
                                    ix=len(fc)-fcidx)
             logger.debug(":vnav:(rev) destination added as last point")
 
-            self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TOUCH_DOWN.value}",
+            self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.TOUCH_DOWN.value} at {self.flight.arrival.icao}",
                                           flight=self,
                                           sync=FLIGHT_PHASE.TOUCH_DOWN.value,
                                           info=self.getInfo()))
@@ -1191,7 +1193,7 @@ class TowMovement(Movement):
         if show_pos:
             logger.debug(f":tow: tow start: {parkingpos}")
 
-        self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value}",
+        self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value} from {self.flight.ramp.getName()}",
                                       flight=self,
                                       sync=FLIGHT_PHASE.OFFBLOCK.value))
 
@@ -1393,7 +1395,7 @@ class ArrivalMove(FlightMovement):
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.ONBLOCK.value)
         fc.append(parkingpos)
 
-        self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.ONBLOCK.value}",
+        self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.ONBLOCK.value} at {self.flight.ramp.getName()}",
                                       flight=self,
                                       sync=FLIGHT_PHASE.ONBLOCK.value))
 
@@ -1448,7 +1450,7 @@ class DepartureMove(FlightMovement):
         parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.OFFBLOCK.value)
         fc.append(parkingpos)
 
-        self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value}",
+        self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value} from {self.flight.ramp.getName()}",
                                       flight=self,
                                       sync=FLIGHT_PHASE.OFFBLOCK.value))
 

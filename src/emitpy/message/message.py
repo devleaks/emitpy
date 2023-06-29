@@ -69,8 +69,8 @@ class Message:
         self.status = kwargs.get("status", MESSAGE_STATUS.CREATED.value)
 
         # Message timing information data and meta-data
-        self.entity = kwargs.get("entity", None)  # parent entity can be emit, movement(flight, mission, service), or flight
-        self.relative_sync = kwargs.get("sync", None)      # mark in parent entity, if any
+        self.entity = kwargs.get("entity", None)             # parent entity can be emit, movement(flight, mission, service), or flight
+        self.relative_sync = kwargs.get("sync", None)        # mark in parent entity
 
         self.relative_time = kwargs.get("relative_time", 0)  # seconds relative to above for emission
 
@@ -110,6 +110,7 @@ class Message:
 
     def schedule(self, moment):
         self.absolute_time = moment + timedelta(seconds=self.relative_time)
+        logger.debug(f":schedule: {type(self).__name__}: {self.absolute_time.isoformat()} (relative={self.relative_time})")
         return self.absolute_time
 
     def getAbsoluteEmissionTime(self):
@@ -291,13 +292,15 @@ class ServiceMessage(MovementMessage):
                  subject: str,
                  service: "ServiceMovement",
                  sync: str,
-                 info: dict):
+                 info: dict,
+                 **kwargs):
 
         MovementMessage.__init__(self,
                          subject=subject,
                          move=service,
                          sync=sync,
-                         info=info)
+                         info=info,
+                         **kwargs)
 
     def getInfo(self):
         a = super().getInfo()

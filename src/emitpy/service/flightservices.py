@@ -270,6 +270,10 @@ class FlightServices:
                 return ret
             logger.debug(f":schedule: there are {len(emit.getMessages())} scheduled messages")
             logger.debug(f":schedule: ..done")
+
+        # For debugging purpose only:
+        dummy = self.getTimedMessageList(scheduled)
+
         return (True, "FlightServices::scheduleMessages: completed")
 
 
@@ -279,7 +283,7 @@ class FlightServices:
     #
     #   flight information | on/off block time
     #   Refueling | start_rel | duration | warn | alert | start time | warn time | alert time | end time | warn time | alert time
-    def print(self, scheduled: datetime):
+    def getTimedMessageList(self, scheduled: datetime):
         output = io.StringIO()
 
         print("\n", file=output)
@@ -322,11 +326,20 @@ class FlightServices:
         print(tabulate(table, headers=PTS_HEADERS), file=output)
 
         print(f"MESSAGES", file=output)
-        MESSAGE_HEADERS = ["object", "emission time", "subject"]
+        MESSAGE_HEADERS = ["object", "type", "emission time", "subject"]
         table = []
-        for m in self.flight.getMessages():
+        # for m in self.flight.getMessages():
+        #     line = []
+        #     line.append("flight")
+        #     line.append(type(m).__name__)
+        #     line.append(m.getAbsoluteEmissionTime())
+        #     line.append(m.subject)
+        #     table.append(line)
+
+        for m in self.flight.get_movement().getMessages():  # move.getMessages() includes flight.getMessages()
             line = []
-            line.append("flight")
+            line.append("move")
+            line.append(type(m).__name__)
             line.append(m.getAbsoluteEmissionTime())
             line.append(m.subject)
             table.append(line)
@@ -341,13 +354,17 @@ class FlightServices:
             for m in s.getMessages():
                 line = []
                 line.append(sty)
+                line.append(type(m).__name__)
                 line.append(m.getAbsoluteEmissionTime())
                 line.append(m.subject)
                 table.append(line)
 
+        table = sorted(table, key=lambda x: x[2])  # absolute emission time
         print(tabulate(table, headers=MESSAGE_HEADERS), file=output)
         contents = output.getvalue()
         output.close()
+
+        logger.debug(f":getTimedMessageList: {contents}")
         return contents
 
 

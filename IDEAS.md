@@ -13,12 +13,12 @@ Gépès Cidesimal, geospatial specialist,
 Future releases tags:
 13: Titanic
 14: Titan
+15: HMS Namur
 Toyama Maru
-Scilly naval disaster of 1707
-HMS Namur
 Indomptable
 Achille
 Redoutable
+Scilly naval disaster of 1707
 
 
 

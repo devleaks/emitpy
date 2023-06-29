@@ -50,7 +50,9 @@ class ServiceMove(Movement):
 
     def no_move(self):
         """
-        No movement associated with this service, just emit ServiceMessage at service time.
+        No movement associated with this service, just emit ServiceMessage at event time.
+        Since there is no movement associated, there is no sync label to be used.
+        So the relative time will be relative to the supplied scheduled time, which normally is ONBLOCK/OFFBLOCK time.
         """
         if self.service.pts_duration == 0:
             self.addMessage(ServiceMessage(subject=f"«{self.service.event}» occured",
@@ -63,10 +65,12 @@ class ServiceMove(Movement):
                                            service=self,
                                            sync=SERVICE_PHASE.START.value,
                                            info=self.getInfo()))
+            # End time is start time + duration, we add duration as a delay relative to the start time
             self.addMessage(ServiceMessage(subject=f"«{self.service.event}» {SERVICE_PHASE.END.value}",
                                            service=self,
                                            sync=SERVICE_PHASE.END.value,
-                                           info=self.getInfo()))
+                                           info=self.getInfo(),
+                                           relative_time=(self.service.pts_duration * 60)))  # minutes
             logger.debug(f":no_move: {self.service.name} added 2 messages")
 
 
@@ -76,7 +80,7 @@ class ServiceMove(Movement):
             logger.debug(f":move: service {type(self.service).__name__} «{self.service.event}» has no vehicle, assuming event report only")
             self.no_move()
             logger.debug(f":move: generated {len(self.moves)} points")
-            return (True, "Service::move completed")
+            return (True, "Service::move: no moves, assuming event report only")
 
         # Special case 2: Service vehicle going back and forth between ramp and depot
         if type(self.service).__name__ in MOVE_LOOP:

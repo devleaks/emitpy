@@ -18,6 +18,7 @@ class Flight(Messages):
 
     def __init__(self, operator: Airline, number: str, scheduled: datetime, departure: Airport, arrival: Airport, aircraft: Aircraft, linked_flight: 'Flight' = None, load_factor: float = 1.0):
         Messages.__init__(self)
+        self._movement = None
         self.number = number
         self.departure = departure
         self.arrival = arrival
@@ -148,6 +149,15 @@ class Flight(Messages):
         a = flight_id.split("-")
         scheduled_utc = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
         return (a[0], scheduled_utc, a[0][0:2], a[2:])
+
+
+    def set_movement(self, move):
+        self._movement = move
+
+
+    def get_movement(self):
+        return self._movement
+
 
     def getName(self) -> str:
         """

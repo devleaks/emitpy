@@ -4,8 +4,11 @@ The instance is partially passivated in a cache and can be recovered with suffic
 information.
 """
 import os
+import io
 import json
 import logging
+
+from tabulate import tabulate
 
 from datetime import datetime, timedelta, timezone
 from random import randrange
@@ -824,6 +827,16 @@ class Emit(Messages):
 
     def getTimedMarkList(self):
         l = dict()
+
+        if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
+            return l
+
+        output = io.StringIO()
+        print("\n", file=output)
+        print(f"TIMED MARK LIST", file=output)
+        MARK_LIST = ["mark", "relative", "time"]
+        table = []
+
         for f in self.scheduled_emit:
             m = f.getMark()
             if m is not None:
@@ -836,7 +849,20 @@ class Emit(Messages):
                         "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)
                     }
                     t = round(f.getProp(FEATPROP.EMIT_REL_TIME.value),  1)
-                    logger.debug(f":getTimedMarkList: {m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)}")
+                line = []
+                line.append(m)
+                line.append(l[m]["rel"])
+                line.append(l[m]["dt"])
+                table.append(line)
+                # logger.debug(f":getTimedMarkList: {m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)}")
+
+        table = sorted(table, key=lambda x: x[2])  # absolute emission time
+        print(tabulate(table, headers=MARK_LIST), file=output)
+
+        contents = output.getvalue()
+        output.close()
+        logger.debug(f":getTimedMarkList: {contents}")
+
         return l
 
 
@@ -874,7 +900,6 @@ class Emit(Messages):
             return (False, f"Emit::schedule no emit id")
 
         logger.debug(f":schedule: mark list: {self.getMarkList()}")
-        self.getTimedMarkList()
 
         offset = self.getRelativeEmissionTime(sync)
         if offset is not None:
@@ -903,6 +928,8 @@ class Emit(Messages):
             # ret = self.scheduleMessages(sync, moment)
             # if not ret[0]:
             #     return ret
+            # For debugging purpose only:
+            dummy = self.getTimedMarkList()    
             return (True, "Emit::schedule completed")
 
         logger.warning(f":schedule: {sync} mark not found")
@@ -910,18 +937,50 @@ class Emit(Messages):
 
 
     def scheduleMessages(self, sync, moment: datetime):
+        output = io.StringIO()
+
+        print("\n", file=output)
+        print(f"SYNCHRONIZATION: {sync} at {moment}", file=output)
+        print(f"TIMED MESSAGE LIST", file=output)
+        MARK_LIST = ["type", "message", "sync", "offset", "rel. to sync", "total", "time"]
+        table = []
+
         logger.debug(f":scheduleMessages: {sync} at {moment}..")
+        t0 = moment
+        offset = self.getRelativeEmissionTime(sync)
+        if offset is not None:
+            t0 = moment + timedelta(seconds=(- offset))
+            logger.debug(f":scheduleMessages: t=0 at {t0}..")
+        else:
+            logger.warning(f":scheduleMessages: {sync} mark not found, using moment with no offset")
         for m in self.getMessages():
-            when = moment
+            when = t0
+            offset = 0
+            total = 0
             if m.relative_sync is not None:
                 offset = self.getRelativeEmissionTime(m.relative_sync)
                 if offset is not None:
-                    when = moment + timedelta(seconds=(- offset))
-                    logger.debug(f":scheduleMessages: {m.relative_sync} offset={offset}sec")
+                    when = t0 + timedelta(seconds=offset)
+                    total = offset + m.relative_time
+                    logger.debug(f":scheduleMessages: {m.relative_sync} offset={offset}sec, total={total}")
                 else:
                     logger.warning(f":scheduleMessages: {m.relative_sync} mark not found, using moment with no offset")
             m.schedule(when)
+            line = []
+            line.append(type(m).__name__)
+            line.append(m.subject)
+            line.append(m.relative_sync)
+            line.append(offset)
+            line.append(m.relative_time)
+            line.append(total)
+            line.append(m.getAbsoluteEmissionTime())
+            table.append(line)
         logger.debug(f":scheduleMessages: ..scheduled")
+        table = sorted(table, key=lambda x: x[6])  # absolute emission time()
+        print(tabulate(table, headers=MARK_LIST), file=output)
+        contents = output.getvalue()
+        output.close()
+        logger.debug(f":scheduleMessages: {contents}")
         return (True, "Emit::scheduleMessages completed")
 
 
