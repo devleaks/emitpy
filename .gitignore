@@ -61,3 +61,5 @@ tests/
 *.db
 src/web/emitview/.yarn
 src/web/emitview/.yarnrc.yml
+src/emitpy/parameters-EBLG.py
+src/emitpy/parameters-OTHH.py

@@ -237,7 +237,7 @@ class FlightServices:
     # #######################
     # Scheduling
     #
-    def schedule(self, scheduled: datetime):
+    def schedule(self, scheduled: datetime, do_print: bool = False):
         # The scheduled date time recevied should be
         # ONBLOCK time for arrival
         # OFFBLOCK time for departure
@@ -252,7 +252,7 @@ class FlightServices:
             ##
             ## @todo: Check! if multiple call to schedule provoke addition to addToPause, may be make a setPause? resetPause?
             ##
-            ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, stime)
+            ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, stime, do_print)
             if not ret[0]:
                 return ret
             logger.debug(f":schedule: there are {len(emit.scheduled_emit)} scheduled emit points")
@@ -260,19 +260,20 @@ class FlightServices:
         return (True, "FlightServices::schedule: completed")
 
 
-    def scheduleMessages(self, scheduled: datetime):
+    def scheduleMessages(self, scheduled: datetime, do_print: bool = False):
         for service in self.services:
             emit = service["emit"]
             logger.debug(f":schedule: scheduling {service[TAR_SERVICE.TYPE.value]}..")
             stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
-            ret = emit.scheduleMessages(SERVICE_PHASE.SERVICE_START.value, stime)
+            ret = emit.scheduleMessages(SERVICE_PHASE.SERVICE_START.value, stime, do_print)
             if not ret[0]:
                 return ret
             logger.debug(f":schedule: there are {len(emit.getMessages())} scheduled messages")
             logger.debug(f":schedule: ..done")
 
         # For debugging purpose only:
-        dummy = self.getTimedMessageList(scheduled)
+        if do_print:
+            dummy = self.getTimedMessageList(scheduled)
 
         return (True, "FlightServices::scheduleMessages: completed")
 

@@ -237,6 +237,7 @@ class Emit(Messages):
 
         # 3. Save messages for broadcast
         mid = self.getKey(REDIS_TYPE.EMIT_MESSAGE.value)
+        redis.delete(mid)
         for m in self.getMessages():
             redis.sadd(mid, json.dumps(m.getInfo()))
         logger.debug(f":save: saved {redis.scard(mid)} messages")
@@ -885,7 +886,7 @@ class Emit(Messages):
         self.addToPause(sync=sync, duration=duration, add=False)
 
 
-    def schedule(self, sync, moment: datetime):
+    def schedule(self, sync, moment: datetime, do_print: bool = False):
         """
         Adjust a emission track to synchronize moment at position mkar synch.
         This should only change the EMIT_ABS_TIME property.
@@ -929,14 +930,15 @@ class Emit(Messages):
             # if not ret[0]:
             #     return ret
             # For debugging purpose only:
-            dummy = self.getTimedMarkList()    
+            if do_print:
+                dummy = self.getTimedMarkList()    
             return (True, "Emit::schedule completed")
 
         logger.warning(f":schedule: {sync} mark not found")
         return (False, f"Emit::schedule {sync} mark not found")
 
 
-    def scheduleMessages(self, sync, moment: datetime):
+    def scheduleMessages(self, sync, moment: datetime, do_print: bool = False):
         output = io.StringIO()
 
         print("\n", file=output)
@@ -967,7 +969,7 @@ class Emit(Messages):
                     logger.warning(f":scheduleMessages: {m.relative_sync} mark not found, using moment with no offset")
             m.schedule(when)
             line = []
-            line.append(type(m).__name__)
+            line.append(m.getType())
             line.append(m.subject)
             line.append(m.relative_sync)
             line.append(offset)
@@ -980,7 +982,8 @@ class Emit(Messages):
         print(tabulate(table, headers=MARK_LIST), file=output)
         contents = output.getvalue()
         output.close()
-        logger.debug(f":scheduleMessages: {contents}")
+        if do_print:
+            logger.debug(f":scheduleMessages: {contents}")
         return (True, "Emit::scheduleMessages completed")
 
 

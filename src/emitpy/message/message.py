@@ -5,6 +5,7 @@ EmitPy Message are meant to be sent on alternate channels to prepare external re
 upcoming position-related messages.
 EmitPy Messages are limited to the ManagedAirport scope.
 """
+import sys
 import uuid
 import json
 import logging
@@ -49,9 +50,8 @@ class MESSAGE_ICON(Enum):
 class Message:
 
     def __init__(self, category: str, **kwargs):
-        self.ident = f"{uuid.uuid4()}"
-        self.data = kwargs
 
+        self.ident = kwargs.get("id", f"{uuid.uuid4()}")
         # Message display
         self.source = kwargs.get("source", None)    # ~ From:
         self.subject = kwargs.get("subject", None)
@@ -89,10 +89,13 @@ class Message:
     def getKey(self, extension: str):
         return key_path(MESSAGE_DATABASE, self.getId(), extension)
 
+    def getType(self):
+        return type(self).__name__
+
     def getInfo(self):
         r = {
             "id": self.ident,
-            "type": type(self).__name__,
+            "type": self.getType(),
             "category": self.category,
             "subject": self.subject,
             "body": self.body,
@@ -101,8 +104,13 @@ class Message:
             "priority": self.priority,
             "icon": self.icon,
             "icon-color": self.category,
-            "status": self.status
+            "status": self.status,
+            "relative_sync": self.relative_sync,
+            "relative_time": self.relative_time
         }
+        r["scheduled_time"] = None
+        if self.scheduled_time is not None:
+            r["scheduled_time"] = self.scheduled_time.isoformat()
         r["absolute_emission_time"] = None
         if self.absolute_time is not None:
             r["absolute_emission_time"] = self.absolute_time.isoformat()
@@ -118,6 +126,46 @@ class Message:
             return self.absolute_time
         else:
             return self.scheduled_time + timedelta(seconds=self.relative_time)
+
+
+class ReMessage(Message):
+    #
+    # Message that can only be loaded, rescheduled (at will), and saved.
+    # Cannot be used, or changed.
+    # Used when re-scheduling a movement to reschedule messages in phase with movement.
+    # (See ReEmit.)
+    #
+    def __init__(self, category: str, data):
+
+        self.ident = data.get("id")
+        Message.__init__(self, category=category, id=self.ident)
+
+        self.data = data
+        self.relative_sync = data.get("relative_sync")     # mark in parent entity
+        self.relative_time = data.get("relative_time", 0)  # seconds relative to above for emission
+        self.scheduled_time = data.get("scheduled_time")   # scheduled emission time
+        self.absolute_time = None
+
+    def getType(self):
+        return self.data.get("type")
+
+    def getInfo(self):
+        r = self.data
+        logger.debug(f":getInfo: type is {self.data.get('type')}")
+
+        # replace values if modified
+        if self.relative_sync is not None:
+            r["relative_sync"] = self.relative_sync
+        if self.relative_time is not None:
+            r["relative_time"] = self.relative_time
+        if self.scheduled_time is not None:
+            r["scheduled_time"] = self.scheduled_time
+
+        r["absolute_emission_time"] = None
+        if self.absolute_time is not None:
+            r["absolute_emission_time"] = self.absolute_time.isoformat()
+
+        return r
 
 
 class Messages:

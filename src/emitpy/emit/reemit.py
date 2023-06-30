@@ -6,7 +6,7 @@ from jsonpath import JSONPath
 
 from .emit import EmitPoint, Emit
 # pylint: disable=C0411
-from emitpy.message import EstimatedTimeMessage
+from emitpy.message import ReMessage, EstimatedTimeMessage
 from emitpy.constants import ID_SEP, FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASES, REDIS_TYPE, FLIGHT_DATABASE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
@@ -20,6 +20,7 @@ class ReEmit(Emit):
     """
     Loads previsously saved Emit output and compute new emission points
     based on new schedule or added pauses.
+    Uses ReMessage to reschedule Messages.
     """
     def __init__(self, ident: str, redis):
         """
@@ -96,6 +97,10 @@ class ReEmit(Emit):
         if not status[0]:
             return status
 
+        status = self.loadMessages()
+        if not status[0]:
+            return status
+
         return (True, "ReEmit::load loaded")
 
 
@@ -126,6 +131,21 @@ class ReEmit(Emit):
         else:
             logger.debug(f":loadFromCache: ..could not load {emit_id}")
         return (True, "ReEmit::loadFromCache loaded")
+
+
+    def loadMessages(self):
+        mid = self.getKey(REDIS_TYPE.EMIT_MESSAGE.value)
+        raw_msgs = self.redis.smembers(mid)  # set()
+        for msg in raw_msgs:
+            msg = json.loads(msg.decode("UTF-8"))
+            # recreate message
+            logger.debug(f":loadMessages: recreating {msg['type']} {msg['id']}..")
+            m = ReMessage(category=msg["category"], data=msg)
+            self.addMessage(m)
+
+        logger.debug(f":loadMessages: loaded {len(raw_msgs)} messages")
+
+        return (True, "ReEmit::loadMessages loaded")
 
 
     def getMeta(self, path: str = None, return_first_only: bool = True):

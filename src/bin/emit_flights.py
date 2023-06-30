@@ -16,7 +16,8 @@ import logging
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
 
-logging.basicConfig(level=logging.DEBUG)
+FORMAT="%(filename)s:%(funcName)s:%(lineno)s: %(message)s"
+logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger("emit_flights")
 
 
@@ -29,7 +30,7 @@ file.close()
 # Parameters
 #
 NUM_FLIGHTS = 1
-DO_SERVICE = True
+DO_SERVICE = False
 queue = "raw"
 
 rate = [15, 10]
@@ -68,59 +69,70 @@ for r in flights[cnt_begin:cnt_end]:
     else:
         move = "departure"
 
-    try:
-        # just for display...
-        dt = datetime.strptime(r['FLIGHT SCHEDULED TIME'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
-        # for real time
-        at = datetime.strptime(r['FLIGHT ACTUAL TIME'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
-        if first_dt is None:
-            first_dt = at
-        tdiff = at - first_dt
-        dtnow = now + tdiff + timedelta(minutes=2)
-        logger.info(f"| {move} {r['AIRLINE CODE']}{r['FLIGHT NO']}: time diff {first_dt}, {at}, {tdiff} => {dtnow}")
-        logger.info("|")
+    # try:
+    # just for display...
+    dt = datetime.strptime(r['FLIGHT SCHEDULED TIME'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+    # for real time
+    at = datetime.strptime(r['FLIGHT ACTUAL TIME'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+    if first_dt is None:
+        first_dt = at
+    tdiff = at - first_dt
+    dtnow = now + tdiff + timedelta(minutes=2)
+    logger.info(f"| {move} {r['AIRLINE CODE']}{r['FLIGHT NO']}: time diff {first_dt}, {at}, {tdiff} => {dtnow}")
+    logger.info("|")
 
-        ret = e.do_flight(queue=queue,
-                          emit_rate=rate,
-                          airline=r['AIRLINE CODE'],
-                          flightnumber=r['FLIGHT NO'],
-                          scheduled=dt.isoformat(),
-                          apt=r['AIRPORT'],
-                          movetype=move,
-                          actype=(r['AC TYPE'], r['AC TYPE IATA']),
-                          acreg=r['REGISTRATION NO'],
-                          icao24=icao[r['REGISTRATION NO']],
-                          ramp=r['RAMP'],
-                          runway='RW16L',
-                          do_services=DO_SERVICE,
-                          actual_datetime=dtnow.isoformat())
+    ret = e.do_flight(queue=queue,
+                      emit_rate=rate,
+                      airline=r['AIRLINE CODE'],
+                      flightnumber=r['FLIGHT NO'],
+                      scheduled=dt.isoformat(),
+                      apt=r['AIRPORT'],
+                      movetype=move,
+                      actype=(r['AC TYPE'], r['AC TYPE IATA']),
+                      acreg=r['REGISTRATION NO'],
+                      icao24=icao[r['REGISTRATION NO']],
+                      ramp=r['RAMP'],
+                      runway='RW16L',
+                      do_services=DO_SERVICE,
+                      actual_datetime=dtnow.isoformat())
 
-        if ret is not None and ret.status != 0:
-            logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
-            logger.warning(ret)
-            logger.warning(f"print(e.do_flight('raw', 30, '{r['AIRLINE CODE']}', '{r['FLIGHT NO']}',"
-                + f" '{dt.isoformat()}', '{r['AIRPORT']}',"
-                + f" '{move}', ('{r['AC TYPE']}', '{r['AC TYPE IATA']}'), '{r['RAMP']}',"
-                + f" '{icao[r['REGISTRATION NO']]}', '{r['REGISTRATION NO']}', 'RW16L'))")
-
-    except Exception as ex:
-        if ret is not None:
-            logger.error(f"EXCEPTION around line {cnt}: {ret.status}" + ">=" * 30)
-            # logger.error(ret, exc_info=True)
-        else:
-            logger.error("EXCEPTION but no return status", exc_info=True)
-
-        ## logger.error(e)
+    if ret is not None and ret.status != 0:
+        logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
+        logger.warning(ret)
         logger.warning(f"print(e.do_flight('raw', 30, '{r['AIRLINE CODE']}', '{r['FLIGHT NO']}',"
             + f" '{dt.isoformat()}', '{r['AIRPORT']}',"
             + f" '{move}', ('{r['AC TYPE']}', '{r['AC TYPE IATA']}'), '{r['RAMP']}',"
             + f" '{icao[r['REGISTRATION NO']]}', '{r['REGISTRATION NO']}', 'RW16L'))")
 
-    logger.info("|")
-    logger.info(f"| done {move} {r['AIRLINE CODE']}{r['FLIGHT NO']}: time diff {first_dt}, {at}, {tdiff} => {dtnow}")
-    logger.info("|")
-    logger.info("+" + "-" * 100)
-    logger.info("|")
+    ## Testing rescheduling
+    logger.info(">" *  80)
+    new_scheduled = dtnow + timedelta(minutes=90)
+    sync_name = "TAKE_OFF"
+    emit_key = "flights:SN1704-S201904010815:15:e"
+    if move == "arrival":
+        sync_name = "TOUCH_DOWN"
+        emit_key = "flights:SN1703-S201904011850:15:e"
+    logger.info(f"new schedule: {new_scheduled}")
+    e.do_schedule(queue=queue, ident=emit_key, sync=sync_name, scheduled=new_scheduled.isoformat(), do_services=False)
+
+    # except Exception as ex:
+    #     if ret is not None:
+    #         logger.error(f"EXCEPTION around line {cnt}: {ret.status}" + ">=" * 30)
+    #         # logger.error(ret, exc_info=True)
+    #     else:
+    #         logger.error("EXCEPTION but no return status", exc_info=True)
+
+    #     ## logger.error(e)
+    #     logger.warning(f"print(e.do_flight('raw', 30, '{r['AIRLINE CODE']}', '{r['FLIGHT NO']}',"
+    #         + f" '{dt.isoformat()}', '{r['AIRPORT']}',"
+    #         + f" '{move}', ('{r['AC TYPE']}', '{r['AC TYPE IATA']}'), '{r['RAMP']}',"
+    #         + f" '{icao[r['REGISTRATION NO']]}', '{r['REGISTRATION NO']}', 'RW16L'))")
+
+    # logger.info("|")
+    # logger.info(f"| done {move} {r['AIRLINE CODE']}{r['FLIGHT NO']}: time diff {first_dt}, {at}, {tdiff} => {dtnow}")
+    # logger.info("|")
+    # logger.info("+" + "-" * 100)
+    # logger.info("|")
 
 
 ##
