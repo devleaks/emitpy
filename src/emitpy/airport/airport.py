@@ -114,10 +114,10 @@ class Airport(Location):
                 Airport._DB[row["ident"]] = apt
                 Airport._DB_IATA[row["iata_code"]] = apt
             else:
-                logger.warning(":loadAll: invalid airport data %s.", row)
+                logger.warning("invalid airport data %s.", row)
 
         file.close()
-        logger.debug(f":loadAll: loaded {len(Airport._DB)} airports")
+        logger.debug(f"loaded {len(Airport._DB)} airports")
 
 
     @staticmethod
@@ -159,7 +159,7 @@ class Airport(Location):
             if ac is not None:
                 return Airport.fromInfo(info=ac)
             else:
-                logger.warning(f":find: no such key {k}")
+                logger.warning(f"no such key {k}")
         else:
             if len(Airport._DB) == 0:
                 Airport.loadAll()
@@ -181,7 +181,7 @@ class Airport(Location):
             if ac is not None:
                 return Airport.fromFeature(info=ac)
             else:
-                logger.warning(f":find: no such key {k}")
+                logger.warning(f"no such key {k}")
         else:
             if len(Airport._DB_IATA) == 0:
                 Airport.loadAll()
@@ -215,7 +215,7 @@ class Airport(Location):
         :param      info:  The information
         :type       info:  { type_description }
         """
-        # logger.debug(f":fromFeature: {json.dumps(info, indent=2)}")
+        # logger.debug(f"{json.dumps(info, indent=2)}")
         return Airport(icao=info["icao"],
                        iata=info["iata"],
                        name=info["properties"]["name"],
@@ -236,7 +236,7 @@ class Airport(Location):
         :param      info:  The information
         :type       info:  { type_description }
         """
-        # logger.debug(f":fromInfo: {json.dumps(info, indent=2)}")
+        # logger.debug(f"{json.dumps(info, indent=2)}")
         return Airport(icao=info["icao"],
                        iata=info["iata"],
                        name=info["name"],
@@ -348,7 +348,7 @@ class Airport(Location):
         """
         if self.tzoffset is not None and self.tzname is not None:
             self.timezone = Timezone(offset=self.tzoffset, name=self.tzname)
-            logger.debug(":getTimezone: timezone set from offset/name")
+            logger.debug("timezone set from offset/name")
         elif self.lat() is not None and self.lon() is not None:
             tf = TimezoneFinder()
             tzname = tf.timezone_at(lng=self.lon(), lat=self.lat())
@@ -359,13 +359,13 @@ class Airport(Location):
                     self.tzoffset = round(datetime.now(tz=tzinfo).utcoffset().seconds / 3600, 1)
                     # self.timezone = tzinfo  # is 100% correct too
                     self.timezone = Timezone(offset=self.tzoffset, name=self.tzname)
-                    logger.debug(f":getTimezone: timezone set from TimezoneFinder ({tzname})")
+                    logger.debug(f"timezone set from TimezoneFinder ({tzname})")
                 else:
-                    logger.error(":getTimezone: ZoneInfo timezone not found")
+                    logger.error("ZoneInfo timezone not found")
             else:
-                logger.error(":getTimezone: TimezoneFinder timezone not found")
+                logger.error("TimezoneFinder timezone not found")
         else:
-            logger.error(":getTimezone: cannot set airport timezone")
+            logger.error("cannot set airport timezone")
 
         return self.timezone
 
@@ -379,17 +379,17 @@ class Airport(Location):
         """
 
         # if moment is not None and METAR_HISTORICAL:  # issues with web site to fetch historical metar.
-        #     logger.debug(f":update_metar: ..historical.. ({scheduled})")
+        #     logger.debug(f"..historical.. ({scheduled})")
         #     remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis, method="MetarHistorical")
         #     remote_metar.setDatetime(moment=scheduled_dt)
         #     if not remote_metar.hasMetar():  # couldn't fetch historical, use current
         #         remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
 
-        logger.debug(":update_metar: collecting METAR..")
+        logger.debug("collecting METAR..")
         # Prepare airport for each movement
         metar = Metar.new(icao=self.icao, redis=redis)
         self.setMETAR(metar=metar)  # calls prepareRunways()
-        logger.debug(":update_metar: ..done")
+        logger.debug("..done")
 
 
 # ################################
@@ -423,7 +423,7 @@ class AirportWithProcedures(Airport):
                    alt=apt["geometry"]["coordinates"][2] if len(apt["geometry"]["coordinates"]) > 2 else None)
         ret = base.load()
         if not ret[0]:
-            logger.warning(f":new: could not load airport with procedures: {ret}")
+            logger.warning(f"could not load airport with procedures: {ret}")
         return base
 
     def getInfo(self):
@@ -516,18 +516,18 @@ class AirportWithProcedures(Airport):
         # Runway specific procs:
         if runway.name in all_procs:
             sel_procs.update(all_procs[runway.name])
-            # logger.debug(":has_proc: added rwy specific %ss: %s: %s" % (procname, runway.name, all_procs[runway.name].keys()))
+            # logger.debug("added rwy specific %ss: %s: %s" % (procname, runway.name, all_procs[runway.name].keys()))
 
         # Procedures valid for "both" runways:
         both = runway.both()
         if both in all_procs:
             sel_procs.update(all_procs[both])
-            # logger.debug(":has_proc: added both-rwys %ss: %s: %s" % (procname, both, all_procs[both].keys()))
+            # logger.debug("added both-rwys %ss: %s: %s" % (procname, both, all_procs[both].keys()))
 
         # Procedures valid for all runways:
         if "ALL" in all_procs:
             sel_procs.update(all_procs["ALL"])
-            # logger.debug(":has_proc: added all-rwys %ss: %s" % (procname, all_procs["ALL"].keys()))
+            # logger.debug("added all-rwys %ss: %s" % (procname, all_procs["ALL"].keys()))
 
         return len(sel_procs) > 0
 
@@ -549,26 +549,26 @@ class AirportWithProcedures(Airport):
         # Runway specific procs:
         if runway.name in all_procs:
             sel_procs.update(all_procs[runway.name])
-            logger.debug(f":getProc: added rwy specific {procname}s: {runway.name}: {all_procs[runway.name].keys()}")
+            logger.debug(f"added rwy specific {procname}s: {runway.name}: {all_procs[runway.name].keys()}")
 
         # Procedures valid for "both" runways:
         both = runway.both()
         if both in all_procs:
             sel_procs.update(all_procs[both])
-            logger.debug(f":getProc: added both-rwys {procname}s: {both}: {all_procs[both].keys()}")
+            logger.debug(f"added both-rwys {procname}s: {both}: {all_procs[both].keys()}")
 
         # Procedures valid for all runways:
         if "ALL" in all_procs:
             sel_procs.update(all_procs["ALL"])
-            logger.debug(f":getProc: added all-rwys {procname}s: {all_procs['ALL'].keys()}")
+            logger.debug(f"added all-rwys {procname}s: {all_procs['ALL'].keys()}")
 
         if len(sel_procs) > 0:
-            logger.debug(f":getProc: selected {procname}s for {runway.name}: {sel_procs.keys()}")
+            logger.debug(f"selected {procname}s for {runway.name}: {sel_procs.keys()}")
             ret = random.choice(list(sel_procs.values()))
-            # logger.debug(":getProc: returning %s for %s: %s" % (procname, runway.name, ret.name))
+            # logger.debug("returning %s for %s: %s" % (procname, runway.name, ret.name))
             return ret
 
-        logger.warning(f":getProc: no {procname} found for runway {runway.name}")
+        logger.warning(f"no {procname} found for runway {runway.name}")
         return None
 
     def selectSID(self, runway: 'Runway'):
@@ -624,7 +624,7 @@ class AirportWithProcedures(Airport):
         n = "RW" + runway.getName()
         if n in self.procedures.RWYS.keys():
             return self.procedures.RWYS[n]
-        logger.warning(f":getRWY: RWY {n} not found")
+        logger.warning(f"RWY {n} not found")
         return None
 
     def setMETAR(self, metar: "Metar"):
@@ -639,20 +639,20 @@ class AirportWithProcedures(Airport):
         """
         if metar is not None:
             self.metar = metar
-            logger.debug(f":setMETAR: {metar.getInfo()}")
-            logger.debug(f":setMETAR: ATMAP: {metar.getAtmap()}")
+            logger.debug(f"{metar.getInfo()}")
+            logger.debug(f"ATMAP: {metar.getAtmap()}")
             if self.procedures is not None:
                 # set which runways are usable
                 wind_dir = self.metar.getWindDirection()
                 if wind_dir is None:  # wind dir is variable, any runway is fine
-                    logger.debug(":setMETAR: no wind direction")
+                    logger.debug("no wind direction")
                     self.operational_rwys = self.procedures.getRunways()
                 else:
-                    logger.debug(f":setMETAR: wind direction {wind_dir.value():.1f}")
+                    logger.debug(f"wind direction {wind_dir.value():.1f}")
                     self.operational_rwys = self.procedures.getOperationalRunways(wind_dir.value())
         else:
             self.operational_rwys = self.procedures.getRunways()
-            logger.debug(":setMETAR: no metar, using all runways")
+            logger.debug("no metar, using all runways")
 
     def selectRWY(self, flight: 'Flight'):
         """
@@ -675,12 +675,12 @@ class AirportWithProcedures(Airport):
                         candidates.append(v)
 
         if len(candidates) == 0:
-            logger.warning(":selectRunway: could not select runway")
+            logger.warning("could not select runway")
             if len(self.operational_rwys) > 0:
-                logger.warning(":selectRunway: choosing random operational runway")
+                logger.warning("choosing random operational runway")
                 return random.choice(list(self.operational_rwys.values()))
             if len(self.procedures.RWYS) > 0:
-                logger.warning(":selectRunway: choosing random runway")
+                logger.warning("choosing random runway")
                 return random.choice(list(self.procedures.RWYS.values()))
             return None
 
@@ -871,7 +871,7 @@ class ManagedAirportBase(AirportWithProcedures):
                 if self.data is not None and self.data["features"] is not None:
                     self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
             return [True, f"GeoJSONAirport::file {name} loaded"]
-        logger.warning(f":file: {df} not found")
+        logger.warning(f"{df} not found")
         return [False, "GeoJSONAirport::loadGeometries file %s not found", df]
 
     @abstractmethod
@@ -975,7 +975,7 @@ class ManagedAirportBase(AirportWithProcedures):
         n = rwy.name.replace("RW", "")
         if n in self.runways.keys():
             return self.runways[n]
-        logger.warning(f":getRunway: runway {n} not found")
+        logger.warning(f"runway {n} not found")
         return None
 
 
@@ -1019,9 +1019,9 @@ class ManagedAirportBase(AirportWithProcedures):
         if len(self.runways) == 2:
             rwk = list(self.runways.keys())
             self.runways[rwk[0]].end, self.runways[rwk[1]].end = self.runways[rwk[1]], self.runways[rwk[0]]
-            logger.debug(f":pairRunways: {self.icao}: {self.runways[rwk[0]].name} and {self.runways[rwk[1]].name} paired")
+            logger.debug(f"{self.icao}: {self.runways[rwk[0]].name} and {self.runways[rwk[1]].name} paired")
         else:
-            logger.debug(f":pairRunways: {self.icao}: pairing {self.runways.keys()}")
+            logger.debug(f"{self.icao}: pairing {self.runways.keys()}")
             for k, r in self.runways.items():
                 if r.end is None:
                     rh = int(k[0:2])
@@ -1046,9 +1046,9 @@ class ManagedAirportBase(AirportWithProcedures):
                         uuid = k+"-"+rw if k < rw else rw+"-"+k
                         r.uuid = uuid
                         r.end.uuid = uuid
-                        logger.debug(f":pairRunways: {self.icao}: {r.getProp(FEATPROP.NAME.value)} and {rw} paired as {uuid}")
+                        logger.debug(f"{self.icao}: {r.getProp(FEATPROP.NAME.value)} and {rw} paired as {uuid}")
                     else:
-                        logger.warning(f":pairRunways: {self.icao}: {rw} ont found to pair {r.getProp(FEATPROP.NAME.value)}")
+                        logger.warning(f"{self.icao}: {rw} ont found to pair {r.getProp(FEATPROP.NAME.value)}")
 
 
     def findRunwayExits(self):
@@ -1067,7 +1067,7 @@ class ManagedAirportBase(AirportWithProcedures):
                         "name": str(cnt)
                     })
                     cnt = cnt + 1
-            logger.debug(f":findRunwayExits: {self.icao}: {rwy} found {cnt} exits")
+            logger.debug(f"{self.icao}: {rwy} found {cnt} exits")
 
         self.aeroway_pois = fc
         # with open("out.geojson", "w") as fp:

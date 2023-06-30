@@ -93,7 +93,7 @@ class Reservation:
 
     def save(self, base: str, redis):
         redis.json().set(key_path(base, self.getKey()), Path.root_path(), self.getInfo())
-        # logger.debug(f":save: {key_path(base, self.getKey())}")
+        # logger.debug(f"{key_path(base, self.getKey())}")
 
 
 class Resource:
@@ -145,13 +145,13 @@ class Resource:
         # if len(r) > 0:
         #     if self.updated():
         #         redis.set(self.getKey(), json.dumps(r))
-        #         logger.debug(f":save: {self.getId()} saved {len(self.reservations())} reservations")
+        #         logger.debug(f"{self.getId()} saved {len(self.reservations())} reservations")
         # self._updated = False
         if len(self.reservations) > 0 and self.updated():
             k=self.getKey()
             for u in self.reservations.values():
                 u.save(base=k, redis=redis)
-            # logger.debug(f":save: {self.getId()} saved {len(self.reservations)} reservations")
+            # logger.debug(f"{self.getId()} saved {len(self.reservations)} reservations")
         self._updated = False
 
     def load(self, base: str, redis):
@@ -170,8 +170,8 @@ class Resource:
             if ACTUAL in rsc:
                 res.setEstimatedTime(datetime.fromisoformat(rsc[ACTUAL][START]), datetime.fromisoformat(rsc[ACTUAL][END]))
             self.add(res)
-            # logger.debug(f":load: loaded {r.decode('UTF-8')}")
-        # logger.debug(f":load: {self.getId()} loaded {len(self.reservations)} reservations")
+            # logger.debug(f"loaded {r.decode('UTF-8')}")
+        # logger.debug(f"{self.getId()} loaded {len(self.reservations)} reservations")
 
     def allocations(self, actual: bool = False):
         if actual:
@@ -180,7 +180,7 @@ class Resource:
 
     def add(self, reservation: Reservation):
         if reservation.label in self.reservations.keys():
-            logger.warning(f":add: {reservation.label} already exists, overwriting")
+            logger.warning(f"{reservation.label} already exists, overwriting")
         self.reservations[reservation.label] = reservation
         self.update()
 
@@ -202,40 +202,40 @@ class Resource:
     def book(self, req_from: datetime, req_to: datetime, label: str = None):
         r = Reservation(self, req_from, req_to, label)
         self.add(r)
-        logger.debug(f":book: booked {self.getId()} for {label}, {req_from} to {req_to}")
+        logger.debug(f"booked {self.getId()} for {label}, {req_from} to {req_to}")
         return r
 
     def isAvailable(self, req_from: datetime, req_to: datetime):
-        # logger.debug(f":isAvailable: checking for {req_from} -> {req_to} ")
+        # logger.debug(f"checking for {req_from} -> {req_to} ")
         resarr = list(self.reservations.values())
 
         if len(resarr) == 0:  # no reservation yet
-            logger.debug(f":isAvailable: first one ok")
+            logger.debug(f"first one ok")
             return True
         if len(resarr) == 1:  # if after or before only reservation, it's OK
             ok = req_to < resarr[0].estimated[0] or req_from > resarr[0].estimated[1]
             if ok:
-                logger.debug(f":isAvailable: second one, no overlap")
+                logger.debug(f"second one, no overlap")
                 return True
-            logger.debug(f":isAvailable: second one, overlaps")
+            logger.debug(f"second one, overlaps")
             return False
         # we have more than one reservation, sort them by start time
         busy = sorted(resarr, key=lambda x: x.estimated[0])
         idx = 0
-        # logger.debug(f":isAvailable: busy: {len(busy)-1}")
+        # logger.debug(f"busy: {len(busy)-1}")
         while idx < len(busy) - 1:
             try:
                 if idx == 0 and req_to < busy[idx].estimated[0]:  # ends before first one starts is OK
-                    logger.debug(f":isAvailable: before first one {dt(req_to)} < {dt(busy[idx].estimated[0])} ")
+                    logger.debug(f"before first one {dt(req_to)} < {dt(busy[idx].estimated[0])} ")
                     return True
                 if req_from > busy[idx].estimated[1] and req_to < busy[idx+1].estimated[0]:
-                    logger.debug(f":isAvailable: between {idx} and {idx+1}: {dt(req_from)} > {dt(busy[idx].estimated[1])} and {dt(req_to)} < {dt(busy[idx+1].estimated[0])}")
+                    logger.debug(f"between {idx} and {idx+1}: {dt(req_from)} > {dt(busy[idx].estimated[1])} and {dt(req_to)} < {dt(busy[idx+1].estimated[0])}")
                     return True
                 if (idx+1 == len(busy)-1) and req_from > busy[idx+1].estimated[1]:
-                    logger.debug(f":isAvailable: after last one {dt(req_from)} > {dt(busy[idx+1].estimated[1])}")
+                    logger.debug(f"after last one {dt(req_from)} > {dt(busy[idx+1].estimated[1])}")
                     return True
             except:
-                logger.warning(f":is_available: issue at {busy[idx].label}")
+                logger.warning(f"issue at {busy[idx].label}")
             idx = idx + 1
         return False
 
@@ -260,13 +260,13 @@ class Resource:
 
         resarr = list(self.reservations.values())
         reservations = list(filter(lambda x: x.estimated[1]>req_from, resarr))
-        logger.debug(f":firstAvailable: {len(reservations)} reservations ends after {dt(req_from)}")
+        logger.debug(f"{len(reservations)} reservations ends after {dt(req_from)}")
         if len(reservations) == 0:
-            logger.debug(":firstAvailable: available as requested")
+            logger.debug("available as requested")
             return (req_from, req_to)
         if len(reservations) == 1:  # only one reservation that starts after req_from, probably overlaps
             soonest = reservations[0].estimated[1] + timedelta(milliseconds=1)
-            logger.debug(f":firstAvailable: added after last reservation {dt(soonest)}")
+            logger.debug(f"added after last reservation {dt(soonest)}")
             return (soonest, soonest + duration)
         busy = sorted(reservations, key=lambda x: x.estimated[0])
         # Can we insert it between 2 usages?
@@ -274,18 +274,18 @@ class Resource:
             squeeze = busy[idx+1].estimated[0] - busy[idx].estimated[1] + timedelta(milliseconds=2)
             if squeeze > duration:  # we can fit it
                 soonest = busy[idx].estimated[1] + timedelta(milliseconds=1)
-                logger.debug(f":firstAvailable: squeezed at {idx}, added after {dt(soonest)}")
+                logger.debug(f"squeezed at {idx}, added after {dt(soonest)}")
                 return (soonest, soonest + duration)
         # no, so add it at the end
         soonest = busy[-1].estimated[1] + timedelta(milliseconds=1)
-        logger.debug(f":firstAvailable: cannot squeeze, added after last reservation {dt(soonest)}")
+        logger.debug(f"cannot squeeze, added after last reservation {dt(soonest)}")
         return (soonest, soonest + duration)
 
 
     def findReservation(self, label: str):
         if label in self.reservations:
             return self.reservations[label]
-        logger.debug(f":findReservation: {self.name}: reservation {label} not found")
+        logger.debug(f"{self.name}: reservation {label} not found")
         logger.debug(self.reservations.keys())
         return None
 
@@ -314,7 +314,7 @@ class AllocationTable:
 
     def addResource(self, name: str, resource: "Resource"):
         if name in self.resources.keys():
-            logger.warning(f":add: {name} already exists, overwriting")
+            logger.warning(f"{name} already exists, overwriting")
         self.resources[name] = resource
 
     def createNamedResource(self, resource, name):
@@ -382,7 +382,7 @@ class AllocationTable:
         for k, r in self.resources.items():
             if r.updated():
                 r.save(redis=redis)
-        # logger.info(f":AT:save: {self.getId()} saved resources")
+        # logger.info(f"{self.getId()} saved resources")
         return (True, "AllocationTable::save completed")
 
     def load(self, redis):
@@ -398,20 +398,20 @@ class AllocationTable:
             else:
                 rsc = self.resources[r]
             rsc.load(base=self.getId(), redis=redis)
-        logger.debug(f":AT:load: {self.getId()} loaded {len(rscs)} resources")
+        logger.debug(f"{self.getId()} loaded {len(rscs)} resources")
         return (True, "AllocationTable::load loaded")
 
     def findReservation(self, resource: str, label: str, redis = None) -> Reservation:
         if resource in self.resources.keys():
             rsc = self.resources[resource]
             return rsc.findReservation(label)
-        logger.debug(f":AT:findReservation: {self.name}: resource {resource} not found")
+        logger.debug(f"{self.name}: resource {resource} not found")
         if redis:
             k = key_path(self.getKey(), resource, label)
-            logger.debug(f":AT:findReservation: {k}")
+            logger.debug(f"{k}")
             if k is not None:
                 self.resources[resource] = Resource(name=resource, table=self)
                 self.resources[resource].load(base=self.getId(), redis=redis)
                 return self.resources[resource].findReservation(label)
-        logger.debug(f":AT:findReservation: {self.name}: resource {resource} not found in Redis")
+        logger.debug(f"{self.name}: resource {resource} not found in Redis")
         return None

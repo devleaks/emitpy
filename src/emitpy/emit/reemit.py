@@ -38,12 +38,12 @@ class ReEmit(Emit):
         if ret[0]:
             ret1 = self.load()
             if not ret1[0]:
-                logger.warning(f":init: could not load {ident}")
+                logger.warning(f"could not load {ident}")
         else:
-            logger.warning(f":init: could not parse {ident}")
+            logger.warning(f"could not parse {ident}")
 
         if self.moves is None:
-            logger.warning(f":__init__: {ident} not loaded")
+            logger.warning(f"{ident} not loaded")
 
 
     def setManagedAirport(self, airport):
@@ -68,18 +68,18 @@ class ReEmit(Emit):
 
         # Do we have an extension?
         if arr[-1] != REDIS_TYPE.EMIT.value:
-            logger.warning(f":parseKey: invalid emit key {key} (extension={arr[-1]})")
+            logger.warning(f"invalid emit key {key} (extension={arr[-1]})")
             return (False, "ReEmit::parseKey invalid emit key")
 
         if arr[0] not in valid_databases.keys():
-            logger.warning(f":parseKey: invalid emit key {key} (database={arr[0]})")
+            logger.warning(f"invalid emit key {key} (database={arr[0]})")
             return (False, "ReEmit::parseKey invalid emit key")
 
         self.emit_type = valid_databases[arr[0]]
         self.frequency = int(arr[-2])
         self.emit_id = ID_SEP.join(arr[1:-2])
 
-        logger.debug(f":parseKey: {arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}")
+        logger.debug(f"{arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}")
         return (True, "ReEmit::parseKey parsed")
 
 
@@ -106,13 +106,13 @@ class ReEmit(Emit):
 
     def loadMetaFromCache(self):
         meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
-        logger.debug(f":loadMetaFromCache: trying to read {meta_id}..")
+        logger.debug(f"trying to read {meta_id}..")
         if self.redis.exists(meta_id):
             self.emit_meta = self.redis.json().get(meta_id)
-            logger.debug(f":loadMetaFromCache: ..got {len(self.emit_meta)} meta data")
-            # logger.debug(f":loadMetaFromCache: {self.emit_meta}")
+            logger.debug(f"..got {len(self.emit_meta)} meta data")
+            # logger.debug(f"{self.emit_meta}")
         else:
-            logger.debug(f":loadMetaFromCache: ..no meta for {meta_id}")
+            logger.debug(f"..no meta for {meta_id}")
         return (True, "ReEmit::loadMetaFromCache loaded")
 
 
@@ -122,14 +122,14 @@ class ReEmit(Emit):
             return EmitPoint.new(f)
 
         emit_id = self.getKey(REDIS_TYPE.EMIT.value)
-        logger.debug(f":loadFromCache: trying to read {emit_id}..")
+        logger.debug(f"trying to read {emit_id}..")
         ret = self.redis.zrange(emit_id, 0, -1)
         if ret is not None:
-            logger.debug(f":loadFromCache: ..got {len(ret)} members")
+            logger.debug(f"..got {len(ret)} members")
             self._emit = [toEmitPoint(f) for f in ret]
-            logger.debug(f":loadFromCache: ..collected {len(self._emit)} points")
+            logger.debug(f"..collected {len(self._emit)} points")
         else:
-            logger.debug(f":loadFromCache: ..could not load {emit_id}")
+            logger.debug(f"..could not load {emit_id}")
         return (True, "ReEmit::loadFromCache loaded")
 
 
@@ -139,21 +139,21 @@ class ReEmit(Emit):
         for msg in raw_msgs:
             msg = json.loads(msg.decode("UTF-8"))
             # recreate message
-            logger.debug(f":loadMessages: recreating {msg['type']} {msg['id']}..")
+            logger.debug(f"recreating {msg['type']} {msg['id']}..")
             m = ReMessage(category=msg["category"], data=msg)
             self.addMessage(m)
 
-        logger.debug(f":loadMessages: loaded {len(raw_msgs)} messages")
+        logger.debug(f"loaded {len(raw_msgs)} messages")
 
         return (True, "ReEmit::loadMessages loaded")
 
 
     def getMeta(self, path: str = None, return_first_only: bool = True):
-        # logger.debug(f":getMeta: from ReEmit")
+        # logger.debug(f"from ReEmit")
         if self.emit_meta is None:
             ret = self.loadMetaFromCache()
             if not ret[0]:
-                logger.warning(f":getMeta: load meta returned error {ret[1]}")
+                logger.warning(f"load meta returned error {ret[1]}")
                 return None
         if path is not None:
             arr = JSONPath(path).parse(self.emit_meta)
@@ -173,10 +173,10 @@ class ReEmit(Emit):
             with open(filename, "r") as fp:
                 self.moves = json.load(fp)
             self.emit_id = emit_id
-            logger.debug(":loadAll: loaded %d " % self.emit_id)
+            logger.debug("loaded %d " % self.emit_id)
             return (True, "Movement::load loaded")
 
-        logger.debug(f":loadAll: cannot find {filename}")
+        logger.debug(f"cannot find {filename}")
         return (False, "ReEmit::loadFromFile not loaded")
 
 
@@ -185,7 +185,7 @@ class ReEmit(Emit):
         Move points are saved in emission points.
         """
         self.moves = list(filter(lambda f: not f.getProp(FEATPROP.BROADCAST.value), self._emit))
-        logger.debug(f":extractMove: extracted {len(self.moves)} points")
+        logger.debug(f"extracted {len(self.moves)} points")
         return (True, "ReEmit::extractMove loaded")
 
 
@@ -197,7 +197,7 @@ class ReEmit(Emit):
     #     def getData(path: str):
     #         val = JSONPath(path).parse(self.emit_meta)
     #         if val is None:
-    #             logger.warning(f":parseMeta: no value for {path}")
+    #             logger.warning(f"no value for {path}")
     #         return val
 
     #     if self.emit_type == "flight":
@@ -207,7 +207,7 @@ class ReEmit(Emit):
     #     elif self.emit_type == "misssion":
     #         pass
     #     else:
-    #         logger.warning(f":parseMeta: invalid type {self.emit_type}")
+    #         logger.warning(f"invalid type {self.emit_type}")
 
     #     return (True, "ReEmit::parseMeta loaded")
 
@@ -224,14 +224,14 @@ class ReEmit(Emit):
         or the end of the source move for arrival
         """
         if self.managedAirport is None:
-            logger.warning(f":getEstimatedTime: managedAirport not set")
+            logger.warning(f"managedAirport not set")
             return None
 
         mark = None
         if self.emit_type == MOVE_TYPE.FLIGHT.value:
             is_arrival = self.getMeta("$.move.is_arrival")
             if is_arrival is None:
-                logger.warning(f":getEstimatedTime: cannot get move for {self.emit_id}")
+                logger.warning(f"cannot get move for {self.emit_id}")
             mark = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
         elif self.emit_type == MOVE_TYPE.SERVICE.value:
             mark = SERVICE_PHASE.SERVICE_START.value
@@ -243,11 +243,11 @@ class ReEmit(Emit):
             if f is not None:
                 return datetime.fromtimestamp(f, tz=self.managedAirport.timezone)
             else:
-                logger.warning(f":getEstimatedTime: no feature at mark {mark}")
+                logger.warning(f"no feature at mark {mark}")
         else:
-            logger.warning(f":getEstimatedTime: no mark")
+            logger.warning(f"no mark")
 
-        logger.warning(f":getEstimatedTime: could not estimate")
+        logger.warning(f"could not estimate")
         return None
 
 
@@ -263,20 +263,20 @@ class ReEmit(Emit):
             if etinfo is not None:
                     etinfo.append( (et.isoformat(), "ET", estat.isoformat()) )
             else:
-                logger.debug(f":updateEstimatedTime: {ident} had no estimates, adding")
+                logger.debug(f"{ident} had no estimates, adding")
                 if self.emit_meta is not None:
                     self.emit_meta["time"] = [et.isoformat(), "ET", estat.isoformat()]
-            logger.debug(f":updateEstimatedTime: {ident} added ET {et}")
+            logger.debug(f"{ident} added ET {et}")
 
             if self.emit_meta is not None:
                 self.saveMeta(self.redis)
             else:
-                logger.warning(f":updateEstimatedTime: {ident} had no meta data")
+                logger.warning(f"{ident} had no meta data")
 
             self.updateResources(et)
             return (True, "ReEmit::updateEstimatedTime updated")
 
-        logger.warning(f":updateEstimatedTime: no estimated time")
+        logger.warning(f"no estimated time")
         return (True, "ReEmit::updateEstimatedTime updated")
 
 
@@ -293,7 +293,7 @@ class ReEmit(Emit):
         :type       is_arrival:  bool
         """
         if self.managedAirport is None:
-            logger.warning(f":updateResources: managedAirport not set")
+            logger.warning(f"managedAirport not set")
             return (False, "ReEmit::updateResources: managedAirport not set")
 
         # 1. What is the underlying move?
@@ -310,7 +310,7 @@ class ReEmit(Emit):
                                                  scheduled_time=et,
                                                  relative_time=TIME_NEW_ET_ADVANCE_WARNING,
                                                  et=et))
-                logger.debug(f":updateResources: sent new estimate message {fid}: {et}")
+                logger.debug(f"sent new estimate message {fid}: {et}")
 
                 # 3. For flight: update runway, ramp
                 rwy = self.getMeta("$.props.flight.runway.resource")
@@ -319,9 +319,9 @@ class ReEmit(Emit):
                 rwrsc = am.runway_allocator.findReservation(rwy, fid, self.redis)
                 if rwrsc is not None:
                     rwrsc.setEstimatedTime(et_from, et_to)
-                    logger.debug(f":updateResources: updated {rwy} for {fid}")
+                    logger.debug(f"updated {rwy} for {fid}")
                 else:
-                    logger.warning(f":updateResources: no reservation found for runway {rwy}")
+                    logger.warning(f"no reservation found for runway {rwy}")
 
                 # 3. For flight: update runway, ramp
                 ramp = self.getMeta("$.props.flight.ramp.name")
@@ -334,11 +334,11 @@ class ReEmit(Emit):
                 rprsc = am.ramp_allocator.findReservation(ramp, fid, self.redis)
                 if rprsc is not None:
                     rprsc.setEstimatedTime(et_from, et_to)
-                    logger.debug(f":updateResources: updated {ramp} for {fid}")
+                    logger.debug(f"updated {ramp} for {fid}")
                 else:
-                    logger.warning(f":updateResources: no reservation found for ramp {ramp}")
+                    logger.warning(f"no reservation found for ramp {ramp}")
             else:
-                logger.warning(f":updateResources: count not get flight id for {self.emit_id}")
+                logger.warning(f"count not get flight id for {self.emit_id}")
 
         elif self.emit_type == MOVE_TYPE.MISSION.value:
             # 4a. For others: update vehicle
@@ -349,9 +349,9 @@ class ReEmit(Emit):
             svrsc = am.equipment_allocator.findReservation(vehicle, ident, self.redis)
             if svrsc is not None:
                 svrsc.setEstimatedTime(et, et)
-                logger.debug(f":updateResources: updated {vehicle} for {ident}")
+                logger.debug(f"updated {vehicle} for {ident}")
             else:
-                logger.warning(f":updateResources: no reservation found for vehicle {vehicle}")
+                logger.warning(f"no reservation found for vehicle {vehicle}")
 
         elif self.emit_type == MOVE_TYPE.SERVICE.value:
             # 4b. For others: update vehicle
@@ -362,12 +362,12 @@ class ReEmit(Emit):
             svrsc = am.equipment_allocator.findReservation(vehicle, ident, self.redis)
             if svrsc is not None:
                 svrsc.setEstimatedTime(et, et)
-                logger.debug(f":updateResources: updated {vehicle} for {ident}")
+                logger.debug(f"updated {vehicle} for {ident}")
             else:
-                logger.warning(f":updateResources: no reservation found for vehicle {vehicle}")
+                logger.warning(f"no reservation found for vehicle {vehicle}")
 
         else:
-            logger.debug(f":updateResources: resources not updated")
+            logger.debug(f"resources not updated")
 
         return (True, "ReEmit::updateResources updated")
 
@@ -398,17 +398,17 @@ class ReEmitAll:
 
         # Do we have an extension?
         if arr[-1] != REDIS_TYPE.EMIT_META.value:
-            logger.warning(f":parseKey: ({key} is not valid (extension={arr[-1]})")
+            logger.warning(f"({key} is not valid (extension={arr[-1]})")
             return (False, "ReEmitAll::parseKey invalid emit meta data key")
 
         if arr[0] not in valid_databases.keys():
-            logger.warning(f":parseKey: ({key} is not valid (database={arr[0]})")
+            logger.warning(f"({key} is not valid (database={arr[0]})")
             return (False, "ReEmitAll::parseKey invalid emit key")
 
         self.emit_type = valid_databases[arr[0]]
         self.emit_id = ID_SEP.join(arr[1:-1])
 
-        logger.debug(f":parseKey: {arr}: emit_type={self.emit_type}, emit_id={self.emit_id}")
+        logger.debug(f"{arr}: emit_type={self.emit_type}, emit_id={self.emit_id}")
         return (True, "ReEmitAll::parseKey parsed")
 
 
@@ -421,7 +421,7 @@ class ReEmitAll:
                 key = k.decode("UTF-8")
                 self.emits[key] = ReEmit(ident=key, redis=redis)
         else:
-            logger.warning(f":fetch: no emission for {key_base}")
+            logger.warning(f"no emission for {key_base}")
             return (False, "ReEmitAll::fetch no emission")
 
         # Reschedule each

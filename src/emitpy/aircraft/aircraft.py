@@ -106,7 +106,7 @@ class AircraftType(Identity):
                                                                   name=row["Model"],
                                                                   data=row)
                 AircraftType._DB[row["ICAO Code"]].setClass()
-        logger.debug(f":loadAll: loaded {len(AircraftType._DB)} aircraft types")
+        logger.debug(f"loaded {len(AircraftType._DB)} aircraft types")
         AircraftType.loadAircraftEquivalences()
 
 
@@ -124,7 +124,7 @@ class AircraftType(Identity):
         ae = files('data.aircraft_types').joinpath('aircraft-equivalence.yaml').read_text()
         data = yaml.safe_load(ae)
         AircraftType._DB_EQUIVALENCE = data
-        logger.debug(f":loadAircraftEquivalences: loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences")
+        logger.debug(f"loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences")
 
 
     @staticmethod
@@ -150,10 +150,10 @@ class AircraftType(Identity):
                     if ve is not None:
                         redis.select(prevdb)
                         return e
-                logger.warning(f":getEquivalence: no equivalence for {ac} ({v})")
+                logger.warning(f"no equivalence for {ac} ({v})")
                 return None
             else:
-                logger.warning(f":getEquivalence: no equivalence for {ac}")
+                logger.warning(f"no equivalence for {ac}")
                 return None
 
         if len(AircraftType._DB_EQUIVALENCE) == 0:
@@ -161,7 +161,7 @@ class AircraftType(Identity):
         for k, v in AircraftType._DB_EQUIVALENCE.items():
             if ac in v:
                 return k
-        logger.warning(f":getEquivalence: no equivalence for {ac}")
+        logger.warning(f"no equivalence for {ac}")
         return None
 
 
@@ -238,7 +238,7 @@ class AircraftType(Identity):
                 except ValueError:
                     return None
             return self.rawdata[name] if name in self.rawdata else None
-        logger.warning(f":getProp: AircraftType {self.typeId} no raw data for {name}")
+        logger.warning(f"AircraftType {self.typeId} no raw data for {name}")
         return None
 
 
@@ -264,18 +264,18 @@ class AircraftType(Identity):
                 try_class = "C"
             elif ws > 32:
                 try_class = "B"
-            # logger.warning(f":setClass: guessed class {try_class} for {self.typeId} (wingspan={ws})")
+            # logger.warning(f"guessed class {try_class} for {self.typeId} (wingspan={ws})")
             ac_class = try_class
 
         if ac_class is not None:
             if ac_class in "ABCDEF":
-                # logger.debug(f":setClass: {self.name} class {ac_class} {'<' * 40}")
+                # logger.debug(f"{self.name} class {ac_class} {'<' * 40}")
                 self._ac_class = ac_class
             else:
-                logger.warning(f":setClass: {self.name} invalid class {ac_class}")
+                logger.warning(f"{self.name} invalid class {ac_class}")
         else:
             pass
-            # logger.warning(f":setClass: {self.name} cannot determine class")
+            # logger.warning(f"{self.name} cannot determine class")
 
 
     def getClass(self) -> str:
@@ -292,7 +292,7 @@ class AircraftType(Identity):
         self.setClass()
         if self._ac_class is not None:
             return self._ac_class
-        logger.warning(f":getClass: no class for {self.typeId}")
+        logger.warning(f"no class for {self.typeId}")
         return _STD_CLASS
 
 
@@ -382,11 +382,11 @@ class AircraftTypeWithPerformance(AircraftType):
                     acperf.toSI()
                 AircraftTypeWithPerformance._DB_PERF[ac] = acperf
             else:
-                logger.warning(f":loadAll: AircraftType {ac} not found")
+                logger.warning(f"AircraftType {ac} not found")
 
         cnt = len(list(filter(lambda a: a.available, AircraftTypeWithPerformance._DB_PERF.values())))
-        logger.debug(f":loadAll: loaded {len(AircraftTypeWithPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
-        logger.debug(f":loadAll: {list(map(lambda f: (f.typeId, f.getIata()), AircraftTypeWithPerformance._DB_PERF.values()))}")
+        logger.debug(f"loaded {len(AircraftTypeWithPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
+        logger.debug(f"{list(map(lambda f: (f.typeId, f.getIata()), AircraftTypeWithPerformance._DB_PERF.values()))}")
 
 
     @staticmethod
@@ -433,11 +433,11 @@ class AircraftTypeWithPerformance(AircraftType):
                 r = int(acperf.perfraw["cruise_range"]) * NAUTICAL_MILE  # km
                 if r > reqrange:
                     rd = r - reqrange
-                    # logger.debug(":findAircraft: can use %s: %f (%f)" % (ac, r, rd))
+                    # logger.debug("can use %s: %f (%f)" % (ac, r, rd))
                     if rd < rdiff:
                         rdiff = rd
                         best = acperf
-                        # logger.debug(":findAircraft: best %f" % rdiff)
+                        # logger.debug("best %f" % rdiff)
         return best
 
 
@@ -457,39 +457,39 @@ class AircraftTypeWithPerformance(AircraftType):
         if redis is not None:
             k = rejson(redis=redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, actype), db=REDIS_DB.REF.value)
             if k is not None:
-                logger.debug(f":findAircraftByType: found type {actype}")
+                logger.debug(f"found type {actype}")
                 return actype
 
             k = rejson(redis=redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, acsubtype), db=REDIS_DB.REF.value)
             if k is not None:
-                logger.debug(f":findAircraftByType: found sub type {acsubtype}")
+                logger.debug(f"found sub type {acsubtype}")
                 return acsubtype
 
             eq = AircraftTypeWithPerformance.getEquivalence(actype, redis)
             if eq is not None:
-                logger.debug(f":findAircraftByType: found equivalence {eq} for type {actype}")
+                logger.debug(f"found equivalence {eq} for type {actype}")
                 return eq
             eq = AircraftTypeWithPerformance.getEquivalence(acsubtype, redis)
             if eq is not None:
-                logger.debug(f":findAircraftByType: found equivalence {eq} for subtype {acsubtype}")
+                logger.debug(f"found equivalence {eq} for subtype {acsubtype}")
                 return eq
 
         else:
             if actype in AircraftTypeWithPerformance._DB_PERF.keys():
-                logger.debug(f":findAircraftByType: found type {actype}")
+                logger.debug(f"found type {actype}")
                 return actype
             if acsubtype in AircraftTypeWithPerformance._DB_PERF.keys():
-                logger.debug(f":findAircraftByType: found sub type {acsubtype}")
+                logger.debug(f"found sub type {acsubtype}")
                 return acsubtype
             eq = AircraftTypeWithPerformance.getEquivalence(actype)
             if eq is not None:
-                logger.debug(f":findAircraftByType: found equivalence {eq} for type {actype}")
+                logger.debug(f"found equivalence {eq} for type {actype}")
                 return eq
             eq = AircraftTypeWithPerformance.getEquivalence(acsubtype)
             if eq is not None:
-                logger.debug(f":findAircraftByType: found equivalence {eq} for subtype {acsubtype}")
+                logger.debug(f"found equivalence {eq} for subtype {acsubtype}")
                 return eq
-            logger.warning(f":findAircraftByType: no aircraft for {actype}, {acsubtype}")
+            logger.warning(f"no aircraft for {actype}, {acsubtype}")
 
         return None
 
@@ -591,9 +591,9 @@ class AircraftTypeWithPerformance(AircraftType):
                     data = yaml.safe_load(file)
                 else:  # JSON or GeoJSON
                     data = json.load(file)
-            logger.debug(f":loadFromFile: loaded {filename} for aircraft type {self.typeId.upper()}")
+            logger.debug(f"loaded {filename} for aircraft type {self.typeId.upper()}")
         else:  # fall back on aircraft performance category (A-F)
-            logger.warning(f":loadFromFile: file not found {filename}")
+            logger.warning(f"file not found {filename}")
             filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.getClass()+extension)
             if os.path.exists(filename):
                 with open(filename, "r") as file:
@@ -601,9 +601,9 @@ class AircraftTypeWithPerformance(AircraftType):
                         data = yaml.safe_load(file)
                     else:  # JSON or GeoJSON
                         data = json.load(file)
-                logger.debug(f":loadFromFile: loaded class {filename} data for aircraft class {self.getClass()}")
+                logger.debug(f"loaded class {filename} data for aircraft class {self.getClass()}")
             else:
-                logger.warning(f":loadFromFile: file not found {filename}")
+                logger.warning(f"file not found {filename}")
                 filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, _STD_CLASS + extension)
                 if os.path.exists(filename):
                     with open(filename, "r") as file:
@@ -611,10 +611,10 @@ class AircraftTypeWithPerformance(AircraftType):
                             data = yaml.safe_load(file)
                         else:  # JSON or GeoJSON
                             data = json.load(file)
-                    logger.debug(f":loadFromFile: loaded {filename} standard data for aircraft, ignoring model")
+                    logger.debug(f"loaded {filename} standard data for aircraft, ignoring model")
                 else:
-                    logger.warning(f":loadFromFile: standard data file {filename} for aircraft not found")
-                    logger.warning(f":loadFromFile: no data file for {self.typeId.upper()}")
+                    logger.warning(f"standard data file {filename} for aircraft not found")
+                    logger.warning(f"no data file for {self.typeId.upper()}")
         return data
 
 
@@ -627,13 +627,13 @@ class AircraftTypeWithPerformance(AircraftType):
                 key = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, self.typeId.upper())
                 r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                 if r is None:
-                    logger.debug(f":loadPerformance: no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})")
+                    logger.debug(f"no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})")
                     key = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, self._ac_class)
                     r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                     if r is None:
-                        logger.warning(f":loadPerformance: no turnaround profile data file for class {self._ac_class} ({key})")
+                        logger.warning(f"no turnaround profile data file for class {self._ac_class} ({key})")
                         return (False, "AircraftPerformance::loadPerformance: no profile found in Redis")
-                logger.debug(f":loadPerformance: loaded from redis for {self.typeId.upper()}")
+                logger.debug(f"loaded from redis for {self.typeId.upper()}")
             else:
                 data = self.loadFromFile(".json")
                 if data is not None:
@@ -641,8 +641,8 @@ class AircraftTypeWithPerformance(AircraftType):
                     if self.check_availability():
                         self.toSI()
                 else:
-                    logger.warning(f":loadPerformance: no performance data file for {self.typeId.upper()}")
-        logger.debug(f":loadPerformance: loaded for {self.typeId.upper()}")
+                    logger.warning(f"no performance data file for {self.typeId.upper()}")
+        logger.debug(f"loaded for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadPerformance: loaded"]
 
 
@@ -656,28 +656,28 @@ class AircraftTypeWithPerformance(AircraftType):
                 r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                 pty = f"aircraft model {self.typeId.upper()}"
                 if r is None:
-                    logger.debug(f":loadGSEProfile: no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})")
+                    logger.debug(f"no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})")
                     key = key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, self._ac_class)
                     r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                     pty = f"aircraft class {self._ac_class}"
                     if r is None:
-                        logger.warning(f":loadGSEProfile: no turnaround profile data file for class {self._ac_class} ({key}), trying default class {_STD_CLASS}")
+                        logger.warning(f"no turnaround profile data file for class {self._ac_class} ({key}), trying default class {_STD_CLASS}")
                         key = key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, _STD_CLASS)
                         r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
 
                         if r is None:
-                            logger.error(f":loadGSEProfile: no turnaround profile data file for standard class {_STD_CLASS} ({key})")
+                            logger.error(f"no turnaround profile data file for standard class {_STD_CLASS} ({key})")
                             return (False, "AircraftPerformance::loadGSEProfile: no profile found in Redis")
                         else:
                             pty = f"default class {_STD_CLASS}"
                 self.gseprofile = r
-                logger.debug(f":loadGSEProfile: using profile for {self.typeId.upper()} ({pty}, {key})")
+                logger.debug(f"using profile for {self.typeId.upper()} ({pty}, {key})")
             else:
                 data = self.loadFromFile("-gseprf.yaml")
                 if data is not None:
                     self.gseprofile = data
                 else:
-                    logger.warning(f":loadGSEProfile: no GSE profile data file for {self.typeId.upper()}")
+                    logger.warning(f"no GSE profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadGSEProfile: loaded"]
 
 
@@ -687,12 +687,12 @@ class AircraftTypeWithPerformance(AircraftType):
         If not, the aircraft cannot be used in the application (insufficient data available).
         """
         if self._ac_class is None:
-            logger.warning(f":check_availability: {self.typeId} has no class")
+            logger.warning(f"{self.typeId} has no class")
             return False
 
         max_ceiling = self.get("max_ceiling")  # this is a FL
         if max_ceiling is None:
-            logger.warning(f":check_availability: no max ceiling for: {self.typeId}")
+            logger.warning(f"no max ceiling for: {self.typeId}")
             return False
 
         param_list = ["takeoff_distance", "takeoff_speed", "initial_climb_speed", "initial_climb_vspeed"]
@@ -716,10 +716,10 @@ class AircraftTypeWithPerformance(AircraftType):
 
         for name in param_list:
             if name not in self.perfraw or self.perfraw[name] == "no data":
-                logger.warning(f":check_availability: no {name} for: {self.typeId}, rejecting")
+                logger.warning(f"no {name} for: {self.typeId}, rejecting")
                 return False
         self.available = True
-        # logger.warning(f":check_availability: {self.typeId} is ok")
+        # logger.warning(f"{self.typeId} is ok")
         return True
 
 
@@ -745,14 +745,14 @@ class AircraftTypeWithPerformance(AircraftType):
                 try_class = "C"
             elif ws > 15:
                 try_class = "B"
-            # logger.debug(f":setClass: guessed class {try_class} for {self.typeId}")
-            # logger.debug(f":setClass: {self.typeId}: wingspan={ws}, length={ln}")
+            # logger.debug(f"guessed class {try_class} for {self.typeId}")
+            # logger.debug(f"{self.typeId}: wingspan={ws}, length={ln}")
             ac_class = try_class
 
         if ac_class is not None and ac_class in "ABCDEF":
             self._ac_class = ac_class
         else:
-            logger.warning(f":setClass: invalid class {ac_class} for {self.typeId}")
+            logger.warning(f"invalid class {ac_class} for {self.typeId}")
 
 
     def toSI(self):
@@ -770,18 +770,18 @@ class AircraftTypeWithPerformance(AircraftType):
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     self.perfdata[name] = round(self.perfraw[name] * FT / 60, ROUND)
                     if SHOW_CONVERT:
-                        logger.debug(f":toSI: {self.name}: {name}: {self.perfraw[name]} ft/min -> {self.perfdata[name]} m/s")
+                        logger.debug(f"{self.name}: {name}: {self.perfraw[name]} ft/min -> {self.perfdata[name]} m/s")
                 else:
-                    logger.warning(f":toSI: {self.name} no value for: {name}")
+                    logger.warning(f"{self.name} no value for: {name}")
                     err = err + 1
 
             for name in ["takeoff_speed", "initial_climb_speed", "climbFL150_speed", "climbFL240_speed", "cruise_speed", "descentFL100_speed", "approach_speed", "landing_speed"]:  # speed: kn -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     self.perfdata[name] = round(self.perfraw[name] * NAUTICAL_MILE / 3.600, ROUND)
                     if SHOW_CONVERT:
-                        logger.debug(f":toSI: {self.name}: {name}: {self.perfraw[name]} kn -> {self.perfdata[name]} m/s, {self.perfdata[name] * 3.6} km/h")
+                        logger.debug(f"{self.name}: {name}: {self.perfraw[name]} kn -> {self.perfdata[name]} m/s, {self.perfdata[name] * 3.6} km/h")
                 else:
-                    logger.warning(f":toSI: {self.name} no value for: {name}")
+                    logger.warning(f"{self.name} no value for: {name}")
                     err = err + 1
 
             for name in ["climbmach_mach", "descentFL240_mach"]:  # speed: mach -> m/s
@@ -789,9 +789,9 @@ class AircraftTypeWithPerformance(AircraftType):
                     kmh = machToKmh(self.perfraw[name], 24000)
                     self.perfdata[name] = round(kmh / 3.6, ROUND)
                     if SHOW_CONVERT:
-                        logger.debug(f":toSI: {self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL240)")
+                        logger.debug(f"{self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL240)")
                 else:
-                    logger.warning(f":toSI: {self.name} no value for: {name}")
+                    logger.warning(f"{self.name} no value for: {name}")
                     err = err + 1
 
             for name in ["cruise_mach"]:  # speed: mach -> m/s
@@ -799,9 +799,9 @@ class AircraftTypeWithPerformance(AircraftType):
                     kmh = machToKmh(self.perfraw[name], 30000)
                     self.perfdata[name] = round(kmh / 3.6, ROUND)
                     if SHOW_CONVERT:
-                        logger.debug(f":toSI: {self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL300)")
+                        logger.debug(f"{self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL300)")
                 else:
-                    logger.warning(f":toSI: {self.name} no value for: {name}")
+                    logger.warning(f"{self.name} no value for: {name}")
                     err = err + 1
 
         # copy others verbatim
@@ -810,7 +810,7 @@ class AircraftTypeWithPerformance(AircraftType):
                 if self.perfraw[n] != "no data":
                     self.perfdata[n] = self.perfraw[n]
                 else:
-                    logger.warning(f":toSI: {self.name} no value for: {n}")
+                    logger.warning(f"{self.name} no value for: {n}")
 
 
     def get(self, name: str):
@@ -823,7 +823,7 @@ class AircraftTypeWithPerformance(AircraftType):
         if name in self.perfraw.keys():
             return self.perfraw[name]
         else:
-            logger.warning(f":get: no value for: {name}")
+            logger.warning(f"no value for: {name}")
         return None
 
 
@@ -837,7 +837,7 @@ class AircraftTypeWithPerformance(AircraftType):
         if name in self.perfdata.keys():
             return self.perfdata[name]
         else:
-            logger.warning(f":getSI: no value for: {name}")
+            logger.warning(f"no value for: {name}")
         return None
 
 
@@ -852,7 +852,7 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         max_ceiling = self.get("max_ceiling")
         if max_ceiling is None:
-            logger.warning(f":FLFor: no max ceiling for: {self.typeId}, assuming max ceiling is FL300")
+            logger.warning(f"no max ceiling for: {self.typeId}, assuming max ceiling is FL300")
             max_ceiling = 300
         # Set Flight Level for given flight range in km.
         if reqrange < 300:
@@ -869,7 +869,7 @@ class AircraftTypeWithPerformance(AircraftType):
         Convenience function to print all aircraft available performance data.
         """
         for name in self.perfdata.keys():
-            logger.debug(f":perfs: {name} {self.get(name)} {self.getSI(name)}")
+            logger.debug(f"{name} {self.get(name)} {self.getSI(name)}")
 
     #
     # Take-off helper functions
@@ -886,7 +886,7 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         t = (altend - altstart) / vspeed
         d = speed * t
-        # logger.debug(":climb: %s from %f to %f at %f m/s during %f, move %f at %f m/s" % (self.name, altstart, altend, vspeed, t, d, speed))
+        # logger.debug("%s from %f to %f at %f m/s during %f, move %f at %f m/s" % (self.name, altstart, altend, vspeed, t, d, speed))
         return (t, d, altend)
 
     def initialClimb(self, altstart, safealt: int = 1500*FT):
@@ -1021,7 +1021,7 @@ class AircraftTypeWithPerformance(AircraftType):
             self.loadGSEProfile(redis=redis)
 
         if self.gseprofile is None:
-            logger.warning(f":getGSEProfile: no turnaround profile for {self.typeId}")
+            logger.warning(f"no turnaround profile for {self.typeId}")
             return None
 
         return self.gseprofile
@@ -1103,9 +1103,9 @@ class AircraftClass(AircraftTypeWithPerformance):
                             acperf.toSI()
                         AircraftClass._DB_AC_CLASS[ac_class] = acperf
                     else:
-                        logger.warning(f":loadAll: AircraftClass {ac_class} not found")
+                        logger.warning(f"AircraftClass {ac_class} not found")
 
-        logger.debug(f":loadAll: loaded {len(AircraftClass._DB_AC_CLASS)} aircraft classes with their performances")
+        logger.debug(f"loaded {len(AircraftClass._DB_AC_CLASS)} aircraft classes with their performances")
 
 
     @staticmethod

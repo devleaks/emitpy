@@ -46,14 +46,14 @@ class MissionMove(Movement):
         speeds = self.mission.vehicle.speed
 
         start_pos = self.mission.vehicle.getPosition()
-        # logger.debug(":move: start position %s" % (start_pos))
+        # logger.debug("start position %s" % (start_pos))
         pos = MovePoint.new(start_pos)
 
         pos.setSpeed(0)  # starts at rest
         pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.START.value)
         pos.setColor(MISSION_COLOR.START.value)
         self.moves.append(pos)
-        logger.debug(f":move: start added")
+        logger.debug(f"start added")
 
         self.addMessage(MissionMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.START.value}",
                                        move=self,
@@ -69,7 +69,7 @@ class MissionMove(Movement):
         # starting position to network
         start_npe = self.airport.service_roads.nearest_point_on_edge(start_pos)
         if start_npe[0] is None:
-            logger.warning(":move: no nearest_point_on_edge for start_pos")
+            logger.warning("no nearest_point_on_edge for start_pos")
         else:
             pos = start_npe[0]
             pos.setSpeed(speeds["slow"])  # starts moving
@@ -78,11 +78,11 @@ class MissionMove(Movement):
             self.moves.append(pos)
 
 
-        # logger.debug(":move: start vertex %s" % (start_npe[0]))
+        # logger.debug("start vertex %s" % (start_npe[0]))
         # Find first vertex
         start_nv = self.airport.service_roads.nearest_vertex(start_pos)
         if start_nv[0] is None:
-            logger.warning(":move: no nearest_vertex for start_pos")
+            logger.warning("no nearest_vertex for start_pos")
         # will move to it as first point of rt Route()
 
         ## Mission loop:
@@ -92,17 +92,17 @@ class MissionMove(Movement):
             # We enter at the last service_road network vertex.
             cp = self.airport.getControlPoint(cp_id)  # list of checkpoints extended to all POI and stops.
             if cp is None:
-                logger.warning(f":move: cannot find checkpoint {cp_id}")
+                logger.warning(f"cannot find checkpoint {cp_id}")
                 continue
 
             # find closest vertex of next control point
             cp_nv = self.airport.service_roads.nearest_vertex(cp)
             if cp_nv[0] is None:
-                logger.warning(f":move: no nearest_vertex for checkpoint {cp.getPprop('name')}")
-            # logger.debug(":move: cp vertex %s" % (cp_nv[0]))
+                logger.warning(f"no nearest_vertex for checkpoint {cp.getPprop('name')}")
+            # logger.debug("cp vertex %s" % (cp_nv[0]))
 
             # route from previous vtx to this one
-            logger.debug(f":move: route from {prev_vtx.id} to {cp_nv[0].id}")
+            logger.debug(f"route from {prev_vtx.id} to {cp_nv[0].id}")
             rt = Route(self.airport.service_roads, prev_vtx.id, cp_nv[0].id)
             # rt1.find()  # auto route
             # r1 = self.airport.service_roads.Dijkstra(start_nv[0].id, cp_nv[0].id)
@@ -119,13 +119,13 @@ class MissionMove(Movement):
                     self.moves.append(pos)
                     last_vtx = vtx
             else:
-                logger.debug(f":move: no route from {prev_vtx.id} to {cp_nv[0].id}")
+                logger.debug(f"no route from {prev_vtx.id} to {cp_nv[0].id}")
 
             # find closest point on network to checkpoint
-            # logger.debug(f":move: route to checkpoint {cp}")
+            # logger.debug(f"route to checkpoint {cp}")
             cp_npe = self.airport.service_roads.nearest_point_on_edge(cp)
             if cp_npe[0] is None:
-                logger.warning(f":move: no nearest_point_on_edge for checkpoint {cp.getPprop('name')}")
+                logger.warning(f"no nearest_point_on_edge for checkpoint {cp.getPprop('name')}")
             else:  # move to it
                 pos = cp_npe[0]
                 pos.setSpeed(speeds["slow"])  # starts moving
@@ -140,7 +140,7 @@ class MissionMove(Movement):
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
             pos.setPause(self.mission.duration(cp))
             self.moves.append(pos)
-            logger.debug(f":move: checkpoint added")
+            logger.debug(f"checkpoint added")
 
             self.addMessage(MissionMessage(subject=f"Mission {self.getId()} reached control point",
                                            move=self,
@@ -150,7 +150,7 @@ class MissionMove(Movement):
 
             # goes back on service road network (edge)
             if cp_npe[0] is None:
-                logger.warning(f":move: no nearest_point_on_edge for checkpoint {cp.getPprop('name')}")
+                logger.warning(f"no nearest_point_on_edge for checkpoint {cp.getPprop('name')}")
             else:  # move to it
                 pos = cp_npe[0]
                 pos.setSpeed(speeds["slow"])  # starts moving
@@ -171,11 +171,11 @@ class MissionMove(Movement):
             # end position to network
             final_npe = self.airport.service_roads.nearest_point_on_edge(final_pos)
             if final_npe[0] is None:
-                logger.warning(":move: no nearest_point_on_edge for finalpos")
-            # logger.debug(":move: start vertex %s" % (start_npe[0]))
+                logger.warning("no nearest_point_on_edge for finalpos")
+            # logger.debug("start vertex %s" % (start_npe[0]))
             final_nv = self.airport.service_roads.nearest_vertex(final_pos)
             if final_nv[0] is None:
-                logger.warning(":move: no nearest_vertex for finalpos")
+                logger.warning("no nearest_vertex for finalpos")
         else:
             final_pos = start_pos
             final_npe = start_npe
@@ -193,7 +193,7 @@ class MissionMove(Movement):
                 pos.setSpeed(speeds["normal"])
                 self.moves.append(pos)
         else:
-            logger.debug(f":move: no route from last checkpoint vtx {prev_vtx.id} to final destination vtx {cp_nv[0].id}")
+            logger.debug(f"no route from last checkpoint vtx {prev_vtx.id} to final destination vtx {cp_nv[0].id}")
 
         # from vertex to closest point on service road network to final_pos
         pos = final_npe[0]
@@ -220,7 +220,7 @@ class MissionMove(Movement):
                                         sync=MISSION_PHASE.END.value,
                                         info=self.getInfo()))
 
-        logger.debug(f":move: end added")
+        logger.debug(f"end added")
 
         # No interpolation necessary:
         # Each point should have speed set, altitude and vspeed irrelevant.

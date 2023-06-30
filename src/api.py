@@ -242,20 +242,20 @@ APP_NAME = f"{emitpy.__version__} «{emitpy.__version_name__}»"
 
 @app.on_event("startup")
 async def startup():
-    logger.info(f":startup: {APP_NAME} cleared for take off..")
+    logger.info(f"{APP_NAME} cleared for take off..")
     # should collect and display:
     # git describe --tags
     # git log -1 --format=%cd --relative-date
     # + redis_connect info
-    logger.info(f":startup: {APP_NAME} taking off from «{MANAGED_AIRPORT_ICAO}»..")
+    logger.info(f"{APP_NAME} taking off from «{MANAGED_AIRPORT_ICAO}»..")
     app.state.emitpy = EmitApp(MANAGED_AIRPORT_ICAO)
     if app.state.emitpy.use_redis() is not None:
-        logger.info(f":startup: {APP_NAME} ..positive climb. gear up. Starting hypercaster..")
+        logger.info(f"{APP_NAME} ..positive climb. gear up. Starting hypercaster..")
         app.state.hypercaster = Hypercaster()
-        logger.info(f":startup: {APP_NAME} ..hypercaster running")
+        logger.info(f"{APP_NAME} ..hypercaster running")
     else:
-        logger.info(f":startup: {APP_NAME} ..positive climb. gear up.")
-        logger.warning(f":startup: {APP_NAME} No Redis, no queue, file storage only.")
+        logger.info(f"{APP_NAME} ..positive climb. gear up.")
+        logger.warning(f"{APP_NAME} No Redis, no queue, file storage only.")
 
 
 @app.on_event("shutdown")

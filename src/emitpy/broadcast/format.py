@@ -68,7 +68,7 @@ class Format:
         br = filter(lambda f: f.getProp(FEATPROP.BROADCAST.value), self.emit.scheduled_emit)
         bq = sorted(br, key=lambda f: f.getRelativeEmissionTime())
         self.output = list(map(self.formatter, bq))
-        logger.debug(f':format: formatted {len(self.output)} / {len(self.emit.scheduled_emit)}, version {self.version}')
+        logger.debug(f"formatted {len(self.output)} / {len(self.emit.scheduled_emit)}, version {self.version}")
         self.version = self.version + 1
         return (True, "Format::format completed")
 
@@ -86,13 +86,13 @@ class Format:
         fn = f"{ident}-6-broadcast.{fileformat}"
         filename = os.path.join(basename, fn)
         if os.path.exists(filename) and not overwrite:
-            logger.warning(f":save: file {filename} already exist, not saved")
+            logger.warning(f"file {filename} already exist, not saved")
             return (False, "Format::save file already exist")
 
         with open(filename, "w") as fp:
             for l in self.output:
                 fp.write(str(l)+"\n")
-        logger.debug(f":save: saved {fn}")
+        logger.debug(f"saved {fn}")
 
         return (True, "Format::save saved")
 
@@ -110,14 +110,14 @@ class FormatMessage(Format):
         messages = self.emit.getMessages()
 
         if messages is None or len(messages) == 0:
-            logger.warning(":format: no message")
+            logger.warning("no message")
             return (False, "FormatMessage::format no message")
 
         self.output = []  # reset if called more than once
         br = filter(lambda f: f.getAbsoluteEmissionTime(), messages)
         bq = sorted(br, key=lambda f: f.getAbsoluteEmissionTime())
         self.output = list(map(self.formatter, bq))
-        logger.debug(f':format: formatted {len(self.output)} / {len(messages)} messages, version {self.version}')
+        logger.debug(f"formatted {len(self.output)} / {len(messages)} messages, version {self.version}")
         self.version = self.version + 1
         return (True, "FormatMessage::format completed")
 
@@ -134,13 +134,13 @@ class FormatMessage(Format):
         fn = f"{ident}-7-messages.{fileformat}"
         filename = os.path.join(basename, fn)
         if os.path.exists(filename) and not overwrite:
-            logger.warning(f":save: file {filename} already exist, not saved")
+            logger.warning(f"file {filename} already exist, not saved")
             return (False, "FormatMessage::save file already exist")
 
         with open(filename, "w") as fp:
             for l in self.output:
                 fp.write(str(l)+"\n")
-        logger.debug(f":save: saved {fn}")
+        logger.debug(f"saved {fn}")
 
         return (True, "FormatMessage::save saved")
 

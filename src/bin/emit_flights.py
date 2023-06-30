@@ -16,7 +16,7 @@ import logging
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
 
-FORMAT="%(filename)s:%(funcName)s:%(lineno)s: %(message)s"
+FORMAT="%(levelname)1.5s%(module)15s:%(funcName)-25s%(lineno)4s| %(message)s"
 logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger("emit_flights")
 
@@ -96,6 +96,8 @@ for r in flights[cnt_begin:cnt_end]:
                       do_services=DO_SERVICE,
                       actual_datetime=dtnow.isoformat())
 
+    logger.info(f"{ret}")
+
     if ret is not None and ret.status != 0:
         logger.warning(f"ERROR around line {cnt}: {ret.status}" + ">=" * 30)
         logger.warning(ret)
@@ -106,13 +108,10 @@ for r in flights[cnt_begin:cnt_end]:
 
     ## Testing rescheduling
     logger.info(">" *  80)
+    emit_key = f"flights:{ret.data}:{rate[0]}:e"
     new_scheduled = dtnow + timedelta(minutes=90)
-    sync_name = "TAKE_OFF"
-    emit_key = "flights:SN1704-S201904010815:15:e"
-    if move == "arrival":
-        sync_name = "TOUCH_DOWN"
-        emit_key = "flights:SN1703-S201904011850:15:e"
-    logger.info(f"new schedule: {new_scheduled}")
+    sync_name = "TAKE_OFF" if move == "arrival" else "TOUCH_DOWN"
+    logger.info(f"new schedule: {emit_key}: {new_scheduled} ({sync_name})")
     e.do_schedule(queue=queue, ident=emit_key, sync=sync_name, scheduled=new_scheduled.isoformat(), do_services=False)
 
     # except Exception as ex:

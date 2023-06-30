@@ -43,6 +43,6 @@ class MetarFPDB(Metar):
         """
         if metar is not None and metar.METAR is not None:
             self.raw = metar.METAR
-            logger.debug(f":fetch: {self.raw}")
+            logger.debug(f"{self.raw}")
             return self.parse()
         return (False, "MetarFPDB::fetch: could not get metar")

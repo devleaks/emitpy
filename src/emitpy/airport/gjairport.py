@@ -39,7 +39,7 @@ class GeoJSONAirport(ManagedAirportBase):
         if os.path.exists(airport_df):
             self.data = yaml.safe_load(airport_df)
 
-        logger.debug(":loadFromFile: loaded")
+        logger.debug("loaded")
         return [True, "GeoJSONAirport::loadFromFile: loaded"]
 
 
@@ -49,9 +49,9 @@ class GeoJSONAirport(ManagedAirportBase):
         if self.data is not None:
             self.ramps_geo = self.data
             self.data = None
-            logger.info(":loadRamps: added %d features.", len(self.ramps_geo["features"]))
+            logger.info("added %d features.", len(self.ramps_geo["features"]))
 
-        logger.debug(":loadRamps: added %d parkings", len(self.ramps.keys()))
+        logger.debug("added %d parkings", len(self.ramps.keys()))
         return [True, "GeoJSONAirport::loadRamps loaded"]
 
     def loadTaxiways(self):
@@ -60,9 +60,9 @@ class GeoJSONAirport(ManagedAirportBase):
         if self.data is not None:
             self.taxiways_geo = self.data
             self.data = None
-            logger.info(":loadTaxiways: added %d features.", len(self.taxiways_geo["features"]))
+            logger.info("added %d features.", len(self.taxiways_geo["features"]))
 
-        logger.info(":loadTaxiways: added %d nodes, %d edges.", len(self.taxiways.vert_dict), len(self.taxiways.edges_arr))
+        logger.info("added %d nodes, %d edges.", len(self.taxiways.vert_dict), len(self.taxiways.edges_arr))
         return [True, "GeoJSONAirport::loadTaxiways loaded"]
 
     def loadServiceRoads(self):
@@ -71,9 +71,9 @@ class GeoJSONAirport(ManagedAirportBase):
         if self.data is not None:  # parse runways
             self.service_roads_geo = self.data
             self.data = None
-            logger.info(":loadServiceRoads: added %d features.", len(self.service_roads_geo["features"]))
+            logger.info("added %d features.", len(self.service_roads_geo["features"]))
 
-        logger.info(":loadServiceRoads: added %d nodes, %d edges.", len(self.service_roads.vert_dict), len(self.service_roads.edges_arr))
+        logger.info("added %d nodes, %d edges.", len(self.service_roads.vert_dict), len(self.service_roads.edges_arr))
         return [True, "GeoJSONAirport::loadServiceNetwork loaded"]
 
 
@@ -83,7 +83,7 @@ class GeoJSONAirport(ManagedAirportBase):
         if not status[0]:
             return status
 
-        logger.debug(":loadPOIS: loaded")
+        logger.debug("loaded")
         return [True, "GeoJSONAirport::loadPOIS loaded"]
 
 
@@ -93,8 +93,8 @@ class GeoJSONAirport(ManagedAirportBase):
         if self.data is not None:  # parse runways
             self.service_stops_geo = self.data
             self.data = None
-            logger.info(":loadServicePOIS: added %d features.", len(self.service_stops_geo["features"]))
+            logger.info("added %d features.", len(self.service_stops_geo["features"]))
 
 
-        logger.debug(":loadServicePOIS: added %d service destinations", len(self.service_pois.keys()))
+        logger.debug("added %d service destinations", len(self.service_pois.keys()))
         return [True, "GeoJSONAirport::loadServicePOIS loaded"]

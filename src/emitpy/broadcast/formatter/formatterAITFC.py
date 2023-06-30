@@ -65,7 +65,7 @@ class AITFCFormatter(Formatter):
             aptfrom = ""
             aptto = ""
         else:
-            logger.warning(f":__str__: invalid emission type {emit_type}")
+            logger.warning(f"invalid emission type {emit_type}")
             return None
 
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)

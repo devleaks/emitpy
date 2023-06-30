@@ -74,7 +74,7 @@ class Edge(FeatureWithProps):
                 w = str.upper(s[8])  # should check for A-F return...
                 self.setProp("width-code", w)
                 if w not in list("ABCDEF"):
-                    logger.warning(f":edge: invalid runway widthcode '{w}', ignoring")
+                    logger.warning(f"invalid runway widthcode '{w}', ignoring")
             if s.lower().startswith("taxiway"):
                 self.setTag(USAGE_TAG, "taxiway")
             if s.lower().startswith("runway"):
@@ -131,7 +131,7 @@ class Graph:  # Graph(FeatureCollection)?
 
     def add_vertex(self, vertex: Vertex):
         if vertex.id in self.vert_dict.keys():
-            logger.warning(f":add_vertex: duplicate {vertex.id}")
+            logger.warning(f"duplicate {vertex.id}")
         self.vert_dict[vertex.id] = vertex
         self.nx.add_node(vertex.id, v=vertex)
         return vertex
@@ -147,7 +147,7 @@ class Graph:  # Graph(FeatureCollection)?
         varr = filter(lambda x: x.connected, self.vert_dict.values()) if connected_only else self.vert_dict.values()
         if bbox is not None:
             ret = list(map(lambda x: x.id, filter(lambda x: boolean_point_in_polygon(Feature(geometry=Point(x["geometry"]["coordinates"])), bbox), varr)))
-            logger.debug(":get_vertices: box bounded from %d to %d.", len(self.vert_dict), len(ret))
+            logger.debug("box bounded from %d to %d.", len(self.vert_dict), len(ret))
             return ret
         return list(map(lambda x: x.id, varr))
 
@@ -181,7 +181,7 @@ class Graph:  # Graph(FeatureCollection)?
                         if bbOk:
                             connectionKeys.append(dst)
                         # else:
-                        #     logger.debug(":get_connections: excluded.")
+                        #     logger.debug("excluded.")
 
             return connectionKeys
 
@@ -223,7 +223,7 @@ class Graph:  # Graph(FeatureCollection)?
         # for ident in v:
         #     nd[ident] = self.vert_dict[ident]
         self.vert_dict = nd
-        logger.debug(":purge: purged %d vertices" % (n - len(self.vert_dict)))
+        logger.debug("purged %d vertices" % (n - len(self.vert_dict)))
 
 
     def nearest_point_on_edge(self, point: Feature, with_connection: bool = False):  # @todo: construct array of lines on "add_edge"
@@ -257,13 +257,13 @@ class Graph:  # Graph(FeatureCollection)?
         if dist == 0:
             d = distance(point, Feature(geometry=Point(edge.start["geometry"]["coordinates"])))
             if d == 0:
-                logger.debug(":nearest_point_on_edge: nearest point is start of edge")
+                logger.debug("nearest point is start of edge")
                 return(edge.start, 0, edge, nconn)
             d = distance(point, Feature(geometry=Point(edge.end["geometry"]["coordinates"])))
             if d == 0:
-                logger.debug(":nearest_point_on_edge: nearest point is end of edge")
+                logger.debug("nearest point is end of edge")
                 return(edge.end, 0, edge, nconn)
-            logger.debug(":nearest_point_on_edge: nearest point is on edge")
+            logger.debug("nearest point is on edge")
             closest = point
         elif edge is not None:
             closest = nearest_point_on_line(point, edge, dist)
@@ -285,11 +285,11 @@ class Graph:  # Graph(FeatureCollection)?
                     dist = d
                     closest = p
             #         nconn = len(p.adjacent)
-            #         logger.debug(":nearest_vertex: closer: %s, %d conn, %d km" % (p.id, len(p.adjacent), d))
+            #         logger.debug("closer: %s, %d conn, %d km" % (p.id, len(p.adjacent), d))
             # if p.id.startswith(point.id[0:3]) and len(p.adjacent) > 0:
             #     d = distance(point, p)
-            #     logger.debug(":nearest_vertex: %s, %d conn, %d km" % (p.id, len(p.adjacent), d))
-        # logger.debug(":nearest_vertex: returning %s" % (closest.name if closest is not None else "None"))
+            #     logger.debug("%s, %d conn, %d km" % (p.id, len(p.adjacent), d))
+        # logger.debug("returning %s" % (closest.name if closest is not None else "None"))
         return [closest, dist, nconn]
 
 # #################
@@ -302,7 +302,7 @@ class Graph:  # Graph(FeatureCollection)?
         ss = time.perf_counter()
         route = []
         if not source or not target:
-            logger.debug(":Dijkstra: source or target missing")
+            logger.debug("source or target missing")
             return route
 
         options = {}
@@ -374,7 +374,7 @@ class Graph:  # Graph(FeatureCollection)?
         node = target
         # Starting from the goal node, we will go back to the source node and
         # see what path we followed to get the smallest distance
-        # logger.debug(":Dijkstra: predecessor %s", predecessor)
+        # logger.debug("predecessor %s", predecessor)
         while node and node != source and len(predecessor.keys()) > 0:
             # As it is not necessary that the target node can be reached from # the source node, we must enclose it in a try block
             route.insert(0, node)
@@ -384,15 +384,15 @@ class Graph:  # Graph(FeatureCollection)?
                 node = False
 
         if len(route) == 0:
-            logger.debug(":Dijkstra: route not found")
+            logger.debug("route not found")
             return None
         else:
             # Including the source in the path
             route.insert(0, source)
             if len(route) > 2:
-                logger.debug(f":Dijkstra: route: {'-'.join(route)} ({time.perf_counter() - ss:f} sec)")
+                logger.debug(f"route: {'-'.join(route)} ({time.perf_counter() - ss:f} sec)")
                 return route
-            logger.debug(":Dijkstra: route not found")
+            logger.debug("route not found")
             return None
 
 
@@ -407,11 +407,11 @@ class Graph:  # Graph(FeatureCollection)?
         """
         va = self.get_vertex(a)
         if va is None:
-            logger.warning(f":heuristic: invalid vertex id a={a}")
+            logger.warning(f"invalid vertex id a={a}")
             return inf
         vb = self.get_vertex(b)
         if vb is None:
-            logger.warning(f":heuristic: invalid vertex id b={b}")
+            logger.warning(f"invalid vertex id b={b}")
             return inf
         return distance(va, vb)
 
@@ -458,7 +458,7 @@ class Graph:  # Graph(FeatureCollection)?
                     n = v
 
             if n == None:
-                logger.warning(":AStart: route not found")
+                logger.warning("route not found")
                 return None
 
             # if the current node is the stop_node
@@ -471,7 +471,7 @@ class Graph:  # Graph(FeatureCollection)?
                 reconst_path.append(start_node)
                 reconst_path.reverse()
 
-                logger.debug(f":AStart: route: {reconst_path} ({time.perf_counter() - ss:f} sec)")
+                logger.debug(f"route: {reconst_path} ({time.perf_counter() - ss:f} sec)")
                 return reconst_path
 
             # for all neighbors of the current node do
@@ -500,5 +500,5 @@ class Graph:  # Graph(FeatureCollection)?
             open_list.remove(n)
             closed_list.add(n)
 
-        logger.warning(":AStart: route not found")
+        logger.warning("route not found")
         return None

@@ -21,7 +21,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
     def __init__(self, emit: "Emit", queue: Queue, redis = None):
         r = queue.redis if queue is not None else redis
         if r is None:
-            logger.warning(f":__init__: no redis")
+            logger.warning(f"no redis")
             return
         formatter = Format.getFormatter(queue.formatter_name)
         Format.__init__(self, emit, formatter)
@@ -47,13 +47,13 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset = redis.pipeline()
         if oldvalues and len(oldvalues) > 0:
             oset.zrem(queue, *oldvalues)
-            logger.debug(f":dequeue: deleted {len(oldvalues)} entries for {ident}")  #optimistic
+            logger.debug(f"deleted {len(oldvalues)} entries for {ident}")  #optimistic
         else:
-            logger.debug(f":dequeue: no enqueued entries for {ident}")
+            logger.debug(f"no enqueued entries for {ident}")
         # 2. Remove enqueued list
         oset.delete(ident)
         oset.execute()
-        logger.debug(f":dequeue: deleted {ident}")
+        logger.debug(f"deleted {ident}")
         return (True, f"EnqueueToRedis::dequeue dequeued {ident}")
 
 
@@ -80,7 +80,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         if queue is not None:
             EnqueueToRedis.dequeue(redis, ident, queue)
         redis.delete(ident)
-        logger.debug(f":delete: deleted {ident}")
+        logger.debug(f"deleted {ident}")
         return (True, f"EnqueueToRedis::delete deleted {ident}")
 
 
@@ -106,7 +106,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset = redis.pipeline()
         if oldvalues and len(oldvalues) > 0:
             oset.zrem(queue, *oldvalues)
-            logger.debug(f":pias: removed {len(oldvalues)} old entries")
+            logger.debug(f"removed {len(oldvalues)} old entries")
 
         # enqueue new values (the same ones)
         emit = {}
@@ -116,15 +116,15 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             emit[f2] = f["properties"]["emit-absolute-time"]
 
         oset.zadd(key_path(QUEUE_DATA, queue), emit)
-        logger.debug(f":pias: added {len(oldvalues)} new entries to sorted set {queue}")
+        logger.debug(f"added {len(oldvalues)} new entries to sorted set {queue}")
 
-        # logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+queue} of new data ({NEW_DATA})..")
+        # logger.debug(f"notifying {ADM_QUEUE_PREFIX+queue} of new data ({NEW_DATA})..")
         # oset.publish(ADM_QUEUE_PREFIX+queue, NEW_DATA)
-        # logger.debug(f":enqueue: ..done")
+        # logger.debug(f"..done")
 
-        logger.debug(f":pias: executing..")
+        logger.debug(f"executing..")
         oset.execute()
-        logger.debug(f":pias: ..done")
+        logger.debug(f"..done")
         return (True, f"EnqueueToRedis::pias enqueued {ident}")
 
 
@@ -145,14 +145,14 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         Overwrite emission if permitted only, otherwise a warning is raised.
         """
         if self.output is None or len(self.output) == 0:
-            logger.warning(":save: no emission point")
+            logger.warning("no emission point")
             return (False, "EnqueueToRedis::save: no emission point")
 
         # note: self.formatter is a class
         formatted_id = key_path(self.emit.getKey(None), self.formatter.NAME, REDIS_TYPE.FORMAT.value)
         n = self.redis.scard(formatted_id)
         if n > 0 and not overwrite:
-            logger.warning(f":save: key {formatted_id} already exist, not saved")
+            logger.warning(f"key {formatted_id} already exist, not saved")
             return (False, "EnqueueToRedis::save key already exist")
 
         oset = self.redis.pipeline()
@@ -163,7 +163,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             tosave.append(str(f))  # str applies the formatting
         oset.sadd(formatted_id, *tosave)
         oset.execute()
-        logger.debug(f":save: key {formatted_id} saved {len(tosave)} entries")
+        logger.debug(f"key {formatted_id} saved {len(tosave)} entries")
         return (True, "EnqueueToRedis::save completed")
 
 
@@ -174,7 +174,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         Stores Sorted Set members in new variable so that we can remove them on update
         """
         if self.output is None or len(self.output) == 0:
-            logger.warning(":enqueue: no emission point")
+            logger.warning("no emission point")
             return (False, "EnqueueToRedis::enqueue: no emission point")
 
         enq_id = self.getKey(REDIS_TYPE.QUEUE.value)
@@ -184,7 +184,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             # dequeue old values
             oset.zrem(self.queue.getDataKey(), *oldvalues)  # #0
             oset.delete(enq_id)  # #1
-            logger.debug(f":enqueue: removed old entries (count below, after execution of pipeline)")
+            logger.debug(f"removed old entries (count below, after execution of pipeline)")
 
         emit = {}
         for f in self.output:
@@ -195,18 +195,18 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         mindt = datetime.fromtimestamp(minv).astimezone().isoformat()
         maxv = max(emit.values())
         maxdt = datetime.fromtimestamp(maxv).astimezone().isoformat()
-        logger.debug(f":enqueue: saved {len(emit)} new entries to {enq_id}, from ts={minv}({mindt}) to ts={maxv} ({maxdt})")
+        logger.debug(f"saved {len(emit)} new entries to {enq_id}, from ts={minv}({mindt}) to ts={maxv} ({maxdt})")
 
         # enqueue new values
         oset.zadd(self.queue.getDataKey(), emit)  # #3
-        logger.debug(f":enqueue: added {len(emit)} new entries to sorted set {self.queue.name}")
+        logger.debug(f"added {len(emit)} new entries to sorted set {self.queue.name}")
 
-        # logger.debug(f":enqueue: notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})..")
+        # logger.debug(f"notifying {ADM_QUEUE_PREFIX+self.queue.name} of new data ({NEW_DATA})..")
         # oset.publish(ADM_QUEUE_PREFIX+self.queue.name, NEW_DATA)  # #4
-        # logger.debug(f":enqueue: ..done")
+        # logger.debug(f"..done")
 
         retval = oset.execute()
-        logger.debug(f":enqueue: pipeline: {retval}")
-        logger.debug(f":enqueue: removed {retval[0]}/{len(oldvalues)} old entries")
-        logger.debug(f":enqueue: enqueued")
+        logger.debug(f"pipeline: {retval}")
+        logger.debug(f"removed {retval[0]}/{len(oldvalues)} old entries")
+        logger.debug(f"enqueued")
         return (True, "EnqueueToRedis::enqueue completed")

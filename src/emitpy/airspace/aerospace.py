@@ -500,7 +500,7 @@ class Hold(Restriction):
         radius = length / math.pi
         # step = 180 / finesse
 
-        # logger.debug(":Hold:getRoute: spd=%f len=%f rad=%f turn=%s legt=%f legl=%f" % (speed, length, radius, self.turn, self.leg_time, self.leg_length))
+        # logger.debug("spd=%f len=%f rad=%f turn=%s legt=%f legl=%f" % (speed, length, radius, self.turn, self.leg_time, self.leg_length))
 
         # 4 corners and 2 arc centers p1 -> p2 -> p3 -> p4 -> p1
         p1 = self.fix
@@ -511,7 +511,7 @@ class Hold(Restriction):
         perpendicular = self.course + 90 * (1 if self.turn == "R" else -1)
         c23 = destination(p2, radius, perpendicular, {"units": "km"})
 
-        logger.debug(f":Hold:getRoute: fix:{self.fix.id} turn={self.turn} course={self.course:f} perp={perpendicular:f}")
+        logger.debug(f"fix:{self.fix.id} turn={self.turn} course={self.course:f} perp={perpendicular:f}")
 
         start_angle = perpendicular
         if self.turn == "L":

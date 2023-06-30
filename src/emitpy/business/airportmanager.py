@@ -113,16 +113,16 @@ class AirportManager:
         if redis is not None:
             k = key_path(REDIS_PREFIX.AIRPORT.value, "managed")
             self.data = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
-            logger.debug(f":loadAirport: {k} loaded")
+            logger.debug(f"{k} loaded")
             return (True, "AirportManager::loadFromFile: loaded")
         else:
             business = os.path.join(MANAGED_AIRPORT_DIR, "airport.yaml")
             if os.path.exists(business):
                 with open(business, "r") as fp:
                     self.data = yaml.safe_load(fp)
-                logger.debug(f":file: {business} loaded")
+                logger.debug(f"{business} loaded")
                 return (True, "AirportManager::loadFromFile: loaded")
-        logger.warning(f":loadAirport: {business} not found")
+        logger.warning(f"{business} not found")
         return (False, "AirportManager::loadFromFile file %s not found", business)
 
 
@@ -144,10 +144,10 @@ class AirportManager:
                             airline.addRoute(airport)
                             airport.addAirline(airline)
                         else:
-                            logger.warning(f":loadAirRoutes: airport {k[-1]} not found")
+                            logger.warning(f"airport {k[-1]} not found")
                     else:
-                        logger.warning(f":loadAirRoutes: airline {k[-2]} not found")
-            logger.debug(":loadAirRoutes: loaded (Redis)")
+                        logger.warning(f"airline {k[-2]} not found")
+            logger.debug("loaded (Redis)")
         else:
             routes = os.path.join(MANAGED_AIRPORT_DIR, "airlines", "airline-routes.csv")
             file = open(routes, "r")
@@ -164,11 +164,11 @@ class AirportManager:
                         airport.addAirline(airline)
                         cnt = cnt + 1
                     else:
-                        logger.warning(f":loadAirRoutes: airport {row['AIRPORT']} not found")
+                        logger.warning(f"airport {row['AIRPORT']} not found")
                 else:
-                    logger.warning(f":loadAirRoutes: airline {row['AIRLINE CODE']} not found")
+                    logger.warning(f"airline {row['AIRLINE CODE']} not found")
             file.close()
-            logger.debug(":loadAirRoutes: loaded %d airline routes for %d airlines" % (cnt, len(self.airlines)))
+            logger.debug("loaded %d airline routes for %d airlines" % (cnt, len(self.airlines)))
 
             fn = os.path.join(MANAGED_AIRPORT_DIR, "airlines", "airline-frequencies.csv")
             if os.path.exists(fn):
@@ -177,7 +177,7 @@ class AirportManager:
                     data = csv.DictReader(file)  # AIRLINE CODE,AIRPORT
                     for row in data:
                         self.airline_frequencies[row["AIRLINE CODE"]] = int(row["COUNT"])
-                    logger.debug(":loadAirRoutes: airline-frequencies loaded")
+                    logger.debug("airline-frequencies loaded")
 
             fn = os.path.join(MANAGED_AIRPORT_DIR, "airlines", "airline-route-frequencies.csv")
             if os.path.exists(fn):
@@ -191,8 +191,8 @@ class AirportManager:
                         if row["AIRPORT"] not in self.airline_route_frequencies[row["AIRLINE CODE"]]:
                             self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] = 0
                         self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] = self.airline_route_frequencies[row["AIRLINE CODE"]][row["AIRPORT"]] + int(row["COUNT"])
-                    logger.debug(":loadAirRoutes: airline-route-frequencies loaded")
-            logger.debug(":loadAirRoutes: loaded")
+                    logger.debug("airline-route-frequencies loaded")
+            logger.debug("loaded")
 
         return [True, "AirportManager::loadAirRoutes: loaded"]
 
@@ -220,7 +220,7 @@ class AirportManager:
                     arr.append((airport.iata, airport["properties"]["name"]))
                 return arr
 
-            logger.warning(f":getAirrouteCombo: no airline and no airport")
+            logger.warning(f"no airline and no airport")
             return []
 
         routes = set()
@@ -245,13 +245,13 @@ class AirportManager:
             a = a = random.choices(population=list(self.airline_frequencies.keys()), weights=list(self.airline_frequencies.values()))
             aln = Airline.findIATA(a[0])
             if aln is not None:
-                logger.debug(f":selectRandomAirline: with density: {aln.icao}({aln.iata})")
+                logger.debug(f"with density: {aln.icao}({aln.iata})")
             else:
-                logger.warning(f":selectRandomAirline: with density: {a[0]} not found")
+                logger.warning(f"with density: {a[0]} not found")
         else:
             a = random.choice(list(self.airlines.keys()))
             aln = Airline.find(a)
-            logger.debug(f":selectRandomAirline: {a}")
+            logger.debug(f"{a}")
         return aln
 
 
@@ -267,13 +267,13 @@ class AirportManager:
             a = random.choices(population=list(aptlist.keys()), weights=list(aptlist.values()))
             apt = Airport.findIATA(a[0])
             if apt is None:
-                logger.warning(f":selectRandomAirroute: with density: {a[0]} not found")
+                logger.warning(f"with density: {a[0]} not found")
             else:
-                logger.debug(f":selectRandomAirroute: with density: {apt.icao}({apt.iata})")
+                logger.debug(f"with density: {apt.icao}({apt.iata})")
         else:
             a = random.choice(list(aln.routes.keys()))
             apt = Airport.find(a)
-            logger.debug(f":selectRandomAirroute: {a}")
+            logger.debug(f"{a}")
         return (aln, apt)
 
     def hub(self, airport, airline):
@@ -302,15 +302,15 @@ class AirportManager:
                                       typeId=c["typeId"],
                                       name=c["name"])
                 else:
-                    logger.warning(f":loadCompanies: not found {key}")
-            logger.debug(":loadCompanies: loaded (Redis)")
+                    logger.warning(f"not found {key}")
+            logger.debug("loaded (Redis)")
             return (True, f"AirportManager::loadCompanies loaded")
         else:
             companies = os.path.join(MANAGED_AIRPORT_DIR, "services", "companies.yaml")
             if os.path.exists(companies):
                 with open(companies, "r") as fp:
                     self.data = yaml.safe_load(fp)
-                logger.warning(f":file: {companies} loaded")
+                logger.warning(f"{companies} loaded")
                 for k, c in self.data.items():
                     self.companies[k] = Company(orgId=c["orgId"],
                                                 classId=c["classId"],
@@ -366,22 +366,22 @@ class AirportManager:
                     if vcl not in self.equipment_by_type:
                         self.equipment_by_type[vcl] = []
                     self.equipment_by_type[vcl].append(vehicle)
-                    # logger.debug(f":loadEquipments: ..added {vname}")
+                    # logger.debug(f"..added {vname}")
                 else:
-                    logger.debug(f":loadEquipments: vehicle type {vcl} not found")
+                    logger.debug(f"vehicle type {vcl} not found")
             # self.setEquipments(self.equipments)
-            logger.debug(f":loadEquipments: ..done")
+            logger.debug(f"..done")
             return (True, "AirportManager::loadEquipments: loaded")
         else:
             business = os.path.join(MANAGED_AIRPORT_DIR, "services", "equipment.yaml")
             if os.path.exists(business):
                 with open(business, "r") as fp:
                     self.data = yaml.safe_load(fp)
-                logger.debug(f":file: {business} loaded")
+                logger.debug(f"{business} loaded")
                 servicevehicleclasses = importlib.import_module(name=".service.equipment", package="emitpy")
                 for vtype in self.data["Equipment"]:
                     (vcl, vqty) = list(vtype.items())[0]
-                    logger.debug(f":loadEquipments: doing {vtype}..")
+                    logger.debug(f"doing {vtype}..")
                     names = vcl.split("Vehicle")
                     vname_root = names[0][0:3].upper()
                     if len(names) > 1 and names[1] != "":
@@ -395,22 +395,22 @@ class AirportManager:
                             icao24 = AirportManager.randomICAO24(15)
                             vehicle.setICAO24(icao24)  # starts with F like fleet.
                             if vname in self.equipments:
-                                logger.warning(f":loadEquipments: {vname} already exists, overriding")
+                                logger.warning(f"{vname} already exists, overriding")
                             self.equipments[vname] = vehicle
                             if vcl not in self.equipment_by_type:
                                 self.equipment_by_type[vcl] = []
                             self.equipment_by_type[vcl].append(vehicle)
-                            logger.debug(f":loadEquipments: ..added {vname} ({icao24})")
+                            logger.debug(f"..added {vname} ({icao24})")
                     else:
-                        logger.warning(f":loadEquipments: vehicle type {vcl} not found")
-                    logger.debug(f":loadEquipments: ..{vtype} done")
+                        logger.warning(f"vehicle type {vcl} not found")
+                    logger.debug(f"..{vtype} done")
 
                 # self.setEquipments(self.equipments)
-                logger.debug(f":loadEquipments: ..done")
+                logger.debug(f"..done")
                 return (True, "AirportManager::loadEquipments: loaded")
-            logger.warning(f":loadEquipments: {business} not found")
+            logger.warning(f"{business} not found")
 
-        logger.warning(f":loadEquipments: not loaded")
+        logger.warning(f"not loaded")
         return (False, "AirportManager::loadEquipments: not loaded")
 
 
@@ -438,7 +438,7 @@ class AirportManager:
         # If we have a registration, use that vehicle if it exists.
         if vname is not None and vname in self.equipments.keys():
             vehicle = self.equipments[vname]
-            logger.debug(f":selectEquipment: found existing {vehicle.registration}")
+            logger.debug(f"found existing {vehicle.registration}")
             if use: # there is no check that the vehicle is available  !!!!!!! @todo
                 if reqend is None:
                     reqend = reqtime + timedelta(seconds=service.duration())
@@ -447,13 +447,13 @@ class AirportManager:
                 # so that it appears nicely in the .getId() call. (and does not provoke a warning.)
                 service.setVehicle(vehicle)
                 res = self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
-                logger.debug(f":selectEquipment: using {vehicle.registration} (**even if not available**)")
+                logger.debug(f"using {vehicle.registration} (**even if not available**)")
             return vehicle
 
         if vname is not None:
-            logger.debug(f":selectEquipment: requested vehicle {vname} not found")
+            logger.debug(f"requested vehicle {vname} not found")
         else:
-            logger.debug(f":selectEquipment: finding suitable vehicle for {type(service).__name__}..")
+            logger.debug(f"finding suitable vehicle for {type(service).__name__}..")
 
         # If not, we determine the type of vehicle we need
         svc_name = None
@@ -468,26 +468,26 @@ class AirportManager:
             vcl = "MissionVehicle"
             vcl_short = "MIS"
         else:
-            logger.warning(f":selectEquipment: invalid service {type(service).__name__}")
+            logger.warning(f"invalid service {type(service).__name__}")
 
-        logger.debug(f":selectEquipment: service {svc_name}, base vehicle {vcl}, looking for model {model}")
+        logger.debug(f"service {svc_name}, base vehicle {vcl}, looking for model {model}")
         if model is None or model.endswith(DEFAULT_VEHICLE):  # is_default_model(model):
             vcl_short = vcl_short + DEFAULT_VEHICLE_SHORT  # Standard Vehicle
-            logger.debug(f":selectEquipment: standard model is {vcl}, {vcl_short}")
+            logger.debug(f"standard model is {vcl}, {vcl_short}")
         else:
             model = model.replace("-", "_")  # now model is snake_case (was kebab-case)
             mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
             vcl = vcl + mdl
             vcl_short = vcl_short + mdl[0:2].upper()
-            logger.debug(f":selectEquipment: model {model} is {vcl}, {vcl_short}")
+            logger.debug(f"model {model} is {vcl}, {vcl_short}")
 
-        logger.debug(f":selectEquipment: service {svc_name}, use vehicle {vcl}: {vcl_short}, reg={vname}")
+        logger.debug(f"service {svc_name}, use vehicle {vcl}: {vcl_short}, reg={vname}")
         servicevehicleclasses = importlib.import_module(name=".service.equipment", package="emitpy")
 
         # If we have a registration, but the vehicle instance does not exist, we need to create it.
         if vname is not None:
             if hasattr(servicevehicleclasses, vcl):
-                logger.debug(f":selectEquipment: creating new {vcl} with registration {vname}..")
+                logger.debug(f"creating new {vcl} with registration {vname}..")
                 vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
                 vehicle.setICAO24(AirportManager.randomICAO24(10))  # starts with A
                 self.equipments[vname] = vehicle
@@ -496,15 +496,15 @@ class AirportManager:
                 self.equipment_by_type[vcl].append(vehicle)
                 #  need to add it to alloc table and book it
                 self.equipment_allocator.add(vehicle)
-                logger.debug(f":selectEquipment: ..created")
+                logger.debug(f"..created")
             else:
-                logger.error(f":selectEquipment: ..not created. No vehicle type {vcl}.")
+                logger.error(f"..not created. No vehicle type {vcl}.")
                 return None
 
         # no registration, we can try to find any vehicle of requested type
         else:
             if vcl in self.equipment_by_type:
-                logger.debug(f":selectEquipment: trying to find a suitable {vcl}..")
+                logger.debug(f"trying to find a suitable {vcl}..")
                 idx = 0
                 vehicle = None
                 res = None
@@ -512,16 +512,16 @@ class AirportManager:
                     v = self.equipment_by_type[vcl][idx]
                     if self.equipment_allocator.isAvailable(v.getResourceId(), reqtime, reqend):
                         vehicle = v
-                        logger.debug(f":selectEquipment: ..found: reusing {vcl} {vehicle.registration}..")
+                        logger.debug(f"..found: reusing {vcl} {vehicle.registration}..")
                     idx = idx + 1
 
             if vehicle is None:
-                logger.debug(f":selectEquipment: ..no vehicle of type {vcl} available. Adding one..")
+                logger.debug(f"..no vehicle of type {vcl} available. Adding one..")
                 vname = f"{vcl_short}{self.equipment_number:03d}"
                 self.equipment_number = self.equipment_number + 1
                 # create vehicle
                 if hasattr(servicevehicleclasses, vcl):
-                    logger.debug(f":selectEquipment: creating {vname} {vcl}..")
+                    logger.debug(f"creating {vname} {vcl}..")
                     vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=operator)  ## getattr(sys.modules[__name__], str) if same module...
                     vehicle.setICAO24(AirportManager.randomICAO24(10))  # starts with A
                     self.equipments[vname] = vehicle
@@ -530,9 +530,9 @@ class AirportManager:
                     self.equipment_by_type[vcl].append(vehicle)
                     #  need to add it to alloc table and book it
                     self.equipment_allocator.add(vehicle)
-                    logger.debug(f":selectEquipment: ..added")
+                    logger.debug(f"..added")
                 else:
-                    logger.error(f":selectEquipment: ..not created. No vehicle type {vcl}.")
+                    logger.error(f"..not created. No vehicle type {vcl}.")
                     return None
 
         # If we have a vehicle, book it if requested, and returned it
@@ -545,12 +545,12 @@ class AirportManager:
                 # so that it appears nicely in the .getId() call. (and does not provoke a warning.)
                 service.setVehicle(vehicle)
                 res = self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
-                logger.debug(f":selectEquipment: vehicle booked {vehicle.getResourceId()} for {service.getId()}")
+                logger.debug(f"vehicle booked {vehicle.getResourceId()} for {service.getId()}")
             else:
-                logger.debug(f":selectEquipment: found vehicle {vehicle.getResourceId()} but not used")
+                logger.debug(f"found vehicle {vehicle.getResourceId()} but not used")
             return vehicle
 
-        logger.warning(f":selectEquipment: returning no vehicle {vcl} for {service.getId()}")
+        logger.warning(f"returning no vehicle {vcl} for {service.getId()}")
         return None
 
 
@@ -585,11 +585,11 @@ class AirportManager:
 
     def setEquipments(self, vehicles):
         self.equipments = vehicles
-        logger.debug(f":selectEquipments: allocating..")
+        logger.debug(f"allocating..")
         self.equipment_allocator = AllocationTable(resources=self.equipments.values(),
                                                    name="equipment")
-        logger.info(f":equipments: resources added: {len(self.equipment_allocator.resources.keys())}")
-        logger.debug(f":equipments: ..done")
+        logger.info(f"resources added: {len(self.equipment_allocator.resources.keys())}")
+        logger.debug(f"..done")
 
 
     def bookVehicle(self, vehicle: "Equipment", reqtime: "datetime", reqduration: int, reason: str):
@@ -602,11 +602,11 @@ class AirportManager:
 
     def setRamps(self, ramps):
         self.ramps = ramps
-        logger.debug(f":setRamps: allocating..")
+        logger.debug(f"allocating..")
         self.ramp_allocator = AllocationTable(resources=self.ramps.values(),
                                               name="ramps")
-        logger.info(f":setRamps: resources added: {len(self.ramp_allocator.resources.keys())}")
-        logger.debug(f":setRamps: ..done")
+        logger.info(f"resources added: {len(self.ramp_allocator.resources.keys())}")
+        logger.debug(f"..done")
 
 
     def bookRamp(self, ramp: "Ramp", reqtime: "datetime", reqduration: int, reason: str):
@@ -619,14 +619,14 @@ class AirportManager:
 
     def setRunways(self, runways):
         self.runways = runways
-        logger.debug(f":setRunways: allocating..")
+        logger.debug(f"allocating..")
         self.runway_allocator = AllocationTable(resources=[], name="runways")
         for rwy in self.runways.values():
             rwy_id = rwy.getResourceId()
             if rwy_id not in self.runway_allocator.resources.keys():
                 self.runway_allocator.createNamedResource(rwy, rwy_id)
-        logger.info(f":setRunways: resources added: {self.runway_allocator.resources.keys()}")
-        logger.debug(f":setRunways: ..done")
+        logger.info(f"resources added: {self.runway_allocator.resources.keys()}")
+        logger.debug(f"..done")
 
 
     def bookRunway(self, runway: "Runway", reqtime: "datetime", reqduration: int, reason: str):
@@ -647,9 +647,9 @@ class AirportManager:
         self.equipment_allocator.load(redis)
 
     def checkAllocators(self, redis):
-        logger.info(f":checkAllocators: runways: {len(self.runway_allocator.resources.keys())}")
-        logger.info(f":checkAllocators: ramps: {len(self.ramp_allocator.resources.keys())}")
-        logger.info(f":checkAllocators: vehicles: {len(self.equipment_allocator.resources.keys())}")
+        logger.info(f"runways: {len(self.runway_allocator.resources.keys())}")
+        logger.info(f"ramps: {len(self.ramp_allocator.resources.keys())}")
+        logger.info(f"vehicles: {len(self.equipment_allocator.resources.keys())}")
 
     def allFlights(self, redis):
         keys = redis.keys(key_path(REDIS_DATABASE.FLIGHTS.value, "*", REDIS_TYPE.EMIT_META.value))
@@ -678,7 +678,7 @@ class AirportManager:
 
         is_arrival = emit.getMeta("$.move.is_arrival")
         if is_arrival is None:
-            logger.warning(f":allServiceForFlight: cannot get flight movement")
+            logger.warning(f"cannot get flight movement")
             return ()
 
         before = None
@@ -691,14 +691,14 @@ class AirportManager:
 
         scheduled = emit.getMeta("$.move.scheduled")
         if scheduled is None:
-            logger.warning(f":do_flight_services: cannot get flight scheduled time {emit.getMeta()}")
+            logger.warning(f"cannot get flight scheduled time {emit.getMeta()}")
             return ()
         scheduled = datetime.fromisoformat(scheduled)
 
         et_min = scheduled - timedelta(minutes=before)
         et_max = scheduled + timedelta(minutes=after)
-        logger.debug(f":allServiceForFlight: {ARRIVAL if is_arrival else DEPARTURE} at {scheduled}")
-        logger.debug(f":allServiceForFlight: trying services between {et_min} and {et_max}")
+        logger.debug(f"{ARRIVAL if is_arrival else DEPARTURE} at {scheduled}")
+        logger.debug(f"trying services between {et_min} and {et_max}")
 
         # 2 search for all services at that ramp, "around" supplied ETA/ETD.
         ramp = emit.getMeta("$.move.ramp.name")
@@ -707,18 +707,18 @@ class AirportManager:
             k = k.decode("UTF-8")
             karr = k.split(ID_SEP)
             dt = datetime.fromisoformat(karr[3].replace(".", ":"))
-            # logger.debug(f":allServiceForFlight: {k}: testing {dt}..")
+            # logger.debug(f"{k}: testing {dt}..")
             if dt > et_min and dt < et_max:
                 items.append(k)
-                logger.debug(f":allServiceForFlight: added {k}..")
-        logger.debug(f":allServiceForFlight: ..done")
+                logger.debug(f"added {k}..")
+        logger.debug(f"..done")
         return set(items)
 
 
     def allServiceOfType(self, redis, service_type: str):
         service_class = service_type[0].upper() + service_type[1:].lower() + "Service"  # @todo: Hum.
         ks = key_path(REDIS_DATABASE.SERVICES.value, service_class, "*", REDIS_TYPE.EMIT_META.value)
-        # logger.debug(f":allServiceOfType: trying {ks}")
+        # logger.debug(f"trying {ks}")
         keys = redis.keys(ks)
         items = []
         if keys is not None and len(keys) > 0:
@@ -730,7 +730,7 @@ class AirportManager:
 
     def allServiceForRamp(self, redis, ramp_id: str):
         ks = key_path(REDIS_DATABASE.SERVICES.value, "*", ramp_id, "*", REDIS_TYPE.EMIT_META.value)
-        logger.debug(f":allServiceForRamp: trying {ks}")
+        logger.debug(f"trying {ks}")
         keys = redis.keys(ks)
         items = []
         if keys is not None and len(keys) > 0:
@@ -788,29 +788,29 @@ class AirportManager:
         else:
             profile_name = profile_name + "-tiedown"
 
-        logger.debug(f":loadTurnaroundProfile: {profile_name}")
+        logger.debug(f"{profile_name}")
 
         if redis:
             key = key_path(REDIS_PREFIX.TAR_PROFILES.value, profile_name.replace("-", ":"))
             tar_profile = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
             if tar_profile is None:
-                logger.debug(f":loadTurnaroundProfile: {profile_name} does not exist, trying default..")
+                logger.debug(f"{profile_name} does not exist, trying default..")
                 profile_name = list(profile_name)
                 profile_name[class_pos] = _STD_CLASS
                 profile_name = ''.join(profile_name)  # https://stackoverflow.com/questions/10631473/str-object-does-not-support-item-assignment
                 key = key_path(REDIS_PREFIX.TAR_PROFILES.value, profile_name.replace("-", ":"))
                 tar_profile = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                 if tar_profile is None:
-                    logger.error(f":loadTurnaroundProfile: ..standard {profile_name} not found ({key})")
+                    logger.error(f"..standard {profile_name} not found ({key})")
         else:  # no redis
             dirname = os.path.join(MANAGED_AIRPORT_DIR, "services", "ta-profiles")
             filename = os.path.join(dirname, profile_name + ".yaml")
             if os.path.exists(filename):
                 with open(filename, "r") as fp:
                     tar_profile = yaml.safe_load(fp)
-                    logger.debug(f":loadTurnaroundProfile: {profile_name} loaded")
+                    logger.debug(f"{profile_name} loaded")
             else:
-                logger.debug(f":loadTurnaroundProfile: {profile_name} does not exist, trying default..")
+                logger.debug(f"{profile_name} does not exist, trying default..")
                 profile_name = list(profile_name)
                 profile_name[class_pos] = _STD_CLASS
                 profile_name = ''.join(profile_name)  # https://stackoverflow.com/questions/10631473/str-object-does-not-support-item-assignment
@@ -818,8 +818,8 @@ class AirportManager:
                 if os.path.exists(filename):
                     with open(filename, "r") as fp:
                         tar_profile = yaml.safe_load(fp)
-                        logger.debug(f":loadTurnaroundProfile: ..standard {profile_name} loaded")
+                        logger.debug(f"..standard {profile_name} loaded")
                 else:
-                    logger.error(f":loadTurnaroundProfile: ..standard {profile_name} not found ({filename})")
+                    logger.error(f"..standard {profile_name} not found ({filename})")
 
         return tar_profile

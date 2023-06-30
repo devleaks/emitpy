@@ -31,6 +31,6 @@ class MetarAVWX(Metar):
             logger.error("fetch: error fetching METAR, ignoring METAR", exc_info=True)
         if metar is not None and metar.METAR is not None:
             self.raw = metar.raw
-            logger.debug(f":fetch: {self.raw}")
+            logger.debug(f"{self.raw}")
             return self.parse()
         return (False, "MetarAVWX::fetch: could not get metar")

@@ -81,7 +81,7 @@ class XPAerospace(Aerospace):
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "earth_nav.dat")
         if os.path.exists(fn):
-            logger.info(f":init: custom data directory exist, using it")
+            logger.info(f"custom data directory exist, using it")
             self.basename = CUSTOM_DATA_DIR
 
 
@@ -106,25 +106,25 @@ class XPAerospace(Aerospace):
                 cycle = m[0]
             elif len(m) > 1:
                 cycle = m[0]
-                logger.warning(f":setAiracCycle: ambiguous data cycle '{str_in}'")
+                logger.warning(f"ambiguous data cycle '{str_in}'")
             else:
-                logger.debug(f":setAiracCycle: no airac cycle in '{str_in}'")
+                logger.debug(f"no airac cycle in '{str_in}'")
                 return None
 
         if self.airac_cycle is None:
             self.airac_cycle = cycle
-            logger.info(f":setAiracCycle: airac cycle {cycle} set")
+            logger.info(f"airac cycle {cycle} set")
         elif cycle != self.airac_cycle:
-            logger.warning(f":setAiracCycle: multiple data cycle airspace={self.airac_cycle}, found={cycle}")
+            logger.warning(f"multiple data cycle airspace={self.airac_cycle}, found={cycle}")
         else:
-            logger.debug(f":setAiracCycle: airac cycle {cycle} ok")
+            logger.debug(f"airac cycle {cycle} ok")
 
         return cycle
 
 
     def getAiracCycle(self):
         if self.airac_cycle is None:
-            logger.warning(f":getAiracCycle: airact cycle not set")
+            logger.warning(f"airact cycle not set")
         return self.airac_cycle
 
 
@@ -168,7 +168,7 @@ class XPAerospace(Aerospace):
         count = 0
         filename = os.path.join(DATA_DIR, "airports", "airports.csv")
         file = open(filename, "r")
-        logger.info(":loadAirports: from %s.", filename)
+        logger.info("from %s.", filename)
         self.setAiracCycle(filename)
         csvdata = csv.DictReader(file)
 
@@ -205,11 +205,11 @@ class XPAerospace(Aerospace):
                 self.add_vertex(apt)
                 count += 1
             else:
-                logger.warning(":loadAirports: invalid airport data %s.", line)
+                logger.warning("invalid airport data %s.", line)
 
         file.close()
 
-        logger.debug(":loadAirports: %d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.debug("%d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPAerospace::Airport loaded"]
 
 
@@ -246,13 +246,13 @@ class XPAerospace(Aerospace):
             # re = "^([\d]{4}) Version - data cycle ([\d]{4}), build ([\d]{8}), metadata NavXP1200.(.*)"
             m = re.match(KEY_HEADER, line)
             if m is not None:
-                logger.info(f":checkFile: file {os.path.basename(filename)}: Version {m[1]}, AIRAC {m[2]}, {m[5].strip()}.")
+                logger.info(f"file {os.path.basename(filename)}: Version {m[1]}, AIRAC {m[2]}, {m[5].strip()}.")
                 return [file, (m[1],m[2],m[3],m[4],m[5])]
 
             line = file.readline()
             line.strip()
 
-        logger.warning(f":checkFile: could not find header in {filename}")
+        logger.warning(f"could not find header in {filename}")
         return [False, []]
 
     def loadFixes(self, prefix: str = "earth"):
@@ -291,7 +291,7 @@ class XPAerospace(Aerospace):
 
                     else:
                         if len(line) > 1:
-                            logger.warning(":loadFixes: invalid fix data %s.", line)
+                            logger.warning("invalid fix data %s.", line)
 
                 line = file.readline()
                 line.strip()
@@ -319,17 +319,17 @@ class XPAerospace(Aerospace):
 
                     else:
                         if len(line) > 1:
-                            logger.warning(":loadFixes: invalid fix data %s.", line)
+                            logger.warning("invalid fix data %s.", line)
 
                 line = file.readline()
                 line.strip()
 
             file.close()
         else:
-            logger.warning(f":loadFixes: Fixes: unknown format {v_format}")
+            logger.warning(f"Fixes: unknown format {v_format}")
             return [False, "XPAerospace::Fixes unknown format"]
 
-        logger.debug(":loadFixes: %d/%d fixes loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.debug("%d/%d fixes loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPAerospace::Fixes loaded"]
 
 
@@ -407,21 +407,21 @@ class XPAerospace(Aerospace):
                             self.add_vertex(LTPFTP(ident=args[7], region=args[9], airport=args[8], lat=lat, lon=lon, elev=alt, freq=args[4], ndb_class=args[5], ndb_ident=args[6], runway=args[10], name=" ".join(args[11:])))
                         else:
                             count -= 1
-                            logger.warning(":loadNavaids: invalid navaid code %d.", lineCode)
+                            logger.warning("invalid navaid code %d.", lineCode)
                     else:
                         if len(line) > 1:
-                            logger.warning(":loadNavaids: invalid navaid data %s.", line)
+                            logger.warning("invalid navaid data %s.", line)
 
 
                 line = file.readline()
                 line.strip()
         else:
-            logger.warning(f":loadNavaids: Navaids: unknown format {v_format}")
+            logger.warning(f"Navaids: unknown format {v_format}")
             return [False, "XPAerospace::Navaids unknown format"]
 
         file.close()
 
-        logger.debug(":loadNavaids: %d/%d navaids loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.debug("%d/%d navaids loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPAerospace::Navaids loaded"]
 
 
@@ -455,7 +455,7 @@ class XPAerospace(Aerospace):
                     self._cached_vectex_idents[a[CPIDENT.IDENT]] = []
                 self._cached_vectex_idents[a[CPIDENT.IDENT]].append(v)
 
-            logger.debug(f":createIndex: created ({time.perf_counter() - ss:f} sec).")
+            logger.debug(f"created ({time.perf_counter() - ss:f} sec).")
 
 
     def dropIndex(self):
@@ -465,10 +465,10 @@ class XPAerospace(Aerospace):
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        logger.debug(":dropIndex: %d fixes, %d navaids" % (self._cached_vectex_ids["Fix"], self._cached_vectex_ids["VHF"]))
+        logger.debug("%d fixes, %d navaids" % (self._cached_vectex_ids["Fix"], self._cached_vectex_ids["VHF"]))
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
-        logger.debug(":dropIndex: done")
+        logger.debug("done")
 
 
     def findSignificantPoint(self, region, ident, navtypeid):
@@ -504,9 +504,9 @@ class XPAerospace(Aerospace):
             ret = self.redis.json().get(kr)
             self.redis.select(prevdb)
             if ret is not None:
-                # logger.debug(f":getSignificantPoint: found {kr}")
+                # logger.debug(f"found {kr}")
                 return FeatureWithProps.new(ret)
-            logger.warning(f":getSignificantPoint:  {kr} not found")
+            logger.warning(f" {kr} not found")
             return None
         else:
             return self.get_vertex(k)
@@ -523,7 +523,7 @@ class XPAerospace(Aerospace):
             k = key_path(REDIS_PREFIX.AIRSPACE_WAYPOINTS_INDEX.value, ident)
             ret = self.redis.smembers(k)
             self.redis.select(prevdb)
-            # logger.debug(f":findSignificantPointByIdent: {k}=>{ret}..")
+            # logger.debug(f"{k}=>{ret}..")
             return [] if ret is None else [k.decode("UTF-8") for k in ret]
         else:
             self.createIndex()
@@ -534,9 +534,9 @@ class XPAerospace(Aerospace):
         # candidates = [key for key in self.vert_dict.keys() if key.startswith(s)]
         # if len(candidates) > 0:
         #     # if len(candidates) > 1:
-        #     #    logger.warning(":findSignificantPoint: %d matches on '%s': %s" % (len(candidates), s, candidates))
+        #     #    logger.warning("%d matches on '%s': %s" % (len(candidates), s, candidates))
         #     return self.vert_dict[candidates[0]]
-        # logger.debug(":findSignificantPoint: '%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
+        # logger.debug("'%s' not found (%s, %s, %s)" % (s, region, ident, navtypeid))
         # return None
 
 
@@ -552,7 +552,7 @@ class XPAerospace(Aerospace):
                 prevdb = self.redis.client_info()["db"]
                 self.redis.select(REDIS_DB.REF.value)
                 d = self.redis.geodist(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, reference, v)
-                logger.debug(f":findClosestSignificantPoint:Redis: {v}: {d}")
+                logger.debug(f"redis: {v}: {d}")
                 self.redis.select(prevdb)
             else:
                 vtx = self.get_vertex(v)
@@ -626,14 +626,14 @@ class XPAerospace(Aerospace):
                                     self.add_edge(AirwaySegment(args[10], src, dst, False, args[7], args[8], args[9]))
                                 count += 1
                                 if count % 10000 == 0:
-                                    logger.debug(":loadAirwaySegments: %d segments loaded.", count)
+                                    logger.debug("%d segments loaded.", count)
                             else:
                                 logger.debug("could not find end of segment %s, %s, %s, %s", args[10], args[4], args[3], args[5])
                         else:
                             logger.debug("could not find start of segment %s, %s, %s, %s", args[10], args[0], args[1], args[2])
                     else:
                         if len(line) > 1:
-                            logger.warning(":loadAirwaySegments: invalid segment data %s (%d).", line, count)
+                            logger.warning("invalid segment data %s (%d).", line, count)
 
                 line = file.readline()
                 line.strip()
@@ -643,10 +643,10 @@ class XPAerospace(Aerospace):
             self.dropIndex()
             self.airways_loaded = True
         else:
-            logger.warning(f":loadAirwaySegments: Airway segments: unknown format {v_format}")
+            logger.warning(f"Airway segments: unknown format {v_format}")
             return [False, "XPAerospace::AirwaySegments unknown format"]
 
-        logger.debug(":loadAirwaySegments: %d segments loaded.", len(self.edges_arr))
+        logger.debug("%d segments loaded.", len(self.edges_arr))
         return [True, "XPAerospace::AirwaySegments loaded"]
 
 
@@ -693,7 +693,7 @@ class XPAerospace(Aerospace):
                     if len(args) >= 6:
                         fix = self.findSignificantPoint(region=args[1], ident=args[0], navtypeid=args[3])
                         if fix is None:
-                            logger.warning(":loadHolds: fix not found %s.", line)
+                            logger.warning("fix not found %s.", line)
                         else:
                             if inBbox(fix):
                                 hid = SignificantPoint.mkId(region=args[1], airport=args[2], ident=args[0], pointtype="HLD")
@@ -701,19 +701,19 @@ class XPAerospace(Aerospace):
                                                        course=float(args[4]), turn=args[7], leg_time=float(args[5]), leg_length=float(args[6]), speed=float(args[10]))
                     else:
                         if len(line) > 1:
-                            logger.warning(":loadHolds: invalid fix data %s.", line)
+                            logger.warning("invalid fix data %s.", line)
 
                 line = file.readline()
                 line.strip()
 
             file.close()
         else:
-            logger.warning(f":loadHolds: Holds: unknown format {v_format}")
+            logger.warning(f"Holds: unknown format {v_format}")
             return [False, "XPAerospace::Holds unknown format"]
 
-        # logger.info(":loadHolds: %d holds loaded.", len(self.holds))
-        logger.debug(f":loadHolds: {len(self.holds)} holds loaded.")
-        # logger.debug(f":loadHolds: {self.holds.keys()}")
+        # logger.info("%d holds loaded.", len(self.holds))
+        logger.debug(f"{len(self.holds)} holds loaded.")
+        # logger.debug(f"{self.holds.keys()}")
         return [True, "XPAerospace::Holds loaded"]
 
 
@@ -776,6 +776,6 @@ class XPAerospace(Aerospace):
             ca.setId(props["boundary_id"])
             self.airspaces[props["boundary_id"]] = ca
 
-        logger.debug(f":loadAirspaces: loaded {len(self.airspaces)} boundaries")
+        logger.debug(f"loaded {len(self.airspaces)} boundaries")
 
         return [True, "XPAerospace::loadAirspaces aispace loaded"]

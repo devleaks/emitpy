@@ -156,7 +156,7 @@ class RTTFCFormatter(Formatter):
             # ac_type blank for ground vehicle
 
         else:
-            logger.warning(f":__str__: invalid emission type {emit_type}")
+            logger.warning(f"invalid emission type {emit_type}")
             return None
 
         return ",".join([str(f) for f in rttfcObj.values()]).replace("None", "")

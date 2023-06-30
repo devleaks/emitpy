@@ -44,21 +44,21 @@ class MetarMesonet(Metar):
 
         url = url2
 
-        logger.debug(f":fetch: url={url}")
+        logger.debug(f"url={url}")
         #with open("/Users/pierre/Developer/oscars/emitpy/src/emitpy/airspace/result.txt", "r") as response:  # urllib.request.urlopen(url) as response:
 
         response = requests.get(url, cookies={'cookieconsent_status': 'dismiss'})
         txt = response.text
         # with urllib.request.urlopen(url) as response:
         #     txt = response.read().decode("UTF-8")
-        logger.debug(f":fetch: {txt}")
+        logger.debug(f"{txt}")
 
         metar = self.scrap_metar(txt)
         if metar is None:
             return (False, "MetarMesonet::fetch: failed to get historical metar")
 
         self.raw = metar[len(nowstr2)+7:-1]
-        logger.debug(f":fetch: historical metar {self.moment_norm} '{self.raw}'")
+        logger.debug(f"historical metar {self.moment_norm} '{self.raw}'")
         return self.parse()
 
     def scrap_metar(self, txt):
@@ -75,7 +75,7 @@ class MetarMesonet(Metar):
         for row in csvdata:
             if row["station"] == self.icao and row["valid"] == nowstr:
                 metar = row["metar"]
-                # logger.debug(f":fetchHistoricalMetar: search for '{start}(.*)': {metar}")
+                # logger.debug(f"search for '{start}(.*)': {metar}")
         return metar
 
 #

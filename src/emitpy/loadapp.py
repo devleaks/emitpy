@@ -63,7 +63,7 @@ class LoadApp(ManagedAirport):
         try:
             pong = self.redis.ping()
         except redis.RedisError:
-            logger.error(":init: cannot connect to redis")
+            logger.error("cannot connect to redis")
             return
 
         # All reference data stored in REDIS_DB.REF
@@ -71,7 +71,7 @@ class LoadApp(ManagedAirport):
         self._app.redis.select(REDIS_DB.REF.value)
 
         logger.debug("=" * 90)
-        logger.debug(":init: initialized. ready to save. saving..")
+        logger.debug("initialized. ready to save. saving..")
 
         # Caching emitpy lists of values Redis
         # We need to cache lov first because we will reset
@@ -81,12 +81,12 @@ class LoadApp(ManagedAirport):
         # Caching emitpy data into Redis
         status = self.load(data_to_load)
         if not status[0]:
-            logger.error(f":init: {status[1]}")
-            logger.error(":init: .. NOT DONE")
-            logger.debug(":init: NOT COMPLETED SUCCESSFULLY")
+            logger.error(f"{status[1]}")
+            logger.error(".. NOT DONE")
+            logger.debug("NOT COMPLETED SUCCESSFULLY")
         else:
-            logger.debug(":init: .. saved")
-            logger.debug(":init: completed successfully")
+            logger.debug(".. saved")
+            logger.debug("completed successfully")
 
         logger.debug("=" * 90)
 
@@ -118,7 +118,7 @@ class LoadApp(ManagedAirport):
 
     def load(self, what: list):
 
-        logger.debug(f":load: loading.. ({what})")
+        logger.debug(f"loading.. ({what})")
 
         # #############################
         # GENERIC
@@ -342,7 +342,7 @@ class LoadApp(ManagedAirport):
                 logger.warning(f"LoadApp::load: not loaded info", exc_info=True)
                 return (False, f"LoadApp::load: info NOT loaded")
 
-        logger.debug(f":load: ..loaded")
+        logger.debug(f"..loaded")
         return (True, f"LoadApp::load: loaded")
 
 
@@ -357,7 +357,7 @@ class LoadApp(ManagedAirport):
             AircraftType.loadAll()
         for a in AircraftType._DB.values():
             a.save(REDIS_PREFIX.AIRCRAFT_TYPES.value, self.redis)
-        logger.debug(f":loadAircraftTypes: loaded {len(AircraftType._DB)} aircraft types")
+        logger.debug(f"loaded {len(AircraftType._DB)} aircraft types")
         return (True, f"LoadApp::loadAircraftTypes: loaded aircraft types")
 
 
@@ -380,7 +380,7 @@ class LoadApp(ManagedAirport):
         # a = list(gdict.values())
         # self.redis.json().set(REDIS_PREFIX.AIRCRAFT_PERFS.value + "2", Path.root_path(), a)
 
-        logger.debug(f":loadAircraftPerformances: loaded {len(gdict)}/{len(AircraftTypeWithPerformance._DB_PERF)} aircraft performances")
+        logger.debug(f"loaded {len(gdict)}/{len(AircraftTypeWithPerformance._DB_PERF)} aircraft performances")
         return (True, f"LoadApp::loadAircraftPerformances: loaded aircraft performances")
 
 
@@ -400,7 +400,7 @@ class LoadApp(ManagedAirport):
                 for v1 in equivs:
                     cnt = cnt + 1
                     self.redis.sadd(key_path(REDIS_PREFIX.AIRCRAFT_EQUIS.value, v1), k)
-        logger.debug(f":loadAircraftEquivalences: loaded {cnt} aircraft equivalences")
+        logger.debug(f"loaded {cnt} aircraft equivalences")
         return (True, f"LoadApp::loadAircraftEquivalences: loaded aircraft equivalences")
 
 
@@ -410,16 +410,16 @@ class LoadApp(ManagedAirport):
             filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, fn)
             data = None
             if os.path.exists(filename):
-                # logger.debug(f":loadTurnaroundProfiles: loadFromFile {filename}..")
+                # logger.debug(f"loadFromFile {filename}..")
                 with open(filename, "r") as file:
                     if filename[-5:] == ".yaml":
                         data = yaml.safe_load(file)
                     else:  # JSON or GeoJSON
                         data = json.load(file)
-                # logger.debug(f":loadTurnaroundProfiles: loadFromFile {filename} .. loaded")
+                # logger.debug(f"loadFromFile {filename} .. loaded")
                 return data
             else:
-                logger.warning(f":loadFromFile: file not found {filename}")
+                logger.warning(f"file not found {filename}")
             return None
 
         for actype in "ABCDEF":  # one day, we'll loop over each ac type...
@@ -428,9 +428,9 @@ class LoadApp(ManagedAirport):
             gseprofile = loadFromFile(f"{actype}-gseprf.yaml")
             if gseprofile is not None:
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, actype), Path.root_path(), gseprofile)
-                logger.debug(f":loadTurnaroundProfiles: loaded GSE profile for aircraft class {actype}")
+                logger.debug(f"loaded GSE profile for aircraft class {actype}")
             else:
-                logger.debug(f":loadTurnaroundProfiles: no GSE profile for aircraft class {actype}")
+                logger.debug(f"no GSE profile for aircraft class {actype}")
 
         #
         # Turnaround Profiles
@@ -442,9 +442,9 @@ class LoadApp(ManagedAirport):
                 tarprofile = loadFromFile(os.path.join(dirname, f))
                 if tarprofile is not None:
                     self.redis.json().set(key, Path.root_path(), tarprofile)
-                    logger.debug(f":loadTurnaroundProfiles: loaded turnaround profile for {tarname}")
+                    logger.debug(f"loaded turnaround profile for {tarname}")
                 else:
-                    logger.debug(f":loadTurnaroundProfiles: no turnaround profile for {tarname}")
+                    logger.debug(f"no turnaround profile for {tarname}")
 
         return (True, f"LoadApp::loadTurnaroundProfiles: loaded turnaround profile for aircraft classes")
 
@@ -462,11 +462,11 @@ class LoadApp(ManagedAirport):
             try:  # we noticed, experimentally, abs(lon) > 85 is not good...
                 self.redis.geoadd(REDIS_PREFIX.AIRPORTS_GEO_INDEX.value, (a.lon(), a.lat(), a.icao))
             except:
-                logger.debug(f":loadAirports: cannot load {a.icao} (lat={a.lat()}, lon={a.lon()})")
+                logger.debug(f"cannot load {a.icao} (lat={a.lat()}, lon={a.lon()})")
                 errcnt = errcnt + 1
         self.redis.json().set(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value), Path.root_path(), Airport._DB)
         self.redis.json().set(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value), Path.root_path(), Airport._DB_IATA)
-        logger.debug(f":loadAirports: loaded {len(Airport._DB)} airports ({errcnt} geo errors)")
+        logger.debug(f"loaded {len(Airport._DB)} airports ({errcnt} geo errors)")
         return (True, f"LoadApp::loadAirports: loaded airports")
 
 
@@ -487,12 +487,12 @@ class LoadApp(ManagedAirport):
         a = [a.getInfo() for a in Airline._DB.values()]
         self.redis.json().set(key_path(REDIS_PREFIX.AIRLINES.value), Path.root_path(), a)
 
-        logger.debug(f":loadAirlines: loaded {len(Airline._DB)} airlines")
+        logger.debug(f"loaded {len(Airline._DB)} airlines")
         return (True, f"LoadApp::loadAirlines: loaded airlines")
 
 
     def loadAirRoutes(self):
-        logger.warning(f":loadAirRoutes: no free global feed for airline routes")
+        logger.warning(f"no free global feed for airline routes")
         return (True, f"LoadApp::loadAirRoutes: no free global feed for airline routes")
 
 
@@ -561,14 +561,14 @@ class LoadApp(ManagedAirport):
                 kn = f.replace(".json", "").replace("-", ":").lower()
                 with open(fn) as data_file:
                     data = json.load(data_file)
-                    logger.debug(f":loadFlightPlans: loading {fn}")
+                    logger.debug(f"loading {fn}")
                     self.redis.json().set(key_path(REDIS_PREFIX.FLIGHTPLAN_FPDB.value, kn), Path.root_path(), data)
             if f.endswith(".geojson"):
                 fn = os.path.join(flightplan_cache, f)
                 kn = f.replace(".geojson", "").replace("-", ":").lower()
                 with open(fn) as data_file:
                     data = json.load(data_file)
-                    logger.debug(f":loadFlightPlans: loading {fn}")
+                    logger.debug(f"loading {fn}")
                     self.redis.json().set(key_path(REDIS_PREFIX.FLIGHTPLAN_GEOJ.value, kn), Path.root_path(), data)
 
         airportplan_cache = os.path.join(DATA_DIR, "airports", "fpdb")
@@ -578,7 +578,7 @@ class LoadApp(ManagedAirport):
                 kn = f.replace(".json", "").replace("-", ":").lower()
                 with open(fn) as data_file:
                     data = json.load(data_file)
-                    logger.debug(f":loadFlightPlans: loading {fn}")
+                    logger.debug(f"loading {fn}")
                     self.redis.json().set(key_path(REDIS_PREFIX.FLIGHTPLAN_APTS.value, kn), Path.root_path(), data)
 
         return (True, f"LoadApp::loadFlightPlans: loaded flight plans")
@@ -591,8 +591,8 @@ class LoadApp(ManagedAirport):
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RAMPS.value, k), Path.root_path(), v)
             self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), key_path(POI_COMBO.RAMP.value, k)))
 
-        logger.debug(f":loadRamps: loaded {len(self.airport.ramps)}")
-        # logger.debug(f":loadRamps: loaded {self.airport.ramps}")
+        logger.debug(f"loaded {len(self.airport.ramps)}")
+        # logger.debug(f"loaded {self.airport.ramps}")
         return (True, f"LoadApp::loadRamps: loaded ramps")
 
 
@@ -600,13 +600,13 @@ class LoadApp(ManagedAirport):
         for k, v in self.airport.runways.items():
             if hasattr(v, "end"):
                 v.setProp("opposite-end", v.end.getProp("name"))
-                logger.warning(f":loadRunways: removed circular dependency {v.getProp('name')} <> {v.end.getProp('name')}")
+                logger.warning(f"removed circular dependency {v.getProp('name')} <> {v.end.getProp('name')}")
                 del v.end
             if hasattr(v, "_resource"):
                 del v._resource
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RUNWAYS.value, k), Path.root_path(), v)
 
-        logger.debug(f":loadRamps: loaded {len(self.airport.runways)}")
+        logger.debug(f"loaded {len(self.airport.runways)}")
         return (True, f"LoadApp::loadRamps: loaded runways")
 
 
@@ -614,7 +614,7 @@ class LoadApp(ManagedAirport):
         for k, v in self.airport.aeroway_pois.items():
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.AEROWAYS.value, k), Path.root_path(), v)
 
-        logger.debug(f":loadAirwayPOIS: loaded {len(self.airport.aeroway_pois)}")
+        logger.debug(f"loaded {len(self.airport.aeroway_pois)}")
         return (True, f"LoadApp::loadAirwayPOIS: loaded airway points of interest")
 
 
@@ -624,7 +624,7 @@ class LoadApp(ManagedAirport):
             self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), k))
             self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), key_path(POI_COMBO.SERVICE.value, k)))
 
-        logger.debug(f":loadServicePOIS: loaded {len(self.airport.service_pois)}")
+        logger.debug(f"loaded {len(self.airport.service_pois)}")
         return (True, f"LoadApp::loadServicePOIS: loaded service points of interest")
 
 
@@ -633,7 +633,7 @@ class LoadApp(ManagedAirport):
     #         self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.GROUNDSUPPORT_DESTINATION.value, k), Path.root_path(), v)
     #         # self.redis.geoadd(REDIS_PREFIX.AIRPORT_GEO_INDEX.value, (v.lon(), v.lat(), k))
 
-    #     logger.debug(f":loadServiceDestinations: loaded {len(self.airport.service_destinations)}")
+    #     logger.debug(f"loaded {len(self.airport.service_destinations)}")
     #     return (True, f"LoadApp::loadServiceDestinations: loaded service points of interest")
 
 
@@ -641,7 +641,7 @@ class LoadApp(ManagedAirport):
         for k, v in self.airport.check_pois.items():
             self.redis.json().set(key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.MISSION.value, k), Path.root_path(), v)
 
-        logger.debug(f":loadCheckpoints: loaded {len(self.airport.check_pois)}")
+        logger.debug(f"loaded {len(self.airport.check_pois)}")
         return (True, f"LoadApp::loadCheckpoints: loaded check points")
 
 
@@ -659,14 +659,14 @@ class LoadApp(ManagedAirport):
             kr = key_path(REDIS_PREFIX.AIRSPACE_WAYPOINTS_INDEX.value, a[CPIDENT.IDENT])
             self.redis.sadd(kr, k)
             if cnt % HEARTBEAT == 0:
-                logger.debug(f":loadVertices: {cnt}: {kr}, {k}")
+                logger.debug(f"{cnt}: {kr}, {k}")
             try:  # we noticed, experimentally, abs(lon) > 85 is not good...
                 self.redis.geoadd(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, (v.lon(), v.lat(), k))
             except:
-                logger.debug(f":loadVertices: cannot load {k} (lat={v.lat()}, lon={v.lon()})")
+                logger.debug(f"cannot load {k} (lat={v.lat()}, lon={v.lon()})")
                 errcnt = errcnt + 1
             cnt = cnt + 1
-        logger.debug(f":loadVertices: loaded {cnt}, {errcnt} errors")
+        logger.debug(f"loaded {cnt}, {errcnt} errors")
         return (True, f"LoadApp::loadVertices: loaded")
 
     def loadTerminals(self):
@@ -682,9 +682,9 @@ class LoadApp(ManagedAirport):
                     self.redis.geoadd(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, (v.lon(), v.lat(), k))
                     cnt = cnt + 1
                 except:
-                    logger.debug(f":loadTerminals: cannot load {v.icao} (lat={v.lat()}, lon={v.lon()})")
+                    logger.debug(f"cannot load {v.icao} (lat={v.lat()}, lon={v.lon()})")
                     errcnt = errcnt + 1
-        logger.debug(f":loadTerminals: loaded {cnt}")
+        logger.debug(f"loaded {cnt}")
         return (True, f"LoadApp::loadTerminals: loaded terminals")
 
     def loadNavaids(self):
@@ -698,7 +698,7 @@ class LoadApp(ManagedAirport):
                 self.redis.geoadd(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, (v.lon(), v.lat(), k))
                 cnt = cnt + 1
                 cnt = cnt + 1
-        logger.debug(f":loadNavaids: loaded {cnt}")
+        logger.debug(f"loaded {cnt}")
         return (True, f"LoadApp::loadNavaids: loaded navaids")
 
     def loadFixes(self):
@@ -713,10 +713,10 @@ class LoadApp(ManagedAirport):
                 try:  # we noticed, experimentally, abs(lon) > 85 is not good...
                     self.redis.geoadd(REDIS_PREFIX.AIRSPACE_GEO_INDEX.value, (v.lon(), v.lat(), k))
                 except:
-                    logger.debug(f":loadFixes: cannot load {k} (lat={v.lat()}, lon={v.lon()})")
+                    logger.debug(f"cannot load {k} (lat={v.lat()}, lon={v.lon()})")
                     errcnt = errcnt + 1
                 cnt = cnt + 1
-        logger.debug(f":loadFixes: loaded {cnt}, {errcnt} errors")
+        logger.debug(f"loaded {cnt}, {errcnt} errors")
         return (True, f"LoadApp::loadNavaids: loaded fixes")
 
     def loadHolds(self):
@@ -726,10 +726,10 @@ class LoadApp(ManagedAirport):
             try:
                 self.redis.geoadd(REDIS_PREFIX.AIRSPACE_HOLDS_GEO_INDEX.value, (v.fix.lon(), v.fix.lat(), k))
             except:
-                logger.debug(f":loadHolds: cannot load {k} (lat={v.fix.lat()}, lon={v.fix.lon()})")
+                logger.debug(f"cannot load {k} (lat={v.fix.lat()}, lon={v.fix.lon()})")
             cnt = cnt + 1
         # We preselect holds in the vicinity of the managed airport
-        logger.debug(f":loadHolds: preselecting {self.icao} local holds..")
+        logger.debug(f"preselecting {self.icao} local holds..")
         store = key_path(REDIS_PREFIX.AIRSPACE_HOLDS.value, self.icao)
         self.redis.geosearchstore(name=REDIS_PREFIX.AIRSPACE_HOLDS_GEO_INDEX.value,
                                   longitude=self.longitude,
@@ -737,9 +737,9 @@ class LoadApp(ManagedAirport):
                                   unit='km',
                                   radius=100*NAUTICAL_MILE,
                                   dest=store)
-        logger.debug(f":loadHolds: .. stored in {store} ..done")
+        logger.debug(f".. stored in {store} ..done")
         #
-        logger.debug(f":loadHolds: loaded {cnt}")
+        logger.debug(f"loaded {cnt}")
         return (True, f"LoadApp::loadHolds: loaded holding positions")
 
     def loadAirways(self):
@@ -749,7 +749,7 @@ class LoadApp(ManagedAirport):
             if isinstance(v, AirwaySegment):
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRSPACE_AIRWAYS.value, v.getKey()), Path.root_path(), v.getInfo())
                 cnt = cnt + 1
-        logger.debug(f":loadAirways: loaded {cnt}")
+        logger.debug(f"loaded {cnt}")
         return (True, f"LoadApp::loadAirways: loaded airways")
 
 
@@ -772,7 +772,7 @@ class LoadApp(ManagedAirport):
             if isinstance(v, ControlledAirspace):
                 self.redis.json().set(key_path(REDIS_PREFIX.AIRSPACE_CONTROLLED.value, v.getProp("type"), str(v.getKey())), Path.root_path(), FeatureWithProps.convert(v))
                 cnt = cnt + 1
-        logger.debug(f":loadAirspaces: loaded {cnt}")
+        logger.debug(f"loaded {cnt}")
         return (True, f"LoadApp::loadAirspaces: loaded controlled airspaces")
 
     # #############################
@@ -786,7 +786,7 @@ class LoadApp(ManagedAirport):
             d2 = dict(arr)
             self.redis.json().set(k2, Path.root_path(), jsonable_encoder(d2))
 
-        logger.debug(":cache: caching..")
+        logger.debug("caching..")
 
         # Airports operating at managed airport
         saveComboAsJson(REDIS_LOVS.AIRPORTS.value, Airport.getCombo())
@@ -811,7 +811,7 @@ class LoadApp(ManagedAirport):
         # # Mission handlers
         # redis.set(LOVS+"service-handlers", self.airport.manager.getCompaniesCombo(classId="Mission"))
 
-        logger.debug(":cache: ..done")
+        logger.debug("..done")
         return (True, f"LoadApp::cache_lovs: cached")
 
 if __name__ == "__main__":

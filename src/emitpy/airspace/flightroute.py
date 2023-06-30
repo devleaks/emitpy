@@ -79,39 +79,39 @@ class FlightRoute:
         a = self.getAirspace()
 
         if a is None:  # force fetch from flightplandb
-            logger.warning(":makeFlightRoute: no airspace")
+            logger.warning("no airspace")
             return None
 
         # Resolving airports
         origin = a.getAirportICAO(self.fromICAO)
         if origin is None:
-            logger.warning(f":makeFlightRoute: cannot get airport {self.fromICAO}")
+            logger.warning(f"cannot get airport {self.fromICAO}")
             return None
         destination = a.getAirportICAO(self.toICAO)
         if destination is None:
-            logger.warning(f":makeFlightRoute: cannot get airport {self.toICAO}")
+            logger.warning(f"cannot get airport {self.toICAO}")
             return None
 
         # Resolving network
         s = a.nearest_vertex(point=origin, with_connection=True)
         if s is None or s[0] is None:
-            logger.warning(f":makeFlightRoute: cannot get nearest point to {self.fromICAO}")
+            logger.warning(f"cannot get nearest point to {self.fromICAO}")
             return None
         e = a.nearest_vertex(point=destination, with_connection=True)
         if e is None or e[0] is None:
-            logger.warning(f":makeFlightRoute: cannot get nearest point to {self.toICAO}")
+            logger.warning(f"cannot get nearest point to {self.toICAO}")
             return None
 
         # Routing
-        logger.debug(f":makeFlightRoute: from {s[0].id} to {e[0].id}..")
+        logger.debug(f"from {s[0].id} to {e[0].id}..")
         if s[0] is not None and e[0] is not None:
             self.flight_plan = Route(a, s[0].id, e[0].id) # self.flight_plan.find()  # auto route
             if self.flight_plan is not None and self.flight_plan.found():
                 self._convertToGeoJSON()
             else:
-                logger.warning(f":makeFlightRoute: !!!!! no route from {self.fromICAO} to {self.toICAO} !!!!!")
+                logger.warning(f"!!!!! no route from {self.fromICAO} to {self.toICAO} !!!!!")
 
-        logger.debug(f":makeFlightRoute: ..done")
+        logger.debug(f"..done")
 
 
     def _convertToGeoJSON(self):
@@ -125,13 +125,13 @@ class FlightRoute:
         self._route = FeatureCollection(features=[])
         self.waypoints = []
 
-        logger.debug(f":_convertToGeoJSON: doing..")
+        logger.debug(f"doing..")
         for n in self.nodes():
             f = a.get_vertex(n)
             self._route.features.append(f)
             self.routeLS.coordinates.append(f["geometry"]["coordinates"])
             self.waypoints.append(f)
-        logger.debug(f":_convertToGeoJSON: ..done")
+        logger.debug(f"..done")
 
 
     def route(self):

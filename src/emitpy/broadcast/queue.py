@@ -71,10 +71,10 @@ class Queue:
                 if qn != QUIT:
                     queues[qn] = Queue.loadFromDB(redis, qn)
                 else:
-                    logger.warning(f":loadAllQueuesFromDB: cannot create queue named '{QUIT}' (reserved queue name)")
-            logger.debug(f":loadAllQueuesFromDB: loaded {queues.keys()}")
+                    logger.warning(f"cannot create queue named '{QUIT}' (reserved queue name)")
+            logger.debug(f"loaded {queues.keys()}")
         else:
-            logger.debug(f":loadAllQueuesFromDB: no queues")
+            logger.debug(f"no queues")
         return queues
 
 
@@ -88,9 +88,9 @@ class Queue:
         if qstr is not None:
             q = json.loads(qstr.decode("UTF-8"))
             if name == LIVETRAFFIC_QUEUE:
-                logger.debug(f":loadFromDB: loaded LiveTraffic queue with {q['formatter_name']} formatter")
+                logger.debug(f"loaded LiveTraffic queue with {q['formatter_name']} formatter")
             else:
-                logger.debug(f":loadFromDB: loaded {name}")
+                logger.debug(f"loaded {name}")
             start = True
             if "status" in q and q["status"] == STOP:
                 start = False
@@ -116,7 +116,7 @@ class Queue:
         # 2. Remove preparation queue
         data = Queue.mkDataKey(name)
         redis.delete(data)
-        logger.debug(f":delete: deleted {name}")
+        logger.debug(f"deleted {name}")
         return (True, "Queue::delete: deleted")
 
 
@@ -203,5 +203,5 @@ class Queue:
             "mode": self.mode,
             "status": self.status
         }))
-        logger.debug(f":save: {ident} saved")
+        logger.debug(f"{ident} saved")
         return (True, "Queue::save: saved")

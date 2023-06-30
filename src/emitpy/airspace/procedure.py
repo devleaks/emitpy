@@ -78,12 +78,12 @@ class ProcedureData:
         self.params = []
         a = line.split(":")
         if len(a) < 2:
-            logger.debug(":__init__: invalid line '%s'", line)
+            logger.debug("invalid line '%s'", line)
         else:
             self.procedure = a[0]
             self.params = a[1].split(",")
         if len(self.params) == 0:
-            logger.debug(":__init__: invalid line '%s', no params", line)
+            logger.debug("invalid line '%s', no params", line)
 
 
     def proc(self):
@@ -259,7 +259,7 @@ class APPCH(Procedure):
             code = v.param(PROC_DATA.DESC_CODE)[0]
             if code == "E" and not interrupted:
                 vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
-                logger.debug(":getRoute: %s" % vid)
+                logger.debug("%s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location
                     a.append(airspace.getSignificantPoint(vtxs[0]))
@@ -301,7 +301,7 @@ class RWY(Procedure):
 
     def add(self, line: ProcedureData):
         if self.point is not None:
-            logger.warning(":add: Cannot add to an already defined runway")
+            logger.warning("Cannot add to an already defined runway")
             return
 
 
@@ -319,7 +319,7 @@ class RWY(Procedure):
             )
             self.setAltitude(float(self.route[0].params[3]) * FT)
         else:
-            logger.warning(f":add: Runway {self.runway} has no threshold")
+            logger.warning(f"Runway {self.runway} has no threshold")
 
 
     def has_latlon(self):
@@ -389,7 +389,7 @@ class CIFP:
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "CIFP")
         if os.path.isdir(fn):
-            logger.debug(f":init: CIFP custom data directory exist, using it")
+            logger.debug(f"CIFP custom data directory exist, using it")
             self.basename = CUSTOM_DATA_DIR
 
         self.loadFromFile()
@@ -449,7 +449,7 @@ class CIFP:
                 if prevline is not None:
                     prevline.addData(cifpline)
                 else:
-                    logger.warning(":loadCIFP: received PRDAT but no procedure to add to")
+                    logger.warning("received PRDAT but no procedure to add to")
             else:
                 if procty == "RWY":
                     procedures[procty][procname] = RWY(procname, self.icao)
@@ -465,12 +465,12 @@ class CIFP:
                         elif procty == "APPCH":
                             procedures[procty][procrwy][procname] = APPCH(procname)
                         else:
-                            logger.warning(":loadCIFP: invalid procedure %s", procty)
+                            logger.warning("invalid procedure %s", procty)
 
                     if procname in procedures[procty][procrwy].keys():
                         procedures[procty][procrwy][procname].add(cifpline)
                     else:
-                        logger.warning(":loadCIFP: procedure not created %s", procty)
+                        logger.warning("procedure not created %s", procty)
 
             prevline = cifpline
             line = cifp_fp.readline()
@@ -487,14 +487,14 @@ class CIFP:
         ## Print result
         # for k, v in procedures.items():
         #     if k == "RWY":
-        #         logger.debug(f":loadFromFile: {k}: {v.keys()}")
+        #         logger.debug(f"{k}: {v.keys()}")
         #     else:
         #         for r, p in v.items():
-        #             logger.debug(f":loadFromFile: {k} {r}: {p.keys()}")
+        #             logger.debug(f"{k} {r}: {p.keys()}")
 
             # details:
             # for p in procedures[procty]:
-            #    logger.debug(":CIFP: %s: %s %s" % (procty, procedures[procty][p].runway, p))
+            #    logger.debug("%s: %s %s" % (procty, procedures[procty][p].runway, p))
         return (True, "CIFP:loadFromFile: loaded")
 
     def pairRunways(self):
@@ -504,9 +504,9 @@ class CIFP:
         if len(self.RWYS) == 2:
             rwk = list(self.RWYS.keys())
             self.RWYS[rwk[0]].end, self.RWYS[rwk[1]].end = self.RWYS[rwk[1]], self.RWYS[rwk[0]]
-            logger.debug(f":pairRunways: {self.icao}: {self.RWYS[rwk[0]].name} and {self.RWYS[rwk[1]].name} paired")
+            logger.debug(f"{self.icao}: {self.RWYS[rwk[0]].name} and {self.RWYS[rwk[1]].name} paired")
         else:
-            logger.debug(f":pairRunways: {self.icao}: pairing {self.RWYS.keys()}")
+            logger.debug(f"{self.icao}: pairing {self.RWYS.keys()}")
             for k, r in self.RWYS.items():
                 if r.end is None:
                     rh = int(k[2:4])
@@ -531,16 +531,16 @@ class CIFP:
                         uuid = k.replace("RW", "")+"-"+rw.replace("RW", "") if k < rw else rw.replace("RW", "")+"-"+k.replace("RW", "")
                         r.uuid = uuid
                         r.end.uuid = uuid
-                        logger.debug(f":pairRunways: {self.icao}: {r.name} and {rw} paired as {uuid}")
+                        logger.debug(f"{self.icao}: {r.name} and {rw} paired as {uuid}")
                     else:
-                        logger.warning(f":pairRunways: {self.icao}: {rw} ont found to pair {r.name}")
+                        logger.warning(f"{self.icao}: {rw} ont found to pair {r.name}")
         # bearing and length
         for k, r in self.RWYS.items():
             if r.end is not None and r.getPoint() is not None and r.end.getPoint() is not None:
                 r.bearing = bearing(r.getPoint(), r.end.getPoint())
                 r.length = distance(r.getPoint(), r.end.getPoint(), "m")
             else:
-                logger.warning(f":pairRunways: runway {k} for {self.icao} has missing threshold")
+                logger.warning(f"runway {k} for {self.icao} has missing threshold")
             # else:
             #     apt = Airport.findICAO(self.icao)
             #     if apt is not None:
@@ -552,7 +552,7 @@ class CIFP:
             #             lat=apt["geometry"]["coordinates"][1],
             #             lon=apt["geometry"]["coordinates"][0]
             #         )
-            #         logger.warning(f":pairRunways: runway {k} for {self.icao} has no threshold, replaced by airport coordinates.")
+            #         logger.warning(f"runway {k} for {self.icao} has no threshold, replaced by airport coordinates.")
 
 
     def getRoute(self, procedure: Procedure, airspace: Aerospace):
@@ -596,7 +596,7 @@ class CIFP:
         :type       wind_dir:  float
         """
         if wind_dir is None:
-            logger.warning(f":getOperationalRunways: {self.icao} no wind direction, using all runways")
+            logger.warning(f"{self.icao} no wind direction, using all runways")
             return self.getRunways()
 
         max1 = wind_dir - 90
@@ -610,26 +610,26 @@ class CIFP:
         if max1 > max2:
             max1, max2 = max2, max1
 
-        # logger.debug(":_computeOperationalRunways: %f %d %d" % (wind_dir, max1, max2))
+        # logger.debug("%f %d %d" % (wind_dir, max1, max2))
         rops = {}
         if wind_dir > 90 and wind_dir < 270:
             for rwy in self.RWYS.keys():
-                # logger.debug(":_computeOperationalRunways: %s %d" % (rwy, int(rwy[2:4])))
+                # logger.debug("%s %d" % (rwy, int(rwy[2:4])))
                 rw = int(rwy[2:4])
                 if rw >= max1 and rw < max2:
-                    # logger.debug(":_computeOperationalRunways: added %s" % rwy)
+                    # logger.debug("added %s" % rwy)
                     rops[rwy] = self.RWYS[rwy]
         else:
             for rwy in self.RWYS.keys():
-                # logger.debug(":_computeOperationalRunways: %s %d" % (rwy, int(rwy[2:4])))
+                # logger.debug("%s %d" % (rwy, int(rwy[2:4])))
                 rw = int(rwy[2:4])
                 if rw < max1 or rw >= max2:
-                    # logger.debug(":_computeOperationalRunways: added %s" % rwy)
+                    # logger.debug("added %s" % rwy)
                     rops[rwy] = self.RWYS[rwy]
 
         if len(rops.keys()) == 0:
-            logger.warning(f":getOperationalRunways: {self.icao} could not find runway for operations")
+            logger.warning(f"{self.icao} could not find runway for operations")
 
-        logger.info(f":getOperationalRunways: {self.icao} wind direction is {wind_dir:f}, runway in use: {rops.keys()}")
+        logger.info(f"{self.icao} wind direction is {wind_dir:f}, runway in use: {rops.keys()}")
         return rops
 

@@ -32,9 +32,9 @@ class Service(GroundSupport):
         cn = service[0].upper() + service[1:].lower() + "Service"  # @todo: Hum.
         if hasattr(mod, cn):
             svc = getattr(sys.modules[__name__], cn)  # same module...
-            logger.debug(f":getService: returning {cn}")
+            logger.debug(f"returning {cn}")
             return svc
-        logger.warning(f":getService: service {cn} not found")
+        logger.warning(f"service {cn} not found")
         return None
 
     @staticmethod
@@ -53,11 +53,11 @@ class Service(GroundSupport):
         s = self.scheduled.isoformat().replace(":", ".") if self.scheduled is not None else "noschedule"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
         if self.ramp is None:
-            logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no ramp")
+            logger.warning(f"service on ramp {r} at {s} with vehicle {v} as no ramp")
         if self.scheduled is None:
-            logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no schedule")
+            logger.warning(f"service on ramp {r} at {s} with vehicle {v} as no schedule")
         # if self.vehicle is None:
-        #     logger.warning(f":getId: service on ramp {r} at {s} with vehicle {v} as no vehicle")
+        #     logger.warning(f"service on ramp {r} at {s} with vehicle {v} as no vehicle")
         return key_path(type(self).__name__, r, s, v)
 
     def getInfo(self):

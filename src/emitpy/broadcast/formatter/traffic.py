@@ -38,7 +38,7 @@ class TrafficFormatter(Formatter):
             if len(r) == 1:
                 return r[0]
             if len(r) > 1:
-                logger.warning(f":__str__: ambiguous return value for {path}")
+                logger.warning(f"ambiguous return value for {path}")
                 return r[0]
             return None
 

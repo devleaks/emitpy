@@ -38,7 +38,7 @@ class FlightServices:
 
         is_arrival = emit.getMeta("$.move.is_arrival")
         if is_arrival is None:
-            logger.warning(f":allServicesForFlight: cannot get flight movement")
+            logger.warning(f"cannot get flight movement")
             return ()
 
         before = None
@@ -51,14 +51,14 @@ class FlightServices:
 
         scheduled = emit.getMeta("$.move.scheduled")
         if scheduled is None:
-            logger.warning(f":do_flight_services: cannot get flight scheduled time {emit.getMeta()}")
+            logger.warning(f"cannot get flight scheduled time {emit.getMeta()}")
             return ()
         scheduled = datetime.fromisoformat(scheduled)
 
         et_min = scheduled - timedelta(minutes=before)
         et_max = scheduled + timedelta(minutes=after)
-        logger.debug(f":allServicesForFlight: {ARRIVAL if is_arrival else DEPARTURE} at {scheduled}")
-        logger.debug(f":allServicesForFlight: trying services between {et_min} and {et_max}")
+        logger.debug(f"{ARRIVAL if is_arrival else DEPARTURE} at {scheduled}")
+        logger.debug(f"trying services between {et_min} and {et_max}")
 
         # 2 search for all services at that ramp, "around" supplied ETA/ETD.
         ramp = emit.getMeta("$.move.ramp.name")
@@ -67,11 +67,11 @@ class FlightServices:
             k = k.decode("UTF-8")
             karr = k.split(ID_SEP)
             dt = datetime.fromisoformat(karr[3].replace(".", ":"))
-            # logger.debug(f":allServicesForFlight: {k}: testing {dt}..")
+            # logger.debug(f"{k}: testing {dt}..")
             if dt > et_min and dt < et_max:
                 items.append(k)
-                logger.debug(f":allServicesForFlight: added {k}..")
-        logger.debug(f":allServicesForFlight: ..done")
+                logger.debug(f"added {k}..")
+        logger.debug(f"..done")
         return set(items)
 
 
@@ -85,25 +85,25 @@ class FlightServices:
     #
     def save(self, redis):
         for service in self.services:
-            logger.debug(f":save: saving to redis {service['type']}..")
+            logger.debug(f"saving to redis {service['type']}..")
             emit = service["emit"]
             ret = emit.save(redis)
             if not ret[0]:
-                logger.warning(f":save: {service['type']} returned {ret[1]}")
+                logger.warning(f"{service['type']} returned {ret[1]}")
             else:
-                logger.debug(f":save: ..done")
+                logger.debug(f"..done")
         return (True, "FlightServices::save: completed")
 
 
     def saveFile(self):
         for service in self.services:
-            logger.debug(f":saveFile: saving to file {service['type']}..")
+            logger.debug(f"saving to file {service['type']}..")
             emit = service["emit"]
             ret = emit.saveFile()
             if not ret[0]:
-                logger.warning(f":saveFile: {service['type']} returned {ret[1]}")
+                logger.warning(f"{service['type']} returned {ret[1]}")
             else:
-                logger.debug(f":saveFile: ..done")
+                logger.debug(f"..done")
         return (True, "FlightServices::saveFile: completed")
 
 
@@ -149,7 +149,7 @@ class FlightServices:
             warn_time = svc.get(TAR_SERVICE.WARN.value)
             alert_time = svc.get(TAR_SERVICE.ALERT.value)
 
-            logger.debug(f":service: creating service {sname}..")
+            logger.debug(f"creating service {sname}..")
 
             service_scheduled_dt = self.flight.scheduled_dt + timedelta(minutes=scheduled)
             service_scheduled_end_dt = self.flight.scheduled_dt + timedelta(minutes=(scheduled+duration))
@@ -166,7 +166,7 @@ class FlightServices:
             this_service.setRamp(self.ramp)
             if sname == EVENT_ONLY_MESSAGE:  # TA service with no vehicle, we just emit messages on the wire
                 this_service.event = svc.get(TAR_SERVICE.EVENT.value)  # Important to set it here, since not provided at creation
-                logger.debug(f":service: created event only {this_service.event}..")
+                logger.debug(f"created event only {this_service.event}..")
                 # this_service.setVehicle(None)
             else:
                 equipment_model = svc.get(TAR_SERVICE.MODEL.value)
@@ -188,17 +188,17 @@ class FlightServices:
                 this_equipment.setNextPosition(equipment_endpos)
 
                 if equipment_startpos is None or equipment_endpos is None:
-                    logger.warning(f":service: positions: {equipment_startpos} -> {equipment_endpos}")
+                    logger.warning(f"positions: {equipment_startpos} -> {equipment_endpos}")
                 # logger.debug(".. moving ..")
                 # move = ServiceMove(this_service, self.airport)
                 # move.move()
                 # move.save()
 
-            logger.debug(f":service: .. adding ..")
+            logger.debug(f".. adding ..")
             s2 = svc.copy()
             s2["service"] = this_service
             self.services.append(s2)
-            logger.debug(":service: .. done")
+            logger.debug(".. done")
 
         return (True, "FlightServices::service: completed")
 
@@ -208,14 +208,14 @@ class FlightServices:
     #
     def move(self):
         for service in self.services:
-            logger.debug(f":move: moving {service['type']}..")
+            logger.debug(f"moving {service['type']}..")
             move = ServiceMove(service["service"], self.airport)
             ret = move.move()
             if not ret[0]:
                 logger.warning(f"moving {service['type']} returns {ret}")
                 return ret
             service["move"] = move
-            logger.debug(f":move: ..done")
+            logger.debug(f"..done")
         return (True, "FlightServices::move: completed")
 
 
@@ -224,13 +224,13 @@ class FlightServices:
     #
     def emit(self, emit_rate: int):
         for service in self.services:
-            logger.debug(f":emit: emitting {service['type']}..")
+            logger.debug(f"emitting {service['type']}..")
             emit = Emit(service["move"])
             ret = emit.emit(emit_rate)
             if not ret[0]:
                 return ret
             service["emit"] = emit
-            logger.debug(f":emit: ..done")
+            logger.debug(f"..done")
         return (True, "FlightServices::emit: completed")
 
 
@@ -244,9 +244,9 @@ class FlightServices:
         for service in self.services:
             emit = service["emit"]
             if emit.has_no_move_ok():
-                logger.debug(f":schedule: service {service[TAR_SERVICE.TYPE.value]} does not need scheduling of positions")
+                logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need scheduling of positions")
                 continue
-            logger.debug(f":schedule: scheduling {service[TAR_SERVICE.TYPE.value]}..")
+            logger.debug(f"scheduling {service[TAR_SERVICE.TYPE.value]}..")
             stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
             emit.addToPause(SERVICE_PHASE.SERVICE_START.value, service.get(TAR_SERVICE.DURATION.value, 0) * 60)  # seconds
             ##
@@ -255,21 +255,21 @@ class FlightServices:
             ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, stime, do_print)
             if not ret[0]:
                 return ret
-            logger.debug(f":schedule: there are {len(emit.scheduled_emit)} scheduled emit points")
-            logger.debug(f":schedule: ..done")
+            logger.debug(f"there are {len(emit.scheduled_emit)} scheduled emit points")
+            logger.debug(f"..done")
         return (True, "FlightServices::schedule: completed")
 
 
     def scheduleMessages(self, scheduled: datetime, do_print: bool = False):
         for service in self.services:
             emit = service["emit"]
-            logger.debug(f":schedule: scheduling {service[TAR_SERVICE.TYPE.value]}..")
+            logger.debug(f"scheduling {service[TAR_SERVICE.TYPE.value]}..")
             stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
             ret = emit.scheduleMessages(SERVICE_PHASE.SERVICE_START.value, stime, do_print)
             if not ret[0]:
                 return ret
-            logger.debug(f":schedule: there are {len(emit.getMessages())} scheduled messages")
-            logger.debug(f":schedule: ..done")
+            logger.debug(f"there are {len(emit.getMessages())} scheduled messages")
+            logger.debug(f"..done")
 
         # For debugging purpose only:
         if do_print:
@@ -365,7 +365,7 @@ class FlightServices:
         contents = output.getvalue()
         output.close()
 
-        logger.debug(f":getTimedMessageList: {contents}")
+        logger.debug(f"{contents}")
         return contents
 
 
@@ -376,9 +376,9 @@ class FlightServices:
         for service in self.services:
             emit = service["emit"]
             if emit.has_no_move_ok():
-                logger.debug(f":format: service {service[TAR_SERVICE.TYPE.value]} does not need formatting of positions")
+                logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need formatting of positions")
                 continue
-            logger.debug(f":format: formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
+            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
             formatted = Format(emit)
             ret = formatted.format()
             if not ret[0]:
@@ -394,7 +394,7 @@ class FlightServices:
 
     def formatMessages(self, saveToFile: bool = False):
         for service in self.services:
-            logger.debug(f":format: formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
+            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
             formatted = FormatMessage(service["emit"])
             ret = formatted.format()
             if not ret[0]:
@@ -415,9 +415,9 @@ class FlightServices:
         for service in self.services:
             emit = service["emit"]
             if emit.has_no_move_ok():
-                logger.debug(f":enqueuetoredis: service {service[TAR_SERVICE.TYPE.value]} does not need enqueueing positions")
+                logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need enqueueing positions")
                 continue
-            logger.debug(f":enqueuetoredis: enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
+            logger.debug(f"enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
             formatted = EnqueueToRedis(emit, queue)
             ret = formatted.format()
             if not ret[0]:
@@ -435,7 +435,7 @@ class FlightServices:
     def enqueueMessagesToRedis(self, queue):
         for service in self.services:
             emit = service["emit"]
-            logger.debug(f":enqueuemessagestoredis: enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
+            logger.debug(f"enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
             formatted = EnqueueMessagesToRedis(emit, queue)
             ret = formatted.format()
             if not ret[0]:

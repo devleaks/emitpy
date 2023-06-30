@@ -56,8 +56,8 @@ class Airline(Company):
                 Airline._DB_NAME[row["Airline"]] = a
             file.close()
         else:
-            logger.warning(f":loadAll: file {filename} not found, no airline loaded")
-        logger.debug(f":loadAll: loaded {len(Airline._DB)} airlines")
+            logger.warning(f"file {filename} not found, no airline loaded")
+        logger.debug(f"loaded {len(Airline._DB)} airlines")
 
     @staticmethod
     def loadFlightOperators(airport_icao:str = None):
@@ -88,8 +88,8 @@ class Airline(Company):
                     cnt = cnt + 1
             file.close()
         else:
-            logger.debug(f":loadFightOperators: file {filename} not found, no flight operator loaded")
-        logger.debug(f":loadFightOperators: loaded {cnt} flight operators (~Z{kk})")
+            logger.debug(f"file {filename} not found, no flight operator loaded")
+        logger.debug(f"loaded {cnt} flight operators (~Z{kk})")
 
     @staticmethod
     def find(code: str, redis = None):
@@ -105,7 +105,7 @@ class Airline(Company):
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
-                logger.warning(f":find: no such key {k}")
+                logger.warning(f"no such key {k}")
         else:
             if len(code) == 3:
                 return Airline._DB[code] if code in Airline._DB else None
@@ -124,7 +124,7 @@ class Airline(Company):
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
-                logger.warning(f":findICAO: no such key {k}")
+                logger.warning(f"no such key {k}")
         else:
             return Airline._DB[icao] if icao in Airline._DB else None
         return None
@@ -140,7 +140,7 @@ class Airline(Company):
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
-                logger.warning(f":findIATA: no such key {k}")
+                logger.warning(f"no such key {k}")
         else:
             return Airline._DB_IATA.get(iata)
         return None
@@ -156,7 +156,7 @@ class Airline(Company):
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
-                logger.warning(f":findName: no such key {k}")
+                logger.warning(f"no such key {k}")
         else:
             return Airline._DB_NAME.get(name)
         return None

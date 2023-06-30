@@ -66,26 +66,26 @@ def moveOn(arr, idx, currpos, dist):
     # move on dist (meters) on linestring from currpos (which is between idx and idx+1)
     # are we at the end of the line string?
     if idx == len(arr) - 1:
-        logger.debug(":moveOn: arrived")
+        logger.debug("arrived")
         return (arr[-1], len(arr) - 1)
     if idx == len(arr) - 2:
-        logger.debug(":moveOn: last segment %d, %f left" % (idx, dist))
+        logger.debug("last segment %d, %f left" % (idx, dist))
         # do we reach destination?
         left = distance(currpos, arr[-1], 'm')
         if left < dist:  # we reached destination
-            logger.debug(":moveOn: destination reached")
+            logger.debug("destination reached")
             return (arr[-1], len(arr) - 1)
         # we do not reach destination, so we move towards it
         # we can continue with regular algorithm
     nextp = arr[idx + 1]
     left = distance(currpos, nextp, 'm') # distance returns km
     if left < dist:  # we reach the next point at least. Move to it, then continue.
-        # logger.debug(":moveOn: completed segment %d, move on segment %d, %f left to run" % (idx, idx + 1, dist - left))
+        # logger.debug("completed segment %d, move on segment %d, %f left to run" % (idx, idx + 1, dist - left))
         return moveOn(arr, idx + 1, nextp, dist - left)
     # we progress towards next point without reaching it
     brng = bearing(arr[idx], nextp)
     dest = destination(currpos, dist, brng, {"units": "m"})  # dist in m
-    # logger.debug(":moveOn: distance to run reached, %f left on segment %d" % (left - dist, idx + 1))
+    # logger.debug("distance to run reached, %f left on segment %d" % (left - dist, idx + 1))
     return (dest, idx)
 
 

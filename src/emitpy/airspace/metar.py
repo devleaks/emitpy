@@ -29,7 +29,7 @@ def round_dt(dt, delta):  # rounds date to delta after date.
 def normalize_dt(dt):
     dtutc = dt.astimezone(tz=timezone.utc)
     dtret = round_dt(dtutc - timedelta(minutes=30), timedelta(minutes=30))
-    logger.debug(f":normalize_dt: {dt}: {dtutc}=>{dtret}")
+    logger.debug(f"{dt}: {dtutc}=>{dtret}")
     return dtret
 
 
@@ -47,7 +47,7 @@ class Metar(ABC):
         self.redis = redis
 
         if redis is None and not os.path.exists(METAR_DIR) or not os.path.isdir(METAR_DIR):
-            logger.warning(f":__init__: no Metar directory {METAR_DIR}")
+            logger.warning(f"no Metar directory {METAR_DIR}")
 
 
     # ####################################
@@ -70,7 +70,7 @@ class Metar(ABC):
             doit = getattr(metarclasses, method)
             return doit(icao, redis)
         else:
-            logger.warning(f":new: could not get Metar implementation {method}")
+            logger.warning(f"could not get Metar implementation {method}")
         return None
 
     def getWindDirection(self):
@@ -152,23 +152,23 @@ class Metar(ABC):
         if self.raw is not None:
             fn = self.saveFileName()
             if not os.path.exists(fn):
-                logger.warning(f":saveFile: saving into {fn} '{self.raw}'")
+                logger.warning(f"saving into {fn} '{self.raw}'")
                 with open(fn, "w") as outfile:
                     outfile.write(self.raw)
             else:
-                logger.warning(f":saveFile: already exist {fn}")
+                logger.warning(f"already exist {fn}")
             return (True, "Metar::saveFile: saved")
         return (False, "Metar::saveFile: no METAR to saved")
 
     def loadFile(self):
         fn = self.saveFileName()
         if os.path.exists(fn):
-            logger.debug(f":loadFile: found {fn}")
+            logger.debug(f"found {fn}")
             try:
                 with open(fn, "r") as fp:
                     self.raw = fp.readline()
             except:
-                logger.debug(f":loadFile: problem reading from {fn}", exc_info=True)
+                logger.debug(f"problem reading from {fn}", exc_info=True)
                 self.raw = None
 
             if self.raw is not None:
@@ -176,7 +176,7 @@ class Metar(ABC):
                 return (True, "Metar::loadFile: loaded and parsed")
             return (False, "Metar::loadFile: not loaded")
         else:
-            logger.debug(f":loadFile: file not found {fn}")
+            logger.debug(f"file not found {fn}")
         return (False, "Metar::loadFile: not loaded")
 
     def cacheKeyName(self):
@@ -195,13 +195,13 @@ class Metar(ABC):
             if not self.redis.exists(metid):
                 self.redis.set(metid, self.raw)
                 self.redis.select(prevdb)
-                logger.debug(f":saveToCache: saved {metid}")
+                logger.debug(f"saved {metid}")
                 return (True, "Metar::saveToCache: saved")
             else:
                 self.redis.select(prevdb)
-                logger.warning(f":saveToCache: already exist {metid}")
+                logger.warning(f"already exist {metid}")
         else:
-            logger.warning(f":saveToCache: no metar to save")
+            logger.warning(f"no metar to save")
         return (False, "Metar::saveToCache: not saved")
 
     def loadFromCache(self):
@@ -209,7 +209,7 @@ class Metar(ABC):
             nowstr = self.cacheKeyName()
             metid = REDIS_DATABASE.METAR.value + ":" + self.icao + ":" + nowstr
             if self.redis.exists(metid):
-                logger.debug(f":loadFromCache: found {metid}")
+                logger.debug(f"found {metid}")
                 raw = self.redis.get(metid)
                 self.raw = raw.decode("UTF-8")
                 if self.raw is not None:
@@ -217,7 +217,7 @@ class Metar(ABC):
                     return (True, "Metar::loadFromCache: loaded and parsed")
                 return (False, "Metar::loadFromCache: failed to get")
             else:
-                logger.debug(f":loadFromCache: not found {metid}")
+                logger.debug(f"not found {metid}")
         return (False, "Metar::loadFromCache: failed to load")
 
     def parse(self):
@@ -231,7 +231,7 @@ class Metar(ABC):
                 self.metar = parsed
             return (True, "Metar::parse: parsed")
         except MetarLib.ParserError as e:
-            logger.debug(f":load: METAR failed to parse '{self.raw}': {e}")
+            logger.debug(f"METAR failed to parse '{self.raw}': {e}")
         return (False, "Metar::parse: failed to parse")
 
     def getAtmap(self):

@@ -50,7 +50,7 @@ class OSMAirport(ManagedAirportBase):
                 else:  # JSON or GeoJSON
                     self.data = json.load(fptr)
         else:
-            logger.warning(f":file: {fname} not found")
+            logger.warning(f"{fname} not found")
             return [False, "OSMAirport::loadJSONOrYAMLFromFile file %s not found", fname]
 
         return [True, f"OSMAirport::file {name} loaded"]
@@ -83,7 +83,7 @@ class OSMAirport(ManagedAirportBase):
 
         self.data = None
 
-        logger.info(f":loadRunways: added {len(self.runways)} runways: {self.runways.keys()}.")
+        logger.info(f"added {len(self.runways)} runways: {self.runways.keys()}.")
         return [True, "OSMAirport::loadRunways loaded"]
 
 
@@ -114,7 +114,7 @@ class OSMAirport(ManagedAirportBase):
                                                use="pax|cargo")
         self.data = None
 
-        logger.info(f":loadRamps: added {len(self.ramps)} parkings: {sorted(self.ramps.keys())}")
+        logger.info(f"added {len(self.ramps)} parkings: {sorted(self.ramps.keys())}")
         return [True, "OSMAirport::loadRamps loaded"]
 
 
@@ -144,7 +144,7 @@ class OSMAirport(ManagedAirportBase):
 
         self.data = None
 
-        logger.info(":loadOSM: added %d nodes, %d edges.", len(graph.vert_dict), len(graph.edges_arr))
+        logger.info("added %d nodes, %d edges.", len(graph.vert_dict), len(graph.edges_arr))
         return [True, "OSMAirport::loadOSM loaded"]
 
     def loadTaxiways(self):
@@ -159,7 +159,7 @@ class OSMAirport(ManagedAirportBase):
         if not status[0]:
             return status
 
-        logger.debug(":loadPOIS: loaded")
+        logger.debug("loaded")
         return [True, "GeoJSONAirport::loadPOIS loaded"]
 
 
@@ -169,8 +169,8 @@ class OSMAirport(ManagedAirportBase):
         if self.data is not None:  # parse runways
             self.service_stops_geo = self.data
             self.data = None
-            logger.info(":loadServicePOIS: added %d features.", len(self.service_stops_geo["features"]))
+            logger.info("added %d features.", len(self.service_stops_geo["features"]))
 
 
-        logger.debug(":loadServicePOIS: added %d service destinations", len(self.service_pois.keys()))
+        logger.debug("added %d service destinations", len(self.service_pois.keys()))
         return [True, "OSMAirport::loadServicePOIS loaded"]

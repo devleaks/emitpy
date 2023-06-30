@@ -27,18 +27,18 @@ coloredlogs.install(level=logging.DEBUG, logger=logger, fmt="%(asctime)s %(name)
 
 
 
-logger.info(f":emitpy: {emitpy.__NAME__} {emitpy.__COPYRIGHT__}")
-logger.info(f":emitpy: Release {emitpy.__version__} «{emitpy.__version_name__}»")
-logger.info(f":emitpy: Usable under Licence {emitpy.__LICENSE__} {emitpy.__LICENSEURL__}")
+logger.info(f"{emitpy.__NAME__} {emitpy.__COPYRIGHT__}")
+logger.info(f"Release {emitpy.__version__} «{emitpy.__version_name__}»")
+logger.info(f"Usable under Licence {emitpy.__LICENSE__} {emitpy.__LICENSEURL__}")
 
 
 hypercaster = None
 try:
-    logger.info(":emitpy: starting Hypercaster..")
+    logger.info("starting Hypercaster..")
     hypercaster = Hypercaster()  # blocks inside Hypercaster
-    logger.info(":emitpy: ..started")
+    logger.info("..started")
 except KeyboardInterrupt:
-    logger.info(":emitpy: Stopping Hypercaster..")
+    logger.info("Stopping Hypercaster..")
     if hypercaster is not None:
         hypercaster.shutdown()
-    logger.info(":emitpy: ..stopped")
+    logger.info("..stopped")

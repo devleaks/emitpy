@@ -63,7 +63,7 @@ class Movement(Messages):
         ls = Feature(geometry=asLineString(self.moves))
         saveMe(self.moves + [ls], "moves_ls")
 
-        logger.debug(f":save: saved {ident}")
+        logger.debug(f"saved {ident}")
         return (True, "Movement::save saved")
 
     def load(self, ident):
@@ -77,7 +77,7 @@ class Movement(Messages):
         with open(filename, "r") as fp:
             self.moves = json.load(fp)
 
-        logger.debug(":load: loaded %d " % ident)
+        logger.debug("loaded %d " % ident)
         return (True, "Movement::load loaded")
 
     def getInfo(self):
@@ -91,11 +91,11 @@ class Movement(Messages):
 
     def getMessages(self):
         m = super().getMessages()
-        logger.debug(f":getMessages: added super()")
+        logger.debug(f"added super()")
         s = self.getSource()
         if s is not None:
             m = m + s.getMessages()
-            logger.debug(f":getMessages: added source")
+            logger.debug(f"added source")
         return m
 
     def getSource(self):
@@ -131,7 +131,7 @@ class Movement(Messages):
             before = f.pause(-1)
             if before > 0:
                 n = f.getProp(FEATPROP.MARK.value)
-                logger.debug(f":resetDelays: removed delay at {n} ({before} secs.)")
+                logger.debug(f"removed delay at {n} ({before} secs.)")
                 f.setPause(0)
 
 
@@ -146,7 +146,7 @@ class Movement(Messages):
         for name, duration in delays.items():
             farr = findFeatures(self.moves, {FEATPROP.MARK.value: name})
             if len(farr) == 0:
-                logger.warning(f":addDelay: feature mark {name} not found")
+                logger.warning(f"feature mark {name} not found")
                 return
             ## assume at most one...
             f = farr[0]

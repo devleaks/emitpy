@@ -118,7 +118,7 @@ class Message:
 
     def schedule(self, moment):
         self.absolute_time = moment + timedelta(seconds=self.relative_time)
-        logger.debug(f":schedule: {type(self).__name__}: {self.absolute_time.isoformat()} (relative={self.relative_time})")
+        logger.debug(f"{type(self).__name__}: {self.absolute_time.isoformat()} (relative={self.relative_time})")
         return self.absolute_time
 
     def getAbsoluteEmissionTime(self):
@@ -151,7 +151,7 @@ class ReMessage(Message):
 
     def getInfo(self):
         r = self.data
-        logger.debug(f":getInfo: type is {self.data.get('type')}")
+        logger.debug(f"type is {self.data.get('type')}")
 
         # replace values if modified
         if self.relative_sync is not None:
@@ -185,12 +185,12 @@ class Messages:
     def scheduleMessages(self, reftime: datetime):
         for m in self.messages:
             m.schedule(reftime)
-        logger.debug(f":scheduleMessages: scheduled relative to {reftime}")
+        logger.debug(f"scheduled relative to {reftime}")
 
     def saveMessages(self, redis, key: str):
         for m in self.messages:
             redis.sadd(key, json.dumps(m.getInfo()))
-        logger.debug(f":save: saved {redis.smembers(key)} messages")
+        logger.debug(f"saved {redis.smembers(key)} messages")
 
     def getScheduleHistory(self, as_string: bool = False):
         if as_string:

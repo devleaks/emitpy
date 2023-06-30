@@ -15,7 +15,7 @@ def round_dt(dt, delta):  # rounds date to delta after date.
 def normalize_dt(dt):
     dtutc = dt.astimezone(tz=timezone.utc)
     dtret = round_dt(dtutc - timedelta(minutes=30), timedelta(minutes=30))
-    logger.debug(f":normalize_dt: {dt}: {dtutc}=>{dtret}")
+    logger.debug(f"{dt}: {dtutc}=>{dtret}")
     return dtret
 
 
@@ -44,21 +44,21 @@ class MetarOgimet(Metar):
 
         url = url1
 
-        logger.debug(f":fetch: url={url}")
+        logger.debug(f"url={url}")
         #with open("/Users/pierre/Developer/oscars/emitpy/src/emitpy/airspace/result.txt", "r") as response:  # urllib.request.urlopen(url) as response:
 
         response = requests.get(url, cookies={'cookieconsent_status': 'dismiss'})
         txt = response.text
         # with urllib.request.urlopen(url) as response:
         #     txt = response.read().decode("UTF-8")
-        logger.debug(f":fetch: {txt}")
+        logger.debug(f"{txt}")
 
         metar = self.scrap_metar(txt)
         if metar is None:
             return (False, "MetarOgimet::fetch: failed to get historical metar")
 
         self.raw = metar[len(nowstr2)+7:-1]
-        logger.debug(f":fetch: historical metar {self.moment_norm} '{self.raw}'")
+        logger.debug(f"historical metar {self.moment_norm} '{self.raw}'")
         return self.parse()
 
     def scrap_metar(self, txt):
@@ -68,9 +68,9 @@ class MetarOgimet(Metar):
         nowstr2 = self.moment_norm.strftime('%Y%m%d%H%M')
         # 201903312300 METAR OTHH 312300Z
         start = f"{nowstr2} METAR {self.icao} {nowstr}"
-        logger.debug(f":fetch: start '{start}'")
+        logger.debug(f"start '{start}'")
         for line in re.findall(start+"(.*)", txt):
              metar = start+line
-            # logger.debug(f":fetchHistoricalMetar: search for '{start}(.*)': {metar}")
+            # logger.debug(f"search for '{start}(.*)': {metar}")
 
         return metar

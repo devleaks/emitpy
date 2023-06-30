@@ -65,3 +65,8 @@ make some parameters optionals
 runway not used?
 
 create arbitrary event
+
+
+logger\.(debug|info|warn|warning|error)\(([f'"]*):([a-zA-Z0-9_]+): 
+
+
