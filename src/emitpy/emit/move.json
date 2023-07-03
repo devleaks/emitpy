@@ -1,0 +1,500 @@
+{
+    "type": "flight",
+    "ident": "SN1703-S201904011850",
+    "flight":
+    {
+        "identifier": "SN1703-S201904011850",
+        "scheduled": "2019-04-01T20:50:00+02:00",
+        "airline":
+        {
+            "orgId": "BRUSSELS AIRLINES",
+            "classId": "airline",
+            "typeId": "",
+            "name": "SN",
+            "iata": "SN",
+            "icao": "BEL"
+        },
+        "departure":
+        {
+            "icao": "EDDF",
+            "iata": "FRA",
+            "name": "Frankfurt am Main Airport",
+            "city": "Frankfurt am Main",
+            "country": "DE",
+            "iso_region": "DE-HE",
+            "lat": 50.036249,
+            "lon": 8.559294,
+            "alt": 110.9472,
+            "procedures":
+            {
+                "type": "CIFP",
+                "terminal": "EDDF",
+                "runways":
+                [
+                    "RW07C",
+                    "RW07L",
+                    "RW07R",
+                    "RW18",
+                    "RW25C",
+                    "RW25L",
+                    "RW25R",
+                    "RW36"
+                ],
+                "stars":
+                {
+                    "RW25B":
+                    [
+                        "EMPA3A",
+                        "EMPA3B",
+                        "FAWU2A",
+                        "FAWU2B",
+                        "KERA1S",
+                        "KERA2G",
+                        "KERA3A",
+                        "KERA3B",
+                        "PETI3A",
+                        "PETI3B",
+                        "ROLI2S",
+                        "ROLI3A",
+                        "ROLI3B",
+                        "ROLI4G",
+                        "SPES1G",
+                        "SPES1S",
+                        "SPES3A",
+                        "SPES3B",
+                        "UNOK2S",
+                        "UNOK3A",
+                        "UNOK3B",
+                        "UNOK4G"
+                    ],
+                    "RW07B":
+                    [
+                        "EMPA3C",
+                        "EMPA3D",
+                        "FAWU2C",
+                        "FAWU2D",
+                        "KERA3C",
+                        "KERA3D",
+                        "KERA3R",
+                        "KERA6H",
+                        "PETI3C",
+                        "PETI3D",
+                        "ROLI3C",
+                        "ROLI3D",
+                        "ROLI3H",
+                        "ROLI3R",
+                        "SPES1H",
+                        "SPES2R",
+                        "SPES3C",
+                        "SPES3D",
+                        "UNOK3C",
+                        "UNOK3D",
+                        "UNOK3H",
+                        "UNOK4R"
+                    ]
+                },
+                "approaches":
+                {
+                    "RWCY":
+                    [
+                        "H07CY",
+                        "H25CY",
+                        "J07CY",
+                        "J25CY"
+                    ],
+                    "RWCZ":
+                    [
+                        "H07CZ",
+                        "H25CZ",
+                        "J07CZ",
+                        "J25CZ"
+                    ],
+                    "RWRY":
+                    [
+                        "H07RY",
+                        "I25RY",
+                        "J07RY",
+                        "J25RY"
+                    ],
+                    "RWRZ":
+                    [
+                        "H07RZ",
+                        "I25RZ",
+                        "J07RZ",
+                        "J25RZ"
+                    ],
+                    "RWLY":
+                    [
+                        "H25LY",
+                        "I07LY",
+                        "J07LY",
+                        "J25LY"
+                    ],
+                    "RWLZ":
+                    [
+                        "H25LZ",
+                        "I07LZ",
+                        "J07LZ",
+                        "J25LZ"
+                    ],
+                    "RW07C":
+                    [
+                        "I07C",
+                        "L07C"
+                    ],
+                    "RW07R":
+                    [
+                        "I07R",
+                        "L07R"
+                    ],
+                    "RW25C":
+                    [
+                        "I25C",
+                        "L25C"
+                    ],
+                    "RW25L":
+                    [
+                        "I25L",
+                        "L25L"
+                    ]
+                },
+                "sids":
+                {
+                    "RW25C":
+                    [
+                        "ANEK1F",
+                        "CIND2F",
+                        "MARU3W",
+                        "MARU6F",
+                        "MARU7M",
+                        "MARU9G",
+                        "MARU9N",
+                        "OBOK2G",
+                        "OBOK2M",
+                        "OBOK3W",
+                        "OBOK4N",
+                        "RID3Q",
+                        "SOBR6P",
+                        "SOBR7F",
+                        "SOBR7N",
+                        "SULU2F",
+                        "TAU2Q",
+                        "TOBA1G",
+                        "TOBA2N",
+                        "TOBA3W",
+                        "TOBA7F",
+                        "TOBA7M"
+                    ],
+                    "RW25L":
+                    [
+                        "ANEK1F",
+                        "CIND2F",
+                        "MARU3K",
+                        "MARU5H",
+                        "MARU6F",
+                        "MARU9G",
+                        "MARU9N",
+                        "OBOK2G",
+                        "OBOK2H",
+                        "OBOK3K",
+                        "OBOK4N",
+                        "RID3Q",
+                        "SOBR6P",
+                        "SOBR7F",
+                        "SOBR7N",
+                        "SULU2F",
+                        "TAU2Q",
+                        "TOBA1G",
+                        "TOBA2N",
+                        "TOBA3K",
+                        "TOBA5H",
+                        "TOBA7F"
+                    ],
+                    "RW18":
+                    [
+                        "ANEK1L",
+                        "ANEK3A",
+                        "CIND2A",
+                        "CIND2L",
+                        "CIND4S",
+                        "MARU3R",
+                        "MARU5T",
+                        "MARU7S",
+                        "OBOK1L",
+                        "OBOK1R",
+                        "OBOK2T",
+                        "OBOK3S",
+                        "SOBR1L",
+                        "SOBR1U",
+                        "SULU1L",
+                        "SULU3A",
+                        "SULU3S",
+                        "TOBA3R",
+                        "TOBA7T",
+                        "TOBA9S",
+                        "ULKI1L",
+                        "ULKI2S"
+                    ],
+                    "RW07C":
+                    [
+                        "ANEK1X",
+                        "ANEK2D",
+                        "ANEK4E",
+                        "CIND1D",
+                        "CIND1X",
+                        "KOMI3D",
+                        "MARU5E",
+                        "MARU9D",
+                        "MTR5C",
+                        "OBOK1D",
+                        "OBOK1E",
+                        "RID8C",
+                        "SOBR1X",
+                        "SOBR6D",
+                        "SOBR6E",
+                        "SULU1D",
+                        "TOBA9D"
+                    ],
+                    "RW07R":
+                    [
+                        "ANEK1Y",
+                        "ANEK2D",
+                        "ANEK4E",
+                        "CIND1D",
+                        "CIND1Y",
+                        "KOMI3D",
+                        "MARU5E",
+                        "MARU9D",
+                        "MTR5C",
+                        "OBOK1D",
+                        "OBOK1E",
+                        "RID8C",
+                        "SOBR1Y",
+                        "SOBR6D",
+                        "SOBR6E",
+                        "SULU1D",
+                        "TOBA9D"
+                    ]
+                }
+            }
+        },
+        "arrival":
+        {
+            "icao": "EBLG",
+            "iata": "LGG",
+            "name": "Liège Airport",
+            "city": "Liège",
+            "country": "BE",
+            "iso_region": "BE-WLG",
+            "lat": 50.637402,
+            "lon": 5.44322,
+            "alt": 200.8632,
+            "procedures":
+            {
+                "type": "CIFP",
+                "terminal": "EBLG",
+                "runways":
+                [
+                    "RW04L",
+                    "RW04R",
+                    "RW22L",
+                    "RW22R"
+                ],
+                "stars":
+                {
+                    "ALL":
+                    [
+                        "CIV6D",
+                        "CIV6X",
+                        "GESL5D",
+                        "GESL5X",
+                        "KOK6D",
+                        "KOK6X",
+                        "LNO5D",
+                        "LNO5X",
+                        "NIK6D",
+                        "NIK6X"
+                    ]
+                },
+                "approaches":
+                {
+                    "RW04R":
+                    [
+                        "D04R",
+                        "H04R",
+                        "I04R",
+                        "L04R"
+                    ],
+                    "RW22L":
+                    [
+                        "D22L",
+                        "H22L",
+                        "I22L",
+                        "L22L"
+                    ],
+                    "RW04L":
+                    [
+                        "H04L"
+                    ],
+                    "RW22R":
+                    [
+                        "H22R",
+                        "I22R",
+                        "L22R"
+                    ]
+                },
+                "sids":
+                {
+                    "RW22B":
+                    [
+                        "BUB8S",
+                        "CIV4S",
+                        "LNO6E",
+                        "LNO8S"
+                    ],
+                    "RW04B":
+                    [
+                        "BUB9R",
+                        "CIV5R",
+                        "LNO1R"
+                    ]
+                }
+            },
+            "info_source": "XPAirport"
+        },
+        "aircraft":
+        {
+            "actype":
+            {
+                "type": "aircraft-performances",
+                "base-type":
+                {
+                    "actype-manufacturer": "Airbus",
+                    "class": "C",
+                    "actype": "A320",
+                    "acmodel": "ACJ320neo (Corporate Jet version)0",
+                    "acclass": "C",
+                    "properties":
+                    {
+                        "length": 37.57,
+                        "wingspan": 34.1
+                    }
+                },
+                "class": "C",
+                "performances-raw":
+                {
+                    "icao": "A320",
+                    "iata": "320 / 32S",
+                    "takeoff_speed": 145,
+                    "takeoff_distance": 2190,
+                    "takeoff_wtc": "M",
+                    "takeoff_recat": "Upper Medium",
+                    "takeoff_mtow": 73900,
+                    "initial_climb_speed": 175,
+                    "initial_climb_vspeed": 2500,
+                    "climbFL150_speed": 290,
+                    "climbFL150_vspeed": 2000,
+                    "climbFL240_speed": 290,
+                    "climbFL240_vspeed": 1400,
+                    "climbmach_mach": 0.78,
+                    "climbmach_vspeed": 1000,
+                    "cruise_speed": 450,
+                    "cruise_mach": 0.79,
+                    "max_ceiling": 390,
+                    "cruise_range": 2700,
+                    "descentFL240_mach": 0.78,
+                    "descentFL240_vspeed": 1000,
+                    "descentFL100_speed": 290,
+                    "descentFL100_vspeed": 3500,
+                    "approach_speed": 250,
+                    "approach_vspeed": 1500,
+                    "final_speed": 210,
+                    "landing_speed": 137,
+                    "landing_distance": 1440,
+                    "landing_apc": "C",
+                    "wingspan": 34.1,
+                    "length": 37.57,
+                    "height": 11.76,
+                    "equivalences":
+                    [
+                        "320",
+                        "32S",
+                        "32N",
+                        "A20N"
+                    ]
+                },
+                "performances":
+                {
+                    "initial_climb_vspeed": 12.7,
+                    "climbFL150_vspeed": 10.16,
+                    "climbFL240_vspeed": 7.112,
+                    "climbmach_vspeed": 5.08,
+                    "descentFL240_vspeed": 5.08,
+                    "descentFL100_vspeed": 17.78,
+                    "approach_vspeed": 7.62,
+                    "takeoff_speed": 74.594,
+                    "initial_climb_speed": 90.028,
+                    "climbFL150_speed": 149.189,
+                    "climbFL240_speed": 149.189,
+                    "cruise_speed": 231.5,
+                    "descentFL100_speed": 149.189,
+                    "approach_speed": 128.611,
+                    "landing_speed": 70.479,
+                    "climbmach_mach": 246.567,
+                    "descentFL240_mach": 246.567,
+                    "cruise_mach": 239.853,
+                    "icao": "A320",
+                    "iata": "320 / 32S",
+                    "takeoff_distance": 2190,
+                    "takeoff_wtc": "M",
+                    "takeoff_recat": "Upper Medium",
+                    "takeoff_mtow": 73900,
+                    "max_ceiling": 390,
+                    "cruise_range": 2700,
+                    "final_speed": 210,
+                    "landing_distance": 1440,
+                    "landing_apc": "C",
+                    "wingspan": 34.1,
+                    "length": 37.57,
+                    "height": 11.76,
+                    "equivalences":
+                    [
+                        "320",
+                        "32S",
+                        "32N",
+                        "A20N"
+                    ]
+                },
+                "profile-tar": null,
+                "profile-gse": null
+            },
+            "operator":
+            {
+                "orgId": "BRUSSELS AIRLINES",
+                "classId": "airline",
+                "typeId": "",
+                "name": "SN",
+                "iata": "SN",
+                "icao": "BEL"
+            },
+            "acreg": "OO-PMA",
+            "icao24": "98d3d5"
+        },
+        "icao24": "98d3d5",
+        "callsign": "BEL1703",
+        "flightnumber": "SN 1703",
+        "codeshare": null,
+        "ramp":
+        {
+            "name": "42",
+            "apron": "4"
+        },
+        "runway":
+        {
+            "name": "04R",
+            "resource": "04R-22L"
+        },
+        "is_arrival": true
+    },
+    "icao24": "98d3d5"
+}

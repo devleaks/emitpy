@@ -929,11 +929,11 @@ class EmitApp(ManagedAirport):
         if not do_services:
             return StatusInfo(0, "scheduled successfully", ident)
 
-        if ident.startswith(REDIS_DATABASE.FLIGHTS.value) and ident.endswith(REDIS_TYPE.EMIT_META.value) and do_services:
+        if ident.startswith(REDIS_DATABASE.FLIGHTS.value) and ident.endswith(REDIS_TYPE.EMIT.value) and do_services:
             # #########
             # Linked services for flights
             logger.debug(f"scheduling associated services..")
-            services = self.airport.manager.allServiceForFlight(redis=self.redis,
+            services = self.airport.manager.allServicesForFlight(redis=self.redis,
                                                                 flight_id=ident,
                                                                 redis_type=REDIS_TYPE.EMIT.value)
 
@@ -952,7 +952,7 @@ class EmitApp(ManagedAirport):
                 logger.debug(f"..doing service {service}..")
                 se = ReEmit(service, self.redis)
                 se.setManagedAirport(self)
-                se_relstart = se.getMeta("$.move.ground-support.schedule")
+                se_relstart = se.getMeta("$.move.service.ground-support.schedule")
                 se_absstart = blocktime + timedelta(minutes=se_relstart)
                 logger.debug(f"..service {service} will start at {se_absstart} {se_relstart}min relative to blocktime {blocktime}..")
                 self.do_schedule(queue=queue,
@@ -1029,7 +1029,7 @@ class EmitApp(ManagedAirport):
         """
         if ident.startswith(REDIS_DATABASE.FLIGHTS.value) and ident.endswith(REDIS_TYPE.EMIT_META.value):
             if do_services:
-                services = self.airport.manager.allServiceForFlight(redis=self.redis, flight_id=ident)
+                services = self.airport.manager.allServicesForFlight(redis=self.redis, flight_id=ident)
                 logger.debug(f"deleting services..")
                 for service in services:
                     logger.debug(f"..{service}..")

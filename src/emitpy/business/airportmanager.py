@@ -2,7 +2,7 @@
 Airport Manager is a container for business and operations.
 """
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import logging
 import random
@@ -19,7 +19,7 @@ from emitpy.airport import Airport
 from emitpy.resource import AllocationTable
 # from emitpy.service import FlightServices
 
-from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB
+from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB, EVENT_SERVICE
 from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT, DEFAULT_VEHICLE, DEFAULT_VEHICLE_SHORT
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.utils import key_path, rejson, rejson_keys, Timezone
@@ -671,12 +671,41 @@ class AirportManager:
         return items
 
 
-    def allServiceForFlight(self, redis, flight_id: str, redis_type=REDIS_TYPE.EMIT_META.value):
-        items = []
+    def allServicesForFlight(self, redis, flight_id: str, redis_type=REDIS_TYPE.EMIT_META.value):
         emit = ReEmit(flight_id, redis)
         emit_meta = emit.getMeta()
 
-        is_arrival = emit.getMeta("$.move.is_arrival")
+        # 1. Try with collection of services
+        fid = emit.getMeta("$.move.flight.identifier")
+        if fid is not None:
+            ret = []
+            base = key_path(REDIS_DATABASE.FLIGHTS.value, fid, REDIS_DATABASE.SERVICES.value)
+            services = redis.smembers(base)
+            if services is not None:
+                logger.debug(f"found {len(services)} services for {fid}")
+                for sid in services:
+                    sid = sid.decode("UTF-8")
+                    sarr = sid.split(ID_SEP)
+                    if sarr[0] != EVENT_SERVICE:  # regular move, this collects all the emits
+                        skey = key_path(REDIS_DATABASE.SERVICES.value, sid, "*", redis_type)
+                        pkeys = redis.keys(skey)
+                        if pkeys is not None:
+                            pkeys2 = [k.decode("UTF-8") for k in pkeys]
+                            ret = ret + pkeys2
+                            logger.debug(f"found {pkeys2}")
+                    else:
+                        logger.debug(f"found event service {sid}, ignoring emit, will recreate message")
+                if len(ret) == 0:
+                    logger.debug(f"{fid} has no service with vehicle")
+                return ret
+            else:
+                logger.debug(f"{fid} has no service associated, trying select")
+        else:
+            logger.debug(f"no {fid}, trying select")
+
+        # 2. Try by scheduled times and ramp
+        items = []
+        is_arrival = emit.getMeta("$.move.flight.is_arrival")
         if is_arrival is None:
             logger.warning(f"cannot get flight movement")
             return ()
@@ -706,11 +735,16 @@ class AirportManager:
         for k in keys:
             k = k.decode("UTF-8")
             karr = k.split(ID_SEP)
-            dt = datetime.fromisoformat(karr[3].replace(".", ":"))
-            # logger.debug(f"{k}: testing {dt}..")
-            if dt > et_min and dt < et_max:
-                items.append(k)
-                logger.debug(f"added {k}..")
+            sid = karr[1:]  # remove database name
+            sarr = sid.split(ID_SEP)
+            if sarr[0] != EVENT_SERVICE:  # regular move, this collects all the emits
+                dt = datetime.strptime(sarr[2], FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
+                logger.debug(f"{k}: testing {dt}..")
+                if dt > et_min and dt < et_max:
+                    items.append(k)
+                    logger.debug(f"added {k}..")
+            else:
+                logger.debug(f"found event service {sid}, ignoring emit, will recreate message")
         logger.debug(f"..done")
         return set(items)
 

@@ -509,9 +509,9 @@ class FlightMovement(Movement):
                                   alt=step[2],
                                   speed=cruise_speed,
                                   vspeed=0,
-                                  color=POSITION_COLOR.CRUISE.value,
+                                  color=POSITION_COLOR.ACCELERATE.value,
                                   mark="reached_cruise_speed",
-                                  mark_tr=FLIGHT_PHASE.CRUISE.value)
+                                  mark_tr=FLIGHT_PHASE.ACCELERATE.value)
 
         top_of_ascent_idx = fcidx + 1 # we reach top of ascent between idx and idx+1, so we cruise from idx+1 on.
         logger.debug("cruise at %d after %f" % (top_of_ascent_idx, groundmv))
@@ -882,9 +882,9 @@ class FlightMovement(Movement):
                                   alt=self.flight.getCruiseAltitude(),
                                   speed=cruise_speed,
                                   vspeed=0,
-                                  color=POSITION_COLOR.CRUISE.value,
-                                  mark="end_of_cruise_speed",
-                                  mark_tr=FLIGHT_PHASE.CRUISE.value)
+                                  color=POSITION_COLOR.DECELERATE.value,
+                                  mark=FLIGHT_PHASE.DECELERATE.value,
+                                  mark_tr="end_of_decelerate")
 
         top_of_decent_idx = fcidx + 1 # we reach top of descent between idx and idx+1, so we cruise until idx+1
         logger.debug("(rev) reverse descent at %d after %f" % (top_of_decent_idx, groundmv))
@@ -1207,7 +1207,7 @@ class TowMovement(Movement):
         pushbackpos = MovePoint.new(pushback_end[0])
         pushbackpos.setSpeed(SLOW_SPEED)
         pushbackpos.setColor("#880088")  # parking
-        pushbackpos.setProp(FEATPROP.MARK.value, "pushback")
+        pushbackpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.PUSHBACK.value)
         fc.append(pushbackpos)
 
         pushback_vtx = self.airport.taxiways.nearest_vertex(pushback_end[0])
@@ -1467,7 +1467,7 @@ class DepartureMove(FlightMovement):
         pushbackpos = MovePoint.new(pushback_end[0])
         pushbackpos.setSpeed(SLOW_SPEED)
         pushbackpos.setColor("#880088")  # parking
-        pushbackpos.setProp(FEATPROP.MARK.value, "pushback")
+        pushbackpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.PUSHBACK.value)
         fc.append(pushbackpos)
 
         pushback_vtx = self.airport.taxiways.nearest_vertex(pushback_end[0])

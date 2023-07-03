@@ -92,6 +92,9 @@ class Message:
     def getType(self):
         return type(self).__name__
 
+    def getText(self):
+        return self.subject
+
     def getInfo(self):
         r = {
             "id": self.ident,
@@ -118,7 +121,7 @@ class Message:
 
     def schedule(self, moment):
         self.absolute_time = moment + timedelta(seconds=self.relative_time)
-        logger.debug(f"{type(self).__name__}: {self.absolute_time.isoformat()} (relative={self.relative_time})")
+        logger.debug(f"{type(self).__name__} {self.ident}: {self.absolute_time.isoformat()} (relative={self.relative_time}) (subject={self.subject})")
         return self.absolute_time
 
     def getAbsoluteEmissionTime(self):
@@ -141,6 +144,7 @@ class ReMessage(Message):
         Message.__init__(self, category=category, id=self.ident)
 
         self.data = data
+        self.subject = data.get("subject")                 # for label/debugging purpose
         self.relative_sync = data.get("relative_sync")     # mark in parent entity
         self.relative_time = data.get("relative_time", 0)  # seconds relative to above for emission
         self.scheduled_time = data.get("scheduled_time")   # scheduled emission time
@@ -148,6 +152,9 @@ class ReMessage(Message):
 
     def getType(self):
         return self.data.get("type")
+
+    def getText(self):
+        return self.data.get("subject")
 
     def getInfo(self):
         r = self.data
@@ -215,7 +222,7 @@ class FlightboardMessage(Message):
                  flight: "Flight",
                  **kwargs):
 
-        self.operator = flight.operator.icao
+        self.operator = flight.operator.iata
         self.flight_number = str(flight.number)
         self.is_arrival = flight.is_arrival()
         self.airport = flight.departure.icao if self.is_arrival else flight.arrival.icao
@@ -224,7 +231,7 @@ class FlightboardMessage(Message):
         title = "ARRIVAL " if self.is_arrival else "DEPARTURE "
         title = title + self.operator + self.flight_number + " "
         title = title + ("FROM " if self.is_arrival else "TO ")
-        title = title + self.airport + " AT "
+        title = title + self.airport + " SCHEDULED AT "
         title = title + self.scheduled_time.isoformat()
 
         Message.__init__(self,
@@ -251,14 +258,21 @@ class EstimatedTimeMessage(Message):
                  et: datetime,
                  **kwargs):
 
-        Message.__init__(self,
-                         category=MESSAGE_CATEGORY.FLIGHTINFO.value,
-                         **kwargs)
-
         self.is_arrival = is_arrival
         a = flight_id.split("-")
         self.scheduled_time = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
         self.estimated_time = et
+
+        title = "ARRIVAL " if self.is_arrival else "DEPARTURE "
+        title = title + a[0] + f" (SCHEDULED {self.scheduled_time.isoformat()}) "
+        title = title + "ESTIMATED AT "
+        title = title + et.isoformat()
+
+        Message.__init__(self,
+                         category=MESSAGE_CATEGORY.FLIGHTINFO.value,
+                         subject=title,
+                         **kwargs)
+
 
 
     def getInfo(self):

@@ -26,16 +26,17 @@ class EstimatedTime:
         }
 
 
-def roundTime(dt: datetime, roundTo: int = 300):
+def roundTime(dt: datetime, roundTo: int = 300, seconds: int = 0, minutes: int = 0):
     """Round a datetime object to any time lapse in seconds
     dt : datetime.datetime object, default now.
-    roundTo : Closest number of seconds to round to, default 5 minutes.
+    roundTo : Closest number of seconds to round to, default 5 minutes (300 seconds).
     Author: Thierry Husson 2012 - Use it as you want but don't blame me.
     """
+    rt = roundTo + seconds + (minutes * 60)
     if dt == None:
         dt = datetime.now()
     seconds = (dt.replace(tzinfo=None) - dt.min).seconds
-    rounding = (seconds + roundTo / 2) // roundTo * roundTo
+    rounding = (seconds + rt / 2) // rt * rt
     return dt + timedelta(0, rounding-seconds, -dt.microsecond)
 
 

@@ -147,7 +147,7 @@ class Flight(Messages):
         :type       flight_id:  { type_description }
         """
         a = flight_id.split("-")
-        scheduled_utc = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
+        scheduled_utc = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
         return (a[0], scheduled_utc, a[0][0:2], a[2:])
 
 
@@ -386,9 +386,7 @@ class Flight(Messages):
         normplan = self.flightroute.route()
         waypoints = []
 
-        sync = FLIGHT_PHASE.OFFBLOCK.value
-        if self.is_arrival():
-            sync = FLIGHT_PHASE.ONBLOCK.value
+        sync = self.get_oooi(gate=True)
 
         # Flightboard message sent one hour (3600 secs) before actual scheduled time.
         FLIGHTBOARD_INFO_TIME=-3600  # could be params or constant

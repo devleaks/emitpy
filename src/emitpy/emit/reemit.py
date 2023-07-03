@@ -229,7 +229,7 @@ class ReEmit(Emit):
 
         mark = None
         if self.emit_type == MOVE_TYPE.FLIGHT.value:
-            is_arrival = self.getMeta("$.move.is_arrival")
+            is_arrival = self.getMeta("$.move.flight.is_arrival")
             if is_arrival is None:
                 logger.warning(f"cannot get move for {self.emit_id}")
             mark = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
@@ -300,7 +300,7 @@ class ReEmit(Emit):
         if self.emit_type == MOVE_TYPE.FLIGHT.value:
             # 2. What is the resource identifier
             fid = self.getMeta("$.props.flight.identifier")
-            is_arrival = self.getMeta("$.move.is_arrival")
+            is_arrival = self.getMeta("$.move.flight.is_arrival")
             if fid is not None:
                 am = self.managedAirport.airport.manager
 

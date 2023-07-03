@@ -31,54 +31,13 @@ class FlightServices:
 
 
     @staticmethod
-    def allServicesForFlight(redis, flight_id: str, redis_type=REDIS_TYPE.EMIT_META.value):
-        items = []
-        emit = ReEmit(flight_id, redis)
-        emit_meta = emit.getMeta()
-
-        is_arrival = emit.getMeta("$.move.is_arrival")
-        if is_arrival is None:
-            logger.warning(f"cannot get flight movement")
-            return ()
-
-        before = None
-        if is_arrival:
-            before = 60
-            after = 180
-        else:
-            before = 180
-            after = 60
-
-        scheduled = emit.getMeta("$.move.scheduled")
-        if scheduled is None:
-            logger.warning(f"cannot get flight scheduled time {emit.getMeta()}")
-            return ()
-        scheduled = datetime.fromisoformat(scheduled)
-
-        et_min = scheduled - timedelta(minutes=before)
-        et_max = scheduled + timedelta(minutes=after)
-        logger.debug(f"{ARRIVAL if is_arrival else DEPARTURE} at {scheduled}")
-        logger.debug(f"trying services between {et_min} and {et_max}")
-
-        # 2 search for all services at that ramp, "around" supplied ETA/ETD.
-        ramp = emit.getMeta("$.move.ramp.name")
-        keys = redis.keys(key_path(REDIS_DATABASE.SERVICES.value, "*", ramp, "*", redis_type))
-        for k in keys:
-            k = k.decode("UTF-8")
-            karr = k.split(ID_SEP)
-            dt = datetime.fromisoformat(karr[3].replace(".", ":"))
-            # logger.debug(f"{k}: testing {dt}..")
-            if dt > et_min and dt < et_max:
-                items.append(k)
-                logger.debug(f"added {k}..")
-        logger.debug(f"..done")
-        return set(items)
+    def getFlightServicesKey(flight_id: str):
+        return key_path(REDIS_DATABASE.FLIGHTS.value, flight_id, REDIS_DATABASE.SERVICES.value)
 
 
     def setManagedAirport(self, managedAirport):
         self.app = managedAirport
         self.airport = managedAirport.airport
-
 
     # #######################
     # Saving to file or Redis
@@ -92,6 +51,7 @@ class FlightServices:
                 logger.warning(f"{service['type']} returned {ret[1]}")
             else:
                 logger.debug(f"..done")
+        self.saveServicesForFlight(redis)
         return (True, "FlightServices::save: completed")
 
 
@@ -105,6 +65,19 @@ class FlightServices:
             else:
                 logger.debug(f"..done")
         return (True, "FlightServices::saveFile: completed")
+
+
+    def saveServicesForFlight(self, redis):
+        if redis is None:
+            return (True, "FlightServices::saveServicesForFlight: no Redis")
+        if self.flight is None:
+            return (False, "FlightServices::saveServicesForFlight: no flight")
+
+        base = FlightServices.getFlightServicesKey(self.flight.getId())
+        for service in self.services:
+            s = service["service"]
+            redis.sadd(base, s.getId())
+        return (True, "FlightServices::saveServicesForFlight: saved")
 
 
     # #######################

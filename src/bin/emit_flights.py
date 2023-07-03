@@ -16,7 +16,7 @@ import logging
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
 
-FORMAT="%(levelname)1.5s%(module)15s:%(funcName)-25s%(lineno)4s| %(message)s"
+FORMAT="%(levelname)1.1s%(module)22s:%(funcName)-25s%(lineno)4s| %(message)s"
 logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger("emit_flights")
 
@@ -30,7 +30,7 @@ file.close()
 # Parameters
 #
 NUM_FLIGHTS = 1
-DO_SERVICE = False
+DO_SERVICE = True
 queue = "raw"
 
 rate = [15, 10]
@@ -112,7 +112,9 @@ for r in flights[cnt_begin:cnt_end]:
     new_scheduled = dtnow + timedelta(minutes=90)
     sync_name = "TAKE_OFF" if move == "arrival" else "TOUCH_DOWN"
     logger.info(f"new schedule: {emit_key}: {new_scheduled} ({sync_name})")
-    e.do_schedule(queue=queue, ident=emit_key, sync=sync_name, scheduled=new_scheduled.isoformat(), do_services=False)
+    ret =e.do_schedule(queue=queue, ident=emit_key, sync=sync_name, scheduled=new_scheduled.isoformat(), do_services=True)
+
+    logger.info(f"{ret}")
 
     # except Exception as ex:
     #     if ret is not None:

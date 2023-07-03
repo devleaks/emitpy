@@ -48,6 +48,7 @@ node_modules
 # Emitpy
 src/emitpy/private.py
 src/emitpy/parameters.py
+src/emitpy/parameters-*.py
 
 data/
 db/
@@ -61,5 +62,3 @@ tests/
 *.db
 src/web/emitview/.yarn
 src/web/emitview/.yarnrc.yml
-src/emitpy/parameters-EBLG.py
-src/emitpy/parameters-OTHH.py

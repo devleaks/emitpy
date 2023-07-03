@@ -97,7 +97,7 @@ async def delete_service(
 
 @router.get("/flight/{flight_id}", tags=["flights", "services"])
 async def list_services_by_flight(request: Request, flight_id: str):
-    t = request.app.state.emitpy.airport.manager.allServiceForFlight(redis=request.app.state.emitpy.redis, flight_id=flight_id)
+    t = request.app.state.emitpy.airport.manager.allServicesForFlight(redis=request.app.state.emitpy.redis, flight_id=flight_id)
     return JSONResponse(content=list(t))
 
 

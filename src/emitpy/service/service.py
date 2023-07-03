@@ -4,11 +4,11 @@ A Service  is a maintenance operation performed on an aircraft during a turn-aro
 """
 import sys
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Union
 from types import NoneType
 
-from emitpy.constants import SERVICE, ID_SEP, REDIS_DATABASE
+from emitpy.constants import FLIGHT_TIME_FORMAT, SERVICE, ID_SEP, REDIS_DATABASE
 from emitpy.utils import key_path
 from .ground_support import GroundSupport
 from .equipment import Equipment
@@ -38,10 +38,26 @@ class Service(GroundSupport):
         return None
 
     @staticmethod
+    def getServiceName(service_class):
+        service_str = type(service_class).__name__ if isinstance(service_class, Service) else service_class
+        return service_str.replace("Service", "").lower()
+
+    @staticmethod
     def getCombo():
         a = []
         for s in SERVICE:
             a.append((s.value, s.value[0].upper()+s.value[1:]))
+        return a
+
+    @staticmethod
+    def parseId(service_id):
+        # returns (service name, ramp, scehduled time, vehicle identifier)
+        a = service_id.split(ID_SEP)
+        # if len(a) > 0:
+        #     a[0] = a[0].replace("Service", "").lower()
+        if len(a) > 3:
+            dt = a[2]
+            a[2] = datetime.strptime(dt, FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
         return a
 
     def getId(self):
@@ -50,7 +66,7 @@ class Service(GroundSupport):
         Since several such services can be planned, we add the vehicle as a discriminent.
         """
         r = self.ramp.getName() if self.ramp is not None else "noramp"
-        s = self.scheduled.isoformat().replace(":", ".") if self.scheduled is not None else "noschedule"
+        s = self.scheduled.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT) if self.scheduled is not None else "noschedule"
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
         if self.ramp is None:
             logger.warning(f"service on ramp {r} at {s} with vehicle {v} as no ramp")

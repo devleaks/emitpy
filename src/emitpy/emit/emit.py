@@ -458,6 +458,18 @@ class Emit(Messages):
                 if emit_details:
                     logger.debug(f"end pause: {time_left} ({len(self._emit)}), no mark written (has mark {has_mark})")
                 return (emit_time, time_left)
+
+        def probably_equal(a, b):
+            same_mark = a.getMark() == b.getMark()
+            if same_mark:
+                logger.debug(f"probably_equal same mark {a.getMark()}")
+            same_lat = (a.lat() - b.lat()) < 0.000001
+            if same_lat:
+                logger.debug(f"probably_equal same latitude")
+            same_lon = (a.lon() - b.lon()) < 0.000001
+            if same_lon:
+                logger.debug(f"probably_equal same longitude")
+            return same_mark and same_lat and same_lon
         #
         #
         #
@@ -681,6 +693,12 @@ class Emit(Messages):
         if movemark != emitmark:
             logger.debug(f"end point not added, adding ({movemark}, {emitmark})")
             emit_point(len(self.moves) - 1, currpos, total_time, "end", time_to_next_emit == 0)
+
+        # need to remove deplicate first point?
+        # this is created by above algorithm, duplicate does not exists in movement, only in emit
+        if probably_equal(self._emit[0], self._emit[1]):
+            del self._emit[0]
+            logger.debug(f"removed duplicate first point")
 
         # Restriction
         # If frequency is high, we have thousands of points.
@@ -970,7 +988,7 @@ class Emit(Messages):
             m.schedule(when)
             line = []
             line.append(m.getType())
-            line.append(m.subject)
+            line.append(m.getText())
             line.append(m.relative_sync)
             line.append(offset)
             line.append(m.relative_time)
