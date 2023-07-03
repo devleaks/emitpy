@@ -188,13 +188,20 @@ class ServiceMove(Movement):
         if ramp_standby is not None and self.service.pause_before > 0:
             ramp_standby_pos = MovePoint.new(ramp_standby)
             ramp_standby_pos.setSpeed(0)
+
+
             ramp_standby_pos.setProp(FEATPROP.MARK.value, "standby-before-service")
             ramp_standby_pos.setPause(self.service.pause_before)
             self.moves.append(ramp_standby_pos)
-            logger.debug(f"added pause {self.service.pause_after}m before service")
+            logger.debug(f"added pause {self.service.pause_before}m before service")
 
         ramp_stop.setSpeed(0)
         ramp_stop.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
+
+        # Adding service time
+        service_duration = self.service.duration()
+        ramp_stop.setPause(service_duration)
+        logger.debug(f"service duration {service_duration}")
         self.moves.append(ramp_stop)
 
         self.service.vehicle.setPosition(ramp_stop)

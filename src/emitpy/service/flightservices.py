@@ -221,10 +221,6 @@ class FlightServices:
                 continue
             logger.debug(f"scheduling {service[TAR_SERVICE.TYPE.value]}..")
             stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
-            emit.addToPause(SERVICE_PHASE.SERVICE_START.value, service.get(TAR_SERVICE.DURATION.value, 0) * 60)  # seconds
-            ##
-            ## @todo: Check! if multiple call to schedule provoke addition to addToPause, may be make a setPause? resetPause?
-            ##
             ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, stime, do_print)
             if not ret[0]:
                 return ret

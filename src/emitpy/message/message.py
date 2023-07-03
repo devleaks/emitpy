@@ -120,8 +120,11 @@ class Message:
         return r
 
     def schedule(self, moment):
+        old_schedule = self.absolute_time
         self.absolute_time = moment + timedelta(seconds=self.relative_time)
         logger.debug(f"{type(self).__name__} {self.ident}: {self.absolute_time.isoformat()} (relative={self.relative_time}) (subject={self.subject})")
+        if old_schedule is not None:
+            logger.debug(f"{type(self).__name__} {self.ident}: recheduled from {old_schedule} to {self.absolute_time.isoformat()}")
         return self.absolute_time
 
     def getAbsoluteEmissionTime(self):
@@ -173,6 +176,15 @@ class ReMessage(Message):
             r["absolute_emission_time"] = self.absolute_time.isoformat()
 
         return r
+
+    def schedule(self, moment):
+        if self.data is not None:
+            old_schedule = self.data.get("absolute_emission_time")
+        self.absolute_time = moment + timedelta(seconds=self.relative_time)
+        logger.debug(f"{type(self).__name__} {self.ident}: {self.absolute_time.isoformat()} (relative={self.relative_time}) (subject={self.subject})")
+        if old_schedule is not None:
+            logger.debug(f"{type(self).__name__} {self.ident}: recheduled from {old_schedule} to {self.absolute_time.isoformat()}")
+        return self.absolute_time
 
 
 class Messages:

@@ -581,12 +581,6 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(340, f"problem during service emission", ret[1])
 
-        service_duration = this_service.duration()
-
-        logger.debug(f"..service duration {service_duration}..")
-        emit.addToPause(SERVICE_PHASE.SERVICE_START.value, service_duration)
-        # will trigger new call to emit.emit(emit_rate) to adjust
-
         logger.debug("..scheduling broadcast..")
         # default is to serve at scheduled time
         logger.debug(f"..{SERVICE_PHASE.SERVICE_START.value} at {scheduled}..")
