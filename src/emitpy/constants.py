@@ -361,7 +361,7 @@ class MISSION_PHASE(Enum):
 
 
 EVENT_ONLY_MESSAGE = "event"
-EVENT_SERVICE = "EventService"
+EVENT_ONLY_SERVICE = "EventService"
 
 
 class TAR_SERVICE(Enum):
@@ -371,7 +371,7 @@ class TAR_SERVICE(Enum):
     ALERT = "alert"
     WARN  = "warn"
     MODEL = "model"
-    EVENT = "event"
+    LABEL = "label"
 
 
 class SERVICE_PHASE(Enum):

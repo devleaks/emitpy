@@ -121,6 +121,7 @@ class FlightServices:
             duration = svc.get(TAR_SERVICE.DURATION.value, 0)
             warn_time = svc.get(TAR_SERVICE.WARN.value)
             alert_time = svc.get(TAR_SERVICE.ALERT.value)
+            label = svc.get(TAR_SERVICE.LABEL.value)
 
             logger.debug(f"creating service {sname}..")
 
@@ -137,10 +138,17 @@ class FlightServices:
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             this_service.setRamp(self.ramp)
+            if label is not None:
+                this_service.setLabel(label)
             if sname == EVENT_ONLY_MESSAGE:  # TA service with no vehicle, we just emit messages on the wire
-                this_service.event = svc.get(TAR_SERVICE.EVENT.value)  # Important to set it here, since not provided at creation
-                logger.debug(f"created event only {this_service.event}..")
-                # this_service.setVehicle(None)
+                label = svc.get(TAR_SERVICE.LABEL.value)  # Important to set it here, since not provided at creation
+                if label is None:
+                    this_service.label = this_service.getId()
+                    logger.warning(f"event service has no label, created event only service with label «{this_service.label}»..")
+                else:
+                    this_service.label = label
+                    logger.debug(f"created event only service with label «{this_service.label}»..")
+                    # this_service.setVehicle(None)
             else:
                 equipment_model = svc.get(TAR_SERVICE.MODEL.value)
                 # should book vehicle a few minutes before and after...
@@ -268,7 +276,7 @@ class FlightServices:
             line = []
             sty = type(s).__name__.replace("Service", "").lower()
             if sty == EVENT_ONLY_MESSAGE:
-                sty = s.event
+                sty = s.label
             line.append(sty)
             line.append(s.pts_reltime)
             line.append(s.pts_duration)
@@ -318,7 +326,7 @@ class FlightServices:
             s = service["service"]
             sty = type(s).__name__.replace("Service", "").lower()
             if sty == EVENT_ONLY_MESSAGE:
-                sty = s.event
+                sty = s.label
             s = service["move"]
             msgs = s.getMessages()
             for m in s.getMessages():

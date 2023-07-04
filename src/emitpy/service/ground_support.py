@@ -65,7 +65,7 @@ class GroundSupport(Messages):
         self.next_position = None
         self.route = []
         self.name = None
-        self.event = None
+        self.label = None
         self.quantity = None
 
     def getId(self):
@@ -78,7 +78,7 @@ class GroundSupport(Messages):
             "schedule": self.pts_reltime,
             "duration": self.pts_duration,
             "name": self.name,
-            "event": self.event
+            "label": self.label
         }
 
     def setPTS(self, relstartime: int, duration: int, warn: int = None, alert: int = None):
@@ -91,6 +91,9 @@ class GroundSupport(Messages):
 
     def setName(self, name: str):
         self.name = name
+
+    def setLabel(self, label: str):
+        self.label = label
 
     def setVehicle(self, vehicle: Equipment):
         self.vehicle = vehicle

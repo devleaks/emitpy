@@ -19,7 +19,7 @@ from emitpy.airport import Airport
 from emitpy.resource import AllocationTable
 # from emitpy.service import FlightServices
 
-from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB, EVENT_SERVICE
+from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB, EVENT_ONLY_SERVICE
 from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT, DEFAULT_VEHICLE, DEFAULT_VEHICLE_SHORT
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.utils import key_path, rejson, rejson_keys, Timezone
@@ -686,7 +686,7 @@ class AirportManager:
                 for sid in services:
                     sid = sid.decode("UTF-8")
                     sarr = sid.split(ID_SEP)
-                    if sarr[0] != EVENT_SERVICE:  # regular move, this collects all the emits
+                    if sarr[0] != EVENT_ONLY_SERVICE:  # regular move, this collects all the emits
                         skey = key_path(REDIS_DATABASE.SERVICES.value, sid, "*", redis_type)
                         pkeys = redis.keys(skey)
                         if pkeys is not None:
@@ -737,7 +737,7 @@ class AirportManager:
             karr = k.split(ID_SEP)
             sid = karr[1:]  # remove database name
             sarr = sid.split(ID_SEP)
-            if sarr[0] != EVENT_SERVICE:  # regular move, this collects all the emits
+            if sarr[0] != EVENT_ONLY_SERVICE:  # regular move, this collects all the emits
                 dt = datetime.strptime(sarr[2], FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
                 logger.debug(f"{k}: testing {dt}..")
                 if dt > et_min and dt < et_max:

@@ -476,7 +476,7 @@ class Emit(Messages):
         if self.moves is None or len(self.moves) == 0:
             if self.has_no_move_ok():
                 svc = self.getSource()
-                logger.debug(f"service {type(svc).__name__} «{svc.event}» has no vehicle, assuming event report only")
+                logger.debug(f"service {type(svc).__name__} «{svc.label}» has no vehicle, assuming event report only")
                 return (True, "Emit::emit: no moves, assuming event report only")
             logger.warning("no move")
             return (False, "Emit::emit: no moves")

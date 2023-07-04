@@ -243,6 +243,22 @@ class FuelVehiclePump(FuelVehicle):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZF"
         self.model = "pump"
+        self.model_name = "Fuel pump vehicle"
+        self.max_capacity = inf
+        self.flow = 2.0 / 60
+        self.speeds = {
+            "slow": 5,
+            "normal": 30,
+            "fast": 60
+        }
+        self.setup_time = 5 * 60    # in seconds
+
+class FuelVehicleHydrant(FuelVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        FuelVehicle.__init__(self, registration=registration,  operator=operator)
+        self.icao = "ZZZF"
+        self.model = "hydrant"
         self.model_name = "Fuel hydrant vehicle"
         self.max_capacity = inf
         self.flow = 2.0 / 60
@@ -543,6 +559,16 @@ class AircraftVehicleApu(AircraftVehicle):
         self.icao = "ZZZA"
         self.model = "apu"
         self.model_name = "APU"
+        self.setup_time = 4
+        self.flow = 1
+
+class AircraftVehicleAsu(AircraftVehicle):
+
+    def __init__(self, registration: str, operator: Company):
+        AircraftVehicle.__init__(self, registration=registration,  operator=operator)
+        self.icao = "ZZZA"
+        self.model = "asu"
+        self.model_name = "ASU"
         self.setup_time = 4
         self.flow = 1
 

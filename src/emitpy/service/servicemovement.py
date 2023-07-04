@@ -55,18 +55,18 @@ class ServiceMove(Movement):
         So the relative time will be relative to the supplied scheduled time, which normally is ONBLOCK/OFFBLOCK time.
         """
         if self.service.pts_duration == 0:
-            self.addMessage(ServiceMessage(subject=f"«{self.service.event}» occured",
+            self.addMessage(ServiceMessage(subject=f"«{self.service.label}» occured",
                                            service=self,
                                            sync=SERVICE_PHASE.START.value,
                                            info=self.getInfo()))
             logger.debug(f"{self.service.name} added 1 messages")
         else:
-            self.addMessage(ServiceMessage(subject=f"«{self.service.event}» {SERVICE_PHASE.START.value}",
+            self.addMessage(ServiceMessage(subject=f"«{self.service.label}» {SERVICE_PHASE.START.value}",
                                            service=self,
                                            sync=SERVICE_PHASE.START.value,
                                            info=self.getInfo()))
             # End time is start time + duration, we add duration as a delay relative to the start time
-            self.addMessage(ServiceMessage(subject=f"«{self.service.event}» {SERVICE_PHASE.END.value}",
+            self.addMessage(ServiceMessage(subject=f"«{self.service.label}» {SERVICE_PHASE.END.value}",
                                            service=self,
                                            sync=SERVICE_PHASE.END.value,
                                            info=self.getInfo(),
@@ -77,7 +77,7 @@ class ServiceMove(Movement):
     def move(self):
         # Special case 1: Service "event reporting only", no move
         if self.service.vehicle is None:  # Service with no vehicle movement
-            logger.debug(f"service {type(self.service).__name__} «{self.service.event}» has no vehicle, assuming event report only")
+            logger.debug(f"service {type(self.service).__name__} «{self.service.label}» has no vehicle, assuming event report only")
             self.no_move()
             logger.debug(f"generated {len(self.moves)} points")
             return (True, "ServiceMove::move: no moves, assuming event report only")

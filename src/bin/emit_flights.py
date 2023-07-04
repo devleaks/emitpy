@@ -107,11 +107,11 @@ for r in flights[cnt_begin:cnt_end]:
             + f" '{icao[r['REGISTRATION NO']]}', '{r['REGISTRATION NO']}', 'RW16L'))")
 
     ## Testing rescheduling
-    logger.info(">" *  80)
+    logger.info("<*>" *  40)
     emit_key = f"flights:{ret.data}:{rate[0]}:e"
     new_scheduled = dtnow + timedelta(minutes=90)
-    sync_name = "TAKE_OFF" if move == "arrival" else "TOUCH_DOWN"
-    logger.info(f"new schedule: {emit_key}: {new_scheduled} ({sync_name})")
+    sync_name = "TOUCH_DOWN" if move == "arrival" else "TAKE_OFF"
+    logger.info(f"new schedule: {emit_key}: {new_scheduled} ({sync_name}) (was {dtnow} before...)")
     ret =e.do_schedule(queue=queue, ident=emit_key, sync=sync_name, scheduled=new_scheduled.isoformat(), do_services=True)
 
     logger.info(f"{ret}")
