@@ -797,7 +797,7 @@ class Emit(Messages):
                     if a is not None:
                         f["geometry"]["coordinates"].append(float(a))
                     else:
-                        logger.warning(f"no altitude? {f['properties']['emit-index']}.")
+                        logger.warning(f"no altitude? {f.getProp(FEATPROP.EMIT_INDEX.value)}.")
             logger.debug(f"{self.getId()}: .. done.")
         else:
             # may be we should then set altitude to the airport

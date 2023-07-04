@@ -1010,7 +1010,7 @@ class FlightMovement(Movement):
                 if a is not None:
                     f["geometry"]["coordinates"].append(float(a))
                 else:
-                    logger.warning(f"no altitude? {f['property'][name] if name in f['property'] else '?'}")
+                    logger.warning(f"no altitude? {f.getProp(FEATPROP.MOVE_INDEX.value)}.")
         logger.debug(".. done.")
 
         # name = check

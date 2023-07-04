@@ -122,7 +122,10 @@ class FeatureWithProps(Feature):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
         if name == FEATPROP.ALTITUDE.value:
             return self.altitude()
-        return self["properties"][name] if name in self["properties"] else None
+        if type(self["properties"]) in [dict]:
+            return self["properties"].get(name)
+        print("feature has no properties?")
+        return None
 
     def setProp(self, name: str, value):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
