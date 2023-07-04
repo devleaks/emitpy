@@ -207,7 +207,7 @@ class Broadcaster:
         pattern = "__keyspace@0__:"+queue_key
         self.pubsub.subscribe(pattern)
 
-        logger.info(f"{self.name}: starting..")
+        logger.info(f"{self.name}: trim starting..")
 
         while not self.shutdown_flag.is_set():
 
@@ -269,7 +269,7 @@ class Broadcaster:
                     logger.debug(f"{self.name}: ignoring '{msg}'")
 
         self.pubsub.unsubscribe(pattern)
-        logger.info(f"{self.name}: ..bye")
+        logger.info(f"{self.name}: ..trim bye")
 
 
     def send_data(self, data: str) -> int:
@@ -328,7 +328,7 @@ class Broadcaster:
         ping = 0
         last_sent = datetime.now() - timedelta(seconds=1)
 
-        logger.info(f"{self.name}: starting..")
+        logger.info(f"{self.name}: broadcast starting..")
 
         # Wrapped in a big try:/except: to catch errors and keyboard interrupts.
         try:
@@ -453,7 +453,7 @@ class Broadcaster:
             self.shutdown_flag.set()
         finally:
             logger.info(f"{self.name}: ..sent {self.total_sent} messages..")
-            logger.info(f"{self.name}: ..bye")
+            logger.info(f"{self.name}: ..broadcast bye")
 
 
 
@@ -659,7 +659,7 @@ class Hypercaster:
         pattern = "__key*__:queues:*"
         self.pubsub.psubscribe(pattern)
 
-        hyperlogger.info("starting..")
+        hyperlogger.info("admin starting..")
 
         while not self.shutdown_flag.is_set():
 
@@ -771,7 +771,7 @@ class Hypercaster:
 
         self.pubsub.unsubscribe(pattern)
         self.redis.delete(QUIT_KEY)
-        hyperlogger.info("..bye")
+        hyperlogger.info(".. admin bye")
 
     def shutdown(self):
         """
