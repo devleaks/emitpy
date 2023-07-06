@@ -43,10 +43,10 @@ class MissionMove(Movement):
 
 
     def move(self):
+        last_vtx = None
         speeds = self.mission.vehicle.speed
 
         start_pos = self.mission.vehicle.getPosition()
-        # logger.debug("start position %s" % (start_pos))
         pos = MovePoint.new(start_pos)
 
         pos.setSpeed(0)  # starts at rest
@@ -56,12 +56,12 @@ class MissionMove(Movement):
         logger.debug(f"start added")
 
         self.addMessage(MissionMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.START.value}",
-                                       move=self,
+                                       mission=self,
                                        sync=MISSION_PHASE.START.value,
                                        info=self.getInfo()))
 
         self.addMessage(MissionMessage(subject=f"Mission {self.getId()} has started",
-                                       move=self,
+                                       mission=self,
                                        sync=MISSION_PHASE.START.value,
                                        info=self.getInfo(),
                                        service=MISSION_PHASE.START.value))
@@ -143,7 +143,7 @@ class MissionMove(Movement):
             logger.debug(f"checkpoint added")
 
             self.addMessage(MissionMessage(subject=f"Mission {self.getId()} reached control point",
-                                           move=self,
+                                           mission=self,
                                            sync=MISSION_PHASE.CHECKPOINT.value,
                                            info=self.getInfo(),
                                            service=MISSION_PHASE.CHECKPOINT.value))
@@ -181,6 +181,11 @@ class MissionMove(Movement):
             final_npe = start_npe
             final_nv = start_nv
 
+        if last_vtx is None:
+            # Issue here: Why is last_vtx sometimes null?
+            logger.warning("no last vertex because no route to last checkpoint, using previous point")
+            last_vtx = prev_vtx  # ?
+
         # Route from last checkpoint to closest vertex to final_pos
         rt = Route(self.airport.service_roads, last_vtx.id, final_nv[0].id)
         if rt.found():
@@ -210,15 +215,15 @@ class MissionMove(Movement):
         self.moves.append(pos)
 
         self.addMessage(MissionMessage(subject=f"Mission {self.getId()} has ended",
-                                       move=self,
+                                       mission=self,
                                        sync=MISSION_PHASE.END.value,
                                        info=self.getInfo(),
                                        service=MISSION_PHASE.END.value))
 
         self.addMessage(MissionMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.END.value}",
-                                        move=self,
-                                        sync=MISSION_PHASE.END.value,
-                                        info=self.getInfo()))
+                                       mission=self,
+                                       sync=MISSION_PHASE.END.value,
+                                       info=self.getInfo()))
 
         logger.debug(f"end added")
 

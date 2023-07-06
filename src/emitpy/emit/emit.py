@@ -1005,6 +1005,33 @@ class Emit(Messages):
         return (True, "Emit::scheduleMessages completed")
 
 
+    def printMessageList(self):
+        output = io.StringIO()
+
+        print("\n", file=output)
+        print(f"SYNCHRONIZATION: {sync} at {moment}", file=output)
+        print(f"TIMED MESSAGE LIST", file=output)
+        MARK_LIST = ["type", "message", "sync", "offset", "rel. to sync", "total", "time"]
+        table = []
+
+        for m in self.getMessages():
+            l.append(m)
+            line = []
+            line.append(m.getType())
+            line.append(m.getText())
+            line.append(m.relative_sync)
+            line.append(offset)
+            line.append(m.relative_time)
+            line.append(total)
+            line.append(m.getAbsoluteEmissionTime())
+            table.append(line)
+        table = sorted(table, key=lambda x: x[6])  # absolute emission time()
+        print(tabulate(table, headers=MARK_LIST), file=output)
+        contents = output.getvalue()
+        output.close()
+        return contents
+
+
     def getTimeBracket(self, as_string: bool = False):
         if self.scheduled_emit is not None and len(self.scheduled_emit) > 0:
             start = self.scheduled_emit[0].getAbsoluteEmissionTime()
