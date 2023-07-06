@@ -285,7 +285,7 @@ class EmitApp(ManagedAirport):
         remote_apt = Airport.find(apt, self.redis)
         if remote_apt is None:
             logger.error("remote airport not found")
-            return StatusInfo(100, "error", None)
+            return StatusInfo(2, "error", None)
 
         aptrange = self.airport.miles(remote_apt)
 
@@ -317,10 +317,10 @@ class EmitApp(ManagedAirport):
         actype, acsubtype = acarr
         ac = AircraftTypeWithPerformance.findAircraftByType(actype, acsubtype, self.use_redis())
         if ac is None:
-            return StatusInfo(105, f"aircraft performance not found for {actype} or {acsubtype}", None)
+            return StatusInfo(3, f"aircraft performance not found for {actype} or {acsubtype}", None)
         acperf = AircraftTypeWithPerformance.find(icao=ac, redis=self.use_redis())
         if acperf is None:
-            return StatusInfo(110, f"aircraft performance not found for {ac}", None)
+            return StatusInfo(4, f"aircraft performance not found for {ac}", None)
         acperf.load()
         reqfl = acperf.FLFor(aptrange)
 
@@ -363,7 +363,7 @@ class EmitApp(ManagedAirport):
         rampval = self.airport.getRamp(ramp, redis=self.use_redis())
         if rampval is None:
             logger.warning(f"ramp {ramp} not found, quitting")
-            return StatusInfo(115, f"ramp {ramp} not found", None)
+            return StatusInfo(5, f"ramp {ramp} not found", None)
 
         flight.setRamp(rampval)
         gate = "C99"
@@ -377,7 +377,7 @@ class EmitApp(ManagedAirport):
         logger.debug("..planning..")
         ret = flight.plan()
         if not ret[0]:
-            return StatusInfo(120, f"problem during flight planning", ret[1])
+            return StatusInfo(6, f"problem during flight planning", ret[1])
 
         logger.debug(f"route: {flight.printFlightRoute()}")
         logger.debug(f"plan : {flight.printFlightPlan()}")
@@ -395,7 +395,7 @@ class EmitApp(ManagedAirport):
             svc_sync = FLIGHT_PHASE.OFFBLOCK.value
         ret = move.move()
         if not ret[0]:
-            return StatusInfo(125, f"problem during move", ret[1])
+            return StatusInfo(7, f"problem during move", ret[1])
 
         # 5. (save move?)
         # move.save()
@@ -405,7 +405,7 @@ class EmitApp(ManagedAirport):
         emit = Emit(move)
         ret = emit.emit(emit_rate)
         if not ret[0]:
-            return StatusInfo(130, f"problem during emit", ret[1])
+            return StatusInfo(8, f"problem during emit", ret[1])
 
         # 7. Schedule emit
         logger.debug("..scheduling..")
@@ -418,25 +418,25 @@ class EmitApp(ManagedAirport):
             logger.debug("scheduled time has no time zone, added managed airport local time zone")
         ret = emit.schedule(sync, emit_time, do_print=True)
         if not ret[0]:
-            return StatusInfo(135, f"problem during schedule", ret[1])
+            return StatusInfo(9, f"problem during schedule", ret[1])
 
         # 8. Schedule messages
         ret = emit.scheduleMessages(sync, emit_time, do_print=True)
         if not ret[0]:
-            return StatusInfo(140, f"problem during schedule of messages", ret[1])
+            return StatusInfo(10, f"problem during schedule of messages", ret[1])
 
         # 9. (save emit?)
         if SAVE_TO_FILE or SAVE_TRAFFIC:
             logger.debug("..saving positions to file..")
             ret = emit.saveFile()
             if not ret[0]:
-                return StatusInfo(145, f"problem during save to file", ret[1])
+                return StatusInfo(11, f"problem during save to file", ret[1])
 
         if self._use_redis:
             logger.debug("..saving positions to Redis..")
             ret = emit.save(redis=self.redis)
             if not ret[0]:
-                return StatusInfo(150, f"problem during save to Redis", ret[1])
+                return StatusInfo(12, f"problem during save to Redis", ret[1])
 
         # 10. (save messages?)
 
@@ -452,19 +452,19 @@ class EmitApp(ManagedAirport):
             formatted = Format(emit=emit)
 
         if formatted is None:
-            return StatusInfo(155, f"problem during preparation of formatting of positions", ret[1])
+            return StatusInfo(13, f"problem during preparation of formatting of positions", ret[1])
 
         logger.debug("..formatting..")
         ret = formatted.format()
         if not ret[0]:
-            return StatusInfo(160, f"problem during formatting of positions", ret[1])
+            return StatusInfo(14, f"problem during formatting of positions", ret[1])
 
         # 12. (save formatted position)
         if self._use_redis:
             logger.debug("..saving formatted position to Redis..")
             ret = formatted.save(overwrite=True)
             if not ret[0]:
-                return StatusInfo(365, f"problem during save of positions to Redis", ret[1])
+                return StatusInfo(15, f"problem during save of positions to Redis", ret[1])
 
         if SAVE_TO_FILE:
             logger.debug("..saving formatted position to file..")
@@ -472,14 +472,14 @@ class EmitApp(ManagedAirport):
             # Redis: "EnqueueToRedis::save key already exist"
             # File:  "Format::save file already exist"
             if not ret[0] and not ret[1].endswith("already exist"):
-                return StatusInfo(165, f"problem during formatted position output save", ret[1])
+                return StatusInfo(16, f"problem during formatted position output save", ret[1])
 
         # 13. Enqueue positions
         if self._use_redis:
             logger.debug("..enqueuing positions to Redis..")
             ret = formatted.enqueue()
             if not ret[0]:
-                return StatusInfo(370, f"problem during enqueue of positions to Redis", ret[1])
+                return StatusInfo(17, f"problem during enqueue of positions to Redis", ret[1])
 
         # 14. Create format + format messages
         logger.debug("..broadcasting messages..")
@@ -490,12 +490,12 @@ class EmitApp(ManagedAirport):
             formatted_message = FormatMessage(emit=emit)
 
         if formatted_message is None:
-            return StatusInfo(170, f"problem during formatting of messages", ret[1])
+            return StatusInfo(18, f"problem during formatting of messages", ret[1])
 
         logger.debug("..formatting messages..")
         ret = formatted_message.format()
         if not ret[0]:
-            return StatusInfo(175, f"problem during formatting of messages", ret[1])
+            return StatusInfo(19, f"problem during formatting of messages", ret[1])
 
         # 15. (save formatted messages)
         if SAVE_TO_FILE:
@@ -504,14 +504,14 @@ class EmitApp(ManagedAirport):
             # Redis: "EnqueueToRedis::save key already exist"
             # File:  "Format::save file already exist"
             if not ret[0] and not ret[1].endswith("already exist"):
-                return StatusInfo(180, f"problem during formatted message output save", ret[1])
+                return StatusInfo(20, f"problem during formatted message output save", ret[1])
 
         # 16. Enqueue messages
         if self._use_redis:
             logger.debug("..enqueuing messages to Redis..")
             ret = formatted_message.enqueue()
             if not ret[0]:
-                return StatusInfo(185, f"problem during enqueue of messages", ret[1])
+                return StatusInfo(21, f"problem during enqueue of messages", ret[1])
 
         # 17. Done + summary
         logger.info("***** SAVED " + ("*" * 87))
@@ -548,32 +548,32 @@ class EmitApp(ManagedAirport):
         flight_service.setManagedAirport(self)
         ret = flight_service.service()
         if not ret[0]:
-            return StatusInfo(200, f"problem during flight service", ret[1])
+            return StatusInfo(21, f"problem during flight service", ret[1])
 
         # 4. Create move
         logger.debug("..moving equipment..")
         ret = flight_service.move()
         if not ret[0]:
-            return StatusInfo(205, f"problem during flight service movement creation", ret[1])
+            return StatusInfo(22, f"problem during flight service movement creation", ret[1])
 
         # 5. (save move?)
         # 6. Create emit
         logger.debug("..emission positions equipment..")
         ret = flight_service.emit(emit_rate_svc)
         if not ret[0]:
-            return StatusInfo(210, f"problem during flight service emission", ret[1])
+            return StatusInfo(23, f"problem during flight service emission", ret[1])
 
         # 7. Schedule emit
         logger.debug("..scheduling equipment..")
         ret = flight_service.schedule(blocktime, do_print=True)
         if not ret[0]:
-            return StatusInfo(220, f"problem during flight service scheduling", ret[1])
+            return StatusInfo(24, f"problem during flight service scheduling", ret[1])
 
         # 8. Schedule messages
         logger.debug("..scheduling messages..")
         ret = flight_service.scheduleMessages(blocktime, do_print=True)
         if not ret[0]:
-            return StatusInfo(225, f"problem during flight service scheduling of messages", ret[1])
+            return StatusInfo(25, f"problem during flight service scheduling of messages", ret[1])
 
         # 9. (save emit?)
         # 10. (save messages?)
@@ -581,13 +581,13 @@ class EmitApp(ManagedAirport):
             logger.debug("..saving equipment and messages to files..")
             ret = flight_service.saveFile()
             if not ret[0]:
-                return StatusInfo(230, f"problem during flight service scheduling", ret[1])
+                return StatusInfo(26, f"problem during flight service scheduling", ret[1])
 
         if self._use_redis:
             logger.debug("..saving equipment and messages to Redis..")
             ret = flight_service.save(redis=self.redis)
             if not ret[0]:
-                return StatusInfo(235, f"problem during flight service save in Redis", ret[1])
+                return StatusInfo(27, f"problem during flight service save in Redis", ret[1])
 
         # 11. Create format + format position
         # 12. (save formatted positions)
@@ -597,7 +597,7 @@ class EmitApp(ManagedAirport):
             logger.debug("..enqueuing flight services positions to Redis..")
             ret = flight_service.enqueueToRedis(self.queues[queue])  # also enqueues...
             if not ret[0]:
-                return StatusInfo(240, f"problem during enqueue of services", ret[1])
+                return StatusInfo(28, f"problem during enqueue of services", ret[1])
 
         # 14. Create format + format messages
         # 15. (save formatted messages)
@@ -606,7 +606,7 @@ class EmitApp(ManagedAirport):
             logger.debug("..enqueue of flight services messages to Redis..")
             ret = flight_service.enqueueMessagesToRedis(self.queues["wire"])  # also enqueues...
             if not ret[0]:
-                return StatusInfo(245, f"problem during enqueue of services", ret[1])
+                return StatusInfo(29, f"problem during enqueue of services", ret[1])
 
             logger.debug("..saving allocations to Redis..")
             self.airport.manager.saveAllocators(self.redis)
@@ -615,7 +615,7 @@ class EmitApp(ManagedAirport):
             logger.debug("..formatting services..")
             ret = flight_service.format(saveToFile=SAVE_TO_FILE or SAVE_TRAFFIC)
             if not ret[0] and not ret[1].endswith("already exist"):
-                return StatusInfo(250, f"problem during formating", ret[1])
+                return StatusInfo(30, f"problem during formating", ret[1])
             # @todo: save to file?
 
         # 17. Done + summary
@@ -632,7 +632,7 @@ class EmitApp(ManagedAirport):
         logger.debug("..aircraft type..")
         acperf = AircraftTypeWithPerformance.find(aircraft, redis=self.use_redis())
         if acperf is None:
-            return StatusInfo(300, f"EmitApp:do_service: aircraft performance {aircraft} not found", None)
+            return StatusInfo(31, f"EmitApp:do_service: aircraft performance {aircraft} not found", None)
         acperf.load()
 
         logger.debug("..service operator..")
@@ -645,7 +645,7 @@ class EmitApp(ManagedAirport):
         logger.debug("creating service..")
         rampval = self.airport.getRamp(ramp, redis=self.use_redis())
         if rampval is None:
-            return StatusInfo(305, f"EmitApp:do_service: ramp {ramp} not found", None)
+            return StatusInfo(32, f"EmitApp:do_service: ramp {ramp} not found", None)
         scheduled_dt = datetime.fromisoformat(scheduled)
         if scheduled_dt.tzname() is None:  # has no time zone, uses local one
             scheduled_dt = scheduled_dt.replace(tzinfo=self.timezone)
@@ -658,15 +658,15 @@ class EmitApp(ManagedAirport):
         logger.debug("..finding equipment..")
         this_equipment = self.airport.manager.selectEquipment(operator=operator, service=this_service, reqtime=scheduled_dt, model=equipment_model, registration=equipment_ident, use=True)
         if this_equipment is None:
-            return StatusInfo(310, f"EmitApp:do_service: vehicle not found", None)
+            return StatusInfo(33, f"EmitApp:do_service: vehicle not found", None)
         this_equipment.setICAO24(equipment_icao24)
         startpos = self.airport.selectServicePOI(equipment_startpos, service, redis=self.use_redis())
         if startpos is None:
-            return StatusInfo(315, f"EmitApp:do_service: start position {equipment_startpos} for {service} not found", None)
+            return StatusInfo(34, f"EmitApp:do_service: start position {equipment_startpos} for {service} not found", None)
         this_equipment.setPosition(startpos)  # this is the start position for the vehicle
         nextpos = self.airport.selectServicePOI(equipment_endpos, service, redis=self.use_redis())
         if nextpos is None:
-            return StatusInfo(325, f"EmitApp:do_service: start position {equipment_endpos} for {service} not found", None)
+            return StatusInfo(35, f"EmitApp:do_service: start position {equipment_endpos} for {service} not found", None)
         this_equipment.setNextPosition(nextpos)  # this is the position the vehicle is going to after service
 
         # 4. Create move
@@ -674,20 +674,20 @@ class EmitApp(ManagedAirport):
         move = ServiceMove(this_service, self.airport)
         ret = move.move()
         if not ret[0]:
-            return StatusInfo(330, f"problem during service move", ret[1])
+            return StatusInfo(36, f"problem during service move", ret[1])
 
         # 5. (save move?)
         if SAVE_TO_FILE:
             ret = move.saveFile()
             if not ret[0]:
-                return StatusInfo(335, f"problem during service move save", ret[1])
+                return StatusInfo(37, f"problem during service move save", ret[1])
 
         # 6. Create emit
         logger.debug("..emission of positions..")
         emit = Emit(move)
         ret = emit.emit(emit_rate)
         if not ret[0]:
-            return StatusInfo(340, f"problem during service emission", ret[1])
+            return StatusInfo(38, f"problem during service emission", ret[1])
 
         # 7. Schedule emit
         logger.debug("..scheduling positions..")
@@ -695,26 +695,26 @@ class EmitApp(ManagedAirport):
         logger.debug(f"..{SERVICE_PHASE.SERVICE_START.value} at {scheduled}..")
         ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, scheduled_dt)
         if not ret[0]:
-            return StatusInfo(345, f"problem during service scheduling", ret[1])
+            return StatusInfo(39, f"problem during service scheduling", ret[1])
 
         # 9. (save emit?)
         if SAVE_TO_FILE:
             logger.debug("..saving positions to file..")
             ret = emit.saveFile()
             if not ret[0]:
-                return StatusInfo(350, f"problem during service emission save", ret[1])
+                return StatusInfo(40, f"problem during service emission save", ret[1])
 
         if self._use_redis:
             logger.debug("..saving positions to Redis..")
             ret = emit.save(redis=self.redis)
             if not ret[0]:
-                return StatusInfo(355, f"problem during service emission save to Redis", ret[1])
+                return StatusInfo(41, f"problem during service emission save to Redis", ret[1])
 
         # 8. Schedule messages
         logger.debug("..scheduling messages..")
         ret = emit.scheduleMessages(sync, emit_time, do_print=True)
         if not ret[0]:
-            return StatusInfo(140, f"problem during schedule of messages", ret[1])
+            return StatusInfo(42, f"problem during schedule of messages", ret[1])
         # 10. (save messages?)
 
         # 11. Create format + format position
@@ -728,12 +728,12 @@ class EmitApp(ManagedAirport):
             formatted = Format(emit=emit)
 
         if formatted is None:
-            return StatusInfo(155, f"problem during preparation of formatting of positions", ret[1])
+            return StatusInfo(43, f"problem during preparation of formatting of positions", ret[1])
 
         logger.debug("..formatting..")
         ret = formatted.format()
         if not ret[0]:
-            return StatusInfo(160, f"problem during formatting of positions", ret[1])
+            return StatusInfo(44, f"problem during formatting of positions", ret[1])
 
 
         # 12. (save formatted positions)
@@ -741,19 +741,19 @@ class EmitApp(ManagedAirport):
             logger.debug("..save to Redis..")
             ret = formatted.save()
             if not ret[0]:
-                return StatusInfo(365, f"problem during service save to Redis", ret[1])
+                return StatusInfo(45, f"problem during service save to Redis", ret[1])
         else:
             logger.debug("..saving to file..")
             ret = formatted.saveFile()
             if not ret[0]:
-                return StatusInfo(385, f"problem during service save to file", ret[1])
+                return StatusInfo(46, f"problem during service save to file", ret[1])
 
         # 13. Enqueue positions
         if self._use_redis:
             logger.debug("..enqueue to redis..")
             ret = formatted.enqueue()
             if not ret[0]:
-                return StatusInfo(370, f"problem during service enqueue to Redis", ret[1])
+                return StatusInfo(47, f"problem during service enqueue to Redis", ret[1])
 
         # 14. Create format + format messages
         ## @todo
@@ -969,17 +969,17 @@ class EmitApp(ManagedAirport):
         logger.debug("..vehicle..")
         mission_equipment = self.airport.manager.selectEquipment(operator=operator, service=mission, reqtime=mission_time, model=equipment_model, registration=equipment_ident, use=True)
         if mission_equipment is None:
-            return StatusInfo(311, f"connot find vehicle {equipment_model}", None)
+            return StatusInfo(200, f"connot find vehicle {equipment_model}", None)
         mission_equipment.setICAO24(equipment_icao24)
 
         logger.debug("..start and end positions..")
         start_pos = self.airport.getPOIFromCombo(equipment_startpos)
         if start_pos is None:
-            return StatusInfo(300, f"connot find start position {equipment_startpos}", None)
+            return StatusInfo(201, f"connot find start position {equipment_startpos}", None)
         mission_equipment.setPosition(start_pos)
         end_pos = self.airport.getPOIFromCombo(equipment_endpos)
         if end_pos is None:
-            return StatusInfo(301, f"connot find end position {equipment_endpos}", None)
+            return StatusInfo(202, f"connot find end position {equipment_endpos}", None)
         mission_equipment.setNextPosition(end_pos)
 
         # logger.debug("..running..")
@@ -990,11 +990,11 @@ class EmitApp(ManagedAirport):
         move = MissionMove(mission, self.airport)
         ret = move.move()
         if not ret[0]:
-            return StatusInfo(302, f"problem during mission move", ret[1])
+            return StatusInfo(203, f"problem during mission move", ret[1])
         if SAVE_TO_FILE:
             ret = move.saveFile()
             if not ret[0]:
-                return StatusInfo(303, f"problem during mission move save", ret[1])
+                return StatusInfo(204, f"problem during mission move save", ret[1])
 
         # 5. (save move?)
         # 6. Create emit
@@ -1002,32 +1002,32 @@ class EmitApp(ManagedAirport):
         emit = Emit(move)
         ret = emit.emit(emit_rate)
         if not ret[0]:
-            return StatusInfo(304, f"problem during mission emission", ret[1])
+            return StatusInfo(205, f"problem during mission emission", ret[1])
 
         # 7. Schedule emit
         logger.debug("..scheduling broadcast..")
         ret = emit.schedule(MISSION_PHASE.START.value, mission_time)
         if not ret[0]:
-            return StatusInfo(305, f"problem during mission scheduling", ret[1])
+            return StatusInfo(206, f"problem during mission scheduling", ret[1])
 
         # 9. (save emit?)
         if SAVE_TO_FILE or SAVE_TRAFFIC:
             logger.debug("..saving to file..")
             ret = emit.saveFile()
             if not ret[0]:
-                return StatusInfo(306, f"problem during mission emission save", ret[1])
+                return StatusInfo(207, f"problem during mission emission save", ret[1])
 
         if self._use_redis:
             logger.debug("..saving to Redis..")
             ret = emit.save(redis=self.redis)
             if not ret[0]:
-                return StatusInfo(307, f"problem during mission mission save to Redis", ret[1])
+                return StatusInfo(208, f"problem during mission mission save to Redis", ret[1])
 
         # 8. Schedule messages
         logger.debug("..scheduling messages..")
         ret = emit.scheduleMessages(MISSION_PHASE.START.value, mission_time, do_print=True)
         if not ret[0]:
-            return StatusInfo(140, f"problem during schedule of messages", ret[1])
+            return StatusInfo(209, f"problem during schedule of messages", ret[1])
 
         # 10. (save messages?)
         logger.debug("..broadcasting positions..")
@@ -1042,12 +1042,12 @@ class EmitApp(ManagedAirport):
             formatted = Format(emit=emit)
 
         if formatted is None:
-            return StatusInfo(313, f"problem during mission formatting", ret[1])
+            return StatusInfo(210, f"problem during mission formatting", ret[1])
 
         logger.debug("..formatting..")
         ret = formatted.format()
         if not ret[0]:
-            return StatusInfo(314, f"problem during formatting", ret[1])
+            return StatusInfo(211, f"problem during formatting", ret[1])
 
 
         # 12. (save formatted positions)
@@ -1055,19 +1055,19 @@ class EmitApp(ManagedAirport):
             logger.debug("..save to Redis..")
             ret = formatted.save()
             if not ret[0]:
-                return StatusInfo(311, f"problem during mission save to Redis", ret[1])
+                return StatusInfo(212, f"problem during mission save to Redis", ret[1])
         else:
             logger.debug("..saving to file..")
             ret = formatted.saveFile()
             if not ret[0]:
-                return StatusInfo(315, f"problem during mission save to file", ret[1])
+                return StatusInfo(213, f"problem during mission save to file", ret[1])
 
         # 13. Enqueue positions
         if self._use_redis:
             logger.debug("..enqueue to redis..")
             ret = formatted.enqueue()
             if not ret[0]:
-                return StatusInfo(312, f"problem during mission enqueue to Redis", ret[1])
+                return StatusInfo(214, f"problem during mission enqueue to Redis", ret[1])
             logger.debug("..saving allocations..")
             self.airport.manager.saveAllocators(self.redis)
 
@@ -1079,11 +1079,11 @@ class EmitApp(ManagedAirport):
         else:
             formatted_message = FormatMessage(emit=emit)
         if formatted_message is None:
-            return StatusInfo(170, f"problem during formatting of messages", ret[1])
+            return StatusInfo(215, f"problem during formatting of messages", ret[1])
         else:
             ret = formatted_message.format()
             if not ret[0]:
-                return StatusInfo(175, f"problem during formatting of messages", ret[1])
+                return StatusInfo(216, f"problem during formatting of messages", ret[1])
 
         # 15. (save formatted messages)
         if SAVE_TO_FILE:
@@ -1092,13 +1092,13 @@ class EmitApp(ManagedAirport):
             # Redis: "EnqueueToRedis::save key already exist"
             # File:  "Format::save file already exist"
             if not ret[0] and not ret[1].endswith("already exist"):
-                return StatusInfo(180, f"problem during formatted message output save", ret[1])
+                return StatusInfo(217, f"problem during formatted message output save", ret[1])
 
         # 16. Enqueue messages
         if self._use_redis:
             ret = formatted_message.enqueue()
             if not ret[0]:
-                return StatusInfo(185, f"problem during enqueue of messages", ret[1])
+                return StatusInfo(218, f"problem during enqueue of messages", ret[1])
 
         # 17. Done + summary
         logger.debug("..done")
@@ -1108,7 +1108,7 @@ class EmitApp(ManagedAirport):
     def do_schedule(self, queue, ident, sync, scheduled, do_services: bool = False):
 
         if not self._use_redis:
-            return StatusInfo(399, "do_schedule can currently only schedule movement stored in Redis", None)
+            return StatusInfo(300, "do_schedule can currently only schedule movement stored in Redis", None)
 
         # #########
         # Flight or ground support (service, mission...)
@@ -1122,17 +1122,17 @@ class EmitApp(ManagedAirport):
         logger.debug("scheduling..")
         ret = emit.schedule(sync, emit_time, do_print=True)
         if not ret[0]:
-            return StatusInfo(400, f"problem during rescheduling", ret[1])
+            return StatusInfo(301, f"problem during rescheduling", ret[1])
 
         ret = emit.scheduleMessages(sync, emit_time, do_print=True)
         if not ret[0]:
-            return StatusInfo(105, f"problem during schedule of messages", ret[1])
+            return StatusInfo(302, f"problem during schedule of messages", ret[1])
 
         logger.debug("..broadcasting positions..")
         formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
         ret = formatted.format()
         if not ret[0]:
-            return StatusInfo(401, f"problem during rescheduled formatting", ret[1])
+            return StatusInfo(303, f"problem during rescheduled formatting", ret[1])
 
         # logger.debug("..saving..")
         # ret = formatted.save(overwrite=True)
@@ -1142,74 +1142,94 @@ class EmitApp(ManagedAirport):
         logger.debug("..enqueueing for broadcast..")
         ret = formatted.enqueue()
         if not ret[0]:
-            return StatusInfo(403, f"problem during rescheduled enqueing", ret[1])
+            return StatusInfo(304, f"problem during rescheduled enqueing", ret[1])
         logger.debug("..done.")
 
+        logger.debug("..broadcasting messages..")
+        formatted_messages = EnqueueMessagesToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
+        ret = formatted_messages.format()
+        if not ret[0]:
+            return StatusInfo(305, f"problem during rescheduled message formatting", ret[1])
+
+        # logger.debug("..saving..")
+        # ret = formatted.save(overwrite=True)
+        # if not ret[0]:
+        #     return StatusInfo(402, f"problem during rescheduled save", ret[1])
+
+        logger.debug("..enqueueing for broadcast..")
+        ret = formatted_messages.enqueue()
+        if not ret[0]:
+            return StatusInfo(306, f"problem during rescheduled message enqueing", ret[1])
+
+        logger.debug("..saving allocations..")
         self.airport.manager.saveAllocators(self.redis)
-        if not do_services:
+
+        logger.debug("..done.")
+
+        if not (ident.startswith(REDIS_DATABASE.FLIGHTS.value) and ident.endswith(REDIS_TYPE.EMIT.value) and do_services):
             return StatusInfo(0, "scheduled successfully", ident)
 
-        if ident.startswith(REDIS_DATABASE.FLIGHTS.value) and ident.endswith(REDIS_TYPE.EMIT.value) and do_services:
-            # #########
-            # Linked services for flights
-            logger.debug(f"scheduling associated services..")
-            services = self.airport.manager.allServicesForFlight(redis=self.redis,
-                                                                flight_id=ident,
-                                                                redis_type=REDIS_TYPE.EMIT.value)
+        # #########
+        # Linked services for flights
+        logger.debug(f"scheduling associated services..")
+        services = self.airport.manager.allServicesForFlight(redis=self.redis,
+                                                            flight_id=ident,
+                                                            redis_type=REDIS_TYPE.EMIT.value)
 
-            is_arrival = emit.getMeta("$.move.flight.is_arrival")
-            logger.debug(f"..is {'arrival' if is_arrival else 'departure'}..")
-            if is_arrival:
-                svc_sync = FLIGHT_PHASE.ONBLOCK.value
-            else:
-                svc_sync = FLIGHT_PHASE.OFFBLOCK.value
-            blocktime1 = emit.getAbsoluteEmissionTime(svc_sync)
-            blocktime = datetime.fromtimestamp(blocktime1)
-            logger.debug(f"..{svc_sync} at {blocktime} ({blocktime1})..done")
+        is_arrival = emit.getMeta("$.move.flight.is_arrival")
+        logger.debug(f"..is {'arrival' if is_arrival else 'departure'}..")
+        if is_arrival:
+            svc_sync = FLIGHT_PHASE.ONBLOCK.value
+        else:
+            svc_sync = FLIGHT_PHASE.OFFBLOCK.value
+        blocktime1 = emit.getAbsoluteEmissionTime(svc_sync)
+        blocktime = datetime.fromtimestamp(blocktime1)
+        logger.debug(f"..{svc_sync} at {blocktime} ({blocktime1})..done")
 
-            logger.debug(f"scheduling..")
-            for service in services:
-                logger.debug(f"..doing service {service}..")
-                se = ReEmit(service, self.redis)
-                se.setManagedAirport(self)
-                se_relstart = se.getMeta("$.move.service.ground-support.schedule")
-                se_absstart = blocktime + timedelta(minutes=se_relstart)
-                logger.debug(f"..service {service} will start at {se_absstart} {se_relstart}min relative to blocktime {blocktime}..")
-                self.do_schedule(queue=queue,
-                                 ident=service,
-                                 sync=SERVICE_PHASE.START.value,
-                                 scheduled=se_absstart.isoformat(),
-                                 do_services=False)
-                # we could cut'n paste code from begining of this function as well...
-                # I love recursion.
+        logger.debug(f"..scheduling of services..")
+        for service in services:
+            logger.debug(f"..doing service {service}..")
+            se = ReEmit(service, self.redis)
+            se.setManagedAirport(self)
+            se_relstart = se.getMeta("$.move.service.ground-support.schedule")
+            se_absstart = blocktime + timedelta(minutes=se_relstart)
+            logger.debug(f"..service {service} will start at {se_absstart} {se_relstart}min relative to blocktime {blocktime}..")
+            self.do_schedule(queue=queue,
+                             ident=service,
+                             sync=SERVICE_PHASE.START.value,
+                             scheduled=se_absstart.isoformat(),
+                             do_services=False)
+            # we could cut'n paste code from begining of this function as well...
+            # I love recursion.
 
-            logger.debug("..saving allocations..")
-            self.airport.manager.saveAllocators(self.redis)
-            logger.debug(f"..done")
+        # not necessary? since completed in last do_schedule
+        logger.debug("..saving allocations..")
+        self.airport.manager.saveAllocators(self.redis)
 
+        logger.debug(f"..done")
         return StatusInfo(0, "scheduled successfully (with services)", ident)
 
 
     def do_emit_again(self, ident, sync, scheduled, new_frequency, queue):
 
         if not self._use_redis:
-            return StatusInfo(659, "do_emit_again can currently only load previous emit from Redis", None)
+            return StatusInfo(400, "do_emit_again can currently only load previous emit from Redis", None)
 
         emit = ReEmit(ident, self.redis)
         emit.setManagedAirport(self)
 
         if new_frequency == emit.frequency:
             logger.debug(f"not different")
-            return StatusInfo(651, "not a new frequency", ident)
+            return StatusInfo(401, "not a new frequency", ident)
 
         ret = emit.emit(new_frequency)
         if not ret[0]:
-            return StatusInfo(654, f"problem during emit", ret[1])
+            return StatusInfo(402, f"problem during emit", ret[1])
         # emit.save()
 
         ret = emit.save(redis=self.redis)
         if not ret[0]:
-            return StatusInfo(655, f"problem during save", ret[1])
+            return StatusInfo(403, f"problem during save", ret[1])
 
         emit_time = datetime.fromisoformat(scheduled)
         if emit_time.tzname() is None:  # has no time zone, uses local one
@@ -1219,13 +1239,13 @@ class EmitApp(ManagedAirport):
         logger.debug("scheduling..")
         ret = emit.schedule(sync, emit_time)
         if not ret[0]:
-            return StatusInfo(656, f"problem during rescheduling", ret[1])
+            return StatusInfo(404, f"problem during rescheduling", ret[1])
 
         logger.debug("..broadcasting positions..")
         formatted = EnqueueToRedis(emit=emit, queue=self.queues[queue], redis=self.redis)
         ret = formatted.format()
         if not ret[0]:
-            return StatusInfo(657, f"problem during rescheduled formatting", ret[1])
+            return StatusInfo(405, f"problem during rescheduled formatting", ret[1])
 
         # logger.debug("..saving..")
         # ret = formatted.save(overwrite=True)
@@ -1235,7 +1255,7 @@ class EmitApp(ManagedAirport):
         logger.debug("..enqueueing for broadcast..")
         ret = formatted.enqueue()
         if not ret[0]:
-            return StatusInfo(659, f"problem during rescheduled enqueing", ret[1])
+            return StatusInfo(406, f"problem during rescheduled enqueing", ret[1])
         logger.debug("..done.")
 
         logger.debug("..saving allocations..")
@@ -1271,7 +1291,7 @@ class EmitApp(ManagedAirport):
             logger.debug(f"deleting enqueue {ident}..")
             ret = EnqueueToRedis.dequeue(ident=ident, queue=queue, redis=self.redis)  # dequeue and delete
             if not ret[0]:
-                return StatusInfo(502, f"problem during deletion of {ident} ", ret)
+                return StatusInfo(503, f"problem during deletion of {ident} ", ret)
             self.redis.delete(ident)
             logger.debug(f"{ident} ..done")
 
@@ -1283,7 +1303,7 @@ class EmitApp(ManagedAirport):
                 if key != ident:
                     si = self.do_delete(queue=queue, ident=key)
                     if si.status != 0:
-                        return StatusInfo(503, f"problem during deletion of associated enqueue {key} of {ident} ", si)
+                        return StatusInfo(504, f"problem during deletion of associated enqueue {key} of {ident} ", si)
             self.redis.delete(ident)
             logger.debug(f"{ident} ..done")
 
@@ -1295,7 +1315,7 @@ class EmitApp(ManagedAirport):
                 if key != ident:
                     si = self.do_delete(queue=queue, ident=key)
                     if si.status != 0:
-                        return StatusInfo(504, f"problem during deletion of associated emit {key} of {ident} ", si)
+                        return StatusInfo(505, f"problem during deletion of associated emit {key} of {ident} ", si)
             self.redis.delete(ident)
             logger.debug(f"{ident} ..done")
 
@@ -1303,7 +1323,7 @@ class EmitApp(ManagedAirport):
             logger.debug(f"deleting {ident}")
             if arr[0] not in set(item.value for item in REDIS_DATABASE):
                 logger.debug(f"no identified database '{arr[0]}' for {ident}")
-                return StatusInfo(570, f"no identified database '{arr[0]}' for {ident}", None)
+                return StatusInfo(506, f"no identified database '{arr[0]}' for {ident}", None)
             elif what not in set(item.value for item in REDIS_TYPE):
                 logger.debug(f"database '{arr[0]}'")
                 logger.debug(f"no identified type '{what}' for {ident}")
@@ -1380,7 +1400,7 @@ class EmitApp(ManagedAirport):
     def do_pias_emit(self, queue, ident):
         ret = EnqueueToRedis.pias(redis=self.redis, ident=ident, queue=queue)
         if not ret[0]:
-            return StatusInfo(500, f"problem during pias of {ident}", ret)
+            return StatusInfo(900, f"problem during pias of {ident}", ret)
         return StatusInfo(0, "pias successfully", None)
 
 
