@@ -18,6 +18,7 @@ def add_speed(r1, r2):
 
 # Opposite
 def subtract_speed(r1, r2):
+
 	opp = r2[1] + 180
 	if opp > 360:
 		opp = opp - 360

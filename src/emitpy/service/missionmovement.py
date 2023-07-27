@@ -43,6 +43,7 @@ class MissionMove(Movement):
 
 
     def move(self):
+        move_points = self.getMovePoints()
         last_vtx = None
         speeds = self.mission.vehicle.speed
 
@@ -52,7 +53,7 @@ class MissionMove(Movement):
         pos.setSpeed(0)  # starts at rest
         pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.START.value)
         pos.setColor(MISSION_COLOR.START.value)
-        self.moves.append(pos)
+        move_points.append(pos)
         logger.debug(f"start added")
 
         self.addMessage(MissionMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.START.value}",
@@ -75,7 +76,7 @@ class MissionMove(Movement):
             pos.setSpeed(speeds["slow"])  # starts moving
             pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
             pos.setColor(MISSION_COLOR.EN_ROUTE.value)
-            self.moves.append(pos)
+            move_points.append(pos)
 
 
         # logger.debug("start vertex %s" % (start_npe[0]))
@@ -116,7 +117,7 @@ class MissionMove(Movement):
                     pos.setSpeed(speeds["normal"])
                     pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
                     pos.setColor(MISSION_COLOR.EN_ROUTE.value)
-                    self.moves.append(pos)
+                    move_points.append(pos)
                     last_vtx = vtx
             else:
                 logger.debug(f"no route from {prev_vtx.id} to {cp_nv[0].id}")
@@ -131,7 +132,7 @@ class MissionMove(Movement):
                 pos.setSpeed(speeds["slow"])  # starts moving
                 pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
                 pos.setColor(MISSION_COLOR.EN_ROUTE.value)
-                self.moves.append(pos)
+                move_points.append(pos)
 
             # finally reaches checkpoint
             pos = MovePoint.new(cp)
@@ -139,7 +140,7 @@ class MissionMove(Movement):
             pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.CHECKPOINT.value)
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
             pos.setPause(self.mission.duration(cp))
-            self.moves.append(pos)
+            move_points.append(pos)
             logger.debug(f"checkpoint added")
 
             self.addMessage(MissionMessage(subject=f"Mission {self.getId()} reached control point",
@@ -156,11 +157,11 @@ class MissionMove(Movement):
                 pos.setSpeed(speeds["slow"])  # starts moving
                 pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
                 pos.setColor(MISSION_COLOR.EN_ROUTE.value)
-                self.moves.append(pos)
+                move_points.append(pos)
 
             # goes back on service road network at closest vertex
             if last_vtx is not None:  # back on service road
-                self.moves.append(pos)
+                move_points.append(pos)
                 prev_vtx = last_vtx
 
             prev_cp = cp
@@ -196,7 +197,7 @@ class MissionMove(Movement):
                 pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
                 pos.setColor(MISSION_COLOR.EN_ROUTE.value)
                 pos.setSpeed(speeds["normal"])
-                self.moves.append(pos)
+                move_points.append(pos)
         else:
             logger.debug(f"no route from last checkpoint vtx {prev_vtx.id} to final destination vtx {cp_nv[0].id}")
 
@@ -205,14 +206,14 @@ class MissionMove(Movement):
         pos.setSpeed(speeds["slow"])
         pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
         pos.setColor(MISSION_COLOR.EN_ROUTE.value)
-        self.moves.append(pos)
+        move_points.append(pos)
 
         # from closest point on service road network to final_pos, stops there
         pos = MovePoint.new(final_pos)
         pos.setSpeed(0)  # ends at rest
         pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.END.value)
         pos.setColor(MISSION_COLOR.END.value)
-        self.moves.append(pos)
+        move_points.append(pos)
 
         self.addMessage(MissionMessage(subject=f"Mission {self.getId()} has ended",
                                        mission=self,
@@ -229,13 +230,13 @@ class MissionMove(Movement):
 
         # No interpolation necessary:
         # Each point should have speed set, altitude and vspeed irrelevant.
-        ret = doTime(self.moves)
+        ret = doTime(self.getMovePoints())
         if not ret[0]:
             return ret
 
         # Sets unique index on mission movement features
         idx = 0
-        for f in self.moves:
+        for f in self.getMovePoints():
             f.setProp(FEATPROP.MOVE_INDEX.value, idx)
             idx = idx + 1
 

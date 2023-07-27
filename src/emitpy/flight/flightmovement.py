@@ -120,7 +120,7 @@ class FlightMovement(Movement):
             return status
         # printFeatures(self.taxipos, "after taxi")
 
-        logger.debug(f"flight {len(self.moves)} points, taxi {len(self.taxipos)} points")
+        logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
         return (True, "Movement::make completed")
 
 
@@ -150,9 +150,9 @@ class FlightMovement(Movement):
         ls = Feature(geometry=asLineString(self._premoves))
         saveMe(self._premoves + [ls], FILE_FORMAT.FLIGHT.value)
 
-        # saveMe(self.moves, "3-move")
-        ls = Feature(geometry=asLineString(self.moves))
-        saveMe(self.moves + [ls], FILE_FORMAT.MOVE.value)
+        # saveMe(self.getMovePoints(), "3-move")
+        ls = Feature(geometry=asLineString(self.getMovePoints()))
+        saveMe(self.getMovePoints() + [ls], FILE_FORMAT.MOVE.value)
 
         # saveMe(self.taxipos, "4-taxi")
         ls = Feature(geometry=asLineString(self.taxipos))
@@ -161,7 +161,7 @@ class FlightMovement(Movement):
         filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
         with open(filename, "w") as fp:
             fp.write(self.getKML())
-            logger.debug(f"saved kml {filename} ({len(self.moves)})")
+            logger.debug(f"saved kml {filename} ({len(self.getMovePoints())})")
 
         logger.debug(f"saved {self.flight_id}")
         return (True, "Movement::save saved")
@@ -184,7 +184,7 @@ class FlightMovement(Movement):
 
         filename = os.path.join(basename, FILE_FORMAT.MOVE.value)
         with open(filename, "r") as fp:
-            self.moves = json.load(fp)
+            self.setMovePoints(json.load(fp))
 
         filename = os.path.join(basename, FILE_FORMAT.TAXI.value)
         with open(filename, "r") as fp:
@@ -195,13 +195,7 @@ class FlightMovement(Movement):
 
 
     def getKML(self):
-        return toKML(cleanFeatures(self.moves))
-
-
-    def getMoves(self):
-        # Your choice... moves? (default from super()) moves_st? includes standard turns
-        return self.moves
-
+        return toKML(cleanFeatures(self.getMovePoints()))
 
     def vnav(self):
         """
@@ -944,16 +938,17 @@ class FlightMovement(Movement):
                                 "end_initial_climb",
                                 FLIGHT_PHASE.TOUCH_DOWN.value,
                                 FLIGHT_PHASE.END_ROLLOUT.value]
-
-        self.moves = []
+        # Init, keep local pointer for convenience
+        self.setMovePoints([])
+        move_points = self.getMovePoints()
         last_speed = 100  # @todo: should fetch another reasonable value from aircraft performance.
         # Add first point
-        self.moves.append(self._premoves[0])
+        move_points.append(self._premoves[0])
 
         for i in range(1, len(self._premoves) - 1):
             if not should_do_st(self._premoves, i):
                 logger.debug("skipping %d (special mark)" % (i))
-                self.moves.append(self._premoves[i])
+                move_points.append(self._premoves[i])
             else:
                 li = LineString([self._premoves[i-1]["geometry"]["coordinates"], self._premoves[i]["geometry"]["coordinates"]])
                 lo = LineString([self._premoves[i]["geometry"]["coordinates"], self._premoves[i+1]["geometry"]["coordinates"]])
@@ -967,20 +962,20 @@ class FlightMovement(Movement):
                     mid = arc[int(len(arc) / 2)]
                     mid["properties"] = self._premoves[i]["properties"]
                     for p in arc:
-                        self.moves.append(MovePoint(geometry=p["geometry"], properties=mid["properties"]))
+                        move_points.append(MovePoint(geometry=p["geometry"], properties=mid["properties"]))
                 else:
-                    self.moves.append(self._premoves[i])
+                    move_points.append(self._premoves[i])
 
         # Add last point too
-        self.moves.append(self._premoves[-1])
+        move_points.append(self._premoves[-1])
 
         # Sets unique index on flight movement features
         idx = 0
-        for f in self.moves:
+        for f in move_points:
             f.setProp(FEATPROP.MOVE_INDEX.value, idx)
             idx = idx + 1
 
-        logger.debug(f"completed {len(self._premoves)}, {len(self.moves)} with standard turns")
+        logger.debug(f"completed {len(self._premoves)}, {len(self.getMovePoints())} with standard turns")
         return (True, "Movement::standard_turns added")
 
 
@@ -990,7 +985,7 @@ class FlightMovement(Movement):
         This is a simple linear interpolation based on distance between points.
         Runs for flight portion of flight.
         """
-        to_interp = self.moves
+        to_interp = self.getMovePoints()
         # before = []
         check = "altitude"
         logger.debug("interpolating ..")
@@ -1019,7 +1014,7 @@ class FlightMovement(Movement):
         #     logger.debug("%d: %s -> %s." % (i, before[i] if before[i] is not None else -1, v))
 
 
-        # logger.debug("last point %d: %f, %f" % (len(self.moves), self.moves[-1].speed(), self.moves[-1].altitude()))
+        # logger.debug("last point %d: %f, %f" % (len(self._move_poin), self._move_poin[-1].speed(), self._move_poin[-1].altitude()))
         # i = 0
         # for f in self._premoves:
         #     s = f.speed()
@@ -1035,15 +1030,15 @@ class FlightMovement(Movement):
         Time 0 is start of roll for takeoff (Departure) or takeoff from origin airport (Arrival).
         Last time is touch down at destination (Departure) or end of roll out (Arrival).
         """
-        if self.moves is None:
+        if self.getMovePoints() is None:
             return (False, "Movement::time no move")
 
-        status = doTime(self.moves)
+        status = doTime(self.getMovePoints())
         if not status[0]:
             logger.warning(status[1])
             return status
 
-        for f in self.moves:
+        for f in self.getMovePoints():
             f.setProp(FEATPROP.SAVED_TIME.value, f.time())
 
         return (True, "Movement::time computed")
@@ -1085,27 +1080,28 @@ class FlightMovement(Movement):
     def add_tmo(self, TMO: float = 10 * NAUTICAL_MILE):
         # We add a TMO point (Ten (nautical) Miles Out). Should be set before we interpolate.
         # TMO = 10 * NAUTICAL_MILE  # km
-        idx = len(self.moves) - 1  # last is end of roll, before last is touch down.
+        move_points = self.getMovePoints()
+        idx = len(move_points) - 1  # last is end of roll, before last is touch down.
         totald = 0
         prev = 0
         while totald < TMO and idx > 1:
             idx = idx - 1
-            d = distance(self.moves[idx], self.moves[idx - 1])
+            d = distance(move_points[idx], move_points[idx - 1])
             prev = totald
             totald = totald + d
             # logger.debug("add_tmo: %d: d=%f, t=%f" % (idx, d, totald))
         # idx points at
         left = TMO - prev
         # logger.debug("add_tmo: %d: left=%f, TMO=%f" % (idx, left, TMO))
-        brng = bearing(self.moves[idx], self.moves[idx - 1])
-        tmopt = destination(self.moves[idx], left, brng, {"units": "km"})
+        brng = bearing(move_points[idx], move_points[idx - 1])
+        tmopt = destination(move_points[idx], left, brng, {"units": "km"})
 
         tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
         tmomp.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TEN_MILE_OUT.value)
 
-        d = distance(tmomp, self.moves[-2])  # last is end of roll, before last is touch down.
+        d = distance(tmomp, move_points[-2])  # last is end of roll, before last is touch down.
 
-        self.moves.insert(idx, tmomp)
+        move_points.insert(idx, tmomp)
         logger.debug(f"added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down")
 
         self.addMessage(FlightMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.TEN_MILE_OUT.value}",
@@ -1117,27 +1113,28 @@ class FlightMovement(Movement):
 
     def add_faraway(self, FARAWAY: float = 100 * NAUTICAL_MILE):
         # We add a FARAWAY point when flight is at FARAWAY from begin of roll (i.e. at FARAWAY from airport).
-        start = self.moves[0]
+        move_points = self.getMovePoints()
+        start = move_points[0]
         idx = 0
         totald = 0
         prev = 0
-        while totald < FARAWAY and idx < (len(self.moves) - 1):
-            totald = distance(start, self.moves[idx + 1])
+        while totald < FARAWAY and idx < (len(self.getMovePoints()) - 1):
+            totald = distance(start, move_points[idx + 1])
             prev = totald
             idx = idx + 1
             # logger.debug("add_faraway: %d: d=%f, t=%f" % (idx, d, totald))
         # idx points at
         left = FARAWAY - prev
         # logger.debug("add_faraway: %d: left=%f, FARAWAY=%f" % (idx, left, FARAWAY))
-        if idx < len(self.moves) - 1:
-            brng = bearing(self.moves[idx], self.moves[idx + 1])
-            tmopt = destination(self.moves[idx], left, brng, {"units": "km"})
+        if idx < len(self.getMovePoints()) - 1:
+            brng = bearing(move_points[idx], move_points[idx + 1])
+            tmopt = destination(move_points[idx], left, brng, {"units": "km"})
 
             tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
             tmomp.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.FAR_AWAY.value)
 
             d = distance(start, tmomp)
-            self.moves.insert(idx, tmomp)
+            move_points.insert(idx, tmomp)
             logger.debug(f"added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from airport")
 
             self.addMessage(FlightMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.FAR_AWAY.value}",
@@ -1296,8 +1293,8 @@ class ArrivalMove(FlightMovement):
         FlightMovement.__init__(self, flight=flight, airport=airport)
 
 
-    def getMoves(self):
-        prev = super().getMoves()
+    def getMovePoints(self):
+        prev = super().getMovePoints()
         if len(prev) == 0:
             return prev   # len(prev) == 0
         start = prev[-1].time()  # take time of last event of flight
@@ -1423,7 +1420,7 @@ class DepartureMove(FlightMovement):
         if len(prev) == 0:
             return prev   # len(prev) == 0
         start = prev[-1].time()  # time of flight starts at end of taxi
-        nextmv = super().getMoves()
+        nextmv = super().getMovePoints()
         for f in nextmv:
             f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
         return self.taxipos + nextmv

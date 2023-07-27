@@ -121,7 +121,7 @@ def asLineString(features):
     coords = []
     for x in features:
         coords.append(x["geometry"]["coordinates"])
-    # coords = reduce(lambda x, coords: coords + x["geometry"]["coordinates"], self.moves, [])
+    # coords = reduce(lambda x, coords: coords + x["geometry"]["coordinates"], features, [])
     return LineString(coords)
 
 

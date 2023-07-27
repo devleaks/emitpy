@@ -35,7 +35,7 @@ class Movement(Messages):
         Messages.__init__(self)
 
         self.airport = airport
-        self.moves = []  # Array of Features<Point>
+        self._move_points = []  # Array of Features<Point>
 
     def getId(self):
         return "Movement::abstract-class-id"
@@ -58,9 +58,9 @@ class Movement(Messages):
             with open(filename, "w") as fp:
                 json.dump(FeatureCollection(features=cleanFeatures(arr)), fp, indent=4)
 
-        # saveMe(self.moves, "moves")
-        ls = Feature(geometry=asLineString(self.moves))
-        saveMe(self.moves + [ls], "moves_ls")
+        # saveMe(self.getMovePoints(), "moves")
+        ls = Feature(geometry=asLineString(self.getMovePoints()))
+        saveMe(self.getMovePoints() + [ls], "moves_ls")
 
         logger.debug(f"saved {ident}")
         return (True, "Movement::save saved")
@@ -74,7 +74,7 @@ class Movement(Messages):
 
         filename = os.path.join(basename, "-moves.json")
         with open(filename, "r") as fp:
-            self.moves = json.load(fp)
+            self._move_points = json.load(fp)
 
         logger.debug("loaded %d " % ident)
         return (True, "Movement::load loaded")
@@ -85,8 +85,11 @@ class Movement(Messages):
             "type": "abstract"
         }
 
-    def getMoves(self):
-        return self.moves
+    def getMovePoints(self):
+        return self._move_points
+
+    def setMovePoints(self, move_points):
+        self._move_points = move_points
 
     def getMessages(self):
         m = super().getMessages()
@@ -126,7 +129,7 @@ class Movement(Messages):
         """
         Removes all waiting time in movement, included service times.
         """
-        for f in self.moves:
+        for f in self.getMovePoints():
             before = f.pause(-1)
             if before > 0:
                 n = f.getProp(FEATPROP.MARK.value)
@@ -143,7 +146,7 @@ class Movement(Messages):
         :type       delays:  dict
         """
         for name, duration in delays.items():
-            farr = findFeatures(self.moves, {FEATPROP.MARK.value: name})
+            farr = findFeatures(self.getMovePoints(), {FEATPROP.MARK.value: name})
             if len(farr) == 0:
                 logger.warning(f"feature mark {name} not found")
                 return
@@ -160,12 +163,12 @@ class Movement(Messages):
         :rtype:     { ( str ) }
         """
         # l = set()
-        # [l.add(f.getProp(FEATPROP.MARK.value)) for f in self.moves]
+        # [l.add(f.getProp(FEATPROP.MARK.value)) for f in self.getMovePoints()]
         # if None in l:
         #     l.remove(None)
         # return l
         marks = []
-        for f in self.getMoves():
+        for f in self.getMovePoints():
             marks.append(f.getProp(FEATPROP.MARK.value))
         marks = set(marks)
         if None in marks:
@@ -181,7 +184,7 @@ class Movement(Messages):
         :rtype:     { ( str ) }
         """
         marks = []
-        for f in self.moves:
+        for f in self.getMovePoints():
             if f.pause(-1) > 0:
                 marks.append(f.getProp(FEATPROP.MARK.value))
         return set(marks)

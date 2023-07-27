@@ -64,14 +64,6 @@ def interpolate(arr: list, value: str):
                 interpolate_value(arr, value, noval_idx, idx)
                 noval_idx = None
 
-    # logger.debug("last point %d: %f, %f" % (len(self.moves_st), self.moves_st[-1].speed(), self.moves_st[-1].altitude()))
-    # i = 0
-    # for f in self.moves:
-    #     s = f.speed()
-    #     a = f.altitude()
-    #     logger.debug("alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
-    #     i = i + 1
-
     return (True, f":interpolate: interpolated {value}")
 
 

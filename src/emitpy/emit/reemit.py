@@ -126,8 +126,8 @@ class ReEmit(Emit):
         ret = self.redis.zrange(emit_id, 0, -1)
         if ret is not None:
             logger.debug(f"..got {len(ret)} members")
-            self._emit = [toEmitPoint(f) for f in ret]
-            logger.debug(f"..collected {len(self._emit)} points")
+            self.setEmitPoints([toEmitPoint(f) for f in ret])
+            logger.debug(f"..collected {len(self.getEmitPoints())} points")
         else:
             logger.debug(f"..could not load {emit_id}")
         return (True, "ReEmit::loadFromCache loaded")
@@ -184,7 +184,7 @@ class ReEmit(Emit):
         """
         Move points are saved in emission points.
         """
-        self.moves = list(filter(lambda f: not f.getProp(FEATPROP.BROADCAST.value), self._emit))
+        self.setMovePoints(list(filter(lambda f: not f.getProp(FEATPROP.BROADCAST.value), self.getEmitPoints())))
         logger.debug(f"extracted {len(self.moves)} points")
         return (True, "ReEmit::extractMove loaded")
 

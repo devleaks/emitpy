@@ -19,7 +19,7 @@ from turfpy.measurement import distance, bearing, destination
 from redis.commands.json.path import Path
 
 import emitpy
-from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, Movement, asLineString, toTraffic
+from emitpy.geo import MovePoint, Movement, cleanFeatures, findFeatures, Movement, asLineString, toTraffic
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, Timezone
 from emitpy.message import Messages, EstimatedTimeMessage
 
@@ -35,13 +35,13 @@ logger = logging.getLogger("Emit")
 BROADCAST_AT_VERTEX = False
 must_spit_out = False
 
-class EmitPoint(FeatureWithProps):
+class EmitPoint(MovePoint):
     """
     An EmitPoint is a Feature<Point> with additional information for emission.
     All information to be emited in included into the EmitPoint.
     """
     def __init__(self, geometry: Geometry, properties: dict):
-        FeatureWithProps.__init__(self, geometry=geometry, properties=properties)
+        MovePoint.__init__(self, geometry=geometry, properties=properties)
 
     def getRelativeEmissionTime(self):
         t = self.getProp(FEATPROP.EMIT_REL_TIME.value)
@@ -52,7 +52,7 @@ class EmitPoint(FeatureWithProps):
         return t if t is not None else 0
 
 
-class Emit(Messages):
+class Emit(Movement):
     """
     Emit takes an array of MovePoints to produce a FeatureCollection of decorated features ready for emission.
     """
@@ -60,14 +60,13 @@ class Emit(Messages):
         Messages.__init__(self)
         self.move = move
 
-        self.moves = None
         self.emit_id = None
         self.emit_type = None
         self.emit_meta = None
         self.format = None
         self.frequency = None  # seconds
-        self._emit = []  # [ EmitPoint ], time-relative emission of messages
-        self.scheduled_emit = []  # [ EmitPoint ], a copy of self._emit but with actual emission time (absolute time)
+        self._emit_points = []  # [ EmitPoint ], time-relative emission of messages
+        self.scheduled_emit = []  # [ EmitPoint ], a copy of self._emit_points but with actual emission time (absolute time)
         self.props = {}  # general purpose properties added to each emit point
         self.version = 0
         self.offset_name = None
@@ -82,7 +81,7 @@ class Emit(Messages):
             m = self.move.getInfo()
             self.emit_type = m.get("type", REDIS_DATABASE.UNKNOWN.value)
             # self.emit_meta = EmitMeta()
-            self.moves = self.move.getMoves()
+            self.moves = self.move.getMovePoints()
             self.props = self.move.getInfo()  # collect common props from movement
             self.props["emit"] = self.getInfo() # add meta data about this emission
             # logger.debug(f"{len(self.moves)} move points to emit with props {json.dumps(self.props, indent=2)}")
@@ -134,6 +133,15 @@ class Emit(Messages):
             "version": self.version
         }
 
+
+    def getEmitPoints(self):
+        return self._emit_points
+
+    def setEmitPoints(self, emit_points):
+        self._emit_points = emit_points
+
+    def has_emit_points(self):
+        return self._emit_points is not None and len(self.getEmitPoints()) > 0
 
     def getSource(self):
         if self.move is not None:
@@ -215,7 +223,7 @@ class Emit(Messages):
             # return self.saveFile()
             return (True, "Emit::save: no Redis")
 
-        if self._emit is None or len(self._emit) == 0:
+        if not self.has_emit_points():
             logger.warning("no emission point")
             return (False, "Emit::save: no emission point")
 
@@ -223,7 +231,7 @@ class Emit(Messages):
 
         # 1. Save emission points
         emit = {}
-        for f in self._emit:
+        for f in self.getEmitPoints():
             emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
         redis.delete(emit_id)
         redis.zadd(emit_id, emit)
@@ -262,7 +270,7 @@ class Emit(Messages):
         with open(fnbase + "debug-emit-info.out", "w") as fp:
             json.dump(self.getInfo(), fp, indent=4)
         with open(fnbase + "debug-emit-data.geojson", "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self._emit)), fp, indent=4)
+            json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())), fp, indent=4)
         with open(fnbase + "debug-move-info.out", "w") as fp:
             json.dump(self.move.getInfo(), fp, indent=4)
         with open(fnbase + "debug-move-emit-data.geojson", "w") as fp:
@@ -287,13 +295,13 @@ class Emit(Messages):
         # 1. Save "raw emits"
         # filename = os.path.join(basename + "-5-emit.json")
         # with open(filename, "w") as fp:
-        #     json.dump(self._emit, fp, indent=4)
+        #     json.dump(self.getEmitPoints(), fp, indent=4)
 
         # 2. Save "raw emits" and linestring
-        # ls = Feature(geometry=asLineString(self._emit))
+        # ls = Feature(geometry=asLineString(self.getEmitPoints()))
         # filename = os.path.join(basename + "-5-emit_ls.geojson")
         # with open(filename, "w") as fp:
-        #     json.dump(FeatureCollection(features=cleanFeatures(self._emit)+ [ls]), fp, indent=4)
+        #     json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())+ [ls]), fp, indent=4)
 
         # 3. Save linestring with timestamp
         # Save for traffic analysis
@@ -323,7 +331,7 @@ class Emit(Messages):
         emit_details = False
 
         def has_already_mark(mark: str) -> bool:
-            for e in self._emit:
+            for e in self.getEmitPoints():
                 if e.getMark() == mark:
                     return True
             return False
@@ -333,7 +341,7 @@ class Emit(Messages):
             # dest = destination(c, d / 1000, brng, {"units": "km"})
             # if emit_details:
             #     logger.debug(f"d={d})")
-            return FeatureWithProps.convert(destination(c, d / 1000, bearing(c, n), {"units": "km"}))
+            return MovePoint.convert(destination(c, d / 1000, bearing(c, n), {"units": "km"}))
 
         def time_distance_to_next_vtx(c0, idx):  # time it takes to go from c0 to vtx[idx+1]
             totald = distance(self.moves[idx], self.moves[idx+1])  * 1000  # km
@@ -387,7 +395,7 @@ class Emit(Messages):
             global must_spit_out
             e = EmitPoint.new(pos)
             e.setProp(FEATPROP.EMIT_REL_TIME.value, time)
-            e.setProp(FEATPROP.EMIT_INDEX.value, len(self._emit))  # Sets unique index on emit features
+            e.setProp(FEATPROP.EMIT_INDEX.value, len(self.getEmitPoints()))  # Sets unique index on emit features
             e.setProp(FEATPROP.BROADCAST.value, not waypt)
             if self.emit_type == "service" and e.getMark() is not None: # and e.getMark() is not None:
                 logger.debug(f"added mark={e.getMark()}, reason={reason}, emit={e.getProp(FEATPROP.BROADCAST.value)}")
@@ -403,18 +411,18 @@ class Emit(Messages):
                 else:
                     e.setColor("#ccccff")
                     # logger.debug(f"emit_point: {reason} i={idx} t={time} ({timedelta(seconds=time)}) s={e.speed()}")
-            self._emit.append(e)
+            self._emit_points.append(e)
             if e.getMark() is not None:
                 must_spit_out = False
                 if emit_details:
                     logger.debug(f"split out {e.getMark()}")
-            # logger.debug(f"emit_point: dist2nvtx={round(distance(e, self.moves[idx+1])*1000,1)} i={idx} e={len(self._emit)}")
+            # logger.debug(f"emit_point: dist2nvtx={round(distance(e, self.moves[idx+1])*1000,1)} i={idx} e={len(self.getEmitPoints())}")
 
         def pause_at_vertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason):
             global must_spit_out
             debug_pause = False
             if emit_details:
-                logger.debug(f"pause i={idx} p={pause}, e={len(self._emit)}")
+                logger.debug(f"pause i={idx} p={pause}, e={len(self.getEmitPoints())}")
             if pause < self.frequency:  # may be emit before reaching next vertex:
                 if pause > time_to_next_emit:  # neet to emit before we reach next vertex
                     emit_time = curr_time + time_to_next_emit
@@ -422,13 +430,13 @@ class Emit(Messages):
                     end_time = curr_time + pause
                     time_left = self.frequency - (pause - time_to_next_emit)
                     if emit_details:
-                        logger.debug(f"pause before next emit: emit at vertex i={idx} p={pause}, e={len(self._emit)}")
+                        logger.debug(f"pause before next emit: emit at vertex i={idx} p={pause}, e={len(self.getEmitPoints())}")
                     return (end_time, time_left)
                 else:  # pause a little but not enough to emit
                     end_time = curr_time + pause
                     time_left = time_to_next_emit - pause
                     if emit_details:
-                        logger.debug(f"pause a little but do not emit at vertex: no emission i={idx} p={pause}, e={len(self._emit)}")
+                        logger.debug(f"pause a little but do not emit at vertex: no emission i={idx} p={pause}, e={len(self.getEmitPoints())}")
                     return (end_time, time_left)
             else:
                 # we first emit at vertex at due time, if we had a mark, we WRITE it.
@@ -444,19 +452,19 @@ class Emit(Messages):
                 # then we will pause at vertex long enough until we restart moving at end of pause
                 pause_remaining = pause - time_to_next_emit
                 if debug_pause:
-                    logger.debug(f"start pause: {pause} ({len(self._emit)}), mark {has_mark} written")
+                    logger.debug(f"start pause: {pause} ({len(self.getEmitPoints())}), mark {has_mark} written")
                 pos2.setMark(None) # clean mark during pause, otherwise it gets replicated each time...
                 # logger.debug(f"pause at time remaining: {pause_remaining}")
                 while pause_remaining > 0:
                     emit_time = emit_time + self.frequency
                     emit_point(idx, pos2, emit_time, reason, False)
                     if debug_pause:
-                        logger.debug(f"more pause: {pause_remaining} ({len(self._emit)}), no mark written (has mark {has_mark})")
+                        logger.debug(f"more pause: {pause_remaining} ({len(self.getEmitPoints())}), no mark written (has mark {has_mark})")
                         debug_pause = False
                     pause_remaining = pause_remaining - self.frequency
                 time_left = self.frequency + pause_remaining  # pause_remaining < 0 !
                 if emit_details:
-                    logger.debug(f"end pause: {time_left} ({len(self._emit)}), no mark written (has mark {has_mark})")
+                    logger.debug(f"end pause: {time_left} ({len(self.getEmitPoints())}), no mark written (has mark {has_mark})")
                 return (emit_time, time_left)
 
         def probably_equal(a, b):
@@ -494,7 +502,7 @@ class Emit(Messages):
         if self.frequency is None or self.frequency < 1:
             return (False, f"Emit::emit: invalid frequency {self.frequency}")
 
-        self._emit = []  # reset if called more than once
+        self.setEmitPoints([])  # reset if called more than once
         total_dist = 0   # sum of distances between emissions
         total_dist_vtx = 0  # sum of distances between vertices
         total_time = 0   # sum of times between emissions
@@ -526,7 +534,7 @@ class Emit(Messages):
             nextmark = next_vtx.getMark()
 
             if emit_details:
-                logger.debug(f">>> new vertex: {curridx}, e={len(self._emit)} s={self.moves[curridx].speed()}")
+                logger.debug(f">>> new vertex: {curridx}, e={len(self.getEmitPoints())} s={self.moves[curridx].speed()}")
                 logger.debug(f"current vertex has mark={currmark}")
 
             if emit_details and self.emit_type == "service": # and next_vtx.getMark() is not None:
@@ -558,7 +566,7 @@ class Emit(Messages):
                 else:
                     if emit_details:
                         logger.debug(f"time to next vertex {time_to_next_vtx} = 0, need to emit vertex..")
-                emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self._emit)}", not BROADCAST_AT_VERTEX)  # ONLY IF BROADCAST AT VERTEX
+                emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self.getEmitPoints())}", not BROADCAST_AT_VERTEX)  # ONLY IF BROADCAST AT VERTEX
                 currpos = next_vtx
                 pause = currpos.getProp(FEATPROP.PAUSE.value)
                 if pause is not None and pause > 0:
@@ -589,7 +597,7 @@ class Emit(Messages):
                 total_time = total_time + time_to_next_emit
                 controld = distance(currpos, newpos) * 1000  # km
                 total_dist = total_dist + controld
-                emit_point(curridx, newpos, total_time, f"moving on edge {curridx} with time remaining to next emit e={len(self._emit)}")
+                emit_point(curridx, newpos, total_time, f"moving on edge {curridx} with time remaining to next emit e={len(self.getEmitPoints())}")
                 currpos = newpos
                 time_to_next_vtx = time_distance_to_next_vtx(currpos, curridx)
                 time_to_next_emit = future_emit
@@ -604,7 +612,7 @@ class Emit(Messages):
                     else:
                         if emit_details:
                             logger.debug(f"time to next vertex {time_to_next_vtx} = 0, need to emit vertex.. 2")
-                    emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self._emit)}", not BROADCAST_AT_VERTEX)  # ONLY IF BROADCAST AT VERTEX
+                    emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self.getEmitPoints())}", not BROADCAST_AT_VERTEX)  # ONLY IF BROADCAST AT VERTEX
                     currpos = next_vtx
                     pause = currpos.getProp(FEATPROP.PAUSE.value)
                     if pause is not None and pause > 0:
@@ -627,7 +635,7 @@ class Emit(Messages):
                 total_time = total_time + time_to_next_vtx
                 controld = distance(currpos, next_vtx) * 1000  # km
                 total_dist = total_dist + controld
-                emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self._emit)}", not BROADCAST_AT_VERTEX)  # ONLY IF BROADCAST AT VERTEX
+                emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self.getEmitPoints())}", not BROADCAST_AT_VERTEX)  # ONLY IF BROADCAST AT VERTEX
                 currpos = next_vtx
                 time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
                 pause = currpos.getProp(FEATPROP.PAUSE.value)
@@ -650,7 +658,7 @@ class Emit(Messages):
                     nextpos = destinationOnTrack(currpos, future_emit, curridx)
                     controld = distance(currpos, nextpos) * 1000  # km
                     total_dist = total_dist + controld
-                    emit_point(curridx, nextpos, total_time, f"en route after vertex {curridx}, e={len(self._emit)}")
+                    emit_point(curridx, nextpos, total_time, f"en route after vertex {curridx}, e={len(self.getEmitPoints())}")
                     currpos = nextpos
                     time_to_next_vtx = time_distance_to_next_vtx(currpos, curridx)
                     time_to_next_emit = future_emit
@@ -667,12 +675,12 @@ class Emit(Messages):
                     total_time = total_time + time_to_next_vtx
                     controld = distance(currpos, next_vtx) * 1000  # km
                     total_dist = total_dist + controld
-                    emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self._emit)}", not BROADCAST_AT_VERTEX)  # ONLY IF BROADCAST AT VERTEX
+                    emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self.getEmitPoints())}", not BROADCAST_AT_VERTEX)  # ONLY IF BROADCAST AT VERTEX
                     currpos = next_vtx
                     time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
                     pause = currpos.getProp(FEATPROP.PAUSE.value)
                     if pause is not None and pause > 0:
-                        total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self._emit)}")
+                        total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self.getEmitPoints())}")
                         logger.debug(f".. done pausing at vertex. {time_to_next_emit} sec left before next emit")
                     if emit_details:
                         logger.debug(f".. done jumping to next vertex. {time_to_next_emit} sec left before next emit")
@@ -688,7 +696,7 @@ class Emit(Messages):
 
         # need to add last point??
         movemark = self.moves[-1].getMark()
-        emitmark = self._emit[-1].getMark()
+        emitmark = self._emit_points[-1].getMark()
         logger.debug(f"end points: {movemark}, {emitmark}")
         if movemark != emitmark:
             logger.debug(f"end point not added, adding ({movemark}, {emitmark})")
@@ -696,8 +704,8 @@ class Emit(Messages):
 
         # need to remove deplicate first point?
         # this is created by above algorithm, duplicate does not exists in movement, only in emit
-        if probably_equal(self._emit[0], self._emit[1]):
-            del self._emit[0]
+        if probably_equal(self._emit_points[0], self._emit_points[1]):
+            del self._emit_points[0]
             logger.debug(f"removed duplicate first point")
 
         # Restriction
@@ -710,9 +718,9 @@ class Emit(Messages):
             if self.move is not None:
                 if self.move.airport is not None:
                     center = self.move.airport  # yeah, it's a Feature
-                    before = len(self._emit)
-                    self._emit = list(filter(lambda f: distance(f, center) < EMIT_RANGE, self._emit))
-                    logger.warning(f"rate { self.frequency } high, limiting to { EMIT_RANGE }km around airport center: before: {before}, after: {len(self._emit)}")
+                    before = len(self.getEmitPoints())
+                    self.setEmitPoints( list(filter(lambda f: distance(f, center) < EMIT_RANGE, self.getEmitPoints()))  )
+                    logger.warning(f"rate { self.frequency } high, limiting to { EMIT_RANGE }km around airport center: before: {before}, after: {len(self.getEmitPoints())}")
                 else:
                     logger.warning(f"rate { self.frequency } high, cannot locate airport")
 
@@ -722,11 +730,11 @@ class Emit(Messages):
             # p = dict(flatdict.FlatDict(self.props))
             self.props["emit"] = self.getInfo() # update meta data about this emission
             p = self.props
-            for f in self._emit:
+            for f in self.getEmitPoints():
                 f.addProps(p)
-            logger.debug(f"added { len(p) } properties to { len(self._emit) } features")
+            logger.debug(f"added { len(p) } properties to { len(self.getEmitPoints()) } features")
 
-        res = compute_headings(self._emit)
+        res = compute_headings(self.getEmitPoints())
         if not res[0]:
             logger.warning("problem computing headings")
             return res
@@ -736,9 +744,9 @@ class Emit(Messages):
             logger.warning("problem interpolating")
             return res
 
-        # logger.debug("summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
-        # logger.debug("summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self._emit)))
-        ####logger.debug(f"summary: {timedelta(seconds=total_time)} vs {timedelta(seconds=self.moves[-1].time())}, {round(total_dist/1000, 3)} vs {round(total_dist_vtx/1000, 3)} km, {len(self.moves)} vs {len(self._emit)}")
+        # logger.debug("summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self.getEmitPoints())))
+        # logger.debug("summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self.getEmitPoints())))
+        ####logger.debug(f"summary: {timedelta(seconds=total_time)} vs {timedelta(seconds=self.moves[-1].time())}, {round(total_dist/1000, 3)} vs {round(total_dist_vtx/1000, 3)} km, {len(self.moves)} vs {len(self.getEmitPoints())}")
         move_marks = self.move.getMarkList()
         emit_marks = self.getMarkList()
         # emit_moves_marks = self.getMoveMarkList()
@@ -749,15 +757,15 @@ class Emit(Messages):
             logger.debug(f"move mark list (len={len(move_marks)}): {move_marks}")
             miss = list(filter(lambda f: f not in move_marks, emit_marks))
             logger.debug(f"not in move list: {miss}")
-            # logger.debug(f"emit.moves (move.getMoves()) mark list (len={len(emit_moves_marks)}): {emit_moves_marks}")
+            # logger.debug(f"emit.moves (move.getMovePoints()) mark list (len={len(emit_moves_marks)}): {emit_moves_marks}")
 
             logger.debug(f"emit mark list (len={len(emit_marks)}): {emit_marks}")
             miss = list(filter(lambda f: f not in emit_marks, move_marks))
             logger.debug(f"not in emit list: {miss}")
             self.write_debug()
 
-        logger.debug(f"generated {len(self._emit)} points")
-        # printFeatures(self._emit, "emit_point", True)
+        logger.debug(f"generated {len(self.getEmitPoints())} points")
+        # printFeatures(self.getEmitPoints(), "emit_point", True)
         self.version = self.version + 1
         return (True, "Emit::emit completed")
 
@@ -769,7 +777,7 @@ class Emit(Messages):
         Runs for flight portion of flight.
         Added 13/4/22: First element of array *must* have the property we interpolate set.
         """
-        to_interp = self._emit
+        to_interp = self.getEmitPoints()
         # before = []
         check = "vspeed"
         logger.debug(f"{self.getId()}: interpolating ..")
@@ -805,7 +813,7 @@ class Emit(Messages):
                 logger.warning(f"{self.getId()}: first value has no altitude, do not interpolate")
 
         logger.debug(f"{self.getId()}: computing headings..")
-        res = compute_headings(self._emit)
+        res = compute_headings(self.getEmitPoints())
         if not res[0]:
             logger.warning("problem computing headings")
             return res
@@ -830,7 +838,7 @@ class Emit(Messages):
 
     def getMarkList(self):
         l = set()
-        [l.add(f.getMark()) for f in self._emit]
+        [l.add(f.getMark()) for f in self.getEmitPoints()]
         if None in l:
             l.remove(None)
         return l
@@ -896,7 +904,7 @@ class Emit(Messages):
             r.setPause(before + duration)
             logger.debug(f"found {sync} mark, added {duration} sec. pause for a total of {r.getProp(FEATPROP.PAUSE.value)}")
         # should recompute emit
-        if self._emit is not None:  # if already computed before, we need to recompute it
+        if self.getEmitPoints() is not None:  # if already computed before, we need to recompute it
            self.emit(self.frequency)
 
 
@@ -929,7 +937,7 @@ class Emit(Messages):
             when = moment + timedelta(seconds=(- offset))
             logger.debug(f"emit_point starts at {when} ({when.timestamp()})")
             self.scheduled_emit = []  # brand new scheduling, reset previous one
-            for e in self._emit:
+            for e in self.getEmitPoints():
                 p = EmitPoint.new(e)
                 t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
                 if t is not None:
@@ -1055,7 +1063,7 @@ class Emit(Messages):
 
 
     def getRelativeEmissionTime(self, sync: str):
-        f = findFeatures(self._emit, {FEATPROP.MARK.value: sync})
+        f = findFeatures(self.getEmitPoints(), {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
             r = f[0]
             logger.debug(f"found {sync}")
