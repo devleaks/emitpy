@@ -1,14 +1,17 @@
 start.txt
 
-
 cd
-cd Developer/oscars/emitpy/src
+cd Developer/oscars/emit/emitpy/src
 redis-stack-server
 
 cd
-cd Developer/Github/redis-commander
+cd Developer/oscars/emit/redis-commander
 node bin/redis-commander.js
 
 cd
-cd Developer/oscars/emitpy/src
+cd Developer/oscars/emit/emitpy/src
 python api.py
+
+cd
+cd Developer/oscars/emit/opera
+./node_modules/.bin/node-red -u othh

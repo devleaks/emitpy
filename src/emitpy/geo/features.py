@@ -6,6 +6,7 @@ import inspect
 from geojson import Polygon, Point, LineString, Feature
 from turfpy.measurement import bearing, destination
 from jsonpath import JSONPath
+from datetime import datetime, timedelta
 
 import emitpy
 from emitpy.constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
@@ -539,3 +540,47 @@ class ServiceParking(FeatureWithProps):
             "sub-type": parking_type,
             "parking-use": use,
             "orientation": orientation})
+
+
+# ################################
+# POINT WITH WEATHER
+#
+#
+class WeatherPoint(FeatureWithProps):
+    """
+    A feature with Weather attached to it and weather-validity information.
+    """
+    TROPOSPHERE = 20000 # m
+    def __init__(self, position: [float], weather):
+        FeatureWithProps.__init__(self, geometry=Point(position), properties={
+            "weather": weather})
+
+        self.dt_start = datetime(1970, 1, 1, 0, 0)
+        self.dt_end = datetime.now() + timedelta(years=100)  # won't be here to blame if it fails.
+        self.bbox = [90, 180, -90, -180]
+        self.alt_min = 0   # MSL
+        self.alt_max = WeatherPoint.TOPOSPHERE
+
+        self.sunset = None   # UTC for location
+        self.sunrise = None 
+
+
+    def valid_date(self, moment: datetime):
+        return moment >= self.df_start and moment <= self.dt_end
+
+    def valid_alt(self, alt):
+        return alt >= self.alt_min and moment <= self.alt_max
+        
+    def valid_pos(self, pos):
+        return self.bbox[0] > pos[0] and self.bbox[2] > pos[0] and self.bbox[1] > pos[1] and self.bbox[3] > pos[1]
+        
+    def get_wind(self):
+        # returns (speed (m/s), direction (° True, None if variable))
+        # Used to determine RWY in use (QFU), used to determine wind at altitude
+        return (0, None)
+
+    def get_precip(self):
+        # returns (cm of precipitation for last hour, type of precipitation, default to WATER0)
+        # Used to determine takeoff and landing distance
+        return (0, None)
+

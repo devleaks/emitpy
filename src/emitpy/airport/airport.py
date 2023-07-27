@@ -26,7 +26,8 @@ from turfpy.measurement import distance, point_to_line_distance
 from emitpy.graph import Graph, USAGE_TAG
 from emitpy.geo import Location
 
-from emitpy.airspace import CIFP, Metar, Terminal
+from emitpy.airspace import CIFP, Terminal
+from emitpy.weather import Metar
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR, METAR_HISTORICAL
 from emitpy.geo import FeatureWithProps, Ramp, Runway, cleanFeatures

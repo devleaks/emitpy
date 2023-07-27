@@ -8,6 +8,7 @@ import operator
 import os
 import json
 from math import inf
+# import pint
 # pylint: disable=W0611
 import csv
 
@@ -24,6 +25,8 @@ from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, key_path, rejson
 logger = logging.getLogger("Aircraft")
 
 sys.path.append(HOME_DIR)
+
+# ureg = pint.UnitRegistry()
 
 _STD_CLASS = "C"
 MAX_FL100_SPEED = 250  # kn

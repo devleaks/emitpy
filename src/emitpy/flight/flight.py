@@ -30,6 +30,8 @@ class Flight(Messages):
         self.estimated = None
         self.actual_dt = None
         self.actual = None
+        self.opposite_estimated_dt = None        # Opposite's airport ETA/ETD
+
         self.operator = operator
         self.aircraft = aircraft
         self.ramp = None                # GeoJSON Feature
@@ -59,6 +61,8 @@ class Flight(Messages):
         #             self.flight_type = PAYLOAD.CARGO
         # except ValueError:
         #     self.flight_type = PAYLOAD.PAX
+
+        self.estimate_opposite()
 
         if linked_flight is not None and linked_flight.linked_flight is None:
             linked_flight.setLinkedFlight(self) # will do self.setLinkedFlight(linked_flight)
@@ -218,11 +222,31 @@ class Flight(Messages):
         return None
 
 
-    def get_move(self) -> str:
+    def get_move(self, opposite: bool = False) -> str:
         if self.is_arrival():
-            return ARRIVAL
-        return DEPARTURE
+            return ARRIVAL if not opposite else DEPARTURE
+        return DEPARTURE if not opposite else ARRIVAL
 
+    def estimate_opposite(self, travel_time: int = None):
+        # Estimate a gross ETA/ETD given flight distance and aircraft cruise speed.
+        # This is an approximation, but gives an idea to get opposite airport weather info.
+        # If travel_time is supplied, refines the estimate.
+        supplied = True
+        if travel_time is None:  # estimate it
+            supplied = False
+            dist = self.departure.miles(self.arrival)  # nm
+            speed = None  # will be in kn
+            actype = self.aircraft.actype
+            if actype is not None:
+                speed = actype.get("cruise_speed")
+            if speed is None:
+                speed = 600  # kn
+            travel_time = dist / speed  # hours
+
+        if self.is_arrival():
+            travel_time = - travel_time
+        self.opposite_estimated_dt = self.scheduled_dt + timedelta(hours=travel_time)
+        logger.debug(f"scheduled {self.get_move(opposite=True)} estimated at: {self.opposite_estimated_dt} (distance={round(dist, 0)}nm, travel time={round(- travel_time, 1)} hours ({'supplied' if supplied else 'estimated'}) at {round(speed, 0)}kn)")
 
     def get_oooi(self, gate: bool = False) -> str:
         # Returns the flight phase name corresponding to the movement

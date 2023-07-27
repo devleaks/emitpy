@@ -401,7 +401,7 @@ class EmitApp(ManagedAirport):
         # move.save()
 
         # 6. Create emit
-        logger.debug("..emission positions..")
+        logger.debug("..emitting..")
         emit = Emit(move)
         ret = emit.emit(emit_rate)
         if not ret[0]:
@@ -558,7 +558,7 @@ class EmitApp(ManagedAirport):
 
         # 5. (save move?)
         # 6. Create emit
-        logger.debug("..emission positions equipment..")
+        logger.debug("..emitting equipment positions..")
         ret = flight_service.emit(emit_rate_svc)
         if not ret[0]:
             return StatusInfo(23, f"problem during flight service emission", ret[1])
@@ -683,7 +683,7 @@ class EmitApp(ManagedAirport):
                 return StatusInfo(37, f"problem during service move save", ret[1])
 
         # 6. Create emit
-        logger.debug("..emission of positions..")
+        logger.debug("..emitting..")
         emit = Emit(move)
         ret = emit.emit(emit_rate)
         if not ret[0]:
@@ -878,7 +878,7 @@ class EmitApp(ManagedAirport):
 
         # 5. (save move?)
         # 6. Create emit
-        logger.debug("..emiting positions equipment..")
+        logger.debug("..emiting equipment positions..")
         ret = flight_service.emit(emit_rate)
         if not ret[0]:
             return StatusInfo(420, f"problem during flight service emission", ret[1])

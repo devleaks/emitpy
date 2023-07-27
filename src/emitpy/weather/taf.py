@@ -13,12 +13,10 @@ from datetime import datetime, timedelta, timezone
 import requests_cache
 import requests
 
-from metar import Metar as MetarLib
-
 from emitpy.constants import REDIS_DATABASE, REDIS_DB
 from emitpy.parameters import METAR_DIR
 from emitpy.utils import key_path
-from .atmap import ATMAP
+# from .atmap import ATMAP
 
 logger = logging.getLogger("Metar")
 
@@ -33,30 +31,30 @@ def normalize_dt(dt):
     return dtret
 
 
-class Metar(ABC):
+class TAF(ABC):
     """
-    Loads cached METAR for ICAO or fetch **current** from source.
+    Loads cached TAG for ICAO or fetch **current** from source.
     """
     def __init__(self, icao: str, redis = None):
         self.icao = icao
         self.moment = datetime.now().astimezone()
         self.moment_norm = normalize_dt(self.moment)
-        self.metar = None   # parsed metar
+        self.taf = None   # parsed metar
         self.raw = None     # metar string
         self.atmap = None   # Eurocontrol ATMAP coefficient
         self.redis = redis
 
         if redis is None and not os.path.exists(METAR_DIR) or not os.path.isdir(METAR_DIR):
-            logger.warning(f"no Metar directory {METAR_DIR}")
+            logger.warning(f"no TAF directory {METAR_DIR}")
 
 
     # ####################################
     # METAR Emitpy Interface
     #
     @staticmethod
-    def new(icao: str, redis=None, method: str = "MetarFPDB"):
+    def new(icao: str, redis=None, method: str = "TAFAVWX"):
         """
-        Create a new Metar using the supplied fetch method.
+        Create a new TAF using the supplied fetch method.
 
         :param      icao:    The icao
         :type       icao:    str
@@ -65,31 +63,31 @@ class Metar(ABC):
         :param      method:  The method
         :type       method:  str
         """
-        metarclasses = importlib.import_module(name=".airspace.metar", package="emitpy")
+        metarclasses = importlib.import_module(name=".weather.metar", package="emitpy")
         if hasattr(metarclasses, method):
             doit = getattr(metarclasses, method)
             return doit(icao, redis)
         else:
-            logger.warning(f"could not get Metar implementation {method}")
+            logger.warning(f"could not get TAF implementation {method}")
         return None
 
-    def getWindDirection(self):
+    def getWindDirection(self, moment = None):
         """
         Returns wind direction if any, or None if no wind or multiple directions.
         Used at Airport to determine runways in use.
         """
-        return self.metar.wind_dir if self.metar is not None else None
+        return self.taf.wind_dir if self.taf is not None else None
 
-    def getPrecipitation(self):
+    def getPrecipitation(self, moment = None):
         """
         Returns amount of precipitations in CM of water. No difference between water, ice, snow, hail...
         Used in flights to calculate landing distance of an aircraft.
         """
-        if self.metar is not None:
-            if self.metar.precip_1hr is not None:
-                if self.metar.precip_1hr.istrace():
+        if self.taf is not None:
+            if self.taf.precip_1hr is not None:
+                if self.taf.precip_1hr.istrace():
                     return 0.1
-                return self.metar.precip_1hr.value(units="CM")
+                return self.taf.precip_1hr.value(units="CM")
         return 0
 
 
@@ -105,7 +103,7 @@ class Metar(ABC):
     def setDatetime(self, moment: datetime = datetime.now().astimezone()):
         self.moment = moment
         self.moment_norm = normalize_dt(self.moment)
-        self.metar = None
+        self.taf = None
         self.raw = None
         self.init()
 
@@ -115,8 +113,8 @@ class Metar(ABC):
     def getRaw(self):
         return self.raw
 
-    def hasMetar(self):
-        return self.metar is not None
+    def hasTaf(self):
+        return self.taf is not None
 
     def getInfo(self):
         return {
@@ -130,7 +128,7 @@ class Metar(ABC):
         """
         Fetches the METAR from its source.
         """
-        return (False, "Metar::fetch: abstract class")
+        return (False, "TAF::fetch: abstract class")
 
     def save(self):
         if self.redis is not None:
@@ -157,8 +155,8 @@ class Metar(ABC):
                     outfile.write(self.raw)
             else:
                 logger.warning(f"already exist {fn}")
-            return (True, "Metar::saveFile: saved")
-        return (False, "Metar::saveFile: no METAR to saved")
+            return (True, "TAF::saveFile: saved")
+        return (False, "TAF::saveFile: no METAR to saved")
 
     def loadFile(self):
         fn = self.saveFileName()
@@ -173,11 +171,11 @@ class Metar(ABC):
 
             if self.raw is not None:
                 return self.parse()
-                return (True, "Metar::loadFile: loaded and parsed")
-            return (False, "Metar::loadFile: not loaded")
+                return (True, "TAF::loadFile: loaded and parsed")
+            return (False, "TAF::loadFile: not loaded")
         else:
             logger.debug(f"file not found {fn}")
-        return (False, "Metar::loadFile: not loaded")
+        return (False, "TAF::loadFile: not loaded")
 
     def cacheKeyName(self):
         """
@@ -196,13 +194,13 @@ class Metar(ABC):
                 self.redis.set(metid, self.raw)
                 self.redis.select(prevdb)
                 logger.debug(f"saved {metid}")
-                return (True, "Metar::saveToCache: saved")
+                return (True, "TAF::saveToCache: saved")
             else:
                 self.redis.select(prevdb)
                 logger.warning(f"already exist {metid}")
         else:
             logger.warning(f"no metar to save")
-        return (False, "Metar::saveToCache: not saved")
+        return (False, "TAF::saveToCache: not saved")
 
     def loadFromCache(self):
         if self.redis is not None:
@@ -214,34 +212,31 @@ class Metar(ABC):
                 self.raw = raw.decode("UTF-8")
                 if self.raw is not None:
                     return self.parse()
-                    return (True, "Metar::loadFromCache: loaded and parsed")
-                return (False, "Metar::loadFromCache: failed to get")
+                    return (True, "TAF::loadFromCache: loaded and parsed")
+                return (False, "TAF::loadFromCache: failed to get")
             else:
                 logger.debug(f"not found {metid}")
-        return (False, "Metar::loadFromCache: failed to load")
+        return (False, "TAF::loadFromCache: failed to load")
 
     def parse(self):
         """
-        Clear protected parsing of Metar.
+        Clear protected parsing of TAF.
         If parsing succeeded, result is kept
         """
         try:
-            parsed = MetarLib.Metar(self.raw)
+            parsed = TAFLib.from_report(self.raw)
             if parsed is not None:
-                self.metar = parsed
+                self.taf = parsed
             return (True, "Metar::parse: parsed")
         except MetarLib.ParserError as e:
             logger.debug(f"METAR failed to parse '{self.raw}': {e}")
         return (False, "Metar::parse: failed to parse")
 
     def getAtmap(self):
-        if self.atmap is None and self.metar is not None:
+        if self.atmap is None and self.taf is not None:
             # self.atmap = ATMAP(obs=self.raw)
-            self.atmap = ATMAP(metar=self.metar) # use already parsed version
+            self.atmap = ATMAP(metar=self.taf) # use already parsed version
         return self.atmap.bad_weather_classes() if self.atmap is not None else None
 
 
-from .metar_avwx import MetarAVWX
-from .metar_fpdb import MetarFPDB
-from .metar_mesonet import MetarMesonet
-from .metar_ogimet import MetarOgimet
+from .taf_avwx import TAFAVWX

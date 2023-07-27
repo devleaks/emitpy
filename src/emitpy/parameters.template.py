@@ -73,7 +73,7 @@ BROADCASTER_TICK = 1000
 
 # Sources of some data
 METAR_HISTORICAL = False  # unreliable, limited, does not work
-
+WEATHER = "GFS"   # or XP for X-Plane Real weather
 
 # X-Plane location
 XPLANE_DIR = os.path.join("<x-plane-home-directory>")

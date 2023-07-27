@@ -25,7 +25,7 @@ class MovePoint(FeatureWithProps):
     It can also set colors for geojson.io map display.
     Altitude is stored in third geometry coordinates array value.
     """
-    def __init__(self, geometry: Union[Point, LineString], properties: dict):
+    def __init__(self, geometry: Point, properties: dict):
         FeatureWithProps.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
 
 
@@ -36,7 +36,6 @@ class Movement(Messages):
 
         self.airport = airport
         self.moves = []  # Array of Features<Point>
-        self.messages = []  # Array of Messages
 
     def getId(self):
         return "Movement::abstract-class-id"
