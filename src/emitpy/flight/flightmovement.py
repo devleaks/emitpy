@@ -109,6 +109,9 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
+        duration = self.getMovePoints()[-1].time()
+        self.flight.estimate_opposite(travel_time=duration)
+
         status = self.taxi()
         if not status[0]:
             logger.warning(status[1])

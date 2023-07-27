@@ -98,8 +98,11 @@ class ManagedAirport:
             logger.error("..airport manager !** not initialized **!")
             return ret
 
-        logger.debug("..updating metar..")
-        self.update_metar()
+        # Setting up weather
+        logger.debug("..setting up weather..")
+        self.weather_engine = self._app._weather_engine.new(redis=self._app.redis)
+        logger.debug("..updating weather of managed airport..")
+        self.updateWeather()
         logger.debug("..done")
 
         self._inited = True
@@ -186,14 +189,14 @@ class ManagedAirport:
 
         return (True, "ManagedAirport::init done")
 
-    def update_metar(self):
+    def updateWeather(self):
         """
         Update METAR data for managed airport.
         If self instance is loaded for a long time, this procedure should be called
         at regular interval. (It will, sometimes, be automatic (Thread).)
         (Let's dream, someday, it will load, parse and interpret TAF.)
         """
-        self.airport.update_metar(redis=self._app.use_redis())  # calls prepareRunways()
+        self.airport.updateWeather(weather_engine=self.weather_engine)  # calls prepareRunways()
 
     def loadFromCache(self, dbid: int = 0):
         """

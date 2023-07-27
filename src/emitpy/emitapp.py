@@ -23,6 +23,7 @@ from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, 
 from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT, XPLANE_FEED
 from emitpy.airport import Airport, AirportWithProcedures, XPAirport
 from emitpy.airspace import XPAerospace
+from emitpy.weather import XPWeatherEngine
 from emitpy.utils import NAUTICAL_MILE
 
 logger = logging.getLogger("EmitApp")
@@ -93,6 +94,7 @@ class EmitApp(ManagedAirport):
         self._aerospace = XPAerospace
         self._managedairport = XPAirport
         self._airportmanager = AirportManager
+        self._weather_engine = XPWeatherEngine
 
         ManagedAirport.__init__(self, icao=icao, app=self)
 
@@ -281,7 +283,7 @@ class EmitApp(ManagedAirport):
             logger.error("airline not found")
             return StatusInfo(1, "error", None)
 
-        logger.debug("..remove airport..")
+        logger.debug("..remote airport..")
         remote_apt = Airport.find(apt, self.redis)
         if remote_apt is None:
             logger.error("remote airport not found")
@@ -305,12 +307,12 @@ class EmitApp(ManagedAirport):
             scheduled_dt = scheduled_dt.replace(tzinfo=self.timezone)
             logger.debug("scheduled time has no time zone, added managed airport local time zone")
 
-        logger.debug("..collecting metar for remote airport..")
+        logger.debug("..collecting weather for remote airport..")
         dt2 = datetime.now().astimezone(self.timezone) - timedelta(days=1)
         if scheduled_dt < dt2:
-            remote_apt.update_metar(moment=scheduled_dt, redis=self.redis) 
+            remote_apt.updateWeather(weather_engine=self.weather_engine, moment=scheduled_dt) 
         else:
-            remote_apt.update_metar(redis=self.redis) 
+            remote_apt.updateWeather(weather_engine=self.weather_engine) 
 
         logger.debug("..loading aircraft type..")
         acarr = (actype, actype) if type(actype) == str else actype

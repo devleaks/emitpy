@@ -4,12 +4,12 @@ A succession of positions where a vehicle passes.
 import os
 import json
 import logging
-from typing import Union
+import math
 import copy
 
 from geojson import Point, LineString, FeatureCollection, Feature
 
-from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, asLineString
+from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, asLineString, get_bounding_box
 from emitpy.constants import MOVES_DATABASE, FEATPROP
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.message import Messages
@@ -188,3 +188,14 @@ class Movement(Messages):
             if f.pause(-1) > 0:
                 marks.append(f.getProp(FEATPROP.MARK.value))
         return set(marks)
+
+
+    def getBoundingBox(self, rounding: float = None):
+        """
+        get bounding box of whole movement.
+        assumes  90 (north) <= lat <= -90 (south), and -180 (west) < lon < 180 (east)
+        """
+        bb = get_bounding_box(self.getMovePoints(), rounding)
+        logger.debug(f"bounding box: {bb}")
+        return bb
+

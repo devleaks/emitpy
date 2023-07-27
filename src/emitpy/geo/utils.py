@@ -310,3 +310,30 @@ def ls_point_at(ls: LineString, dist: float):
     brng = bearing(ffp(lastvertex), ffp(ls["coordinates"][i-1]))
     dest = destination(ffp(lastvertex), left, brng, {"units": "m"})
     return dest
+
+def get_bounding_box(points, rounding: float = None):
+    """
+    get bounding box of point set.
+    assumes  90 (north) <= lat <= -90 (south), and -180 (west) < lon < 180 (east)
+    """
+    north = -90
+    south = 90
+    east = -180
+    west = 180
+    for f in points:
+        lat = f.getLatitude()
+        if lat > north:
+            north = lat
+        if lat < south:
+            south = lat
+        lon = f.getLongitude()
+        if lon < west:
+            west = lon
+        if lon > east:
+            east = lon
+    if rounding is not None:  # will later allow for finer rounding, but round to degrees for grib file resolution matching
+        north = math.ceil(north)
+        south = math.floor(south)
+        west = math.floor(west)
+        east = math.ceil(east)
+    return (north, east, south, west)

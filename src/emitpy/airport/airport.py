@@ -27,7 +27,6 @@ from emitpy.graph import Graph, USAGE_TAG
 from emitpy.geo import Location
 
 from emitpy.airspace import CIFP, Terminal
-from emitpy.weather import Metar
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR, METAR_HISTORICAL
 from emitpy.geo import FeatureWithProps, Ramp, Runway, cleanFeatures
@@ -371,28 +370,6 @@ class Airport(Location):
         return self.timezone
 
 
-    def update_metar(self, moment: str = None, redis = None):
-        """
-        Update METAR data for managed airport.
-        If self instance is loaded for a long time, this procedure should be called
-        at regular interval. (It will, sometimes, be automatic (Thread).)
-        (Let's dream, someday, it will load, parse and interpret TAF.)
-        """
-
-        # if moment is not None and METAR_HISTORICAL:  # issues with web site to fetch historical metar.
-        #     logger.debug(f"..historical.. ({scheduled})")
-        #     remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis, method="MetarHistorical")
-        #     remote_metar.setDatetime(moment=scheduled_dt)
-        #     if not remote_metar.hasMetar():  # couldn't fetch historical, use current
-        #         remote_metar = Metar.new(icao=remote_apt.icao, redis=self.redis)
-
-        logger.debug("collecting METAR..")
-        # Prepare airport for each movement
-        metar = Metar.new(icao=self.icao, redis=redis)
-        self.setMETAR(metar=metar)  # calls prepareRunways()
-        logger.debug("..done")
-
-
 # ################################
 # AIRPORT + FLIGHT PROCEDURES
 #
@@ -407,7 +384,7 @@ class AirportWithProcedures(Airport):
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
         Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
         self.procedures = None
-        self.metar = None
+        self.weather = None
         self.operational_rwys = {}  # runway(s) in operation if metar provided, runways in here are RWY objects, not GeoJSON Feature.
 
 
@@ -628,32 +605,56 @@ class AirportWithProcedures(Airport):
         logger.warning(f"RWY {n} not found")
         return None
 
-    def setMETAR(self, metar: "Metar"):
-        """
-        Set METAR at airport. Triggers computation of operational runways depending on wind direction.
 
-        :param      metar:  The metar
-        :type       metar:  { type_description }
+    def setWeather(self, weather: AirportWeather):
+        if weather is not None:
+            self.weather = weather
+            logger.debug(f"{weather.getInfo()}")
+            if self.procedures is not None:
+                # set which runways are usable
+                wind = self.weather.get_wind()
+                if wind is not None:
+                    wind_dir = self.weather.get_wind().direction
+                    if wind_dir is not None:  # wind dir is variable, any runway is fine
+                        logger.debug(f"wind direction {wind_dir:.1f}")
+                        self.operational_rwys = self.procedures.getOperationalRunways(wind_dir)
+                    else:
+                        logger.debug("no wind direction (may be variable)")
+                        self.operational_rwys = self.procedures.getRunways()
+                else:
+                    logger.debug("no wind")
+                    self.operational_rwys = self.procedures.getRunways()
+        else:
+            self.operational_rwys = self.procedures.getRunways()
+            logger.debug("no weather, using all runways")
+
+
+    def updateWeather(self, weather_engine, moment: str = None):
+        logger.debug("collecting weather information..")
+        # Prepare airport for each movement
+        weather = weather_engine.get_airport_weather(icao=self.icao, moment=moment)
+        self.setWeather(weather=weather)  # calls prepareRunways()
+        logger.debug("..done")
+
+
+    def runwayIsWet(self):
+        """
+        Artificially lengthen the landing distance based on amount of water on the ground.
+        Amount of water is supplied by METAR in cm/hour.
 
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        if metar is not None:
-            self.metar = metar
-            logger.debug(f"{metar.getInfo()}")
-            logger.debug(f"ATMAP: {metar.getAtmap()}")
-            if self.procedures is not None:
-                # set which runways are usable
-                wind_dir = self.metar.getWindDirection()
-                if wind_dir is None:  # wind dir is variable, any runway is fine
-                    logger.debug("no wind direction")
-                    self.operational_rwys = self.procedures.getRunways()
-                else:
-                    logger.debug(f"wind direction {wind_dir.value():.1f}")
-                    self.operational_rwys = self.procedures.getOperationalRunways(wind_dir.value())
-        else:
-            self.operational_rwys = self.procedures.getRunways()
-            logger.debug("no metar, using all runways")
+        landing = 1.1
+        print(type(self), type(self).__name__)
+        if self.weather is not None:
+            prec = self.weather.get_precipirations()
+            if prec > 0.5:
+                landing = 1.75
+            elif prec > 0:
+                landing = 1.4
+        return landing
+
 
     def selectRWY(self, flight: 'Flight'):
         """
@@ -686,23 +687,6 @@ class AirportWithProcedures(Airport):
             return None
 
         return random.choice(candidates)
-
-    def runwayIsWet(self):
-        """
-        Artificially lengthen the landing distance based on amount of water on the ground.
-        Amount of water is supplied by METAR in cm/hour.
-
-        :returns:   { description_of_the_return_value }
-        :rtype:     { return_type_description }
-        """
-        landing = 1.1
-        if self.metar is not None:
-            prec = self.metar.getPrecipitation()
-            if prec > 0.5:
-                landing = 1.75
-            elif prec > 0:
-                landing = 1.4
-        return landing
 
 
 # ################################
