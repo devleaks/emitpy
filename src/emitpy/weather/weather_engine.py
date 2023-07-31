@@ -2,9 +2,11 @@
 # The Weather Engine is responsible for fetching airport weather and en route wind data for flights.
 #
 import logging
+import importlib
+import json
+
 from abc import ABC, abstractmethod
 from datetime import datetime
-import importlib
 
 logger = logging.getLogger("WeatherEngine")
 
@@ -15,6 +17,8 @@ class Wind:
 	def __init__(self, direction: float, speed: float):
 		self.direction = direction
 		self.speed = speed
+		self.position = None  # tuple(float)
+		self.moment: None
 
 	def getInfo(self) -> dict:
 		"""
@@ -25,9 +29,12 @@ class Wind:
 			"speed": self.speed
 		}
 
+	def __str__(self):
+		return json.dumps(self.getInfo())
+
 
 class AirportWeather(ABC):
-	# Shell class, used to get airport weather information for Emitpy
+	# Abstract class, used to get airport weather information for Emitpy
 
 	def __init__(self, icao: str, moment: datetime = None):
 		self.type = None	# METAR, TAF, or other
@@ -72,7 +79,6 @@ class WeatherEngine(ABC):
 	Data consists of weather at departure, arrival (and alternate) airport,
 	and wind data for the flight.
 	"""
-
 	def __init__(self, redis):
 		self.redis = redis
 		self.source = None

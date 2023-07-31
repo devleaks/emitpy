@@ -32,7 +32,7 @@ class RTTFCFormatter(Formatter):
           "baro_alt": f.altitude(0) / FT,
           "baro_rate": 0,
           "gnd": 1,  # default will be updated below
-          "track": f.getProp(FEATPROP.HEADING.value),
+          "track": f.course(),
           "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,
           "cs_icao": "CSICAO",
           "ac_type": "ZZZC",
@@ -50,7 +50,7 @@ class RTTFCFormatter(Formatter):
           "track_rate": -1,
           "roll": -1,
           "mag_heading": -1,
-          "true_heading": f.getProp(FEATPROP.HEADING.value),
+          "true_heading": f.heading(),
           "geom_rate": -1,
           "emergency": "",
           "category": "A3",
@@ -77,7 +77,7 @@ class RTTFCFormatter(Formatter):
         #     "baro_alt": f.altitude(0) / FT,  # m -> ft
         #     "baro_rate": "",
         #     "gnd": "",
-        #     "track": f.getProp(FEATPROP.HEADING.value),
+        #     "track": f.getProp(FEATPROP.COURSE.value),
         #     "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,  # m/s in kn"
         #     "cs_icao": "",
         #     "ac_type": "",

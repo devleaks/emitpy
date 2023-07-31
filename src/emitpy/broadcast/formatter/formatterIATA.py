@@ -79,8 +79,8 @@ class IATAFormatter(Formatter):
     def __str__(self):
         # RTTFC,hexid, lat, lon, baro_alt, baro_rate, gnd, track, gsp, cs_icao, ac_type, ac_tailno,
         #       from_iata, to_iata, timestamp, source, cs_iata, msg_type, alt_geom, IAS, TAS, Mach,
-        #       track_rate, roll, mag_heading, true_heading, geom_rate, emergency, category,
-        #       nav_qnh, nav_altitude_mcp, nav_altitude_fms, nav_heading, nav_modes, seen, rssi,
+        #       track_rate, roll, mag_course, true_course, geom_rate, emergency, category,
+        #       nav_qnh, nav_altitude_mcp, nav_altitude_fms, nav_course, nav_modes, seen, rssi,
         #       winddir, windspd, OAT, TAT, isICAOhex,augmentation_status,authentication
         f = self.feature
 
@@ -95,7 +95,7 @@ class IATAFormatter(Formatter):
         baro_rate = f.getProp("")
 
 
-        track = f.getProp("heading")
+        track = f.getProp("course")
         gsp = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
         cs_icao= f.getProp("")
         ac_type= f.getProp("aircraft:actype:actype")  # ICAO
@@ -118,8 +118,8 @@ class IATAFormatter(Formatter):
         mach = f.getProp("")
         track_rate = f.getProp("")
         roll = f.getProp("")
-        mag_heading = f.getProp("")
-        true_heading = f.getProp("")
+        mag_course = f.getProp("")
+        true_course = f.getProp("")
         geom_rate = f.getProp("")
         emergency = f.getProp("")
         category, = f.getProp("")
@@ -145,7 +145,7 @@ class IATAFormatter(Formatter):
         vspeed = f.vspeed(0) * FT * 60  # m/s -> ft/min
         speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
 
-        heading = f.getProp(FEATPROP.HEADING.value)
+        course = f.course()
 
         actype = f.getProp("aircraft:actype:actype")  # ICAO
         if f.getProp("service-type") is not None:  # service
@@ -159,7 +159,7 @@ class IATAFormatter(Formatter):
 
         rttfc = f"RTTFC,{hexid},{lat},{lon},{baro_alt},{baro_rate},{gnd},{track},{gsp},{cs_icao},{ac_type},{ac_tailno},"
         rttfc = rttfc + f"{from_iata},{to_iata},{timestamp},{source},{cs_iata},{msg_type},{alt_geom},{ias},{tas},{mach},"
-        rttfc = rttfc + f"{track_rate},{roll},{mag_heading},{true_heading},{geom_rate},{emergency},{category},"
-        rttfc = rttfc + f"{nav_qnh},{nav_altitude_mcp},{nav_altitude_fms},{nav_heading},{nav_modes},{seen},{rssi},"
+        rttfc = rttfc + f"{track_rate},{roll},{mag_course},{true_course},{geom_rate},{emergency},{category},"
+        rttfc = rttfc + f"{nav_qnh},{nav_altitude_mcp},{nav_altitude_fms},{nav_course},{nav_modes},{seen},{rssi},"
         rttfc = rttfc + f"{winddir},{windspd},{oat},{tat},{isicaohex},{augmentation_status},{authentication}"
         return rttfc.replace("None", "")

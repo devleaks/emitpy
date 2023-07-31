@@ -108,15 +108,22 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
+        res = compute_headings(self.getMovePoints())
+        if not res[0]:
+            logger.warning(status[1])
+            return res
+
         status = self.time()  # sets the time for gross approximation
         if not status[0]:
             logger.warning(status[1])
             return status
 
-        res = compute_headings(self.getMovePoints())
-        if not res[0]:
-            logger.warning(status[1])
-            return res
+        duration0 = self.getMovePoints()[-1].time()
+        logger.debug(f"flight duration without winds: {duration0}")
+
+        tb = []
+        for p in self.getMovePoints():
+            tb.append(p.time())
 
         status = self.add_wind()    # refines speeds
         if not status[0]:
@@ -128,7 +135,17 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
+        ta = []
+        for p in self.getMovePoints():
+            ta.append(p.time())
+
+        # cumul = 0
+        # for i in range(len(tb)):
+        #     diff = tb[i]-ta[i]
+        #     logger.debug(f"{i}: {tb[i]} {ta[i]} {diff}")
+
         duration = self.getMovePoints()[-1].time()
+        logger.debug(f"flight duration with winds: {duration} ({timedelta(seconds=round(duration))} + {timedelta(seconds=round(duration - duration0))})")
         self.flight.estimate_opposite(travel_time=duration)
 
         status = self.taxi()
@@ -1050,7 +1067,7 @@ class FlightMovement(Movement):
     def add_wind(self):
         # Prepare wind data collection
         # 1. limit to flight movement bounding box
-        ret = self.flight.managedAirport.weather_engine.prepare_enroute_winds(flight=self.flight)  # caches expensive weather data for this flight
+        ret = self.flight.managedAirport.weather_engine.prepare_enroute_winds(flight=self.flight)#, use_gfs=True)  # caches expensive weather data for this flight
         if not ret:
             logger.warning(f"no wind")
             return (True, "Movement::add_wind cannot find wind data, ignoring wind")
@@ -1075,24 +1092,23 @@ class FlightMovement(Movement):
                     ft = ft + timedelta(seconds=time)
                 wind = self.flight.managedAirport.weather_engine.get_enroute_wind(flight_id=fid, lat=p.lat(), lon=p.lon(), alt=p.alt(), moment=ft)
                 if wind is not None:
-                    p.setProp("_wind", wind)
+                    p.setProp(FEATPROP.WIND.value, wind)
                     cnt2 = cnt2 + 1
                 ## need to property adjust heading here
                     if wind.speed is not None:
                         if wind.direction is not None:
-                            ac_speed = p.getProp(FEATPROP.SPEED.value)
-                            ac_course = p.getProp(FEATPROP.HEADING.value)
+                            ac_speed = p.speed()
+                            ac_course = p.course()
                             if ac_speed is not None and ac_course is not None:
-                                p.setProp(FEATPROP.COURSE.value, ac_course)
+                                p.setCourse(ac_course)
                                 ac = (ac_speed, ac_course)
                                 ws = (wind.speed, wind.direction)
                                 (newac, gs) = adjust_speed_vector(ac, ws)  # gs[1] ~ ac_course
-                                p.setProp(FEATPROP.SPEED.value, gs[0])
-                                p.setProp(FEATPROP.TA_SPEED.value, ac_speed)
-                                p.setProp(FEATPROP.HEADING.value, newac[1])
-                                # logger.debug(f"TAS={[round(p) for p in ac]} + wind={[round(p) for p in ws]} => gs={[round(p) for p in newac]}")
+                                p.setSpeed(gs[0])
+                                p.setProp(FEATPROP.TASPEED.value, ac_speed)
+                                p.setHeading(newac[1])
                                 # logger.debug(f"TAS={round(ac_speed)} COURSE={ac_course} + wind={[round(p) for p in ws]} => GS={newac[0]} COURSE={gs[1]}, HEADING={newac[1]}")
-                                table.append((p.time(), round(ac_speed), ac_course, ws[0], ws[1], gs[0], gs[0] - ac_speed, gs[1], ac_course-gs[1], newac[1], gs[1] - newac[1]))
+                                table.append((p.time(), round(ac_speed), ac_course, ws[0], ws[1], gs[0], gs[0] - ac_speed, gs[1], round(ac_course-gs[1], 2), newac[1], round(gs[1] - newac[1], 2)))
                             else:
                                 logger.debug(f"missing aircraft speed or heading ({ac_speed}, {ac_course})?")
                             cnt3 = cnt3 + 1

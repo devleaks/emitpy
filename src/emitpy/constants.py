@@ -426,7 +426,7 @@ class FEATPROP(Enum):
     CLASS_ID = "classId"
     CONTROL_TIME = "control-time"
     COUNTRY = "country"
-    COURSE = "course" # direction in which goes the aircraft
+    COURSE = "course" # direction in which goes the aircraft, sometimes called TRACK or TRACKING
     DELAY = "delay"   # was pause in emitjs
     EMIT_ABS_TIME = "emit-absolute-time"
     EMIT_ABS_TIME_FMT = "emit-absolute-time-human"
@@ -460,17 +460,16 @@ class FEATPROP(Enum):
     RUNWAY = "runway"
     SAVED_TIME = "saved-time"
     SERVICE = "service"
-    SERVICE_TYPE = "service-type"  # ~ SERVICE?
-    SPEED = "speed"                # ground speed
-    TA_SPEED = "true-air-speed"    # TAS
+    SERVICE_TYPE = "service-type"   # ~ SERVICE?
+    SPEED = "speed"                 # ground speed
+    TASPEED = "true-air-speed"      # TAS
     STOP_TIME = "stop-time"
     TIME = "time"
-    TRACK = "track"
-    TRACKING = "track"
     TYPE_ID = "typeId"
     VERSION = "emitpy-version"
     VERTICAL_SPEED = "vspeed"
     VSPEED = "vspeed"
+    WIND = "_wind"
 
 
 ########################################

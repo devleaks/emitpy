@@ -24,6 +24,7 @@ class Flight(Messages):
         self.number = number
         self.departure = departure
         self.arrival = arrival
+        self.alternate = None
         self.linked_flight = linked_flight
         self.managedAirport = None
         self.scheduled_dt = scheduled
@@ -32,6 +33,7 @@ class Flight(Messages):
         self.estimated = None
         self.actual_dt = None
         self.actual = None
+        self.opposite_scheduled_dt = None        # Opposite's airport estimation of STA/STD
         self.opposite_estimated_dt = None        # Opposite's airport ETA/ETD
 
         self.operator = operator
@@ -65,7 +67,7 @@ class Flight(Messages):
         # except ValueError:
         #     self.flight_type = PAYLOAD.PAX
 
-        self.estimate_opposite()
+        self.schedule_opposite()
 
         if linked_flight is not None and linked_flight.linked_flight is None:
             linked_flight.setLinkedFlight(self) # will do self.setLinkedFlight(linked_flight)
@@ -249,16 +251,39 @@ class Flight(Messages):
 
         if self.is_arrival():
             travel_time = - travel_time
-        self.opposite_estimated_dt = self.scheduled_dt + timedelta(hours=travel_time)
-        logger.debug(f"scheduled {self.get_move(opposite=True)} estimated at: {self.opposite_estimated_dt} (distance={round(dist, 0)}nm, travel time={round(- travel_time, 1)} hours ({'supplied' if supplied else 'estimated'}) at {round(speed, 0)}kn)")
+        estimated_dt = self.estimated_dt if self.estimated_dt is not None else self.scheduled_dt 
+        self.opposite_estimated_dt = estimated_dt + timedelta(hours=travel_time)
+        logger.debug(f"estimated {self.get_move(opposite=True)} estimated at: {self.opposite_estimated_dt} (distance={round(dist, 0)}nm, travel time={round(- travel_time, 1)} hours ({'supplied' if supplied else 'estimated'}) at {round(speed, 0)}kn)")
+
+
+    def schedule_opposite(self, travel_time: int = None):
+        # Estimate a gross ETA/ETD given flight distance and aircraft cruise speed.
+        # This is an approximation, but gives an idea to get opposite airport weather info.
+        # If travel_time is supplied, refines the estimate.
+        supplied = True
+        dist = self.departure.miles(self.arrival)  # nm
+        speed = None  # will be in kn
+        actype = self.aircraft.actype
+        if actype is not None:
+            speed = actype.get("cruise_speed")
+        if speed is None:
+            speed = 600  # kn
+        if travel_time is None:  # estimate it
+            supplied = False
+            travel_time = dist / speed  # hours
+
+        if self.is_arrival():
+            travel_time = - travel_time
+        self.opposite_scheduled_dt = self.scheduled_dt + timedelta(hours=travel_time)
+        logger.debug(f"scheduled {self.get_move(opposite=True)} estimated at: {self.opposite_scheduled_dt} (distance={round(dist, 0)}nm, travel time={round(- travel_time, 1)} hours ({'supplied' if supplied else 'estimated'}) at {round(speed, 0)}kn)")
 
 
     def getScheduledDepartureTime(self):
-        return self.scheduled_dt if self.is_departure() else self.opposite_estimated_dt
+        return self.scheduled_dt if self.is_departure() else self.opposite_scheduled_dt
 
 
     def getScheduledArrivalTime(self):
-        return self.scheduled_dt if self.is_arrival() else self.opposite_estimated_dt
+        return self.scheduled_dt if self.is_arrival() else self.opposite_scheduled_dt
 
 
     def get_oooi(self, gate: bool = False) -> str:
@@ -404,6 +429,7 @@ class Flight(Messages):
         self.estimated_dt = dt
         self.estimated = dt.isoformat()
         self.schedule_history.append((dt.isoformat(), "ET", info_time.isoformat()))
+        self.estimate_opposite()
 
 
     def setActualTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):

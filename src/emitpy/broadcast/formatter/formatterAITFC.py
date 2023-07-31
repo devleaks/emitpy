@@ -41,7 +41,7 @@ class AITFCFormatter(Formatter):
         speed    = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
         airborne = (alt > 0 and speed > 20)
 
-        heading  = f.getProp(FEATPROP.HEADING.value)
+        course  = f.course()
 
 
         emit_type = f.getPropPath("$.emit.emit-type")
@@ -71,7 +71,7 @@ class AITFCFormatter(Formatter):
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
         #         0    ,1       ,2          ,3          ,4    ,5       ,6                     ,7                 ,8
         #         AITFC,hexid   ,lat        ,lon        ,alt  ,vs      ,airborne              ,hdg               ,spd ### ,cs,type,tail,from,to,timestamp
-        part1 = f"AITFC,{icao24},{coords[1]},{coords[0]},{alt},{vspeed},{1 if airborne else 0},{round(heading,0)},{speed}"
+        part1 = f"AITFC,{icao24},{coords[1]},{coords[0]},{alt},{vspeed},{1 if airborne else 0},{round(course,0)},{speed}"
         #         ,9         ,10      ,11          ,12       ,13     ,14
         #      ###,cs        ,type    ,tail        ,from     ,to     ,timestamp
         part2 = f",{callsign},{actype},{tailnumber},{aptfrom},{aptto},{round(ts, 3)}"
@@ -102,7 +102,7 @@ class AITFCFormatter(Formatter):
 # • Alt: altitude in feet
 # • Vs: vertical speed in ft/min
 # • Airborne: 1 or 0
-# • Hdg: The heading of the aircraft (it’s actually the true track, strictly speaking. )
+# • Hdg: The course of the aircraft (it’s actually the true track, strictly speaking. )
 # • Spd: The speed of the aircraft in knots
 # • Cs: the ICAO callsign (Emirates 413 = UAE413 in ICAO speak, = EK413 in IATA speak)
 # • Type: the ICAO type of the aircraft, e.g. A388 for Airbus 380-800. B789 for Boeing 787-9 etc.

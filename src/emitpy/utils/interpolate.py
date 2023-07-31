@@ -78,9 +78,9 @@ def compute_headings(wpts):
     for idx in range(1, len(wpts)):
         nextpos = wpts[idx]
         d = bearing(currpos, nextpos)
-        nextpos.setProp(FEATPROP.HEADING.value, d)
+        nextpos.setCourse(d)
         if idx == 1:  # first post
-            currpos.setProp(FEATPROP.HEADING.value, d)
+            currpos.setCourse(d)
         currpos = nextpos
 
     return (True, ":heading: computed")

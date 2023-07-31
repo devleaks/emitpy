@@ -256,6 +256,17 @@ class FeatureWithProps(Feature):
         return float(a)
 
 
+    def setGroundSpeed(self, speed: float):
+        # Speed should be in meters per second
+        self.setProp(name=FEATPROP.SPEED.value, value=speed)
+
+    def groundSpeed(self, default: float = None):
+        a = self.getProp(FEATPROP.SPEED.value)
+        if a is None or a == "None":
+            return default
+        return float(a)
+
+
     def setVSpeed(self, vspeed: float):
         # Vertical speed should be in meters per second
         self.setProp(FEATPROP.VERTICAL_SPEED.value, vspeed)
@@ -267,23 +278,23 @@ class FeatureWithProps(Feature):
         return float(a)
 
 
+    def setCourse(self, course: float):
+        # Course should be in decimal degrees, if possible confined to [0, 360[. (@todo)
+        self.setProp(FEATPROP.COURSE.value, course)
+
+    def course(self, default: float = None):
+        a = self.getProp(FEATPROP.COURSE.value)
+        if a is None or a == "None":
+            return default
+        return float(a)
+
+
     def setHeading(self, heading: float):
         # Heading should be in decimal degrees, if possible confined to [0, 360[. (@todo)
         self.setProp(FEATPROP.HEADING.value, heading)
 
     def heading(self, default: float = None):
         a = self.getProp(FEATPROP.HEADING.value)
-        if a is None or a == "None":
-            return default
-        return float(a)
-
-
-    def setTrack(self, track: float):
-        # Track should be in decimal degrees, if possible confined to [0, 360[. (@todo)
-        self.setProp(FEATPROP.TRACK.value, track)
-
-    def track(self, default: float = None):
-        a = self.getProp(FEATPROP.TRACK.value)
         if a is None or a == "None":
             return default
         return float(a)
@@ -310,6 +321,7 @@ class FeatureWithProps(Feature):
         if a is None or a == "None":
             return default
         return float(a)
+
 
     def getPropPath(self, path: str):
         r = JSONPath(path).parse(self["properties"])

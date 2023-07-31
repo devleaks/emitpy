@@ -17,6 +17,7 @@ logger = logging.getLogger("XPWeatherEngine")
 
 
 REAL_WEATHER_DIR = os.path.join(XPLANE_DIR, "Output", "Real weather")
+GFS_WEATHER_DIR = os.path.join(TEMP_DIR, "weather")
 FLIGHT_WEATHER_DIR = os.path.join(TEMP_DIR, "weather", "flights")
 
 
@@ -139,7 +140,8 @@ class XPWeatherEngine(WeatherEngine):
 			metar_dir = os.path.join(REAL_WEATHER_DIR, "metar-*.txt")
 			filenames = glob.glob(metar_dir)
 			if len(filenames) > 0:
-				fn = filenames[0]
+				filenames = sorted(filenames)
+				fn = filenames[-1]
 			else:
 				logger.warning(f"no metar files in {metar_dir}")
 		if fn is None:
@@ -166,37 +168,58 @@ class XPWeatherEngine(WeatherEngine):
 					logger.warning(f"wind file date {datestr} cannot be parsed")
 
 
-	def prepare_enroute_winds(self, flight) -> bool:
+	def prepare_enroute_winds(self, flight, use_gfs: bool = False) -> bool:
 		# Check and select a X-Plane Real weather file
 		# Get wind from X-Plane Real weather files
-		if not os.path.exists(REAL_WEATHER_DIR) or not os.path.isdir(REAL_WEATHER_DIR):
-			logger.warning(f"no Real weather metar directory")
-			return None
+		# 
+		if use_gfs:
+			if not os.path.exists(GFS_WEATHER_DIR) or not os.path.isdir(GFS_WEATHER_DIR):
+					logger.warning(f"no GFS weather directory")
+					return False
+		else:
+			if not os.path.exists(REAL_WEATHER_DIR) or not os.path.isdir(REAL_WEATHER_DIR):
+				logger.warning(f"no Real weather directory")
+				return False
 
 		fn = None
 		fid = flight.getId()
-		# 1.1. Try the exact date, if any
-		# 
-		moment = flight.getScheduledDepartureTime()
-		if moment is not None:
-			dfn = moment.strftime("GRIB-%Y-%m-%d-%H.%M-ZULU-wind-v2.grib")
-			fn = os.path.join(REAL_WEATHER_DIR, dfn)
-			if not os.path.exists(fn):
-				logger.warning(f"no metar file for {moment.isoformat()}, trying alternate dates/times")
-				fn = None
-		# 1.2. Try any metar file
-		if fn is None:
-			metar_dir = os.path.join(REAL_WEATHER_DIR, "GRIB-*-ZULU-wind-v2.grib")
-			filenames = glob.glob(metar_dir)
-			if len(filenames) > 0:
-				fn = filenames[0]
-			else:
-				logger.warning(f"no metar files in {metar_dir}")
-		if fn is None:
-			logger.warning("no metar file")
-			return None
-
-		logger.debug(f"found {fn} Real weather wind file")
+		if use_gfs:
+			# 1.2. Try any grib file
+			if fn is None:
+				gfs_dir = os.path.join(GFS_WEATHER_DIR, "gfs.*")
+				filenames = [filename for filename in glob.glob(gfs_dir) if not filename.endswith('idx')]
+				if len(filenames) > 0:
+					filenames = sorted(filenames)
+					fn = filenames[-1]
+				else:
+					logger.warning(f"no GFS files in {gfs_dir}")
+			if fn is None:
+				logger.warning("no GFS file")
+				return None
+			logger.debug(f"found {fn} GFS file")
+		else:
+			# 1.1. Try the exact date, if any
+			# 
+			moment = flight.getScheduledDepartureTime()
+			if moment is not None:
+				dfn = moment.strftime("GRIB-%Y-%m-%d-%H.%M-ZULU-wind-v2.grib")
+				fn = os.path.join(REAL_WEATHER_DIR, dfn)
+				if not os.path.exists(fn):
+					logger.warning(f"no GRIB file for {moment.isoformat()}, trying alternate dates/times")
+					fn = None
+			# 1.2. Try any grib file
+			if fn is None:
+				rw_dir = os.path.join(REAL_WEATHER_DIR, "GRIB-*-ZULU-wind-v2.grib")
+				filenames = glob.glob(rw_dir)
+				if len(filenames) > 0:
+					filenames = sorted(filenames)
+					fn = filenames[-1]
+				else:
+					logger.warning(f"no GRIB files in {rw_dir}")
+			if fn is None:
+				logger.warning("no GRIB file")
+				return None
+			logger.debug(f"found {fn} Real weather GRIB wind file")
 
 
 		self.find_source_date()
@@ -293,6 +316,8 @@ class XPWeatherEngine(WeatherEngine):
 
 		res = self.parse_grib_data(lat, lon, alt, moment)
 		wl = res[2]
+
+		# find lower and upper bounds
 		i = 0
 		while i < len(wl):
 			if wl[i][0] > alt:
@@ -308,9 +333,12 @@ class XPWeatherEngine(WeatherEngine):
 			# logger.debug(f"upper is above measures ({alt} > {a2[0]})")
 		else:
 			a2 = wl[i]
+		# interpolate between lower and upper bounds
 		hdg = lin_interpol(a1[0], a1[1], a2[0], a2[1], alt)
 		spd = lin_interpol(a1[0], a1[2], a2[0], a2[2], alt)
+
 		w = Wind(speed=spd, direction=hdg)
-		w.position = [float(res[0]), float(res[1]), alt]
+		w.position = [float(res[0]), float(res[1]), alt]  # add details
 		w.moment   = self.source_date
+
 		return w
