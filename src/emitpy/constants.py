@@ -426,7 +426,8 @@ class FEATPROP(Enum):
     CLASS_ID = "classId"
     CONTROL_TIME = "control-time"
     COUNTRY = "country"
-    DELAY = "delay"  # was pause in emitjs
+    COURSE = "course" # direction in which goes the aircraft
+    DELAY = "delay"   # was pause in emitjs
     EMIT_ABS_TIME = "emit-absolute-time"
     EMIT_ABS_TIME_FMT = "emit-absolute-time-human"
     EMIT_ABSOLUTE_TIME = "emit-absolute-time"
@@ -440,7 +441,7 @@ class FEATPROP(Enum):
     FLIGHT_PLANDB_INDEX = "fpdb-index"
     JETWAY = "jetway"
     GROUNDED = "grounded"
-    HEADING = "heading"
+    HEADING = "heading"  # direction in which point the aircraft
     ICAO24 = "icao24"
     LINE = "line"
     MARK = "_mark"
@@ -449,7 +450,7 @@ class FEATPROP(Enum):
     MOVE_INDEX = "move-index"  # after standard turns added
     NAME = "name"
     ORG_ID = "orgId"
-    ORIENTATION = "orientation"
+    ORIENTATION = "orientation"  # direction in which point the aircraft, synonym of HEADING, used for ground vehicle
     PAUSE = "pause"
     PLAN_SEGMENT_NAME = "_plan_segment_name"
     PLAN_SEGMENT_TYPE = "_plan_segment_type"
@@ -460,7 +461,8 @@ class FEATPROP(Enum):
     SAVED_TIME = "saved-time"
     SERVICE = "service"
     SERVICE_TYPE = "service-type"  # ~ SERVICE?
-    SPEED = "speed"
+    SPEED = "speed"                # ground speed
+    TA_SPEED = "true-air-speed"    # TAS
     STOP_TIME = "stop-time"
     TIME = "time"
     TRACK = "track"

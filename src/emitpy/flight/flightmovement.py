@@ -2,21 +2,25 @@
 A succession of positions where the aircraft passes. Includes taxi and takeoff or landing and taxi.
 """
 import os
+import io
 import json
 import logging
-from math import pi
 import copy
+from math import pi
+from datetime import timedelta
 
 from geojson import LineString, FeatureCollection, Feature
 from turfpy.measurement import distance, destination, bearing
+
+from tabulate import tabulate
 
 from emitpy.flight import Flight
 from emitpy.airport import ManagedAirportBase
 from emitpy.aircraft import ACPERF
 from emitpy.geo import MovePoint, Movement
-from emitpy.geo import moveOn, cleanFeatures, findFeatures, asLineString, toKML
+from emitpy.geo import moveOn, cleanFeatures, findFeatures, asLineString, toKML, adjust_speed_vector
 from emitpy.graph import Route
-from emitpy.utils import FT, NAUTICAL_MILE
+from emitpy.utils import FT, NAUTICAL_MILE, compute_headings
 from emitpy.constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
 from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT, MOVE_TYPE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
@@ -104,7 +108,22 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
-        status = self.time()
+        status = self.time()  # sets the time for gross approximation
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
+        res = compute_headings(self.getMovePoints())
+        if not res[0]:
+            logger.warning(status[1])
+            return res
+
+        status = self.add_wind()    # refines speeds
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
+        status = self.time()    # sets the time for wind adjusted speed
         if not status[0]:
             logger.warning(status[1])
             return status
@@ -1028,6 +1047,74 @@ class FlightMovement(Movement):
         return (True, "Movement::interpolated speed and altitude")
 
 
+    def add_wind(self):
+        # Prepare wind data collection
+        # 1. limit to flight movement bounding box
+        ret = self.flight.managedAirport.weather_engine.prepare_enroute_winds(flight=self.flight)  # caches expensive weather data for this flight
+        if not ret:
+            logger.warning(f"no wind")
+            return (True, "Movement::add_wind cannot find wind data, ignoring wind")
+
+        output = io.StringIO()
+        print("\n", file=output)
+        print(f"MOVEMENT", file=output)
+        MARK_LIST = ["TIME", "TAS", "COURSE TH", "WIND SPEED", "WIND DIR", "GS", "GS DELTA", "COURSE", "COURSE DELTA", "HEADING", "COURSE-HEADING"]
+        table = []
+
+        fid = self.flight.getId()
+        cnt1 = 0
+        cnt2 = 0
+        cnt3 = 0
+        f0 = self.flight.getScheduledDepartureTime()
+        for p in self.getMovePoints():
+            if not p.getProp(FEATPROP.GROUNDED.value):
+                cnt1 = cnt1 + 1
+                ft = f0
+                time = p.time()
+                if time is not None:
+                    ft = ft + timedelta(seconds=time)
+                wind = self.flight.managedAirport.weather_engine.get_enroute_wind(flight_id=fid, lat=p.lat(), lon=p.lon(), alt=p.alt(), moment=ft)
+                if wind is not None:
+                    p.setProp("_wind", wind)
+                    cnt2 = cnt2 + 1
+                ## need to property adjust heading here
+                    if wind.speed is not None:
+                        if wind.direction is not None:
+                            ac_speed = p.getProp(FEATPROP.SPEED.value)
+                            ac_course = p.getProp(FEATPROP.HEADING.value)
+                            if ac_speed is not None and ac_course is not None:
+                                p.setProp(FEATPROP.COURSE.value, ac_course)
+                                ac = (ac_speed, ac_course)
+                                ws = (wind.speed, wind.direction)
+                                (newac, gs) = adjust_speed_vector(ac, ws)  # gs[1] ~ ac_course
+                                p.setProp(FEATPROP.SPEED.value, gs[0])
+                                p.setProp(FEATPROP.TA_SPEED.value, ac_speed)
+                                p.setProp(FEATPROP.HEADING.value, newac[1])
+                                # logger.debug(f"TAS={[round(p) for p in ac]} + wind={[round(p) for p in ws]} => gs={[round(p) for p in newac]}")
+                                # logger.debug(f"TAS={round(ac_speed)} COURSE={ac_course} + wind={[round(p) for p in ws]} => GS={newac[0]} COURSE={gs[1]}, HEADING={newac[1]}")
+                                table.append((p.time(), round(ac_speed), ac_course, ws[0], ws[1], gs[0], gs[0] - ac_speed, gs[1], ac_course-gs[1], newac[1], gs[1] - newac[1]))
+                            else:
+                                logger.debug(f"missing aircraft speed or heading ({ac_speed}, {ac_course})?")
+                            cnt3 = cnt3 + 1
+                        else:
+                            logger.debug("wind is variable direction, do not add wind")
+                    else:
+                        logger.debug("no wind speed, do not add wind")
+                else:
+                    logger.debug("no wind info")
+
+        table = sorted(table, key=lambda x: x[0])  # absolute emission time
+        print(tabulate(table, headers=MARK_LIST), file=output)
+
+        contents = output.getvalue()
+        output.close()
+        logger.debug(f"{contents}")
+
+        ret = self.flight.managedAirport.weather_engine.forget_enroute_winds(flight=self.flight)
+        logger.warning(f"wind added ({cnt2/cnt1/len(self.getMovePoints())})")
+        return (True, "Movement::add_wind added")
+
+
     def time(self):
         """
         Time 0 is start of roll for takeoff (Departure) or takeoff from origin airport (Arrival).
@@ -1043,6 +1130,8 @@ class FlightMovement(Movement):
 
         for f in self.getMovePoints():
             f.setProp(FEATPROP.SAVED_TIME.value, f.time())
+
+        logger.debug(f"movement timed")
 
         return (True, "Movement::time computed")
 

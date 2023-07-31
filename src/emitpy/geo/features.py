@@ -242,6 +242,8 @@ class FeatureWithProps(Feature):
             return alt
         return default
 
+    def alt(self):
+        return self.altitude()
 
     def setSpeed(self, speed: float):
         # Speed should be in meters per second

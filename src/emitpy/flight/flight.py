@@ -253,6 +253,14 @@ class Flight(Messages):
         logger.debug(f"scheduled {self.get_move(opposite=True)} estimated at: {self.opposite_estimated_dt} (distance={round(dist, 0)}nm, travel time={round(- travel_time, 1)} hours ({'supplied' if supplied else 'estimated'}) at {round(speed, 0)}kn)")
 
 
+    def getScheduledDepartureTime(self):
+        return self.scheduled_dt if self.is_departure() else self.opposite_estimated_dt
+
+
+    def getScheduledArrivalTime(self):
+        return self.scheduled_dt if self.is_arrival() else self.opposite_estimated_dt
+
+
     def get_oooi(self, gate: bool = False) -> str:
         # Returns the flight phase name corresponding to the movement
         # ACARS OOOI (Out of the gate, Off the ground, On the ground, and Into the gate)

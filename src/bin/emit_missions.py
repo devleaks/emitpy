@@ -23,8 +23,8 @@ logger = logging.getLogger("emitamission")
 
 # Parameters
 #
-NUM_MISSIONS = 4
-sep = timedelta(minutes=4)
+NUM_MISSIONS = 1
+sep = timedelta(minutes=1)
 
 name = "emit_mission"
 queue = "raw"
@@ -37,7 +37,7 @@ logger.info(f"Generating {NUM_MISSIONS} missions.")
 e = EmitApp(MANAGED_AIRPORT_ICAO)
 
 # Internal global vars
-now = datetime.now().replace(tzinfo=e.local_timezone)
+now = datetime.now().replace(tzinfo=e.local_timezone) + timedelta(seconds=20)
 first_dt = None
 
 stops = [a[0] for a in e.airport.getPOICombo()]

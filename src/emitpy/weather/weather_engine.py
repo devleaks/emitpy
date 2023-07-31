@@ -1,3 +1,6 @@
+# Base class(es) for Weather transmission to Emitpy
+# The Weather Engine is responsible for fetching airport weather and en route wind data for flights.
+#
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -26,8 +29,9 @@ class Wind:
 class AirportWeather(ABC):
 	# Shell class, used to get airport weather information for Emitpy
 
-	def __init__(self, icao: str):
-		self.source = None
+	def __init__(self, icao: str, moment: datetime = None):
+		self.type = None	# METAR, TAF, or other
+		self.source = None  # filename of source file
 		self.icao = icao
 
 	def getInfo(self) -> dict:
@@ -39,22 +43,41 @@ class AirportWeather(ABC):
 		}
 
 	@abstractmethod
+	def summary(self):
+		# Returns weather in a descriptive way, for debugging purpose only
+		# Standard metar.string returns imperial units :-(.
+		raise NotImplementedError
+
+	@abstractmethod
 	def get_wind(self) -> Wind:
+		# Get overall wind at ground level
+		# Returns None for wind direction if no wind or direction variable.
+		# Returns wind speed, 0 if no wind.
+		# Affects runway selection. Does not affect take-off and landing distances. (even if strong head winds.)
 		raise NotImplementedError
 
 	@abstractmethod
 	def get_precipirations(self):
+		# Returns cm of precipitation for the last hour (in cm of water).
+		# Affects take-off and landing distances.
 		raise NotImplementedError
+
+	## Add method to cache it
+	## Add method to retrieve from cache
 
 
 class WeatherEngine(ABC):
+	"""
+	Weather Engine is responsible for providing weather data to emitpy.
+	Data consists of weather at departure, arrival (and alternate) airport,
+	and wind data for the flight.
+	"""
 
 	def __init__(self, redis):
 		self.redis = redis
-		self._winds_prepared = False
-		self._bbox = None
-		self.moment = None
 		self.source = None
+		self.source_date = None
+		self.flight_id = None
 
 	@classmethod
 	def new(cls, redis):
@@ -62,25 +85,31 @@ class WeatherEngine(ABC):
 
 	@abstractmethod
 	def get_airport_weather(self, icao: str, moment: datetime) -> AirportWeather:
+		"""
+		Get weather at airport locat
+		"""
 		raise NotImplementedError
 
 	@abstractmethod
-	def prepare_enroute_winds(self, bbox: [float], moment: datetime) -> bool:
-		self._winds_prepared = True
-		self._bbox = bbox
-		self.moment = moment
-		return False
+	def prepare_enroute_winds(self, flight) -> bool:
+		# Filter and cache winds for flight
+		raise NotImplementedError
 
-	def forget_enroute_winds(self, bbox: [float], moment: datetime):
-		self._winds_prepared = False
-		self._bbox = None
-		self.moment = None
+	def forget_enroute_winds(self, flight):
+		# Clear cached flight
+		self.flight_id = None
 
-	def has_enroute_winds(self, bbox: [float], moment: datetime) -> bool:
-		return self._winds_prepared and self._bbox == bbox and self.moment == moment
+	def has_enroute_winds(self, flight) -> bool:
+		return self.flight_id == flight.getId()
 
 	@abstractmethod
-	def get_enroute_wind(self, position: [float]) -> Wind:
-		if self._winds_prepared:
-			raise NotImplementedError
-		return None
+	def get_enroute_wind(self, lat, lon, alt, moment: datetime) -> Wind:
+		"""
+		Get En Route wind for flight. Flight movement points are passed here, with (lat, lon, alt)
+		and an estimated time of passage at the point.
+		This procedure retrieve winds (speed and direction) at the location for the requested time.
+		Ultimately, it could be any position (on Earth) at any give time, if weather data can be found.
+		A sophisticated optional "fall-back" mechanism does its best at finding data for the supplied position,
+		or close by positions, at requested time or another close time.
+		"""
+		raise NotImplementedError

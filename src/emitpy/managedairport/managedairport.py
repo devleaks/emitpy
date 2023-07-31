@@ -41,6 +41,8 @@ class ManagedAirport:
         self.operator = None
         self.timezone = None
 
+        self.weather_engine = None
+
         self.setAirportDetails()
 
 

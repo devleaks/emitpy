@@ -609,7 +609,7 @@ class AirportWithProcedures(Airport):
     def setWeather(self, weather: AirportWeather):
         if weather is not None:
             self.weather = weather
-            logger.debug(f"{weather.getInfo()}")
+            logger.debug(f"{weather.summary()}")
             if self.procedures is not None:
                 # set which runways are usable
                 wind = self.weather.get_wind()
@@ -646,9 +646,9 @@ class AirportWithProcedures(Airport):
         :rtype:     { return_type_description }
         """
         landing = 1.1
-        print(type(self), type(self).__name__)
         if self.weather is not None:
             prec = self.weather.get_precipirations()
+            logger.debug(f"precipitations: {prec:.1f}")
             if prec > 0.5:
                 landing = 1.75
             elif prec > 0:
