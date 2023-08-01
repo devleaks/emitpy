@@ -4,11 +4,18 @@
 import logging
 import importlib
 import json
+import os
 
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+from emitpy.parameters import WEATHER_DIR
+from .weather_utils import normalize_dt
+
 logger = logging.getLogger("WeatherEngine")
+
+
+AIRPORT_WEATHER_DIR = os.path.join(WEATHER_DIR, "airports")
 
 
 class Wind:
@@ -36,17 +43,26 @@ class Wind:
 class AirportWeather(ABC):
 	# Abstract class, used to get airport weather information for Emitpy
 
-	def __init__(self, icao: str, moment: datetime = None):
+	def __init__(self, icao: str, moment: datetime = None, engine = None):
+		self.engine = engine
+
 		self.type = None	# METAR, TAF, or other
-		self.source = None  # filename of source file
 		self.icao = icao
+		self.requested_dt = moment if moment is not None else datetime.now().astimezone()
+		self.requested_norm = normalize_dt(self.requested_dt)
+
+		self.raw = None
+		self.parsed = None
 
 	def getInfo(self) -> dict:
 		"""
 		Returns weather information.
 		"""
 		return {
-			"icao": self.icao
+			"icao": self.icao,
+			"date": self.requested_dt,
+			"type": self.type,
+			"raw": self.raw
 		}
 
 	@abstractmethod
@@ -69,8 +85,84 @@ class AirportWeather(ABC):
 		# Affects take-off and landing distances.
 		raise NotImplementedError
 
-	## Add method to cache it
-	## Add method to retrieve from cache
+	def save(self):
+		if self.engine.redis is not None:
+			return self.saveToCache()
+		else:
+			return self.saveFile()
+
+	def load(self):
+		if self.engine.redis is not None:
+			return self.loadFromCache()
+		else:
+			return self.loadFile()
+
+	def saveFileName(self):
+		nowstr = self.cacheKeyName()
+		return os.path.join(AIRPORT_WEATHER_DIR, self.icao + "-" + nowstr + "." + self.type.lower())
+
+	def saveFile(self):
+		if self.raw is not None:
+			fn = self.saveFileName()
+			if not os.path.exists(fn):
+				logger.warning(f"saving into {fn} '{self.raw}'")
+				with open(fn, "w") as outfile:
+					outfile.write(self.raw)
+			else:
+				logger.warning(f"already exist {fn}")
+			return (True, "Metar::saveFile: saved")
+		return (False, "Metar::saveFile: no METAR to saved")
+
+	def loadFile(self):
+		fn = self.saveFileName()
+		if os.path.exists(fn):
+			logger.debug(f"found {fn}")
+			try:
+				with open(fn, "r") as fp:
+					self.raw = fp.readline()
+				return (True, "Metar::loadFile: loaded")
+			except:
+				logger.debug(f"problem reading from {fn}", exc_info=True)
+				self.raw = None
+			return (False, "Metar::loadFile: not loaded")
+
+		logger.debug(f"file not found {fn}")
+		return (False, "Metar::loadFile: not loaded")
+
+	def cacheKeyName(self):
+		return self.requested_norm.strftime('%Y%m-%d%H%MZ')
+
+	def saveToCache(self):
+		if self.raw is not None:
+			prevdb = self.engine.redis.client_info()["db"]
+			self.engine.redis.select(REDIS_DB.PERM.value)
+			nowstr = self.cacheKeyName()
+			metid = key_path(REDIS_DATABASE.METAR.value, self.raw[0:4], nowstr)
+			if not self.engine.redis.exists(metid):
+				self.engine.redis.set(metid, self.raw)
+				self.engine.redis.select(prevdb)
+				logger.debug(f"saved {metid}")
+				return (True, "Metar::saveToCache: saved")
+			else:
+				self.engine.redis.select(prevdb)
+				logger.warning(f"already exist {metid}")
+		else:
+			logger.warning(f"no metar to save")
+		return (False, "Metar::saveToCache: not saved")
+
+	def loadFromCache(self):
+		if self.engine.redis is not None:
+			nowstr = self.cacheKeyName()
+			metid = REDIS_DATABASE.METAR.value + ":" + self.icao + ":" + nowstr
+			if self.engine.redis.exists(metid):
+				logger.debug(f"found {metid}")
+				raw = self.engine.redis.get(metid)
+				self.raw = raw.decode("UTF-8")
+				return (True, "Metar::loadFromCache: loaded and parsed")
+			else:
+				logger.debug(f"not found {metid}")
+		return (False, "Metar::loadFromCache: failed to load")
+
 
 
 class WeatherEngine(ABC):
@@ -85,9 +177,25 @@ class WeatherEngine(ABC):
 		self.source_date = None
 		self.flight_id = None
 
+		self.mkdirs()
+
 	@classmethod
 	def new(cls, redis):
 		return cls(redis)
+
+
+	def mkdirs(self, create: bool = True):
+		# Weather sub-directories
+		dirs = []
+		dirs.append(os.path.join(WEATHER_DIR, "airports"))  # METAR and TAF
+		dirs.append(os.path.join(WEATHER_DIR, "flights"))	# En-route bounding boxed winds for flights
+		dirs.append(os.path.join(WEATHER_DIR, "gfs"))		# GFS
+		for d in dirs:
+			if not os.path.exists(d):
+				logger.warning(f"directory {d} does not exist")
+				if create:
+					os.makedirs(d)
+					logger.info(f"created directory {d}")
 
 	@abstractmethod
 	def get_airport_weather(self, icao: str, moment: datetime) -> AirportWeather:

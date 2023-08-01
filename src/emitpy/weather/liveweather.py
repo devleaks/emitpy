@@ -11,56 +11,50 @@ from metar import Metar
 from .weather_engine import WeatherEngine, AirportWeather, Wind
 from .weather_utils import c, lin_interpol
 
-from emitpy.parameters import XPLANE_DIR, WEATHER_DIR
+from emitpy.parameters import WEATHER_DIR
 
-logger = logging.getLogger("XPWeatherEngine")
+logger = logging.getLogger("LiveWeatherEngine")
 
 
-# X-Plane specific
-REAL_WEATHER_DIR = os.path.join(XPLANE_DIR, "Output", "Real weather")
-
-# Emitpy specific
-GFS_WEATHER_DIR    = os.path.join(WEATHER_DIR, "gfs")
+GFS_WEATHER_DIR = os.path.join(WEATHER_DIR, "gfs")
 FLIGHT_WEATHER_DIR = os.path.join(WEATHER_DIR, "flights")
 
 
-class XPAirportWeather(AirportWeather):
+class LiveAirportWeather(AirportWeather):
 	# Shell class, used to get airport weather information for Emitpy
 
-	def __init__(self, icao: str, moment: datetime = None, engine = None, source = None):
+	def __init__(self, icao: str, source: str, moment: datetime = None):
 
-		AirportWeather.__init__(self, icao=icao, moment=moment, engine=engine)
+		AirportWeather.__init__(self, icao=icao, moment=moment)
 
 		self.type = "METAR"
+		self.requested_dt = moment
 		self.source = source
 		self.source_date = None
+		self.raw = None
+		self.parsed = None
+
+		if self.requested_dt > datetime.now().astimezone():
+			logger.debug("weather requested in the future")
+			self.type = "TAF"
 
 		self.init()
 
 	def init(self):
-		# Did we cahce it?
-		ret = self.load()
-
-		if not ret[0]:
-			logger.debug(ret[1])
-
-			# 1. Find most appropriate weather (metar) file
-			self.find_source_date()
-			self.raw = None
-			fn = os.path.join(REAL_WEATHER_DIR, self.source)
-			metars = open(fn, "r")
+		# 3. Find airport in file
+		self.find_source_date()
+		self.raw = None
+		fn = os.path.join(REAL_WEATHER_DIR, self.source)
+		metars = open(fn, "r")
+		line = metars.readline()
+		line = line.strip().rstrip("\n\r")
+		while line and self.raw is None:
+			# logger.debug("loadFromFile: SCENERY_PACK '%s'", scenery)
+			if line.startswith(self.icao):
+				self.raw = line
+				# logger.debug(f"found {self.raw}")
 			line = metars.readline()
-			line = line.strip().rstrip("\n\r")
-			while line and self.raw is None:
-				# logger.debug("loadFromFile: SCENERY_PACK '%s'", scenery)
-				if line.startswith(self.icao):
-					self.raw = line
-					# logger.debug(f"found {self.raw}")
-				line = metars.readline()
-			metars.close()
-			self.save()
-		else:
-			logger.debug("found in cache")
+		metars.close()
 
 		if self.raw is None:
 			logger.warning(f"no metar for {self.icao} in file {fn}")
@@ -71,6 +65,7 @@ class XPAirportWeather(AirportWeather):
 			self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year)
 		# if self.parsed is not None:
 		# 	logger.debug(self.parsed.string())
+
 
 	def find_source_date(self):
 		if self.source is None:
@@ -121,7 +116,7 @@ class XPAirportWeather(AirportWeather):
 		return 0
 
 
-class XPWeatherEngine(WeatherEngine):
+class LiveWeatherEngine(WeatherEngine):
 
 	def __init__(self, redis):
 
@@ -156,7 +151,7 @@ class XPWeatherEngine(WeatherEngine):
 			logger.warning("no metar file")
 			return None
 
-		return XPAirportWeather(icao=icao, moment=moment, engine=self, source=fn)
+		return XPAirportWeather(icao=icao, source=os.path.basename(fn), moment=moment)
 
 
 	def find_source_date(self):

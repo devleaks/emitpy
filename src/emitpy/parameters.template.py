@@ -35,7 +35,7 @@ TEMP_DIR = os.path.join(HOME_DIR, "db")
 CACHE_DIR = os.path.join(TEMP_DIR, "cache")
 
 # METAR storage directory
-METAR_DIR = os.path.join(TEMP_DIR, "metar")
+WEATHER_DIR = os.path.join(TEMP_DIR, "weather")
 
 # Managed Airport storage directories
 MANAGED_AIRPORT_DIR  = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT_ICAO)
