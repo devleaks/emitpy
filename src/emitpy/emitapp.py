@@ -23,7 +23,7 @@ from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, 
 from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT, XPLANE_FEED
 from emitpy.airport import Airport, AirportWithProcedures, XPAirport
 from emitpy.airspace import XPAerospace
-from emitpy.weather import XPWeatherEngine
+from emitpy.weather import XPWeatherEngine, WebWeatherEngine
 from emitpy.utils import NAUTICAL_MILE
 
 logger = logging.getLogger("EmitApp")
@@ -94,7 +94,7 @@ class EmitApp(ManagedAirport):
         self._aerospace = XPAerospace
         self._managedairport = XPAirport
         self._airportmanager = AirportManager
-        self._weather_engine = XPWeatherEngine
+        self._weather_engine = WebWeatherEngine # XPWeatherEngine
 
         ManagedAirport.__init__(self, icao=icao, app=self)
 
@@ -349,6 +349,9 @@ class EmitApp(ManagedAirport):
                              origin=remote_apt,
                              aircraft=aircraft,
                              load_factor=load_factor)
+            sync = FLIGHT_PHASE.TOUCH_DOWN.value
+            svc_sync = FLIGHT_PHASE.ONBLOCK.value
+            Movement = ArrivalMove
         else:
             flight = Departure(operator=airline,
                                number=flightnumber,
@@ -357,25 +360,45 @@ class EmitApp(ManagedAirport):
                                destination=remote_apt,
                                aircraft=aircraft,
                                load_factor=load_factor)
+            sync = FLIGHT_PHASE.TAKE_OFF.value
+            svc_sync = FLIGHT_PHASE.OFFBLOCK.value
+            Movement = DepartureMove
+
+        # 3.2 Schedule actual time if supplied
+        logger.debug(f"scheduled={scheduled}, actual={actual_datetime} ({sync})")
+        emit_time_str = actual_datetime if actual_datetime is not None else scheduled
+        emit_time = datetime.fromisoformat(emit_time_str)
+        if emit_time.tzname() is None:  # has no time zone, uses local one
+            emit_time = emit_time.replace(tzinfo=self.timezone)
+            logger.debug("actual time has no time zone, added managed airport local time zone")
+        flight.setEstimatedTime(emit_time)
+
+        # 3.3 Set details
         if is_cargo:
             flight.set_cargo()
+
+        aircraft.setCallsign(airline.icao+flightnumber)
+
         if runway is not None and runway != "":
             self.airport.setRunwaysInUse(runway)
+        # else:??
+
         flight.setFL(reqfl)
+
         rampval = self.airport.getRamp(ramp, redis=self.use_redis())
         if rampval is None:
             logger.warning(f"ramp {ramp} not found, quitting")
             return StatusInfo(5, f"ramp {ramp} not found", None)
-
         flight.setRamp(rampval)
+
         gate = "C99"
+        # this is special for OTHH
         ramp_name = rampval.getName()
         if ramp_name[0] in "A,B,C,D,E".split(",") and len(ramp) < 5:  # does now work for "Cargo Ramp F5" ;-)
             gate = ramp_name
         flight.setGate(gate)
 
-        aircraft.setCallsign(airline.icao+flightnumber)
-
+        # 3.4 planning + route
         logger.debug("..planning..")
         ret = flight.plan()
         if not ret[0]:
@@ -384,22 +407,15 @@ class EmitApp(ManagedAirport):
         logger.debug(f"route: {flight.printFlightRoute()}")
         logger.debug(f"plan : {flight.printFlightPlan()}")
 
-        # 4. Create move
+        # 4. Move
+        # 4.1 Create move
         logger.debug("..flying..")
-        move = None
-        if movetype == ARRIVAL:
-            move = ArrivalMove(flight, self.airport)
-            sync = FLIGHT_PHASE.TOUCH_DOWN.value
-            svc_sync = FLIGHT_PHASE.ONBLOCK.value
-        else:
-            move = DepartureMove(flight, self.airport)
-            sync = FLIGHT_PHASE.TAKE_OFF.value
-            svc_sync = FLIGHT_PHASE.OFFBLOCK.value
+        move = Movement(flight, self.airport)
         ret = move.move()
         if not ret[0]:
             return StatusInfo(7, f"problem during move", ret[1])
 
-        # 5. (save move?)
+        # 4.2 Save move
         # move.save()
 
         # 6. Create emit
@@ -411,13 +427,6 @@ class EmitApp(ManagedAirport):
 
         # 7. Schedule emit
         logger.debug("..scheduling..")
-        # Schedule actual time if supplied
-        logger.debug(f"scheduled={scheduled}, actual={actual_datetime} ({sync})")
-        emit_time_str = actual_datetime if actual_datetime is not None else scheduled
-        emit_time = datetime.fromisoformat(emit_time_str)
-        if emit_time.tzname() is None:  # has no time zone, uses local one
-            emit_time = emit_time.replace(tzinfo=self.timezone)
-            logger.debug("scheduled time has no time zone, added managed airport local time zone")
         ret = emit.schedule(sync, emit_time, do_print=True)
         if not ret[0]:
             return StatusInfo(9, f"problem during schedule", ret[1])

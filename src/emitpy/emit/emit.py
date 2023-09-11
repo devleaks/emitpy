@@ -19,13 +19,13 @@ from turfpy.measurement import distance, bearing, destination
 from redis.commands.json.path import Path
 
 import emitpy
-from emitpy.geo import MovePoint, Movement, cleanFeatures, findFeatures, Movement, asLineString, toTraffic
+from emitpy.geo import MovePoint, Movement, cleanFeatures, findFeatures, Movement, asLineString, toTraffic, toLST
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, Timezone
 from emitpy.message import Messages, EstimatedTimeMessage
 
 from emitpy.constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
-from emitpy.constants import RATE_LIMIT, EMIT_RANGE, MOVE_TYPE
+from emitpy.constants import RATE_LIMIT, EMIT_RANGE, MOVE_TYPE, EMIT_TYPE
 from emitpy.constants import DEFAULT_FREQUENCY, GSE_EMIT_WHEN_STOPPED
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
@@ -284,6 +284,22 @@ class Emit(Movement):
         """
         Save flight paths to file for emitted positions.
         """
+        ret = self.saveTraffic()
+        if not ret[0]:
+            logger.warning("could not save traffic file")
+
+        ret = self.saveLST()
+        if not ret[0]:
+            logger.warning("could not save LST file")
+
+        logger.debug(f"saved {self.getId()} files")
+        return (True, "Emit::saveFile saved")
+
+
+    def saveTraffic(self):
+        """
+        Save flight paths to file for emitted positions.
+        """
         ident = self.getId()
         db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
         basedir = os.path.join(MANAGED_AIRPORT_AODB, db)
@@ -320,7 +336,45 @@ class Emit(Movement):
         with open(filename, "w") as fp:
             fp.write(ls)
 
-        logger.debug(f"saved {ident}")
+        logger.debug(f"saved {ident} for python traffic analysis")
+        return (True, "Emit::saveFile saved")
+
+
+    def saveLST(self):
+        """Saves emission for X-Plane Living Scenery Technology.
+
+        Works for ground support vehicle (both missions and services).
+        Need to have (virtual) path to 3D model for representation,
+        otherwise default to marshall car.
+        """
+        if self.emit_type not in [EMIT_TYPE.SERVICE.value, EMIT_TYPE.MISSION.value]:
+            logger.debug(f"no LST save for emit of type {self.emit_type}")
+            return (True, "Emit::saveFile no necessary to save")
+
+        ident = self.getId()
+        db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
+        basedir = os.path.join(MANAGED_AIRPORT_AODB, db)
+        if not os.path.exists(basedir):
+            os.mkdir(basedir)
+            logger.info(f"directory {basedir} did not exist. created.")
+
+        basename = os.path.join(basedir, ident)
+        logger.debug(f"{self.getInfo()}")
+        logger.debug(f"emit_point={len(self.scheduled_emit)} positions")
+
+        if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
+            logger.warning("no scheduled emission point")
+            self.write_debug()
+            return (False, "Emit::saveFile: no scheduled emission point")
+
+        logger.debug(f"***** there are {len(self.scheduled_emit)} points")
+
+        lst = toLST(self.scheduled_emit)
+        filename = os.path.join(basename + ".lst")
+        with open(filename, "w") as fp:
+            fp.write(lst)
+
+        logger.debug(f"saved {ident} for Living Scenery Technology")
         return (True, "Emit::saveFile saved")
 
 

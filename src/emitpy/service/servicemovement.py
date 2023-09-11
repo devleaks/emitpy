@@ -443,7 +443,7 @@ class ServiceMove(Movement):
             return (False, "ServiceMove::move_loop: service has no depot")
         nd_npe = self.airport.service_roads.nearest_point_on_edge(nearest_depot)
         if nd_npe[0] is None:
-                logger.warning("no nearest_point_on_edge for nearest_depot")
+            logger.warning("no nearest_point_on_edge for nearest_depot")
         nd_nv = self.airport.service_roads.nearest_vertex(nearest_depot)
         if nd_nv[0] is None:
             logger.warning("no nearest_vertex for nearest_depot")
@@ -556,7 +556,6 @@ class ServiceMove(Movement):
             pos.setSpeed(speeds["slow"])
             move_points.append(pos)
 
-
         # END OF LOOP, go to next position
         #
         # find end position if none is given
@@ -568,7 +567,6 @@ class ServiceMove(Movement):
             if finalpos is None:
                 logger.warning(f"no end rest area for { service_type }, using start position")
                 finalpos = startpos
-
 
         # find end position on network
         endnp = self.airport.service_roads.nearest_point_on_edge(finalpos)

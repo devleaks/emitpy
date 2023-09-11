@@ -9,7 +9,7 @@ from datetime import datetime
 from metar import Metar
 
 from .weather_engine import WeatherEngine, AirportWeather, Wind
-from .weather_utils import c, lin_interpol
+from .utils import c, lin_interpol
 
 from emitpy.parameters import XPLANE_DIR, WEATHER_DIR
 
@@ -38,7 +38,7 @@ class XPAirportWeather(AirportWeather):
 		self.init()
 
 	def init(self):
-		# Did we cahce it?
+		# Did we cache it?
 		ret = self.load()
 
 		if not ret[0]:
@@ -58,17 +58,17 @@ class XPAirportWeather(AirportWeather):
 					# logger.debug(f"found {self.raw}")
 				line = metars.readline()
 			metars.close()
-			self.save()
+			self.save()  # caches it
 		else:
 			logger.debug("found in cache")
 
-		if self.raw is None:
-			logger.warning(f"no metar for {self.icao} in file {fn}")
-
-		if self.source_date is None:
-			self.parsed = Metar.Metar(self.raw)
+		if self.raw is not None:
+			if self.source_date is None:
+				self.parsed = Metar.Metar(self.raw)
+			else:
+				self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year)
 		else:
-			self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year)
+			logger.warning(f"no metar for {self.icao} in file {fn}")
 		# if self.parsed is not None:
 		# 	logger.debug(self.parsed.string())
 

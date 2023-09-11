@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 
 from emitpy.parameters import WEATHER_DIR
-from .weather_utils import normalize_dt
+from .utils import normalize_dt
 
 logger = logging.getLogger("WeatherEngine")
 
@@ -19,21 +19,23 @@ AIRPORT_WEATHER_DIR = os.path.join(WEATHER_DIR, "airports")
 
 
 class Wind:
-	# Shell class, used to get wind information for Emitpy
+	# Shell class for wind information for Emitpy
 
 	def __init__(self, direction: float, speed: float):
 		self.direction = direction
 		self.speed = speed
-		self.position = None  # tuple(float)
-		self.moment: None
+		self.position = None	# tuple(float)
+		self.moment: None		# 4D!
 
 	def getInfo(self) -> dict:
 		"""
 		Returns weather information.
 		"""
 		return {
-			"direction": self.direction,
-			"speed": self.speed
+			"speed": self.speed,  # m/s
+			"direction": self.direction,  # degrees
+			"at": self.position,
+			"on": self.moment.isoformat()
 		}
 
 	def __str__(self):
@@ -85,6 +87,8 @@ class AirportWeather(ABC):
 		# Affects take-off and landing distances.
 		raise NotImplementedError
 
+	# Caching related methods
+	# 
 	def save(self):
 		if self.engine.redis is not None:
 			return self.saveToCache()
@@ -200,13 +204,14 @@ class WeatherEngine(ABC):
 	@abstractmethod
 	def get_airport_weather(self, icao: str, moment: datetime) -> AirportWeather:
 		"""
-		Get weather at airport locat
+		Get weather at airport locattion, returns a AirportWeather class.
 		"""
 		raise NotImplementedError
 
 	@abstractmethod
 	def prepare_enroute_winds(self, flight) -> bool:
 		# Filter and cache winds for flight
+		# Returns boolean if wind is available and/or preselected
 		raise NotImplementedError
 
 	def forget_enroute_winds(self, flight):
@@ -214,6 +219,7 @@ class WeatherEngine(ABC):
 		self.flight_id = None
 
 	def has_enroute_winds(self, flight) -> bool:
+		# Returns boolean if wind is available and/or preselected
 		return self.flight_id == flight.getId()
 
 	@abstractmethod
@@ -225,5 +231,6 @@ class WeatherEngine(ABC):
 		Ultimately, it could be any position (on Earth) at any give time, if weather data can be found.
 		A sophisticated optional "fall-back" mechanism does its best at finding data for the supplied position,
 		or close by positions, at requested time or another close time.
+		Returns Wind.
 		"""
 		raise NotImplementedError

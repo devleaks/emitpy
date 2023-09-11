@@ -3,36 +3,36 @@ import os
 import glob
 import re
 import subprocess
+import importlib
 
 from datetime import datetime
 
 from metar import Metar
+from avwx import Taf
 
 from .weather_engine import WeatherEngine, AirportWeather, Wind
-from .weather_utils import c, lin_interpol
+from .utils import c, lin_interpol
 
 from emitpy.parameters import WEATHER_DIR
 
-logger = logging.getLogger("LiveWeatherEngine")
+logger = logging.getLogger("WebWeatherEngine")
 
 
 GFS_WEATHER_DIR = os.path.join(WEATHER_DIR, "gfs")
 FLIGHT_WEATHER_DIR = os.path.join(WEATHER_DIR, "flights")
 
 
-class LiveAirportWeather(AirportWeather):
+class WebAirportWeather(AirportWeather):
 	# Shell class, used to get airport weather information for Emitpy
 
-	def __init__(self, icao: str, source: str, moment: datetime = None):
+	def __init__(self, icao: str, moment: datetime = None, engine = None, source = None):
 
-		AirportWeather.__init__(self, icao=icao, moment=moment)
+		AirportWeather.__init__(self, icao=icao, moment=moment, engine=engine)
 
 		self.type = "METAR"
-		self.requested_dt = moment
-		self.source = source
+		self.source = source			# source = { AVWX | FPDB | NOAA | ogimet | mesonet }
 		self.source_date = None
-		self.raw = None
-		self.parsed = None
+		self.impl = None
 
 		if self.requested_dt > datetime.now().astimezone():
 			logger.debug("weather requested in the future")
@@ -40,52 +40,50 @@ class LiveAirportWeather(AirportWeather):
 
 		self.init()
 
+
 	def init(self):
-		# 3. Find airport in file
-		self.find_source_date()
-		self.raw = None
-		fn = os.path.join(REAL_WEATHER_DIR, self.source)
-		metars = open(fn, "r")
-		line = metars.readline()
-		line = line.strip().rstrip("\n\r")
-		while line and self.raw is None:
-			# logger.debug("loadFromFile: SCENERY_PACK '%s'", scenery)
-			if line.startswith(self.icao):
-				self.raw = line
-				# logger.debug(f"found {self.raw}")
-			line = metars.readline()
-		metars.close()
+		# Did we cache it?
+		ret = self.load()
 
-		if self.raw is None:
-			logger.warning(f"no metar for {self.icao} in file {fn}")
+		if not ret[0]:
+			logger.debug(ret[1])
 
-		if self.source_date is None:
-			self.parsed = Metar.Metar(self.raw)
+			metarclasses = importlib.import_module(name=".weather.aws", package="emitpy")
+			lclass = self.source.upper() + self.type[0].upper() + self.type[1:].lower()  # SOURCEMetar, SOURCETaf
+			if hasattr(metarclasses, lclass):
+				awc = getattr(metarclasses, lclass)
+				if awc is not None:
+					self.impl = awc(self.icao)
+					ret = self.impl.fetch()
+					if ret[0]:
+						self.raw = self.impl.raw
+					else:
+						logger.warning(ret[1])
+				else:
+					logger.warning(f"could not create {lclass}")
+			else:
+				logger.warning(f"could not find WebAirportWeather {lclass}")
+
+		if self.raw is not None:
+			if self.source_date is None:
+				if self.type == "METAR":
+					self.parsed = Metar.Metar(self.raw)
+				elif self.type == "TAF":
+					self.parsed = Taf.from_report(self.raw)
+			else:
+				if self.type == "METAR":
+					self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year)
+				elif self.type == "TAF":
+					self.parsed = Taf.from_report(self.raw)
+			self.save()
 		else:
-			self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year)
-		# if self.parsed is not None:
-		# 	logger.debug(self.parsed.string())
-
-
-	def find_source_date(self):
-		if self.source is None:
-			return
-		# /Users/pierre/Developer/oscars/emit/emitpy/data/x-plane/Output/Real weather/metar-2023-07-25-08.00.txt
-		m = re.match(r"(.*)metar-(?P<date>[\.\-\d]+).txt", self.source)
-		m2 = m.groupdict()
-		if "date" in m2:
-			datestr = m2["date"]
-			if datestr is not None and len(datestr) > 0:
-				try:
-					date = datetime.strptime(datestr, "%Y-%m-%d-%H.%M").astimezone()
-					logger.debug(f"metar file dated {date.isoformat()}")
-					self.source_date = date
-				except:
-					logger.warning(f"metar file date {datestr} cannot be parsed")
-
+			logger.warning(f"no {self.type} for {self.icao}")
+	
 
 	def summary(self):
 		logger.debug(self.getInfo())
+		if self.parsed is None:
+			return "no weather"
 		return self.parsed.string()
 
 
@@ -116,7 +114,7 @@ class LiveAirportWeather(AirportWeather):
 		return 0
 
 
-class LiveWeatherEngine(WeatherEngine):
+class WebWeatherEngine(WeatherEngine):
 
 	def __init__(self, redis):
 
@@ -125,33 +123,8 @@ class LiveWeatherEngine(WeatherEngine):
 		self.WIND_CACHE = {}
 
 	def get_airport_weather(self, icao: str, moment: datetime):
-		# Get airport weather from X-Plane Real weather files
-		if not os.path.exists(REAL_WEATHER_DIR) or not os.path.isdir(REAL_WEATHER_DIR):
-			logger.warning(f"no Real weather metar directory")
-			return None
-
-		fn = None
-		# 1. Try the exact date, if any
-		if moment is not None:
-			dfn = moment.strftime("metar-%Y-%m-%d-%H.%M.txt")
-			fn = os.path.join(REAL_WEATHER_DIR, dfn)
-			if not os.path.exists(fn):
-				logger.warning(f"no metar file for {moment.isoformat()}, trying alternate dates/times")
-				fn = None
-		# 2. Try any metar file
-		if fn is None:
-			metar_dir = os.path.join(REAL_WEATHER_DIR, "metar-*.txt")
-			filenames = glob.glob(metar_dir)
-			if len(filenames) > 0:
-				filenames = sorted(filenames)
-				fn = filenames[-1]
-			else:
-				logger.warning(f"no metar files in {metar_dir}")
-		if fn is None:
-			logger.warning("no metar file")
-			return None
-
-		return XPAirportWeather(icao=icao, source=os.path.basename(fn), moment=moment)
+		source = "FPDB"
+		return WebAirportWeather(icao=icao, moment=moment, engine=self, source=source)
 
 
 	def find_source_date(self):
@@ -171,59 +144,27 @@ class LiveWeatherEngine(WeatherEngine):
 					logger.warning(f"wind file date {datestr} cannot be parsed")
 
 
-	def prepare_enroute_winds(self, flight, use_gfs: bool = False) -> bool:
-		# Check and select a X-Plane Real weather file
-		# Get wind from X-Plane Real weather files
+	def prepare_enroute_winds(self, flight) -> bool:
+		# Get wind from GFS Forecast files
 		# 
-		if use_gfs:
-			if not os.path.exists(GFS_WEATHER_DIR) or not os.path.isdir(GFS_WEATHER_DIR):
-					logger.warning(f"no GFS weather directory")
-					return False
-		else:
-			if not os.path.exists(REAL_WEATHER_DIR) or not os.path.isdir(REAL_WEATHER_DIR):
-				logger.warning(f"no Real weather directory")
-				return False
+		if not os.path.exists(GFS_WEATHER_DIR) or not os.path.isdir(GFS_WEATHER_DIR):
+			logger.warning(f"no GFS weather directory")
+			return False
 
 		fn = None
 		fid = flight.getId()
-		if use_gfs:
-			# 1.2. Try any grib file
-			if fn is None:
-				gfs_dir = os.path.join(GFS_WEATHER_DIR, "gfs.*")
-				filenames = [filename for filename in glob.glob(gfs_dir) if not filename.endswith('idx')]
-				if len(filenames) > 0:
-					filenames = sorted(filenames)
-					fn = filenames[-1]
-				else:
-					logger.warning(f"no GFS files in {gfs_dir}")
-			if fn is None:
-				logger.warning("no GFS file")
-				return None
-			logger.debug(f"found {fn} GFS file")
-		else:
-			# 1.1. Try the exact date, if any
-			# 
-			moment = flight.getScheduledDepartureTime()
-			if moment is not None:
-				dfn = moment.strftime("GRIB-%Y-%m-%d-%H.%M-ZULU-wind-v2.grib")
-				fn = os.path.join(REAL_WEATHER_DIR, dfn)
-				if not os.path.exists(fn):
-					logger.warning(f"no GRIB file for {moment.isoformat()}, trying alternate dates/times")
-					fn = None
-			# 1.2. Try any grib file
-			if fn is None:
-				rw_dir = os.path.join(REAL_WEATHER_DIR, "GRIB-*-ZULU-wind-v2.grib")
-				filenames = glob.glob(rw_dir)
-				if len(filenames) > 0:
-					filenames = sorted(filenames)
-					fn = filenames[-1]
-				else:
-					logger.warning(f"no GRIB files in {rw_dir}")
-			if fn is None:
-				logger.warning("no GRIB file")
-				return None
-			logger.debug(f"found {fn} Real weather GRIB wind file")
-
+		if fn is None:
+			gfs_dir = os.path.join(GFS_WEATHER_DIR, "gfs.*")
+			filenames = [filename for filename in glob.glob(gfs_dir) if not filename.endswith('idx')]
+			if len(filenames) > 0:
+				filenames = sorted(filenames)
+				fn = filenames[-1]
+			else:
+				logger.warning(f"no GFS files in {gfs_dir}")
+		if fn is None:
+			logger.warning("no GFS file")
+			return False
+		logger.debug(f"found {fn} GFS file")
 
 		self.find_source_date()
 

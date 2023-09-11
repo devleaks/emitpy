@@ -164,6 +164,11 @@ class REDIS_DB(IntEnum):
     CACHE = 2  # Real temp cache
     PERM = 3   # Permanent (METAR, etc.)
 
+class EMIT_TYPE(Enum):
+    FLIGHT = "flight"
+    MISSION = "mission"
+    SERVICE = "service"
+
 REDIS_DATABASES = {
     "allocation": REDIS_DATABASE.ALLOCATIONS.value,
     "flight": REDIS_DATABASE.FLIGHTS.value,

@@ -247,13 +247,13 @@ class Flight(Messages):
             speed = 600  # kn
         if travel_time is None:  # estimate it
             supplied = False
-            travel_time = dist / speed  # hours
+            travel_time = 3600 * dist / speed  # seconds
 
         if self.is_arrival():
             travel_time = - travel_time
         estimated_dt = self.estimated_dt if self.estimated_dt is not None else self.scheduled_dt 
-        self.opposite_estimated_dt = estimated_dt + timedelta(hours=travel_time)
-        logger.debug(f"estimated {self.get_move(opposite=True)} estimated at: {self.opposite_estimated_dt} (distance={round(dist, 0)}nm, travel time={round(- travel_time, 1)} hours ({'supplied' if supplied else 'estimated'}) at {round(speed, 0)}kn)")
+        self.opposite_estimated_dt = estimated_dt + timedelta(seconds=travel_time)
+        logger.debug(f"estimated {self.get_move(opposite=True)} estimated at: {self.opposite_estimated_dt} (distance={round(dist, 0)}nm, travel time={round(- travel_time, 1)} seconds ({'supplied' if supplied else 'estimated'}) at {round(speed, 0)}kn)")
 
 
     def schedule_opposite(self, travel_time: int = None):
@@ -270,12 +270,12 @@ class Flight(Messages):
             speed = 600  # kn
         if travel_time is None:  # estimate it
             supplied = False
-            travel_time = dist / speed  # hours
+            travel_time = 3600 * dist / speed  # hours
 
         if self.is_arrival():
             travel_time = - travel_time
-        self.opposite_scheduled_dt = self.scheduled_dt + timedelta(hours=travel_time)
-        logger.debug(f"scheduled {self.get_move(opposite=True)} estimated at: {self.opposite_scheduled_dt} (distance={round(dist, 0)}nm, travel time={round(- travel_time, 1)} hours ({'supplied' if supplied else 'estimated'}) at {round(speed, 0)}kn)")
+        self.opposite_scheduled_dt = self.scheduled_dt + timedelta(seconds=travel_time)
+        logger.debug(f"scheduled {self.get_move(opposite=True)} estimated at: {self.opposite_scheduled_dt} (distance={round(dist, 0)}nm, travel time={round(- travel_time, 1)} seconds ({'supplied' if supplied else 'estimated'}) at {round(speed, 0)}kn)")
 
 
     def getScheduledDepartureTime(self):
