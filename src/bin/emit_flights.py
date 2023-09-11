@@ -29,13 +29,13 @@ file.close()
 
 # Parameters
 #
-DO_SERVICE = False
+DO_SERVICE = True
 queue = "raw"
 rate = [15, 10]
 
 NUM_FLIGHTS = 1  # len(flights)
 cnt = 0
-cnt_begin = 0 # random.randint(0, len(flights)-1)
+cnt_begin = random.randint(0, len(flights)-1)
 cnt_end = min(cnt_begin + NUM_FLIGHTS, len(flights))
 idx = cnt_begin - 1
 # Here we go..

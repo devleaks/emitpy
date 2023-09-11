@@ -111,7 +111,7 @@ AIRAC_CYCLE = "AIRAC"
 
 DEFAULT_VEHICLE = ":default"
 DEFAULT_VEHICLE_SHORT = "SV"
-
+DEFAULT_VEHICLE_ICAO = "ZZZC"  # marshall car
 
 class POI_COMBO(Enum):
     RAMP = "ramp"

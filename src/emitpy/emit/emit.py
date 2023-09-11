@@ -276,7 +276,7 @@ class Emit(Movement):
         with open(fnbase + "debug-move-emit-data.geojson", "w") as fp:
             json.dump(FeatureCollection(features=cleanFeatures(self.moves)), fp, indent=4)
         with open(fnbase + "debug-move-move-data.geojson", "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self.move.moves)), fp, indent=4)
+            json.dump(FeatureCollection(features=cleanFeatures(self.move._move_points)), fp, indent=4)
         logger.warning(f"..written debug files {fnbase}")
 
 
@@ -369,7 +369,7 @@ class Emit(Movement):
 
         logger.debug(f"***** there are {len(self.scheduled_emit)} points")
 
-        lst = toLST(self.scheduled_emit)
+        lst = toLST(self)
         filename = os.path.join(basename + ".lst")
         with open(filename, "w") as fp:
             fp.write(lst)

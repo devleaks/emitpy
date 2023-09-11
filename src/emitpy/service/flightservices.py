@@ -355,7 +355,7 @@ class FlightServices:
             if emit.has_no_move_ok():
                 logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need formatting of positions")
                 continue
-            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
+            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit_points)}, {len(service['emit'].scheduled_emit)})..")
             formatted = Format(emit)
             ret = formatted.format()
             if not ret[0]:
@@ -371,7 +371,7 @@ class FlightServices:
 
     def formatMessages(self, saveToFile: bool = False):
         for service in self.services:
-            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit)}, {len(service['emit'].scheduled_emit)})..")
+            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit_points)}, {len(service['emit'].scheduled_emit)})..")
             formatted = FormatMessage(service["emit"])
             ret = formatted.format()
             if not ret[0]:

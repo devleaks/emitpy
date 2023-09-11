@@ -540,7 +540,15 @@ class EmitApp(ManagedAirport):
         logger.debug("collecting data for flight services..")
 
         st = emit.getRelativeEmissionTime(sync)
+        if st is None:
+            logger.warning(f"could not collect {sync} time, cannot schedule services..")
+            return StatusInfo(1, "could not find sync", flight.getId())
+
         bt = emit.getRelativeEmissionTime(svc_sync)  # 0 for departure...
+        if bt is None:
+            logger.warning(f"could not collect {svc_sync} time, cannot schedule services..")
+            return StatusInfo(1, "could not find service sync", flight.getId())
+
         td = bt - st
         blocktime = emit_time + timedelta(seconds=td)
 

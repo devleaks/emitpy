@@ -8,7 +8,7 @@ from math import inf
 import re
 
 from emitpy.business import Identity, Company
-from emitpy.constants import SERVICE, DEFAULT_VEHICLE, DEFAULT_VEHICLE_SHORT
+from emitpy.constants import DEFAULT_VEHICLE, DEFAULT_VEHICLE_ICAO
 
 logger = logging.getLogger("Equipment")
 
@@ -26,13 +26,15 @@ class Equipment(Identity):
 
         self.operator = operator
         self.registration = registration
-        self.icao = "ZZZC"  # "ICAO" model name, should be ZZZC for all ground vehicle, but we use ZZZA->ZZZZ
+        self.icao = DEFAULT_VEHICLE_ICAO  # "ICAO" model name, should be ZZZC for all ground vehicle, but we use ZZZA->ZZZZ
 
         self.icao24 = None
         self.callsign = None
 
         self.model = ""
         self.model_name = "Generic GSE Vehicle"
+
+        self.mesh  = ["emitpy/gse/marshall.obj"]
 
         self.position = None
         self.next_position = None
