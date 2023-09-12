@@ -993,7 +993,7 @@ class Emit(Movement):
             logger.debug(f"no emit id")
             return (False, f"Emit::schedule no emit id")
 
-        logger.debug(f"mark list: {self.getMarkList()}")
+        # logger.debug(f"mark list: {self.getMarkList()}")
 
         offset = self.getRelativeEmissionTime(sync)
         if offset is not None:

@@ -1190,7 +1190,7 @@ class FlightMovement(Movement):
     def add_tmo(self, TMO: float = 10 * NAUTICAL_MILE):
         # We add a TMO point (Ten (nautical) Miles Out). Should be set before we interpolate.
         # TMO = 10 * NAUTICAL_MILE  # km
-        move_points = self.getMovePoints()
+        move_points = super().getMovePoints()  # we don't need the taxi points
         idx = len(move_points) - 1  # last is end of roll, before last is touch down.
         totald = 0
         prev = 0
@@ -1223,7 +1223,7 @@ class FlightMovement(Movement):
 
     def add_faraway(self, FARAWAY: float = 100 * NAUTICAL_MILE):
         # We add a FARAWAY point when flight is at FARAWAY from begin of roll (i.e. at FARAWAY from airport).
-        move_points = self.getMovePoints()
+        move_points = super().getMovePoints()
         start = move_points[0]
         idx = 0
         totald = 0
