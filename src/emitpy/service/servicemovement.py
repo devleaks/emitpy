@@ -17,7 +17,7 @@ from emitpy.message import ServiceMessage
 
 logger = logging.getLogger("ServiceMove")
 
-MOVE_LOOP = ["BaggageService"]  # , "cargo"
+MOVE_LOOP = []  # "BaggageService","cargo"
 
 
 class ServiceMove(Movement):

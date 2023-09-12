@@ -351,7 +351,7 @@ class EmitApp(ManagedAirport):
                              load_factor=load_factor)
             sync = FLIGHT_PHASE.TOUCH_DOWN.value
             svc_sync = FLIGHT_PHASE.ONBLOCK.value
-            Movement = ArrivalMove
+            Movement = ArrivalMove  # Typed
         else:
             flight = Departure(operator=airline,
                                number=flightnumber,
@@ -362,7 +362,7 @@ class EmitApp(ManagedAirport):
                                load_factor=load_factor)
             sync = FLIGHT_PHASE.TAKE_OFF.value
             svc_sync = FLIGHT_PHASE.OFFBLOCK.value
-            Movement = DepartureMove
+            Movement = DepartureMove  # Typed
 
         # 3.2 Schedule actual time if supplied
         logger.debug(f"scheduled={scheduled}, actual={actual_datetime} ({sync})")
@@ -410,7 +410,7 @@ class EmitApp(ManagedAirport):
         # 4. Move
         # 4.1 Create move
         logger.debug("..flying..")
-        move = Movement(flight, self.airport)
+        move = Movement(flight, self.airport)  # Typed, see flight creation
         ret = move.move()
         if not ret[0]:
             return StatusInfo(7, f"problem during move", ret[1])

@@ -17,7 +17,7 @@ from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
 
 FORMAT="%(levelname)1.1s%(module)22s:%(funcName)-25s%(lineno)4s| %(message)s"
-logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+logging.basicConfig(level=logging.INFO, format=FORMAT)
 logger = logging.getLogger("emit_flights")
 
 

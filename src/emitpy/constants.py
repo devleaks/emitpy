@@ -376,7 +376,7 @@ class TAR_SERVICE(Enum):
     ALERT = "alert"
     WARN  = "warn"
     MODEL = "model"
-    LABEL = "label"
+    LABEL = "event"
 
 
 class SERVICE_PHASE(Enum):

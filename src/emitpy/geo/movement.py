@@ -86,6 +86,7 @@ class Movement(Messages):
         }
 
     def getMovePoints(self):
+        logger.debug(f"getting {len(self._move_points)} base positions ({type(self).__name__})")
         return self._move_points
 
     def setMovePoints(self, move_points):

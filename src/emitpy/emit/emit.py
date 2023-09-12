@@ -254,7 +254,7 @@ class Emit(Movement):
         return self.saveMeta(redis)
 
 
-    def write_debug(self):
+    def write_debug(self, reason: str = ""):
         logger.warning("writing debug files..")
         basedir = os.path.join(MANAGED_AIRPORT_AODB, "debug")
         if not os.path.exists(basedir):
@@ -263,7 +263,7 @@ class Emit(Movement):
 
         # Try to save situation...
         ident = self.getId()
-        fnbase = os.path.join(basedir, f"debug-{ident}-{datetime.now().isoformat()}-")
+        fnbase = os.path.join(basedir, f"debug-{reason}-{ident}-{datetime.now().isoformat()}-")
         self.move.saveFile()
         with open(fnbase + "meta.out", "w") as fp:
             json.dump(self.getMeta(), fp, indent=4)
@@ -274,7 +274,7 @@ class Emit(Movement):
         with open(fnbase + "debug-move-info.out", "w") as fp:
             json.dump(self.move.getInfo(), fp, indent=4)
         with open(fnbase + "debug-move-emit-data.geojson", "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self.moves)), fp, indent=4)
+            json.dump(FeatureCollection(features=cleanFeatures(self._emit_points)), fp, indent=4)
         with open(fnbase + "debug-move-move-data.geojson", "w") as fp:
             json.dump(FeatureCollection(features=cleanFeatures(self.move._move_points)), fp, indent=4)
         logger.warning(f"..written debug files {fnbase}")
@@ -284,6 +284,9 @@ class Emit(Movement):
         """
         Save flight paths to file for emitted positions.
         """
+        if self.has_no_move_ok():
+            return (True, "Emit::no need to save event service")
+
         ret = self.saveTraffic()
         if not ret[0]:
             logger.warning("could not save traffic file")
@@ -298,7 +301,7 @@ class Emit(Movement):
 
     def saveTraffic(self):
         """
-        Save flight paths to file for emitted positions.
+        Save GSE paths to file for emitted positions for python traffic analysis
         """
         ident = self.getId()
         db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
@@ -326,7 +329,7 @@ class Emit(Movement):
 
         if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
             logger.warning("no scheduled emission point")
-            self.write_debug()
+            self.write_debug("saveTraffic")
             return (False, "Emit::saveFile: no scheduled emission point")
 
         logger.debug(f"***** there are {len(self.scheduled_emit)} points")
@@ -358,19 +361,29 @@ class Emit(Movement):
             os.mkdir(basedir)
             logger.info(f"directory {basedir} did not exist. created.")
 
-        basename = os.path.join(basedir, ident)
+        flight_id = ""
+        if self.emit_type == EMIT_TYPE.SERVICE.value:
+            flight = self.move.service.flight
+            if flight is not None:
+                flight_id = flight.getId()
+            flight_dir = os.path.join(basedir, flight_id)
+            if not os.path.exists(flight_dir):
+                os.mkdir(flight_dir)
+                logger.info(f"directory {flight_dir} did not exist. created.")
+        basename = os.path.join(basedir, flight_id, ident)
+
         logger.debug(f"{self.getInfo()}")
         logger.debug(f"emit_point={len(self.scheduled_emit)} positions")
 
         if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
             logger.warning("no scheduled emission point")
-            self.write_debug()
+            self.write_debug("saveLST")
             return (False, "Emit::saveFile: no scheduled emission point")
 
-        logger.debug(f"***** there are {len(self.scheduled_emit)} points")
+        filename = os.path.join(basename + ".lst")
+        logger.debug(f"{len(self.scheduled_emit)} points, file {filename}")
 
         lst = toLST(self)
-        filename = os.path.join(basename + ".lst")
         with open(filename, "w") as fp:
             fp.write(lst)
 
@@ -751,9 +764,9 @@ class Emit(Movement):
         # need to add last point??
         movemark = self.moves[-1].getMark()
         emitmark = self._emit_points[-1].getMark()
-        logger.debug(f"end points: {movemark}, {emitmark}")
+        logger.debug(f"end points: move:{movemark}, emit:{emitmark}")
         if movemark != emitmark:
-            logger.debug(f"end point not added, adding ({movemark}, {emitmark})")
+            logger.debug(f"end point not added, adding (move:{movemark}, emit:{emitmark})")
             emit_point(len(self.moves) - 1, currpos, total_time, "end", time_to_next_emit == 0)
 
         # need to remove deplicate first point?
@@ -816,7 +829,7 @@ class Emit(Movement):
             logger.debug(f"emit mark list (len={len(emit_marks)}): {emit_marks}")
             miss = list(filter(lambda f: f not in emit_marks, move_marks))
             logger.debug(f"not in emit list: {miss}")
-            self.write_debug()
+            self.write_debug("emit")
 
         logger.debug(f"generated {len(self.getEmitPoints())} points")
         # printFeatures(self.getEmitPoints(), "emit_point", True)
@@ -1027,14 +1040,14 @@ class Emit(Movement):
         MARK_LIST = ["type", "message", "sync", "offset", "rel. to sync", "total", "time"]
         table = []
 
-        logger.debug(f"{sync} at {moment}..")
+        logger.debug(f"{self.getId()}: {sync} at {moment}, scheduling..")
         t0 = moment
         offset = self.getRelativeEmissionTime(sync)
         if offset is not None:
             t0 = moment + timedelta(seconds=(- offset))
-            logger.debug(f"t=0 at {t0}..")
+            logger.debug(f"{self.getId()}: t=0 at {t0}..")
         else:
-            logger.warning(f"{sync} mark not found, using moment with no offset")
+            logger.warning(f"{self.getId()}: {sync} mark not found, using moment with no offset")
         for m in self.getMessages():
             when = t0
             offset = 0
@@ -1044,9 +1057,9 @@ class Emit(Movement):
                 if offset is not None:
                     when = t0 + timedelta(seconds=offset)
                     total = offset + m.relative_time
-                    logger.debug(f"{m.relative_sync} offset={offset}sec, total={total}")
+                    logger.debug(f"{self.getId()}: {m.relative_sync} offset={offset}sec, total={total}")
                 else:
-                    logger.warning(f"{m.relative_sync} mark not found, using moment with no offset")
+                    logger.warning(f"{self.getId()}: {m.relative_sync} mark not found, using moment with no offset")
             m.schedule(when)
             line = []
             line.append(m.getType())
@@ -1067,33 +1080,6 @@ class Emit(Movement):
         return (True, "Emit::scheduleMessages completed")
 
 
-    def printMessageList(self):
-        output = io.StringIO()
-
-        print("\n", file=output)
-        print(f"SYNCHRONIZATION: {sync} at {moment}", file=output)
-        print(f"TIMED MESSAGE LIST", file=output)
-        MARK_LIST = ["type", "message", "sync", "offset", "rel. to sync", "total", "time"]
-        table = []
-
-        for m in self.getMessages():
-            l.append(m)
-            line = []
-            line.append(m.getType())
-            line.append(m.getText())
-            line.append(m.relative_sync)
-            line.append(offset)
-            line.append(m.relative_time)
-            line.append(total)
-            line.append(m.getAbsoluteEmissionTime())
-            table.append(line)
-        table = sorted(table, key=lambda x: x[6])  # absolute emission time()
-        print(tabulate(table, headers=MARK_LIST), file=output)
-        contents = output.getvalue()
-        output.close()
-        return contents
-
-
     def getTimeBracket(self, as_string: bool = False):
         if self.scheduled_emit is not None and len(self.scheduled_emit) > 0:
             start = self.scheduled_emit[0].getAbsoluteEmissionTime()
@@ -1103,7 +1089,7 @@ class Emit(Movement):
             startdt = datetime.fromtimestamp(start, tz=timezone.utc)
             enddt = datetime.fromtimestamp(end, tz=timezone.utc)
             return (startdt.isoformat(), enddt.isoformat())
-        logger.debug(f"no emit point")
+        logger.debug(f"{self.getId()}: no emit point")
         return (None, None)
 
 
@@ -1127,7 +1113,11 @@ class Emit(Movement):
             else:
                 logger.warning(f"{FEATPROP.MARK.value} {sync} has no time offset, using 0")
                 return 0
-        logger.warning(f"{sync} not found in emission ({self.getMarkList()})")
+        if not self.has_no_move_ok():
+            logger.warning(f"{self.getId()}: {sync} not found in emission ({self.getMarkList()})")
+            self.write_debug("getRelativeEmissionTime")
+        else:
+            logger.debug(f"event service has no position emission time (just messages)")
         return None
 
 

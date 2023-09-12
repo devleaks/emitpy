@@ -979,11 +979,13 @@ class FlightMovement(Movement):
                                 FLIGHT_PHASE.END_ROLLOUT.value]
         # Init, keep local pointer for convenience
         self.setMovePoints([])
-        move_points = self.getMovePoints()
+        move_points = self._move_points  # shortcut
         last_speed = 100  # @todo: should fetch another reasonable value from aircraft performance.
+
         # Add first point
         move_points.append(self._premoves[0])
 
+        # Intermediate points
         for i in range(1, len(self._premoves) - 1):
             if not should_do_st(self._premoves, i):
                 logger.debug("skipping %d (special mark)" % (i))
@@ -1254,145 +1256,6 @@ class FlightMovement(Movement):
         return (True, "Movement::add_faraway added")
 
 
-class TowMovement(Movement):
-    """
-    Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
-    from takeoff to landing and roll out.
-    """
-    def __init__(self, flight: Flight, newramp: "Ramp", airport: ManagedAirportBase):
-        Movement.__init__(self, airport=airport)
-        self.flight = flight
-        self.flight_id = self.flight.getId()
-        self.is_arrival = self.flight.is_arrival()
-        self.newramp = newramp
-        self.tows = []  # list of tow movements
-
-
-    def tow(self):
-        """
-        Tow a plane from its current ramp to the new ramp.
-        This operation occurs moment minutes before OFFBLOCK (on departure) or after ONBLOCK (on arrival) time.
-        Sets the flight ramp to newramp after movement.
-
-        :param      newramp:  The newramp
-        :type       newramp:  { type_description }
-        :param      moment:   The moment
-        :type       moment:   int
-        """
-        show_pos = False
-        fc = []  # feature collection of tow movement
-        # current ramp
-        parking = self.flight.ramp
-        if show_pos:
-            logger.debug(f"parking: {parking}")
-        else:
-            logger.debug(f"tow start: parking {parking.getProp('name')}")
-        # This is the first point, we make sure available info is in props
-        parkingpos = MovePoint.new(parking)
-        parkingpos.setSpeed(0)
-        parkingpos.setVSpeed(0)
-        parkingpos.setAltitude(self.airport.altitude())
-        parkingpos.setColor("#880088")  # parking
-        parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.OFFBLOCK.value)
-        fc.append(parkingpos)
-        if show_pos:
-            logger.debug(f"tow start: {parkingpos}")
-
-        self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value} from {self.flight.ramp.getName()}",
-                                      flight=self,
-                                      sync=FLIGHT_PHASE.OFFBLOCK.value))
-
-        # we call the move from packing position to taxiway network the "pushback"
-        pushback_end = self.airport.taxiways.nearest_point_on_edge(parking)
-        if show_pos:
-            logger.debug(f"pushback_end: {pushback_end[0]}")
-        if pushback_end[0] is None:
-            logger.warning("could not find pushback end")
-
-        pushbackpos = MovePoint.new(pushback_end[0])
-        pushbackpos.setSpeed(SLOW_SPEED)
-        pushbackpos.setColor("#880088")  # parking
-        pushbackpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.PUSHBACK.value)
-        fc.append(pushbackpos)
-
-        pushback_vtx = self.airport.taxiways.nearest_vertex(pushback_end[0])
-        if show_pos:
-            logger.debug(f"pushback_vtx: {pushback_vtx[0]}")
-        if pushback_vtx[0] is None:
-            logger.warning("could not find pushback end vertex")
-
-
-        # new ramp
-        newparking = self.newramp
-        if show_pos:
-            logger.debug(f"new parking: {newparking}")
-        # we call the move from packing position to taxiway network the "parking entry"
-        newparking_entry = self.airport.taxiways.nearest_point_on_edge(newparking)
-        if show_pos:
-            logger.debug(f"new parking_entry: {newparking_entry[0]}")
-
-        if newparking_entry[0] is None:
-            logger.warning("could not find parking entry")
-
-        newparkingentry_vtx = self.airport.taxiways.nearest_vertex(newparking_entry[0])
-        if newparkingentry_vtx[0] is None:
-            logger.warning("could not find parking entry vertex")
-        if show_pos:
-            logger.debug(f"parkingentry_vtx: {newparkingentry_vtx[0]} ")
-
-        tow_ride = Route(self.airport.taxiways, pushback_vtx[0].id, newparkingentry_vtx[0].id)
-        if tow_ride.found():
-            for vtx in tow_ride.get_vertices():
-                TOW_SPEED = TAXI_SPEED / 2  # hum.
-                # vtx = self.airport.taxiways.get_vertex(vid)
-                towpos = MovePoint.new(vtx)
-                towpos.setSpeed(TOW_SPEED)
-                towpos.setColor("#888800")  # tow
-                towpos.setProp(FEATPROP.MARK.value, "tow")
-                towpos.setProp("_taxiways", vtx.id)
-                fc.append(towpos)
-            fc[-1].setProp(FEATPROP.MARK.value, "tow end vertex")
-        else:
-            logger.warning("no tow route found")
-
-        newparkingentrypos = MovePoint.new(newparking_entry[0])
-        newparkingentrypos.setSpeed(SLOW_SPEED)
-        newparkingentrypos.setColor("#880088")  # parking entry, is on taxiway network
-        newparkingentrypos.setProp(FEATPROP.MARK.value, "tow end")
-        fc.append(newparkingentrypos)
-
-        # This is the last point, we make sure available info is in props
-        newparkingpos = MovePoint.new(parking)
-        newparkingpos.setSpeed(0)
-        newparkingpos.setVSpeed(0)
-        newparkingpos.setAltitude(self.airport.altitude())
-        newparkingpos.setColor("#880088")  # parking
-        newparkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.ONBLOCK.value)
-        fc.append(newparkingpos)
-
-        if show_pos:
-            logger.debug(f"end: {newparking}")
-        else:
-            logger.debug(f"end: parking {newparking.getProp('name')}")
-
-        for f in fc:
-            f.setProp(FEATPROP.GROUNDED.value, True)
-
-        tow = {
-            "from": self.flight.ramp,
-            "to": self.newramp,
-            "move": fc
-        }
-        self.tows.append(tow)  ## self.tows is array of tows since there might be many tows.
-        self.flight.ramp = self.newramp
-        logger.info(f"FlightMovement::tow completed: flight {self.flight_id}: from {tow['from'].getId()} to {tow['to'].getId()}"
-                  + f" at @todo minutes {'after onblock' if self.is_arrival else 'before offblock'}")
-
-        logger.debug(f"{len(fc)} moves")
-
-        return (True, "FlightMovement::tow completed")
-
-
 class ArrivalMove(FlightMovement):
     """
     Movement for an arrival flight
@@ -1402,13 +1265,21 @@ class ArrivalMove(FlightMovement):
 
 
     def getMovePoints(self):
-        prev = super().getMovePoints()
-        if len(prev) == 0:
-            return prev   # len(prev) == 0
-        start = prev[-1].time()  # take time of last event of flight
-        for f in self.taxipos:
-            f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
-        return prev + self.taxipos
+        base = super().getMovePoints()
+        if len(base) == 0:
+            logger.warning(f"({type(self).__name__}): no base points")
+            return base   # len(base) == 0
+        if len(self.taxipos) > 0:  # it's ok, they can be added later
+            test = self.taxipos[0].getProp(FEATPROP.SAVED_TIME.value)
+            if test is not None:
+                logger.debug(f"adding {len(self.taxipos)} taxi points")
+                start = self.taxipos[-1].time()  # take time of last event of flight
+                for f in self.taxipos:
+                    f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
+            else:
+                logger.debug(f"{len(self.taxipos)} taxi points have no timing yet")
+        logger.debug(f"returning {len(base)} base positions and {len(self.taxipos)} taxi positions ({type(self).__name__})")
+        return base + self.taxipos
 
 
     def taxi(self):
@@ -1523,15 +1394,24 @@ class DepartureMove(FlightMovement):
         FlightMovement.__init__(self, flight=flight, airport=airport)
 
 
-    def getMoves(self):
-        prev = self.taxipos
-        if len(prev) == 0:
-            return prev   # len(prev) == 0
-        start = prev[-1].time()  # time of flight starts at end of taxi
-        nextmv = super().getMovePoints()
-        for f in nextmv:
-            f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
-        return self.taxipos + nextmv
+    def getMovePoints(self):
+        start = 0
+        if len(self.taxipos) > 0:  # it's ok, they can be added later
+            logger.debug(f"({type(self).__name__}): starting with {len(self.taxipos)} taxi positions")
+            start = self.taxipos[-1].time()  # time of flight starts at end of taxi
+
+        base = super().getMovePoints()
+        if len(base) > 0:
+            test = base[0].getProp(FEATPROP.SAVED_TIME.value)
+            if test is not None:
+                for f in base:
+                    f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
+            else:
+                logger.debug(f"{len(self.taxipos)} base points have no timing yet")
+        else:
+            logger.warning(f"({type(self).__name__}): no base position")
+        logger.debug(f"getting {len(self.taxipos)} taxi positions and {len(base)} base positions ({type(self).__name__})")
+        return self.taxipos + base
 
 
     def taxi(self):
@@ -1689,3 +1569,143 @@ class DepartureMove(FlightMovement):
         logger.debug(f"taxi out: taxi {len(self.taxipos)} moves")
 
         return (True, "DepartureMove::taxi completed")
+
+
+class TowMovement(Movement):
+    """
+    Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
+    from takeoff to landing and roll out.
+    """
+    def __init__(self, flight: Flight, newramp: "Ramp", airport: ManagedAirportBase):
+        Movement.__init__(self, airport=airport)
+        self.flight = flight
+        self.flight_id = self.flight.getId()
+        self.is_arrival = self.flight.is_arrival()
+        self.newramp = newramp
+        self.tows = []  # list of tow movements
+
+
+    def tow(self):
+        """
+        Tow a plane from its current ramp to the new ramp.
+        This operation occurs moment minutes before OFFBLOCK (on departure) or after ONBLOCK (on arrival) time.
+        Sets the flight ramp to newramp after movement.
+
+        :param      newramp:  The newramp
+        :type       newramp:  { type_description }
+        :param      moment:   The moment
+        :type       moment:   int
+        """
+        show_pos = False
+        fc = []  # feature collection of tow movement
+        # current ramp
+        parking = self.flight.ramp
+        if show_pos:
+            logger.debug(f"parking: {parking}")
+        else:
+            logger.debug(f"tow start: parking {parking.getProp('name')}")
+        # This is the first point, we make sure available info is in props
+        parkingpos = MovePoint.new(parking)
+        parkingpos.setSpeed(0)
+        parkingpos.setVSpeed(0)
+        parkingpos.setAltitude(self.airport.altitude())
+        parkingpos.setColor("#880088")  # parking
+        parkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.OFFBLOCK.value)
+        fc.append(parkingpos)
+        if show_pos:
+            logger.debug(f"tow start: {parkingpos}")
+
+        self.addMessage(FlightMessage(subject=f"ACARS: {self.flight.aircraft.icao24} {FLIGHT_PHASE.OFFBLOCK.value} from {self.flight.ramp.getName()}",
+                                      flight=self,
+                                      sync=FLIGHT_PHASE.OFFBLOCK.value))
+
+        # we call the move from packing position to taxiway network the "pushback"
+        pushback_end = self.airport.taxiways.nearest_point_on_edge(parking)
+        if show_pos:
+            logger.debug(f"pushback_end: {pushback_end[0]}")
+        if pushback_end[0] is None:
+            logger.warning("could not find pushback end")
+
+        pushbackpos = MovePoint.new(pushback_end[0])
+        pushbackpos.setSpeed(SLOW_SPEED)
+        pushbackpos.setColor("#880088")  # parking
+        pushbackpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.PUSHBACK.value)
+        fc.append(pushbackpos)
+
+        pushback_vtx = self.airport.taxiways.nearest_vertex(pushback_end[0])
+        if show_pos:
+            logger.debug(f"pushback_vtx: {pushback_vtx[0]}")
+        if pushback_vtx[0] is None:
+            logger.warning("could not find pushback end vertex")
+
+
+        # new ramp
+        newparking = self.newramp
+        if show_pos:
+            logger.debug(f"new parking: {newparking}")
+        # we call the move from packing position to taxiway network the "parking entry"
+        newparking_entry = self.airport.taxiways.nearest_point_on_edge(newparking)
+        if show_pos:
+            logger.debug(f"new parking_entry: {newparking_entry[0]}")
+
+        if newparking_entry[0] is None:
+            logger.warning("could not find parking entry")
+
+        newparkingentry_vtx = self.airport.taxiways.nearest_vertex(newparking_entry[0])
+        if newparkingentry_vtx[0] is None:
+            logger.warning("could not find parking entry vertex")
+        if show_pos:
+            logger.debug(f"parkingentry_vtx: {newparkingentry_vtx[0]} ")
+
+        tow_ride = Route(self.airport.taxiways, pushback_vtx[0].id, newparkingentry_vtx[0].id)
+        if tow_ride.found():
+            for vtx in tow_ride.get_vertices():
+                TOW_SPEED = TAXI_SPEED / 2  # hum.
+                # vtx = self.airport.taxiways.get_vertex(vid)
+                towpos = MovePoint.new(vtx)
+                towpos.setSpeed(TOW_SPEED)
+                towpos.setColor("#888800")  # tow
+                towpos.setProp(FEATPROP.MARK.value, "tow")
+                towpos.setProp("_taxiways", vtx.id)
+                fc.append(towpos)
+            fc[-1].setProp(FEATPROP.MARK.value, "tow end vertex")
+        else:
+            logger.warning("no tow route found")
+
+        newparkingentrypos = MovePoint.new(newparking_entry[0])
+        newparkingentrypos.setSpeed(SLOW_SPEED)
+        newparkingentrypos.setColor("#880088")  # parking entry, is on taxiway network
+        newparkingentrypos.setProp(FEATPROP.MARK.value, "tow end")
+        fc.append(newparkingentrypos)
+
+        # This is the last point, we make sure available info is in props
+        newparkingpos = MovePoint.new(parking)
+        newparkingpos.setSpeed(0)
+        newparkingpos.setVSpeed(0)
+        newparkingpos.setAltitude(self.airport.altitude())
+        newparkingpos.setColor("#880088")  # parking
+        newparkingpos.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.ONBLOCK.value)
+        fc.append(newparkingpos)
+
+        if show_pos:
+            logger.debug(f"end: {newparking}")
+        else:
+            logger.debug(f"end: parking {newparking.getProp('name')}")
+
+        for f in fc:
+            f.setProp(FEATPROP.GROUNDED.value, True)
+
+        tow = {
+            "from": self.flight.ramp,
+            "to": self.newramp,
+            "move": fc
+        }
+        self.tows.append(tow)  ## self.tows is array of tows since there might be many tows.
+        self.flight.ramp = self.newramp
+        logger.info(f"FlightMovement::tow completed: flight {self.flight_id}: from {tow['from'].getId()} to {tow['to'].getId()}"
+                  + f" at @todo minutes {'after onblock' if self.is_arrival else 'before offblock'}")
+
+        logger.debug(f"{len(fc)} moves")
+
+        return (True, "FlightMovement::tow completed")
+

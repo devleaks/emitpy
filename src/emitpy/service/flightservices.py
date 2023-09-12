@@ -22,6 +22,7 @@ logger = logging.getLogger("FlightServices")
 class FlightServices:
 
     def __init__(self, flight: Flight, operator: "Company"):
+        self.app = None
         self.flight = flight
         self.operator = operator
         self.ramp = flight.ramp  # should check that aircraft was not towed to another ramp for departure.
@@ -144,7 +145,7 @@ class FlightServices:
                 label = svc.get(TAR_SERVICE.LABEL.value)  # Important to set it here, since not provided at creation
                 if label is None:
                     this_service.label = this_service.getId()
-                    logger.warning(f"event service has no label, created event only service with label «{this_service.label}»..")
+                    logger.warning(f"event service {svc} has no label, created event only service with label «{this_service.label}»..")
                 else:
                     this_service.label = label
                     logger.debug(f"created event only service with label «{this_service.label}»..")

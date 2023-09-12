@@ -381,7 +381,7 @@ class AirportManager:
                 servicevehicleclasses = importlib.import_module(name=".service.equipment", package="emitpy")
                 for vtype in self.data["Equipment"]:
                     (vcl, vqty) = list(vtype.items())[0]
-                    logger.debug(f"doing {vtype}..")
+                    # logger.debug(f"doing {vtype}..")
                     names = vcl.split("Vehicle")
                     vname_root = names[0][0:3].upper()
                     if len(names) > 1 and names[1] != "":
@@ -400,10 +400,10 @@ class AirportManager:
                             if vcl not in self.equipment_by_type:
                                 self.equipment_by_type[vcl] = []
                             self.equipment_by_type[vcl].append(vehicle)
-                            logger.debug(f"..added {vname} ({icao24})")
+                            # logger.debug(f"..added {vname} ({icao24})")
                     else:
                         logger.warning(f"vehicle type {vcl} not found")
-                    logger.debug(f"..{vtype} done")
+                    # logger.debug(f"..{vtype} done")
 
                 # self.setEquipments(self.equipments)
                 logger.debug(f"..done")
