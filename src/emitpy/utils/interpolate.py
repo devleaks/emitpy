@@ -100,9 +100,9 @@ def compute_time(wpts, start: float=0):
         # if nextpos.speed() is None or nextpos.speed() is None:
         #     logger.debug("positions: %d %s %s" % (idx, nextpos, currpos))
         s = (nextpos.speed() + currpos.speed()) / 2
-        t = d / s  if s != 0 else 0 # km
+        t = (d / s) if s != 0 else 0  # km
         elapsed = elapsed + t
-        # logger.debug(f"{idx} {d} {t} {elapsed} (s0={nextpos.speed()} s1={currpos.speed()})")
+        # logger.debug(f"{idx:5d} {round(d,3):8.3f} {round(t, 1):5.1f} {round(elapsed, 1):7.1f}")  # " (s0={nextpos.speed()} s1={currpos.speed()})")
         nextpos.setTime(elapsed)
         currpos = nextpos
 

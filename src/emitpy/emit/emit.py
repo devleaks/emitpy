@@ -69,15 +69,15 @@ class Emit(Movement):
             m = self.move.getInfo()
             self.emit_type = m.get("type", REDIS_DATABASE.UNKNOWN.value)
             # self.emit_meta = EmitMeta()
-            self.moves = self.move.getMovePoints()
+            self.move_points = self.move.getMovePoints()
             self.props = self.move.getInfo()  # collect common props from movement
             self.props["emit"] = self.getInfo() # add meta data about this emission
-            # logger.debug(f"{len(self.moves)} move points to emit with props {json.dumps(self.props, indent=2)}")
-            logger.debug(f"{len(self.moves)} move points to emit with {len(self.props)} properties")
+            # logger.debug(f"{len(self.move_points)} move points to emit with props {json.dumps(self.props, indent=2)}")
+            logger.debug(f"{len(self.move_points)} move points to emit with {len(self.props)} properties")
         # else:
             # We reconstruct an emit from cache/database
         #     self.emit_meta = EmitMeta.find({"emit_id": self.emit_id})
-        #     logger.debug(f"loaded {len(self.moves)} emit points from cache")
+        #     logger.debug(f"loaded {len(self.move_points)} emit points from cache")
 
 
     @staticmethod
@@ -125,7 +125,7 @@ class Emit(Movement):
     def getEmitPoints(self):
         return self._emit_points
 
-    def getMyPoints(self):
+    def getPoints(self):
         return self._emit_points
 
     def setEmitPoints(self, emit_points):
@@ -264,10 +264,10 @@ class Emit(Movement):
             json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())), fp, indent=4)
         with open(fnbase + "debug-move-info.out", "w") as fp:
             json.dump(self.move.getInfo(), fp, indent=4)
-        with open(fnbase + "debug-move-emit-data.geojson", "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self._emit_points)), fp, indent=4)
+        # with open(fnbase + "debug-move-emit-data.geojson", "w") as fp:
+        #     json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())), fp, indent=4)
         with open(fnbase + "debug-move-move-data.geojson", "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self.move._move_points)), fp, indent=4)
+            json.dump(FeatureCollection(features=cleanFeatures(self.move.getMovePoints())), fp, indent=4)
         logger.warning(f"..written debug files {fnbase}")
 
 
@@ -402,21 +402,21 @@ class Emit(Movement):
             return MovePoint.convert(destination(c, d / 1000, bearing(c, n), {"units": "km"}))
 
         def time_distance_to_next_vtx(c0, idx):  # time it takes to go from c0 to vtx[idx+1]
-            totald = distance(self.moves[idx], self.moves[idx+1])  * 1000  # km
+            totald = distance(self.move_points[idx], self.move_points[idx+1])  * 1000  # km
             if totald == 0:  # same point...
                 # logger.debug(f"same point i={idx}? Did not move?")
                 return 0
-            partiald = distance(self.moves[idx], c0) * 1000  # km
+            partiald = distance(self.move_points[idx], c0) * 1000  # km
             if partiald > totald:  # yes, it happens...
                 logger.warning("partiald > totald? forcing partiald = totald")
                 return 0
 
             portion = partiald / totald
-            leftd = totald - partiald  # = distance(c0, self.moves[idx+1])
-            v0 = self.moves[idx].speed()
-            v1 = self.moves[idx+1].speed()
+            leftd = totald - partiald  # = distance(c0, self.move_points[idx+1])
+            v0 = self.move_points[idx].speed()
+            v1 = self.move_points[idx+1].speed()
             v = v0 + portion * (v1 - v0)
-            # logger.debug(f"{round(leftd, 3)}, verif={round(distance(c0, self.moves[idx+1])*1000, 3)}")
+            # logger.debug(f"{round(leftd, 3)}, verif={round(distance(c0, self.move_points[idx+1])*1000, 3)}")
             v = max(v, SLOW_SPEED)
             t = 0
             if (v + v1) != 0:
@@ -428,14 +428,14 @@ class Emit(Movement):
             return t
 
         def destinationOnTrack(c0, duration, idx):  # from c0, moves duration seconds on edges at speed specified at vertices
-            totald = distance(self.moves[idx], self.moves[idx+1]) * 1000  # km
+            totald = distance(self.move_points[idx], self.move_points[idx+1]) * 1000  # km
             if totald == 0:  # same point...
                 logger.warning(f"destinationOnTrack: same point i={idx}?")
                 return None
-            partiald = distance(self.moves[idx], c0) * 1000  # km
+            partiald = distance(self.move_points[idx], c0) * 1000  # km
             portion = partiald / totald
-            v0 = self.moves[idx].speed()
-            v1 = self.moves[idx+1].speed()
+            v0 = self.move_points[idx].speed()
+            v1 = self.move_points[idx+1].speed()
             v = v0 + portion * (v1 - v0)
             v = max(v, SLOW_SPEED)
 
@@ -443,11 +443,11 @@ class Emit(Movement):
             hourrate = duration  # / 3600
             dist = v * hourrate + acc * hourrate * hourrate / 2
 
-            # nextpos = point_on_line(currpos, self.moves[idx+1], dist)
+            # nextpos = point_on_line(currpos, self.move_points[idx+1], dist)
             # controld = distance(currpos, nextpos) * 1000  # km
             # logger.debug("(%d, v=%f, dur=%f, dist=%f, seglen=%f)" % (idx, v, duration, controld, totald))
             # return nextpos
-            return point_on_line(currpos, self.moves[idx+1], dist)
+            return point_on_line(currpos, self.move_points[idx+1], dist)
 
         def emit_point(idx, pos, time, reason, waypt=False):
             global must_spit_out
@@ -474,7 +474,7 @@ class Emit(Movement):
                 must_spit_out = False
                 if emit_details:
                     logger.debug(f"split out {e.getMark()}")
-            # logger.debug(f"emit_point: dist2nvtx={round(distance(e, self.moves[idx+1])*1000,1)} i={idx} e={len(self.getEmitPoints())}")
+            # logger.debug(f"emit_point: dist2nvtx={round(distance(e, self.move_points[idx+1])*1000,1)} i={idx} e={len(self.getEmitPoints())}")
 
         def pause_at_vertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason):
             global must_spit_out
@@ -539,7 +539,7 @@ class Emit(Movement):
         #
         #
         #
-        if self.moves is None or len(self.moves) == 0:
+        if self.move_points is None or len(self.move_points) == 0:
             if self.has_no_move_ok():
                 svc = self.getSource()
                 logger.debug(f"service {type(svc).__name__} «{svc.label}» has no vehicle, assuming event report only")
@@ -566,7 +566,7 @@ class Emit(Movement):
         total_time = 0   # sum of times between emissions
 
         curridx = 0
-        currpos = self.moves[curridx]
+        currpos = self.move_points[curridx]
 
         if self.emit_type == "service" and currpos.getMark() is not None:
             logger.debug(f"adding {currpos.getMark()}..")
@@ -585,14 +585,14 @@ class Emit(Movement):
         future_emit = self.frequency
         # future_emit = self.frequency - 0.2 * self.frequency + randrange(0.4 * self.frequency)  # random time between emission DANGEROUS!
 
-        while curridx < (len(self.moves) - 1):
+        while curridx < (len(self.move_points) - 1):
             # We progress one leg at a time, leg is from idx -> idx+1.
-            next_vtx = self.moves[curridx + 1]
-            currmark = self.moves[curridx].getMark()
+            next_vtx = self.move_points[curridx + 1]
+            currmark = self.move_points[curridx].getMark()
             nextmark = next_vtx.getMark()
 
             if emit_details:
-                logger.debug(f">>> new vertex: {curridx}, e={len(self.getEmitPoints())} s={self.moves[curridx].speed()}")
+                logger.debug(f">>> new vertex: {curridx}, e={len(self.getEmitPoints())} s={self.move_points[curridx].speed()}")
                 logger.debug(f"current vertex has mark={currmark}")
 
             if emit_details and self.emit_type == "service": # and next_vtx.getMark() is not None:
@@ -746,19 +746,19 @@ class Emit(Movement):
             if must_spit_out:
                 logger.warning(f"mark {nextmark} not emitted")
 
-            controld = distance(self.moves[curridx], next_vtx) * 1000  # km
+            controld = distance(self.move_points[curridx], next_vtx) * 1000  # km
             total_dist_vtx = total_dist_vtx + controld  # sum of distances between vertices
             if emit_details:
                 logger.debug(f"<<< {curridx}: {round(total_time, 2)} sec , {round(total_dist/1000,3)} m / {round(total_dist_vtx/1000, 3)} m\n")
             curridx = curridx + 1
 
         # need to add last point??
-        movemark = self.moves[-1].getMark()
+        movemark = self.move_points[-1].getMark()
         emitmark = self._emit_points[-1].getMark()
         logger.debug(f"end points: move:{movemark}, emit:{emitmark}")
         if movemark != emitmark:
             logger.debug(f"end point not added, adding (move:{movemark}, emit:{emitmark})")
-            emit_point(len(self.moves) - 1, currpos, total_time, "end", time_to_next_emit == 0)
+            emit_point(len(self.move_points) - 1, currpos, total_time, "end", time_to_next_emit == 0)
 
         # need to remove deplicate first point?
         # this is created by above algorithm, duplicate does not exists in movement, only in emit
@@ -802,9 +802,9 @@ class Emit(Movement):
             logger.warning("problem interpolating")
             return res
 
-        # logger.debug("summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.moves[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self.getEmitPoints())))
-        # logger.debug("summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.moves[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.moves), len(self.getEmitPoints())))
-        ####logger.debug(f"summary: {timedelta(seconds=total_time)} vs {timedelta(seconds=self.moves[-1].time())}, {round(total_dist/1000, 3)} vs {round(total_dist_vtx/1000, 3)} km, {len(self.moves)} vs {len(self.getEmitPoints())}")
+        # logger.debug("summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.move_points[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.move_points), len(self.getEmitPoints())))
+        # logger.debug("summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.move_points[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.move_points), len(self.getEmitPoints())))
+        ####logger.debug(f"summary: {timedelta(seconds=total_time)} vs {timedelta(seconds=self.move_points[-1].time())}, {round(total_dist/1000, 3)} vs {round(total_dist_vtx/1000, 3)} km, {len(self.move_points)} vs {len(self.getEmitPoints())}")
         move_marks = self.move.getMarkList()
         emit_marks = self.getMarkList()
         # emit_moves_marks = self.getMoveMarkList()
@@ -815,7 +815,7 @@ class Emit(Movement):
             logger.debug(f"move mark list (len={len(move_marks)}): {move_marks}")
             miss = list(filter(lambda f: f not in move_marks, emit_marks))
             logger.debug(f"not in move list: {miss}")
-            # logger.debug(f"emit.moves (move.getMovePoints()) mark list (len={len(emit_moves_marks)}): {emit_moves_marks}")
+            # logger.debug(f"emit.move_points (move.getMovePoints()) mark list (len={len(emit_moves_marks)}): {emit_moves_marks}")
 
             logger.debug(f"emit mark list (len={len(emit_marks)}): {emit_marks}")
             miss = list(filter(lambda f: f not in emit_marks, move_marks))
@@ -883,9 +883,9 @@ class Emit(Movement):
         #     logger.debug("%d: %s -> %s." % (i, before[i] if before[i] is not None else -1, v))
 
 
-        # logger.debug("last point %d: %f, %f" % (len(self.moves), self.moves[-1].speed(), self.moves[-1].altitude()))
+        # logger.debug("last point %d: %f, %f" % (len(self.move_points), self.move_points[-1].speed(), self.move_points[-1].altitude()))
         # i = 0
-        # for f in self.moves:
+        # for f in self.move_points:
         #     s = f.speed()
         #     a = f.altitude()
         #     logger.debug("alter: %d: %f %f" % (i, s if s is not None else -1, a if a is not None else -1))
@@ -904,7 +904,7 @@ class Emit(Movement):
 
     def getMoveMarkList(self):
         l = set()
-        [l.add(f.getMark()) for f in self.moves]
+        [l.add(f.getMark()) for f in self.move_points]
         if None in l:
             l.remove(None)
         return l
@@ -933,11 +933,10 @@ class Emit(Movement):
                         "ts": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
                         "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)
                     }
-                    t = round(f.getProp(FEATPROP.EMIT_REL_TIME.value),  1)
                 line = []
                 line.append(m)
-                line.append(l[m]["rel"])
-                line.append(datetime.fromtimestamp(l[m]["ts"]).astimezone().replace(microsecond = 0))
+                line.append(f.getProp(FEATPROP.EMIT_REL_TIME.value))
+                line.append(datetime.fromtimestamp(f.getProp(FEATPROP.EMIT_ABS_TIME.value)).astimezone().replace(microsecond = 0))
                 table.append(line)
                 # logger.debug(f"{m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)}")
 
@@ -952,7 +951,7 @@ class Emit(Movement):
 
 
     def addToPause(self, sync, duration: float, add: bool = True):
-        f = findFeatures(self.moves, {FEATPROP.MARK.value: sync})
+        f = findFeatures(self.move_points, {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
             r = f[0]
             s = r.speed()

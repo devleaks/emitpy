@@ -13,7 +13,7 @@ from emitpy.managedairport import ManagedAirport
 from emitpy.business import Airline, Company, AirportManager
 from emitpy.aircraft import AircraftTypeWithPerformance, Aircraft
 from emitpy.flight import Arrival, Departure, ArrivalMove, DepartureMove
-from emitpy.service import Service, ServiceMove, FlightServices, Mission, MissionMove
+from emitpy.service import Service, ServiceMovement, FlightServices, Mission, MissionMove
 from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import Format, EnqueueToRedis, FormatMessage, EnqueueMessagesToRedis, Queue
 # pylint: disable=W0611
@@ -690,7 +690,7 @@ class EmitApp(ManagedAirport):
 
         # 4. Create move
         logger.debug("..moving..")
-        move = ServiceMove(this_service, self.airport)
+        move = ServiceMovement(this_service, self.airport)
         ret = move.move()
         if not ret[0]:
             return StatusInfo(36, f"problem during service move", ret[1])

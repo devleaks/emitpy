@@ -10,23 +10,22 @@ from emitpy.graph import Route
 from emitpy.utils import compute_time as doTime
 from emitpy.constants import FEATPROP, MISSION_PHASE, MISSION_COLOR, MOVE_TYPE
 from emitpy.message import MissionMessage
+from .ground_support_movement import GroundSupportMovement
 
-logger = logging.getLogger("ServiceMove")
+logger = logging.getLogger("ServiceMovement")
 
 
-class MissionMove(Movement):
+class MissionMove(GroundSupportMovement):
     """
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
     from takeoff to landing and roll out.
     """
     def __init__(self, mission: Mission, airport: ManagedAirportBase):
-        Movement.__init__(self, airport=airport, reason=mission)
+        GroundSupportMovement.__init__(self, airport=airport, reason=mission)
         self.mission = mission
-
 
     def getId(self):
         return self.mission.getId()
-
 
     def getInfo(self):
         return {
@@ -36,13 +35,10 @@ class MissionMove(Movement):
             "icao24": self.mission.getInfo()["icao24"]
         }
 
-
     def getSource(self):
-        # Abstract class
         return self.mission
 
-
-    def move(self):
+    def drive(self):
         move_points = self.getMovePoints()
         last_vtx = None
         speeds = self.mission.vehicle.speed
@@ -240,5 +236,5 @@ class MissionMove(Movement):
             f.setProp(FEATPROP.MOVE_INDEX.value, idx)
             idx = idx + 1
 
-        return (True, "Mission::move completed")
+        return (True, "Mission::drive completed")
 

@@ -83,9 +83,15 @@ class Flight(Messages):
 
     def __str__(self):
         def airc(ac):
+            if ac is None:
+                logger.debug("no aircraft")
+                return ""
             return ac.actype.typeId + "(" + ac.registration + ")"
 
         def dproc(a):
+            if a is None:
+                logger.debug("no departure procedure")
+                return ""
             s = ""
             if len(a) > 0:
                 e = a[0]
@@ -96,6 +102,9 @@ class Flight(Messages):
             return s
 
         def aproc(a):
+            if a is None:
+                logger.debug("no arrival procedure")
+                return ""
             s = ""
             if len(a) > 0:
                 e = a[0]

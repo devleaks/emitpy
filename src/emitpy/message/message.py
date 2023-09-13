@@ -368,7 +368,7 @@ class ServiceMessage(MovementMessage):
     """
     def __init__(self,
                  subject: str,
-                 service: "ServiceMovement",
+                 service: "ServiceMovementment",
                  sync: str,
                  info: dict,
                  **kwargs):

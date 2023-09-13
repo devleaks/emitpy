@@ -42,7 +42,7 @@ class ReEmit(Emit):
         else:
             logger.warning(f"could not parse {ident}")
 
-        if self.moves is None:
+        if self.move_points is None:
             logger.warning(f"{ident} not loaded")
 
 
@@ -171,7 +171,7 @@ class ReEmit(Emit):
         filename = os.path.join(basename, "-4-move.json")
         if os.path.exists(filename):
             with open(filename, "r") as fp:
-                self.moves = json.load(fp)
+                self.move_points = json.load(fp)
             self.emit_id = emit_id
             logger.debug("loaded %d " % self.emit_id)
             return (True, "Movement::load loaded")
@@ -185,7 +185,7 @@ class ReEmit(Emit):
         Move points are saved in emission points.
         """
         self.setMovePoints(list(filter(lambda f: not f.getProp(FEATPROP.BROADCAST.value), self.getEmitPoints())))
-        logger.debug(f"extracted {len(self.moves)} points")
+        logger.debug(f"extracted {len(self.move_points)} points")
         return (True, "ReEmit::extractMove loaded")
 
 
@@ -213,7 +213,7 @@ class ReEmit(Emit):
 
 
 
-    # For the following functions, recall we don't have a self.move, just self.moves (the points).
+    # For the following functions, recall we don't have a self.move, just self.move_points (the points).
     # All we have are meta data associated with the move, that was saved at that time.
     # So the following functions mainly aims at adjusting the meta data associated with the move
     # to add the new estimate.

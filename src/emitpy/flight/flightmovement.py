@@ -160,7 +160,7 @@ class FlightMovement(Movement):
         # printFeatures(self.taxipos, "after taxi")
 
         logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
-        return (True, "Movement::make completed")
+        return (True, "FlightMovement::move completed")
 
 
     def saveFile(self):
@@ -978,8 +978,7 @@ class FlightMovement(Movement):
                                 FLIGHT_PHASE.TOUCH_DOWN.value,
                                 FLIGHT_PHASE.END_ROLLOUT.value]
         # Init, keep local pointer for convenience
-        self.setMovePoints([])
-        move_points = self._move_points  # shortcut
+        move_points = []
         last_speed = 100  # @todo: should fetch another reasonable value from aircraft performance.
 
         # Add first point
@@ -1015,6 +1014,8 @@ class FlightMovement(Movement):
         for f in move_points:
             f.setProp(FEATPROP.MOVE_INDEX.value, idx)
             idx = idx + 1
+
+        self.setMovePoints(move_points)
 
         logger.debug(f"completed {len(self._premoves)}, {len(self.getMovePoints())} with standard turns")
         return (True, "Movement::standard_turns added")
@@ -1146,7 +1147,7 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
-        for f in self.getMovePoints():
+        for f in self.getMovePoints():  # we save a copy of the movement timing for rescheduling
             f.setProp(FEATPROP.SAVED_TIME.value, f.time())
 
         logger.debug(f"movement timed")

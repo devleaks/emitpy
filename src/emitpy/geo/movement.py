@@ -48,7 +48,7 @@ class Movement(Messages):
 
         self.reason = reason    # Core entity of the movement: Flight or ground service.
         self.airport = airport
-        self._move_points = []  # Array of Features<Point>
+        self._points = []  # Array of Features<Point>
 
         # Movement scheduling
         self._scheduled_points = []
@@ -95,7 +95,7 @@ class Movement(Messages):
 
         filename = os.path.join(basename, "-moves.json")
         with open(filename, "r") as fp:
-            self._move_points = json.load(fp)
+            self._points = json.load(fp)
 
         logger.debug("loaded %d " % ident)
         return (True, "Movement::load loaded")
@@ -106,15 +106,15 @@ class Movement(Messages):
             "type": "abstract"
         }
 
-    def getMyPoints(self):
-        return self._move_points
+    def getPoints(self):
+        return self._points
 
     def getMovePoints(self):
-        logger.debug(f"getting {len(self._move_points)} base positions ({type(self).__name__})")
-        return self._move_points
+        logger.debug(f"getting {len(self._points)} base positions ({type(self).__name__})")
+        return self._points
 
     def setMovePoints(self, move_points):
-        self._move_points = move_points
+        self._points = move_points
 
     def getScheduledPoints(self):
         return self._scheduled_points
@@ -230,14 +230,14 @@ class Movement(Messages):
 
     def getMarkList(self):
         l = set()
-        [l.add(f.getMark()) for f in self.getMyPoints()]
+        [l.add(f.getMark()) for f in self.getPoints()]
         if None in l:
             l.remove(None)
         return l
 
 
     def getRelativeEmissionTime(self, sync: str):
-        f = findFeatures(self.getMyPoints(), {FEATPROP.MARK.value: sync})
+        f = findFeatures(self.getPoints(), {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
             r = f[0]
             logger.debug(f"found {sync}")
@@ -264,7 +264,7 @@ class Movement(Messages):
             when = moment + timedelta(seconds=(- offset))
             logger.debug(f"point starts at {when} ({when.timestamp()})")
             self._scheduled_points = []  # brand new scheduling, reset previous one
-            for e in self.getMyPoints():
+            for e in self.getPoints():
                 p = MovePoint.new(e)
                 t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
                 if t is not None:

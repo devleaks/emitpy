@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from tabulate import tabulate
 
 from .service import Service
-from .servicemovement import ServiceMove
+from .servicemovement import ServiceMovement
 
 import emitpy.service
 
@@ -172,7 +172,7 @@ class FlightServices:
                 if equipment_startpos is None or equipment_endpos is None:
                     logger.warning(f"positions: {equipment_startpos} -> {equipment_endpos}")
                 # logger.debug(".. moving ..")
-                # move = ServiceMove(this_service, self.airport)
+                # move = ServiceMovement(this_service, self.airport)
                 # move.move()
                 # move.save()
 
@@ -191,7 +191,7 @@ class FlightServices:
     def move(self):
         for service in self.services:
             logger.debug(f"moving {service['type']}..")
-            move = ServiceMove(service["service"], self.airport)
+            move = ServiceMovement(service["service"], self.airport)
             ret = move.move()
             if not ret[0]:
                 logger.warning(f"moving {service['type']} returns {ret}")
@@ -357,7 +357,7 @@ class FlightServices:
             if emit.has_no_move_ok():
                 logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need formatting of positions")
                 continue
-            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit_points)}, {len(service['emit'].getScheduledPoints())})..")
+            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].move_points)}, {len(service['emit']._emit_points)}, {len(service['emit'].getScheduledPoints())})..")
             formatted = Format(emit)
             ret = formatted.format()
             if not ret[0]:
@@ -373,7 +373,7 @@ class FlightServices:
 
     def formatMessages(self, saveToFile: bool = False):
         for service in self.services:
-            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit_points)}, {len(service['emit'].getScheduledPoints())})..")
+            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].move_points)}, {len(service['emit']._emit_points)}, {len(service['emit'].getScheduledPoints())})..")
             formatted = FormatMessage(service["emit"])
             ret = formatted.format()
             if not ret[0]:

@@ -8,31 +8,30 @@ from math import inf
 from geojson import Feature
 
 from emitpy.airport import ManagedAirportBase
-from emitpy.geo import MovePoint, Movement, printFeatures, asLineString
+from emitpy.geo import MovePoint, printFeatures, asLineString
 from emitpy.service import Service
 from emitpy.graph import Route
-from emitpy.utils import compute_time as doTime
+from emitpy.utils import compute_time, interpolate, compute_headings
 from emitpy.constants import FEATPROP, SERVICE_PHASE, MOVE_TYPE
 from emitpy.message import ServiceMessage
+from .ground_support_movement import GroundSupportMovement
 
-logger = logging.getLogger("ServiceMove")
+logger = logging.getLogger("ServiceMovement")
 
 MOVE_LOOP = []  # "BaggageService","cargo"
 
 
-class ServiceMove(Movement):
+class ServiceMovement(GroundSupportMovement):
     """
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
     from takeoff to landing and roll out.
     """
     def __init__(self, service: Service, airport: ManagedAirportBase):
-        Movement.__init__(self, airport=airport, reason=service)
+        GroundSupportMovement.__init__(self, airport=airport, reason=service)
         self.service = service
-
 
     def getId(self):
         return self.service.getId()
-
 
     def getInfo(self):
         return {
@@ -42,13 +41,11 @@ class ServiceMove(Movement):
             "icao24": self.service.getInfo()["icao24"]
         }
 
-
     def getSource(self):
         # Abstract class
         return self.service
 
-
-    def no_move(self):
+    def no_drive(self):
         """
         No movement associated with this service, just emit ServiceMessage at event time.
         Since there is no movement associated, there is no sync label to be used.
@@ -73,23 +70,22 @@ class ServiceMove(Movement):
                                            relative_time=(self.service.pts_duration * 60)))  # minutes
             logger.debug(f"{self.service.name} added 2 messages")
 
-
-    def move(self):
+    def drive(self):
         move_points = self.getMovePoints()
         # Special case 1: Service "event reporting only", no move
         if self.service.vehicle is None:  # Service with no vehicle movement
             logger.debug(f"service {type(self.service).__name__} «{self.service.label}» has no vehicle, assuming event report only")
-            self.no_move()
+            self.no_drive()
             logger.debug(f"generated {len(self.getMovePoints())} points")
-            return (True, "ServiceMove::move: no moves, assuming event report only")
+            return (True, "ServiceMovement::move: no moves, assuming event report only")
 
         # Special case 2: Service vehicle going back and forth between ramp and depot
         if type(self.service).__name__ in MOVE_LOOP:
             logger.debug(f"moving loop for {type(self.service).__name__}..")
-            ret = self.move_loop()
+            ret = self.drive_loop()
             if ret[0]:
                 logger.debug(f"..moved")
-                return (True, "ServiceMove::move completed")  # return ret?
+                return (True, "ServiceMovement::move completed")  # return ret?
             logger.warning(ret[1])
             logger.debug(f"..loop did not complete successfully, using normal move..")
 
@@ -297,10 +293,6 @@ class ServiceMove(Movement):
                                        sync=SERVICE_PHASE.END.value,
                                        info=self.getInfo()))
 
-        ret = doTime(self.getMovePoints())
-        if not ret[0]:
-            return ret
-
         # Sets unique index on service movement features
         idx = 0
         for f in self.getMovePoints():
@@ -310,39 +302,39 @@ class ServiceMove(Movement):
         # printFeatures(self.getMovePoints(), "route")
         # printFeatures([Feature(geometry=asLineString(self.getMovePoints()))], "route")
         logger.debug(f"generated {len(self.getMovePoints())} points")
-        return (True, "ServiceMove::move completed")
+        return (True, "ServiceMovement::move completed")
 
 
-    def move_loop(self):
+    def drive_loop(self):
         """
         Simulates a vehicle that goes back and forth between the aircraft and a depot
         until all load is loaded/unloaded.
         """
         # Temp disabled
-        return (False, "ServiceMove::move_loop currently not usable or not implemented")
+        return (False, "ServiceMovement::drive_loop currently not usable or not implemented")
 
         move_points = self.getMovePoints()
 
         # CHECK: Service has vehicle
         vehicle = self.service.vehicle
         if vehicle is None:
-            return (False, "ServiceMove::move_loop: service has no vehicle")
+            return (False, "ServiceMovement::drive_loop: service has no vehicle")
 
         # CHECK: Vehicle has "capacity"
         if vehicle.max_capacity is None:
-            return (False, "ServiceMove::move_loop: service vehicle has no capacity")
+            return (False, "ServiceMovement::drive_loop: service vehicle has no capacity")
 
         if vehicle.max_capacity == inf:
-            return (False, "ServiceMove::move_loop: service vehicle has infinite capacity, we travel once only")
+            return (False, "ServiceMovement::drive_loop: service vehicle has infinite capacity, we travel once only")
 
         # CHECK: Service has quantity
         if self.service.quantity is None or self.service.quantity <= 0:
-            return (False, "ServiceMove::move_loop: service has no quantity")
+            return (False, "ServiceMovement::drive_loop: service has no quantity")
 
         # CHECK: Vehicle or service have "load/unload time" (direct value or computed from capacity + flow)
         # CHECK: Service has speed of service:
         if self.service.flow is None or self.service.quantity <= 0:
-            return (False, "ServiceMove::move_loop: service has no service speed (flow)")
+            return (False, "ServiceMovement::drive_loop: service has no service speed (flow)")
 
         # CHECK: Vehicle or service have "setup/unsetup time" (optional)
         if self.service.setup_time is None:
@@ -395,7 +387,7 @@ class ServiceMove(Movement):
 
         if ramp_stop is None:
             logger.warning(f"failed to find ramp stop and/or center for { service_type }")
-            return (False, "ServiceMove:move: failed to find ramp stop")
+            return (False, "ServiceMovement:move: failed to find ramp stop")
 
         # logger.debug("ramp %s" % (ramp_stop))
 
@@ -440,7 +432,7 @@ class ServiceMove(Movement):
         nearest_depot = self.airport.getNearestServiceDepot(service_type, ramp_stop)
         # CHECK: Service has depot where to load/drop?
         if nearest_depot is None:
-            return (False, "ServiceMove::move_loop: service has no depot")
+            return (False, "ServiceMovement::drive_loop: service has no depot")
         nd_npe = self.airport.service_roads.nearest_point_on_edge(nearest_depot)
         if nd_npe[0] is None:
             logger.warning("no nearest_point_on_edge for nearest_depot")
@@ -622,5 +614,5 @@ class ServiceMove(Movement):
         printFeatures([Feature(geometry=asLineString(self.getMovePoints()))], "route")
 
         logger.debug(f"generated {len(self.getMovePoints())} points")
-        return (False, "ServiceMove::make not implemented")
+        return (False, "ServiceMovement::make not implemented")
 
