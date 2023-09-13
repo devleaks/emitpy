@@ -429,6 +429,7 @@ class FEATPROP(Enum):
     CITY = "city"
     CLASS = "class"
     CLASS_ID = "classId"
+    COMMENT = "comment"
     CONTROL_TIME = "control-time"
     COUNTRY = "country"
     COURSE = "course" # direction in which goes the aircraft, sometimes called TRACK or TRACKING

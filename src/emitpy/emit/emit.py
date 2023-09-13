@@ -11,22 +11,21 @@ import logging
 from tabulate import tabulate
 
 from datetime import datetime, timedelta, timezone
-from random import randrange
-from geojson import Feature, FeatureCollection
+from geojson import FeatureCollection
 from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
 
 from redis.commands.json.path import Path
 
 import emitpy
-from emitpy.geo import MovePoint, Movement, cleanFeatures, findFeatures, Movement, asLineString, toTraffic, toLST
-from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path, Timezone
+from emitpy.geo import MovePoint, cleanFeatures, findFeatures, Movement, toTraffic, toLST
+from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path
 from emitpy.message import Messages, EstimatedTimeMessage
 
-from emitpy.constants import FLIGHT_DATABASE, SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
+from emitpy.constants import SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
 from emitpy.constants import RATE_LIMIT, EMIT_RANGE, MOVE_TYPE, EMIT_TYPE
-from emitpy.constants import DEFAULT_FREQUENCY, GSE_EMIT_WHEN_STOPPED
+from emitpy.constants import DEFAULT_FREQUENCY
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
 logger = logging.getLogger("Emit")
@@ -946,7 +945,7 @@ class Emit(Movement):
                 line = []
                 line.append(m)
                 line.append(l[m]["rel"])
-                line.append(l[m]["dt"])
+                line.append(datetime.fromtimestamp(l[m]["ts"]).astimezone().replace(microsecond = 0))
                 table.append(line)
                 # logger.debug(f"{m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)}")
 
@@ -1068,7 +1067,7 @@ class Emit(Movement):
             line.append(offset)
             line.append(m.relative_time)
             line.append(total)
-            line.append(m.getAbsoluteEmissionTime())
+            line.append(m.getAbsoluteEmissionTime().replace(microsecond = 0))
             table.append(line)
         logger.debug(f"..scheduled")
         table = sorted(table, key=lambda x: x[6])  # absolute emission time()

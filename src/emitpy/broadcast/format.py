@@ -3,7 +3,7 @@
 import os
 import logging
 
-from emitpy.constants import FEATPROP, FLIGHT_DATABASE
+from emitpy.constants import FEATPROP, REDIS_DATABASES, REDIS_DATABASE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
 # Generic, yet another flavor of vanilla:
@@ -80,7 +80,8 @@ class Format:
         :param      overwrite:  The overwrite
         :type       overwrite:  bool
         """
-        basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE)
+        db = REDIS_DATABASES[self.emit.emit_type] if self.emit.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
+        basename = os.path.join(MANAGED_AIRPORT_AODB, db)
         fileformat = self.formatter.FILE_EXTENSION
         ident = self.emit.getId()
         fn = f"{ident}-6-broadcast.{fileformat}"
@@ -128,7 +129,8 @@ class FormatMessage(Format):
         :param      overwrite:  The overwrite
         :type       overwrite:  bool
         """
-        basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE)
+        db = REDIS_DATABASES[self.emit.emit_type] if self.emit.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
+        basename = os.path.join(MANAGED_AIRPORT_AODB, db)
         fileformat = self.formatter.FILE_EXTENSION
         ident = self.emit.getId()
         fn = f"{ident}-7-messages.{fileformat}"

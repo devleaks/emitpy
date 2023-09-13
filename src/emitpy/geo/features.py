@@ -323,15 +323,24 @@ class FeatureWithProps(Feature):
         return float(a)
 
 
+    def setComment(self, comment: str):
+        self.setProp(FEATPROP.COMMENT.value, comment)
+
+    def comment(self, default: str = None):
+        a = self.getProp(FEATPROP.COMMENT.value)
+        if a is None or a == "None":
+            return default
+        return a
+
+
     def getPropPath(self, path: str):
         r = JSONPath(path).parse(self["properties"])
         if len(r) == 1:
             return r[0]
         if len(r) > 1:
-            logger.warning(f"ambiguous return value for {path}")
+            print(f"FeatureWithProps.getPropPath(): ambiguous return value for {path}, returning first element in list")
             return r[0]
         return None
-
 
 
 # ################################

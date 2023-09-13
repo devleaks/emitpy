@@ -272,6 +272,7 @@ class FlightServices:
         print(f"PRECISION TIME SCHEDULE", file=output)
         PTS_HEADERS = ["event", "start", "duration", "warn", "alert", "start time", "warn time", "alert time", "end time", "end warn time", "end alert time"]
         table = []
+        scheduled = scheduled.replace(microsecond = 0)
         for service in self.services:
             s = service["service"]
             line = []
@@ -319,7 +320,7 @@ class FlightServices:
             line = []
             line.append("move")
             line.append(type(m).__name__)
-            line.append(m.getAbsoluteEmissionTime())
+            line.append(m.getAbsoluteEmissionTime().replace(microsecond = 0))
             line.append(m.subject)
             table.append(line)
 
@@ -334,7 +335,7 @@ class FlightServices:
                 line = []
                 line.append(sty)
                 line.append(type(m).__name__)
-                line.append(m.getAbsoluteEmissionTime())
+                line.append(m.getAbsoluteEmissionTime().replace(microsecond = 0))
                 line.append(m.subject)
                 table.append(line)
 

@@ -6,11 +6,9 @@ from emitpy.constants import EMIT_TYPE
 logger = logging.getLogger("toLST")
 
 
-
-# sim/time/local_date_days
-# sim/time/local_time_sec
 DREF_DAYS = "sim/time/local_date_days"
 DREF_TIME = "sim/time/local_time_sec"
+
 
 def toLST(emit):
     output = io.StringIO()
@@ -32,11 +30,11 @@ def toLST(emit):
         return ""
 
     # Timing
-    if len(emit._emit_points[0]) == 0:
+    if len(emit.getEmitPoints()[0]) == 0:
         logger.warning("no emit point")
         return contents
 
-    start_point = emit._emit_points[0]
+    start_point = emit.getEmitPoints()[0]
     start_ts = start_point.getAbsoluteEmissionTime()
     if start_ts is None:
         logger.warning("no start time on first emit point")
@@ -61,25 +59,13 @@ def toLST(emit):
     print(f"# LOOP,<virtual lib path to object>", file=output)
     print(f"LOOP,{mesh_id}", file=output)
 
-    # object
-    # for now, object vitrual path is icao code.
-    # later, should use mesh attribute. If len(mesh) > 1, should use TRAIN rather than LOOP
-    if emit.emit_type == EMIT_TYPE.SERVICE.value:
-        print(f"# emitpy generated for service {emit.move.service.getId()}", file=output)
-        print(f"# LOOP,<virtual lib path to object>", file=output)
-        print(f"LOOP,{emit.move.service.vehicle.icao.lower()}", file=output)
-    elif emit.emit_type == EMIT_TYPE.MISSION.value:
-        print(f"# emitpy generated for mission {emit.move.mission.getId()}", file=output)
-        print(f"# LOOP,<virtual lib path to object>", file=output)
-        print(f"LOOP,{emit.move.mission.vehicle.icao.lower()}", file=output)
-    else:
-        logger.warning(f"invalid emit type {emit.emit_type}")
-        return ""
-
     # waypoints
     print(f"# WP,<lat>,<lon>,<speed(km/h)>", file=output)
-    for p in emit._emit_points:
-        speed = round(p.speed() * 3.6,1)  # m/s to km/h
+    for p in emit.getEmitPoints():
+        speed = round(p.speed() * 3.6, 1)  # m/s to km/h
+        comment = p.comment()
+        if comment is not None:
+            print(f"# {comment}", file=output)
         print(f"WP,{p.lat()},{p.lon()},{speed}", file=output)
         pause = p.pause()
         if pause is not None:
