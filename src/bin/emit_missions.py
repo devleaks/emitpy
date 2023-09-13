@@ -29,7 +29,7 @@ sep = timedelta(minutes=1)
 name = "emit_mission"
 queue = "raw"
 rate = 5
-operator = "LAS"  # for missions
+operator = "HAS"  # for missions
 
 # Here we go..
 #

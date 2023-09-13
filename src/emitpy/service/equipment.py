@@ -36,6 +36,7 @@ class Equipment(Identity):
 
         self.mesh  = ["emitpy/gse/marshall.obj"]
 
+        # Movement
         self.position = None
         self.next_position = None
 
@@ -45,6 +46,7 @@ class Equipment(Identity):
             "fast": 50/3.6,
         }
 
+        # Good handling
         self.max_capacity = 1
         self.current_load = 0
 

@@ -38,7 +38,7 @@ class FlightMovement(Movement):
     from takeoff to landing and roll out.
     """
     def __init__(self, flight: Flight, airport: ManagedAirportBase):
-        Movement.__init__(self, airport=airport)
+        Movement.__init__(self, airport=airport, reason=Flight)
         self.flight = flight
         self.flight_id = self.flight.getId()
         self.is_arrival = self.flight.is_arrival()
@@ -1577,7 +1577,7 @@ class TowMovement(Movement):
     from takeoff to landing and roll out.
     """
     def __init__(self, flight: Flight, newramp: "Ramp", airport: ManagedAirportBase):
-        Movement.__init__(self, airport=airport)
+        Movement.__init__(self, airport=airport, reason=Flight)
         self.flight = flight
         self.flight_id = self.flight.getId()
         self.is_arrival = self.flight.is_arrival()

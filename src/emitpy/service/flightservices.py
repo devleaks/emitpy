@@ -233,7 +233,7 @@ class FlightServices:
             ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, stime, do_print)
             if not ret[0]:
                 return ret
-            logger.debug(f"there are {len(emit.scheduled_emit)} scheduled emit points")
+            logger.debug(f"there are {len(emit.getScheduledPoints())} scheduled emit points")
             logger.debug(f"..done")
         return (True, "FlightServices::schedule: completed")
 
@@ -357,7 +357,7 @@ class FlightServices:
             if emit.has_no_move_ok():
                 logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need formatting of positions")
                 continue
-            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit_points)}, {len(service['emit'].scheduled_emit)})..")
+            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit_points)}, {len(service['emit'].getScheduledPoints())})..")
             formatted = Format(emit)
             ret = formatted.format()
             if not ret[0]:
@@ -373,7 +373,7 @@ class FlightServices:
 
     def formatMessages(self, saveToFile: bool = False):
         for service in self.services:
-            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit_points)}, {len(service['emit'].scheduled_emit)})..")
+            logger.debug(f"formatting '{service['type']}' ({len(service['emit'].moves)}, {len(service['emit']._emit_points)}, {len(service['emit'].getScheduledPoints())})..")
             formatted = FormatMessage(service["emit"])
             ret = formatted.format()
             if not ret[0]:

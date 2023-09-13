@@ -2,12 +2,16 @@
 A succession of positions where a vehicle passes.
 """
 import os
+import io
 import json
 import logging
 import math
 import copy
+from datetime import datetime, timedelta
 
 from geojson import Point, LineString, FeatureCollection, Feature
+
+from tabulate import tabulate
 
 from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, asLineString, get_bounding_box
 from emitpy.constants import MOVES_DATABASE, FEATPROP
@@ -28,17 +32,34 @@ class MovePoint(FeatureWithProps):
     def __init__(self, geometry: Point, properties: dict):
         FeatureWithProps.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
 
+    def getRelativeEmissionTime(self):
+        t = self.getProp(FEATPROP.EMIT_REL_TIME.value)
+        return t if t is not None else 0
+
+    def getAbsoluteEmissionTime(self):
+        t = self.getProp(FEATPROP.EMIT_ABS_TIME.value)
+        return t if t is not None else 0
+
 
 class Movement(Messages):
 
-    def __init__(self, airport: "ManagedAirportBase"):
+    def __init__(self, airport: "ManagedAirportBase", reason: "Messages"):
         Messages.__init__(self)
 
+        self.reason = reason    # Core entity of the movement: Flight or ground service.
         self.airport = airport
         self._move_points = []  # Array of Features<Point>
 
+        # Movement scheduling
+        self._scheduled_points = []
+        self.version = 0
+        self.offset_name = None
+        self.offset = None
+
+        # self.reason.setMovement(movement=self)
+
     def getId(self):
-        return "Movement::abstract-class-id"
+        return self.reason.getId()
 
     def saveFile(self):
         """
@@ -85,12 +106,18 @@ class Movement(Messages):
             "type": "abstract"
         }
 
+    def getMyPoints(self):
+        return self._move_points
+
     def getMovePoints(self):
         logger.debug(f"getting {len(self._move_points)} base positions ({type(self).__name__})")
         return self._move_points
 
     def setMovePoints(self, move_points):
         self._move_points = move_points
+
+    def getScheduledPoints(self):
+        return self._scheduled_points
 
     def getMessages(self):
         m = super().getMessages()
@@ -199,4 +226,101 @@ class Movement(Messages):
         bb = get_bounding_box(self.getMovePoints(), rounding)
         logger.debug(f"bounding box: {bb}")
         return bb
+
+
+    def getMarkList(self):
+        l = set()
+        [l.add(f.getMark()) for f in self.getMyPoints()]
+        if None in l:
+            l.remove(None)
+        return l
+
+
+    def getRelativeEmissionTime(self, sync: str):
+        f = findFeatures(self.getMyPoints(), {FEATPROP.MARK.value: sync})
+        if f is not None and len(f) > 0:
+            r = f[0]
+            logger.debug(f"found {sync}")
+            offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
+            if offset is not None:
+                return offset
+            else:
+                logger.warning(f"{FEATPROP.MARK.value} {sync} has no time offset, using 0")
+                return 0
+        logger.warning(f"{self.getId()}: {sync} not found in ({self.getMarkList()})")
+        return None
+
+
+    def schedule(self, sync, moment: datetime, do_print: bool = False):
+        """
+        """
+        # logger.debug(f"mark list: {self.getMarkList()}")
+        offset = self.getRelativeEmissionTime(sync)
+        if offset is not None:
+            offset = int(offset)  # pylint E1130
+            self.offset_name = sync
+            self.offset = offset
+            logger.debug(f"{self.offset_name} offset {self.offset} sec")
+            when = moment + timedelta(seconds=(- offset))
+            logger.debug(f"point starts at {when} ({when.timestamp()})")
+            self._scheduled_points = []  # brand new scheduling, reset previous one
+            for e in self.getMyPoints():
+                p = MovePoint.new(e)
+                t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
+                if t is not None:
+                    when = moment + timedelta(seconds=(t - offset))
+                    p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
+                    p.setProp(FEATPROP.EMIT_ABS_TIME_FMT.value, when.isoformat())
+                    # logger.debug(f"done at {when.timestamp()}")
+                self._scheduled_points.append(p)
+            logger.debug(f"point finishes at {when} ({when.timestamp()}) ({len(self._scheduled_points)} positions)")
+            # now that we have "absolute time", we update the parent
+            if do_print:
+                dummy = self.getTimedMarkList()
+            return (True, "Movement::schedule completed")
+
+        logger.warning(f"{sync} mark not found")
+        return (False, f"Movement::schedule {sync} mark not found")
+
+
+    def getTimedMarkList(self):
+        l = dict()
+
+        if self._scheduled_points is None or len(self._scheduled_points) == 0:
+            return l
+
+        output = io.StringIO()
+        print("\n", file=output)
+        print(f"TIMED MARK LIST", file=output)
+        MARK_LIST = ["mark", "relative", "time"]
+        table = []
+
+        for f in self._scheduled_points:
+            m = f.getMark()
+            if m is not None:
+                if m in l:
+                    l[m]["count"] = l[m]["count"] + 1 if "count" in l[m] else 2
+                else:
+                    l[m] = {
+                        "rel": f.getProp(FEATPROP.EMIT_REL_TIME.value),
+                        "ts": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
+                        "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)
+                    }
+                    t = round(f.getProp(FEATPROP.EMIT_REL_TIME.value),  1)
+                line = []
+                line.append(m)
+                line.append(l[m]["rel"])
+                line.append(datetime.fromtimestamp(l[m]["ts"]).astimezone().replace(microsecond = 0))
+                table.append(line)
+                # logger.debug(f"{m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)}")
+
+        table = sorted(table, key=lambda x: x[2])  # absolute emission time
+        print(tabulate(table, headers=MARK_LIST), file=output)
+
+        contents = output.getvalue()
+        output.close()
+        logger.debug(f"{contents}")
+
+        return l
+
 

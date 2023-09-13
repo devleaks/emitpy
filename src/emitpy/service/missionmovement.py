@@ -20,7 +20,7 @@ class MissionMove(Movement):
     from takeoff to landing and roll out.
     """
     def __init__(self, mission: Mission, airport: ManagedAirportBase):
-        Movement.__init__(self, airport=airport)
+        Movement.__init__(self, airport=airport, reason=mission)
         self.mission = mission
 
 

@@ -26,7 +26,7 @@ class ServiceMove(Movement):
     from takeoff to landing and roll out.
     """
     def __init__(self, service: Service, airport: ManagedAirportBase):
-        Movement.__init__(self, airport=airport)
+        Movement.__init__(self, airport=airport, reason=service)
         self.service = service
 
 

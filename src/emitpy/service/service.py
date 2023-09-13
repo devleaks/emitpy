@@ -20,7 +20,7 @@ class Service(GroundSupport):
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         GroundSupport.__init__(self, operator=operator)
         self.scheduled = scheduled
-        self.quantity = quantity
+        self.quantity = quantity  # Size of service, that will define duration. Vehicle set the speed of processing quantity (flow)
         self.ramp = ramp
         self.actype = None
         self.flight = None  # If this particular service is part of a larger coordinated set for a flight

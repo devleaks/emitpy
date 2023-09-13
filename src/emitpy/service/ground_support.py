@@ -1,6 +1,5 @@
 """
-A Service  is a maintenance operation performed on an aircraft during a turn-around.
-
+Ground Support is the base calass for Mission and Service
 """
 import logging
 from datetime import datetime, timedelta
@@ -13,17 +12,18 @@ logger = logging.getLogger("GroundSupport")
 
 class PTSTime:
 
-    def __init__(self, ref_scheduled: datetime, scheduled: int, duration: int):
+    def __init__(self, label: str, ref_scheduled: datetime, scheduled: int, duration: int, warn: int = None, alert: int = None):
 
-        self.pts_reltime     = scheduled  # relative scheduled service date/time in minutes after/before(negative) on-block/off-block
-        self.pts_duration    = duration   # relative scheduled service duration in minutes, may be refined and computed from quantity+vehicle
-        self.pts_scheduled   = None  # absolute time for above
-        self.pts_estimated   = None
+        self.label = label                 # Text to remember purpose
+        self.pts_reltime      = scheduled  # relative scheduled service date/time in minutes after/before(negative) on-block/off-block
+        self.pts_duration     = duration   # relative scheduled service duration in minutes, may be refined and computed from quantity+vehicle
+        self.pts_scheduled    = None       # absolute time for above
+        self.pts_estimated    = None
         self.pts_actual_start = None
         self.pts_actual_end   = None
 
-        self.pts_warn        = None
-        self.pts_alert       = None
+        self.pts_warn         = warn
+        self.pts_alert        = alert
 
     def getStartEndTimes(self, timetype: str = "scheduled"):
         if timetype == "actual":
@@ -33,6 +33,14 @@ class PTSTime:
                     self.pts_estimated + timedelta(minutes=(self.pts_reltime + self.pts_duration)))
         return (self.pts_scheduled + timedelta(minutes=self.pts_reltime),
                 self.pts_scheduled + timedelta(minutes=(self.pts_reltime + self.pts_duration)))
+
+    def getWarnAlertTimes(self, timetype: str = "scheduled"):
+        if timetype == "actual":
+            return (self.pts_actual_start + timedelta(minutes=self.pts_warn), self.pts_actual_start + timedelta(minutes=self.pts_alert))
+        if timetype == "estimated" and self.pts_estimated is not None:
+            return (self.pts_estimated + timedelta(minutes=self.pts_warn), self.pts_estimated + timedelta(minutes=self.pts_alert))
+        return (self.pts_scheduled + timedelta(minutes=self.pts_warn),
+                self.pts_scheduled + timedelta(minutes=self.pts_alert))
 
 
 class GroundSupport(Messages):
@@ -102,6 +110,9 @@ class GroundSupport(Messages):
         self.pos_next = position
 
     def duration(self, dflt: int = 30 * 60):
+        return self.pts_duration
+
+    def compute_duration(self, dflt: int = 30 * 60):
         if self.vehicle is None:
             return dflt
         return self.vehicle.service_duration(self.quantity)

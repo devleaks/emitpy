@@ -42,21 +42,13 @@ class EmitPoint(MovePoint):
     def __init__(self, geometry: Geometry, properties: dict):
         MovePoint.__init__(self, geometry=geometry, properties=properties)
 
-    def getRelativeEmissionTime(self):
-        t = self.getProp(FEATPROP.EMIT_REL_TIME.value)
-        return t if t is not None else 0
-
-    def getAbsoluteEmissionTime(self):
-        t = self.getProp(FEATPROP.EMIT_ABS_TIME.value)
-        return t if t is not None else 0
-
 
 class Emit(Movement):
     """
     Emit takes an array of MovePoints to produce a FeatureCollection of decorated features ready for emission.
     """
     def __init__(self, move: Movement):
-        Messages.__init__(self)
+        Movement.__init__(self, airport=move.airport, reason=move)
         self.move = move
 
         self.emit_id = None
@@ -65,11 +57,8 @@ class Emit(Movement):
         self.format = None
         self.frequency = None  # seconds
         self._emit_points = []  # [ EmitPoint ], time-relative emission of messages
-        self.scheduled_emit = []  # [ EmitPoint ], a copy of self._emit_points but with actual emission time (absolute time)
+        self._scheduled_points = []  # [ EmitPoint ], a copy of self._emit_points but with actual emission time (absolute time)
         self.props = {}  # general purpose properties added to each emit point
-        self.version = 0
-        self.offset_name = None
-        self.offset = None
 
         if type(self).__name__ == "Emit" and move is None:
             logger.error("move cannot be None for new Emit")
@@ -134,6 +123,9 @@ class Emit(Movement):
 
 
     def getEmitPoints(self):
+        return self._emit_points
+
+    def getMyPoints(self):
         return self._emit_points
 
     def setEmitPoints(self, emit_points):
@@ -324,16 +316,16 @@ class Emit(Movement):
         # 3. Save linestring with timestamp
         # Save for traffic analysis
         logger.debug(f"{self.getInfo()}")
-        logger.debug(f"emit_point={len(self.scheduled_emit)} positions")
+        logger.debug(f"emit_point={len(self._scheduled_points)} positions")
 
-        if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
+        if self._scheduled_points is None or len(self._scheduled_points) == 0:
             logger.warning("no scheduled emission point")
             self.write_debug("saveTraffic")
             return (False, "Emit::saveFile: no scheduled emission point")
 
-        logger.debug(f"***** there are {len(self.scheduled_emit)} points")
+        logger.debug(f"***** there are {len(self._scheduled_points)} points")
 
-        ls = toTraffic(self.scheduled_emit)
+        ls = toTraffic(self._scheduled_points)
         filename = os.path.join(basename + "-traffic.csv")
         with open(filename, "w") as fp:
             fp.write(ls)
@@ -372,15 +364,15 @@ class Emit(Movement):
         basename = os.path.join(basedir, flight_id, ident)
 
         logger.debug(f"{self.getInfo()}")
-        logger.debug(f"emit_point={len(self.scheduled_emit)} positions")
+        logger.debug(f"emit_point={len(self._scheduled_points)} positions")
 
-        if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
+        if self._scheduled_points is None or len(self._scheduled_points) == 0:
             logger.warning("no scheduled emission point")
             self.write_debug("saveLST")
             return (False, "Emit::saveFile: no scheduled emission point")
 
         filename = os.path.join(basename + ".lst")
-        logger.debug(f"{len(self.scheduled_emit)} points, file {filename}")
+        logger.debug(f"{len(self._scheduled_points)} points, file {filename}")
 
         lst = toLST(self)
         with open(filename, "w") as fp:
@@ -902,12 +894,12 @@ class Emit(Movement):
         return (True, "Emit::interpolated speed and altitude")
 
 
-    def getMarkList(self):
-        l = set()
-        [l.add(f.getMark()) for f in self.getEmitPoints()]
-        if None in l:
-            l.remove(None)
-        return l
+    # def getMarkList(self):
+    #     l = set()
+    #     [l.add(f.getMark()) for f in self.getEmitPoints()]
+    #     if None in l:
+    #         l.remove(None)
+    #     return l
 
 
     def getMoveMarkList(self):
@@ -921,7 +913,7 @@ class Emit(Movement):
     def getTimedMarkList(self):
         l = dict()
 
-        if self.scheduled_emit is None or len(self.scheduled_emit) == 0:
+        if self._scheduled_points is None or len(self._scheduled_points) == 0:
             return l
 
         output = io.StringIO()
@@ -930,7 +922,7 @@ class Emit(Movement):
         MARK_LIST = ["mark", "relative", "time"]
         table = []
 
-        for f in self.scheduled_emit:
+        for f in self._scheduled_points:
             m = f.getMark()
             if m is not None:
                 if m in l:
@@ -980,13 +972,6 @@ class Emit(Movement):
 
     def schedule(self, sync, moment: datetime, do_print: bool = False):
         """
-        Adjust a emission track to synchronize moment at position mkar synch.
-        This should only change the EMIT_ABS_TIME property.
-
-        :param      sync:   The synchronize
-        :type       sync:   { string }
-        :param      moment:  The moment
-        :type       moment:  datetime
         """
         if self.emit_id is None:
             logger.debug(f"no emit id")
@@ -1002,7 +987,7 @@ class Emit(Movement):
             logger.debug(f"{self.offset_name} offset {self.offset} sec")
             when = moment + timedelta(seconds=(- offset))
             logger.debug(f"emit_point starts at {when} ({when.timestamp()})")
-            self.scheduled_emit = []  # brand new scheduling, reset previous one
+            self._scheduled_points = []  # brand new scheduling, reset previous one
             for e in self.getEmitPoints():
                 p = EmitPoint.new(e)
                 t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
@@ -1011,8 +996,8 @@ class Emit(Movement):
                     p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
                     p.setProp(FEATPROP.EMIT_ABS_TIME_FMT.value, when.isoformat())
                     # logger.debug(f"done at {when.timestamp()}")
-                self.scheduled_emit.append(p)
-            logger.debug(f"emit_point finishes at {when} ({when.timestamp()}) ({len(self.scheduled_emit)} positions)")
+                self._scheduled_points.append(p)
+            logger.debug(f"emit_point finishes at {when} ({when.timestamp()}) ({len(self._scheduled_points)} positions)")
             # now that we have "absolute time", we update the parent
             ret = self.updateEstimatedTime()
             if not ret[0]:
@@ -1023,7 +1008,7 @@ class Emit(Movement):
             #     return ret
             # For debugging purpose only:
             if do_print:
-                dummy = self.getTimedMarkList()    
+                dummy = self.getTimedMarkList()
             return (True, "Emit::schedule completed")
 
         logger.warning(f"{sync} mark not found")
@@ -1080,9 +1065,9 @@ class Emit(Movement):
 
 
     def getTimeBracket(self, as_string: bool = False):
-        if self.scheduled_emit is not None and len(self.scheduled_emit) > 0:
-            start = self.scheduled_emit[0].getAbsoluteEmissionTime()
-            end   = self.scheduled_emit[-1].getAbsoluteEmissionTime()
+        if self._scheduled_points is not None and len(self._scheduled_points) > 0:
+            start = self._scheduled_points[0].getAbsoluteEmissionTime()
+            end   = self._scheduled_points[-1].getAbsoluteEmissionTime()
             if not as_string:
                 return (start, end)
             startdt = datetime.fromtimestamp(start, tz=timezone.utc)
@@ -1093,7 +1078,7 @@ class Emit(Movement):
 
 
     def getFeatureAt(self, sync: str):
-        f = findFeatures(self.scheduled_emit, {FEATPROP.MARK.value: sync})
+        f = findFeatures(self._scheduled_points, {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
             logger.debug(f"found {sync}")
             return f[0]
@@ -1101,23 +1086,23 @@ class Emit(Movement):
         return None
 
 
-    def getRelativeEmissionTime(self, sync: str):
-        f = findFeatures(self.getEmitPoints(), {FEATPROP.MARK.value: sync})
-        if f is not None and len(f) > 0:
-            r = f[0]
-            logger.debug(f"found {sync}")
-            offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
-            if offset is not None:
-                return offset
-            else:
-                logger.warning(f"{FEATPROP.MARK.value} {sync} has no time offset, using 0")
-                return 0
-        if not self.has_no_move_ok():
-            logger.warning(f"{self.getId()}: {sync} not found in emission ({self.getMarkList()})")
-            self.write_debug("getRelativeEmissionTime")
-        else:
-            logger.debug(f"event service has no position emission time (just messages)")
-        return None
+    # def getRelativeEmissionTime(self, sync: str):
+    #     f = findFeatures(self.getEmitPoints(), {FEATPROP.MARK.value: sync})
+    #     if f is not None and len(f) > 0:
+    #         r = f[0]
+    #         logger.debug(f"found {sync}")
+    #         offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
+    #         if offset is not None:
+    #             return offset
+    #         else:
+    #             logger.warning(f"{FEATPROP.MARK.value} {sync} has no time offset, using 0")
+    #             return 0
+    #     if not self.has_no_move_ok():
+    #         logger.warning(f"{self.getId()}: {sync} not found in emission ({self.getMarkList()})")
+    #         self.write_debug("getRelativeEmissionTime")
+    #     else:
+    #         logger.debug(f"event service has no position emission time (just messages)")
+    #     return None
 
 
     def getAbsoluteEmissionTime(self, sync: str):

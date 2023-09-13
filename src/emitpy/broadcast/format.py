@@ -60,15 +60,16 @@ class Format:
         Formats each emission point.
         Effectively create a new list of (formatted) points.
         """
-        if self.emit.scheduled_emit is None or len(self.emit.scheduled_emit) == 0:
+        emit_points = self.emit.getScheduledPoints()
+        if emit_points is None or len(emit_points) == 0:
             logger.warning("Format::format: no emission point")
             return (False, "Format::format no emission point")
 
         self.output = []  # reset if called more than once
-        br = filter(lambda f: f.getProp(FEATPROP.BROADCAST.value), self.emit.scheduled_emit)
+        br = filter(lambda f: f.getProp(FEATPROP.BROADCAST.value), emit_points)
         bq = sorted(br, key=lambda f: f.getRelativeEmissionTime())
         self.output = list(map(self.formatter, bq))
-        logger.debug(f"formatted {len(self.output)} / {len(self.emit.scheduled_emit)}, version {self.version}")
+        logger.debug(f"formatted {len(self.output)} / {len(emit_points)}, version {self.version}")
         self.version = self.version + 1
         return (True, "Format::format completed")
 

@@ -192,8 +192,12 @@ class Messages:
     Message Trait for movements, flights, services, and missions
     """
     def __init__(self):
+        self.movement = None
         self.messages = []
         self.schedule_history = []      # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
+
+    def setMovement(self, movement):
+        self.movement = movement
 
     def addMessage(self, message: Message):
         self.messages.append(message)
