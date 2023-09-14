@@ -74,7 +74,6 @@ class MissionMove(GroundSupportMovement):
             pos.setColor(MISSION_COLOR.EN_ROUTE.value)
             move_points.append(pos)
 
-
         # logger.debug("start vertex %s" % (start_npe[0]))
         # Find first vertex
         start_nv = self.airport.service_roads.nearest_vertex(start_pos)

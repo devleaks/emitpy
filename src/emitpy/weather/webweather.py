@@ -65,16 +65,22 @@ class WebAirportWeather(AirportWeather):
 				logger.warning(f"could not find WebAirportWeather {lclass}")
 
 		if self.raw is not None:
-			if self.source_date is None:
-				if self.type == "METAR":
-					self.parsed = Metar.Metar(self.raw)
-				elif self.type == "TAF":
-					self.parsed = Taf.from_report(self.raw)
-			else:
-				if self.type == "METAR":
-					self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year)
-				elif self.type == "TAF":
-					self.parsed = Taf.from_report(self.raw)
+			try:
+				if self.source_date is None:
+					if self.type == "METAR":
+						self.parsed = Metar.Metar(self.raw)
+					elif self.type == "TAF":
+						self.parsed = Taf.from_report(self.raw)
+				else:
+					if self.type == "METAR":
+						self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year)
+					elif self.type == "TAF":
+						self.parsed = Taf.from_report(self.raw)
+			except:
+				self.parsed = None
+				logger.warning(f"could not parse Metar or TAF {self.raw}", exc_info=True)
+				logger.warning(f"weather ignored")
+
 			self.save()
 		else:
 			logger.warning(f"no {self.type} for {self.icao}")

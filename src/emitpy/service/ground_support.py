@@ -91,7 +91,7 @@ class GroundSupport(Messages):
 
     def setPTS(self, relstartime: int, duration: int, warn: int = None, alert: int = None):
         self.pts_reltime   = relstartime
-        self.pts_duration  = duration
+        self.pts_duration  = int(duration)
         if warn is not None:
             self.pts_warn = warn
         if alert is not None:
@@ -109,8 +109,8 @@ class GroundSupport(Messages):
     def setNextPosition(self, position):
         self.pos_next = position
 
-    def duration(self, dflt: int = 30 * 60):
-        return self.pts_duration
+    def duration(self, dflt: int = 30 * 60):  # default is half an hour
+        return self.pts_duration * 60  # seconds
 
     def compute_duration(self, dflt: int = 30 * 60):
         if self.vehicle is None:

@@ -18,10 +18,10 @@ from emitpy.flight import Flight
 from emitpy.airport import ManagedAirportBase
 from emitpy.aircraft import ACPERF
 from emitpy.geo import MovePoint, Movement
-from emitpy.geo import moveOn, cleanFeatures, findFeatures, asLineString, toKML, adjust_speed_vector
+from emitpy.geo import moveOn, cleanFeatures, asLineString, toKML, adjust_speed_vector
 from emitpy.graph import Route
 from emitpy.utils import FT, NAUTICAL_MILE, compute_headings
-from emitpy.constants import POSITION_COLOR, FEATPROP, TAKE_OFF_QUEUE_SIZE, TAXI_SPEED, SLOW_SPEED
+from emitpy.constants import POSITION_COLOR, FEATPROP, TAXI_SPEED, SLOW_SPEED
 from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT, MOVE_TYPE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.message import FlightMessage
@@ -190,17 +190,19 @@ class FlightMovement(Movement):
         saveMe(self._premoves + [ls], FILE_FORMAT.FLIGHT.value)
 
         # saveMe(self.getMovePoints(), "3-move")
-        ls = Feature(geometry=asLineString(self.getMovePoints()))
-        saveMe(self.getMovePoints() + [ls], FILE_FORMAT.MOVE.value)
+        move_points = self.getMovePoints()
+        ls = Feature(geometry=asLineString(move_points))
+        saveMe(move_points + [ls], FILE_FORMAT.MOVE.value)
 
         # saveMe(self.taxipos, "4-taxi")
         ls = Feature(geometry=asLineString(self.taxipos))
         saveMe(self.taxipos + [ls], FILE_FORMAT.TAXI.value)
 
+        kml = toKML(cleanFeatures(move_points))
         filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
         with open(filename, "w") as fp:
-            fp.write(self.getKML())
-            logger.debug(f"saved kml {filename} ({len(self.getMovePoints())})")
+            fp.write(kml)
+            logger.debug(f"saved kml {filename} ({len(move_points)})")
 
         logger.debug(f"saved {self.flight_id}")
         return (True, "Movement::save saved")
@@ -232,9 +234,6 @@ class FlightMovement(Movement):
         logger.debug("loaded %d " % self.flight_id)
         return (True, "Movement::load loaded")
 
-
-    def getKML(self):
-        return toKML(cleanFeatures(self.getMovePoints()))
 
     def vnav(self):
         """

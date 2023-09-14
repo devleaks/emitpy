@@ -119,10 +119,13 @@ class FlightServices:
         for svc in svcs:
             sname = svc.get(TAR_SERVICE.TYPE.value)
             scheduled = svc.get(TAR_SERVICE.START.value)
-            duration = svc.get(TAR_SERVICE.DURATION.value, 0)
             warn_time = svc.get(TAR_SERVICE.WARN.value)
             alert_time = svc.get(TAR_SERVICE.ALERT.value)
             label = svc.get(TAR_SERVICE.LABEL.value)
+            duration = svc.get(TAR_SERVICE.DURATION.value, 0)
+
+            if self.flight.load_factor != 1.0:  # Wow
+                duration = duration * self.flight.load_factor
 
             logger.debug(f"creating service {sname}..")
 
@@ -131,9 +134,6 @@ class FlightServices:
             this_service = Service.getService(sname)(scheduled=service_scheduled_dt,
                                                      ramp=self.flight.ramp,
                                                      operator=self.operator)
-
-            if self.flight.load_factor != 1.0:  # Wow
-                duration = duration * self.flight.load_factor
 
             this_service.setPTS(relstartime=scheduled, duration=duration, warn=warn_time, alert=alert_time)
             this_service.setFlight(self.flight)

@@ -8,19 +8,20 @@ import io
 import json
 import logging
 
-from tabulate import tabulate
-
 from datetime import datetime, timedelta, timezone
+
 from geojson import FeatureCollection
 from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
+
+from tabulate import tabulate
 
 from redis.commands.json.path import Path
 
 import emitpy
 from emitpy.geo import MovePoint, cleanFeatures, findFeatures, Movement, toTraffic, toLST
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path
-from emitpy.message import Messages, EstimatedTimeMessage
+from emitpy.message import EstimatedTimeMessage
 
 from emitpy.constants import SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
@@ -31,8 +32,11 @@ from emitpy.parameters import MANAGED_AIRPORT_AODB
 logger = logging.getLogger("Emit")
 
 
-BROADCAST_AT_VERTEX = False
-must_spit_out = False
+BROADCAST_AT_VERTEX = False  # Tells whether emit should be produced at movement vertices (waypoints, cross roads, etc.)
+# Reality is False, but for debugging purposes setting to True can help follow paths/linestrings.
+
+must_spit_out = False  # must be a "global var", but only used in emit() in lambda expressions (should be scoped to emit() only.)
+
 
 class EmitPoint(MovePoint):
     """
@@ -58,26 +62,25 @@ class Emit(Movement):
         self.frequency = None  # seconds
         self._emit_points = []  # [ EmitPoint ], time-relative emission of messages
         self._scheduled_points = []  # [ EmitPoint ], a copy of self._emit_points but with actual emission time (absolute time)
+        self.move_points = []
         self.props = {}  # general purpose properties added to each emit point
+
+        self.curr_starttime = None
+        self.curr_schedule = None
+        self.curr_syncmark = None
 
         if type(self).__name__ == "Emit" and move is None:
             logger.error("move cannot be None for new Emit")
 
         if move is not None:
-            # We create an emit from a movement
+            # We initiate an emit from a movement
             self.emit_id = self.move.getId()
             m = self.move.getInfo()
             self.emit_type = m.get("type", REDIS_DATABASE.UNKNOWN.value)
-            # self.emit_meta = EmitMeta()
-            self.move_points = self.move.getMovePoints()
+            self.move_points = self.move.getMovePoints()  # this takes a COPY
             self.props = self.move.getInfo()  # collect common props from movement
             self.props["emit"] = self.getInfo() # add meta data about this emission
-            # logger.debug(f"{len(self.move_points)} move points to emit with props {json.dumps(self.props, indent=2)}")
             logger.debug(f"{len(self.move_points)} move points to emit with {len(self.props)} properties")
-        # else:
-            # We reconstruct an emit from cache/database
-        #     self.emit_meta = EmitMeta.find({"emit_id": self.emit_id})
-        #     logger.debug(f"loaded {len(self.move_points)} emit points from cache")
 
 
     @staticmethod
@@ -278,6 +281,21 @@ class Emit(Movement):
         if self.has_no_move_ok():
             return (True, "Emit::no need to save event service")
 
+        # 1. Save "raw emits"
+        # filename = os.path.join(basename + "-5-emit.json")
+        # with open(filename, "w") as fp:
+        #     json.dump(self.getEmitPoints(), fp, indent=4)
+
+        # 2. Save "raw emits" and linestring
+        # ls = Feature(geometry=asLineString(self.getEmitPoints()))
+        # filename = os.path.join(basename + "-5-emit_ls.geojson")
+        # with open(filename, "w") as fp:
+        #     json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())+ [ls]), fp, indent=4)
+
+        # 3. Save linestring with timestamp
+        # Save for traffic analysis
+        # logger.debug(f"{self.getInfo()}")
+
         ret = self.saveTraffic()
         if not ret[0]:
             logger.warning("could not save traffic file")
@@ -294,6 +312,13 @@ class Emit(Movement):
         """
         Save GSE paths to file for emitted positions for python traffic analysis
         """
+        if self._scheduled_points is None or len(self._scheduled_points) == 0:
+            logger.warning("no scheduled emission point")
+            self.write_debug("saveTraffic")
+            return (False, "Emit::saveTraffic: no scheduled emission point")
+
+        logger.debug(f"emit has {len(self._scheduled_points)} positions, saving..")
+
         ident = self.getId()
         db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
         basedir = os.path.join(MANAGED_AIRPORT_AODB, db)
@@ -301,37 +326,14 @@ class Emit(Movement):
             os.mkdir(basedir)
             logger.info(f"directory {basedir} did not exist. created.")
 
-        basename = os.path.join(basedir, ident)
-        # 1. Save "raw emits"
-        # filename = os.path.join(basename + "-5-emit.json")
-        # with open(filename, "w") as fp:
-        #     json.dump(self.getEmitPoints(), fp, indent=4)
-
-        # 2. Save "raw emits" and linestring
-        # ls = Feature(geometry=asLineString(self.getEmitPoints()))
-        # filename = os.path.join(basename + "-5-emit_ls.geojson")
-        # with open(filename, "w") as fp:
-        #     json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())+ [ls]), fp, indent=4)
-
-        # 3. Save linestring with timestamp
-        # Save for traffic analysis
-        logger.debug(f"{self.getInfo()}")
-        logger.debug(f"emit_point={len(self._scheduled_points)} positions")
-
-        if self._scheduled_points is None or len(self._scheduled_points) == 0:
-            logger.warning("no scheduled emission point")
-            self.write_debug("saveTraffic")
-            return (False, "Emit::saveFile: no scheduled emission point")
-
-        logger.debug(f"***** there are {len(self._scheduled_points)} points")
-
         ls = toTraffic(self._scheduled_points)
+        basename = os.path.join(basedir, ident)
         filename = os.path.join(basename + "-traffic.csv")
         with open(filename, "w") as fp:
             fp.write(ls)
+        logger.debug(f"..saved {ident} for traffic analysis")
 
-        logger.debug(f"saved {ident} for python traffic analysis")
-        return (True, "Emit::saveFile saved")
+        return (True, "Emit::saveTraffic saved")
 
 
     def saveLST(self):
@@ -343,7 +345,12 @@ class Emit(Movement):
         """
         if self.emit_type not in [EMIT_TYPE.SERVICE.value, EMIT_TYPE.MISSION.value]:
             logger.debug(f"no LST save for emit of type {self.emit_type}")
-            return (True, "Emit::saveFile no necessary to save")
+            return (True, "Emit::saveLST no necessary to save")
+
+        if self._scheduled_points is None or len(self._scheduled_points) == 0:
+            logger.warning("no scheduled emission point")
+            self.write_debug("saveLST")
+            return (False, "Emit::saveLST: no scheduled emission point")
 
         ident = self.getId()
         db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
@@ -361,25 +368,17 @@ class Emit(Movement):
             if not os.path.exists(flight_dir):
                 os.mkdir(flight_dir)
                 logger.info(f"directory {flight_dir} did not exist. created.")
+
+        # logger.debug(f"{self.getInfo()}")
+        logger.debug(f"move has {len(self.move_points)} positions; saving..")
+        lst = toLST(self)  # need to pass emit since move is not scheduled
         basename = os.path.join(basedir, flight_id, ident)
-
-        logger.debug(f"{self.getInfo()}")
-        logger.debug(f"emit_point={len(self._scheduled_points)} positions")
-
-        if self._scheduled_points is None or len(self._scheduled_points) == 0:
-            logger.warning("no scheduled emission point")
-            self.write_debug("saveLST")
-            return (False, "Emit::saveFile: no scheduled emission point")
-
         filename = os.path.join(basename + ".lst")
-        logger.debug(f"{len(self._scheduled_points)} points, file {filename}")
-
-        lst = toLST(self)
         with open(filename, "w") as fp:
             fp.write(lst)
+        logger.debug(f"..saved {ident} for Living Scenery Technology")
 
-        logger.debug(f"saved {ident} for Living Scenery Technology")
-        return (True, "Emit::saveFile saved")
+        return (True, "Emit::saveLST saved")
 
 
     def emit(self, frequency: int):
@@ -977,6 +976,8 @@ class Emit(Movement):
             return (False, f"Emit::schedule no emit id")
 
         # logger.debug(f"mark list: {self.getMarkList()}")
+        self.curr_schedule = moment
+        self.curr_syncmark = sync
 
         offset = self.getRelativeEmissionTime(sync)
         if offset is not None:
@@ -985,6 +986,7 @@ class Emit(Movement):
             self.offset = offset
             logger.debug(f"{self.offset_name} offset {self.offset} sec")
             when = moment + timedelta(seconds=(- offset))
+            self.curr_starttime = when
             logger.debug(f"emit_point starts at {when} ({when.timestamp()})")
             self._scheduled_points = []  # brand new scheduling, reset previous one
             for e in self.getEmitPoints():
