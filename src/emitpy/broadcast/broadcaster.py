@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import threading
 import socket
 import redis
+from termcolor import colored
 
 from emitpy.constants import ID_SEP, LIVETRAFFIC_QUEUE, PUBSUB_CHANNEL_PREFIX, LIVETRAFFIC_VERBOSE
 from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT, BROADCASTER_VERBOSE, BROADCASTER_TICK
@@ -16,11 +17,15 @@ logger = logging.getLogger("Broadcaster")
 
 
 # Utility functions for debugging time and printing timestamp nicely
-def df(ts, tz = None):
+def df(ts, tz=None):
     return f"{datetime.fromtimestamp(ts).astimezone(tz=tz).isoformat(timespec='seconds')} (ts={round(ts, 1)})"
 
 def td(ts):
     return f"{timedelta(seconds=round(ts))} ({round(ts, 1)})"
+
+QUEUE_COLORS = {
+    "wire": "yellow"
+}
 
 
 # ##############################
@@ -29,12 +34,12 @@ def td(ts):
 # Delicate parameters, too dangerous to externalize
 #
 ZPOPMIN_TIMEOUT = 5.0  # secs
-LISTEN_TIMEOUT  = 5.0
-PING_FREQUENCY  = 10.0 # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
+LISTEN_TIMEOUT = 5.0
+PING_FREQUENCY = 10.0  # once every PING_FREQUENCY * ZPOPMIN_TIMEOUT seconds
 
 # MAXBACKLOGSECS is the maximum negative time we tolerate
 # for sending events late (in seconds)
-MAXBACKLOGSECS  = -20  # 0 is too critical, but MUST be <=0
+MAXBACKLOGSECS = -20  # 0 is too critical, but MUST be <=0
 
 
 # ##############################
@@ -306,9 +311,9 @@ class Broadcaster:
                 logger.debug(f"{self.name}: last item pushed back")
                 # self.redis.zadd(self.name, {currval[1]: currval[2]})
 
-        global MAXBACKLOGSECS  # ??
-        if MAXBACKLOGSECS > 0:
-            MAXBACKLOGSECS = - MAXBACKLOGSECS  # MUST be <=0 I said
+        maxbocklog = MAXBACKLOGSECS
+        if maxbocklog > 0:
+            maxbocklog = - maxbocklog  # MUST be <=0 I said
 
         queue_key = Queue.mkDataKey(self.name)
 
@@ -380,7 +385,7 @@ class Broadcaster:
                     # Example: 2 events just a few millisecs apart
                     logger.debug(f"{self.name}: older event ({timetowait})")
 
-                if timetowait < MAXBACKLOGSECS:  # there are things on the queue that don't need to be sent, let's trim:
+                if timetowait < maxbocklog:  # there are things on the queue that don't need to be sent, let's trim:
                     # the item we poped out is older than the queue time, we do not send it
                     logger.debug(f"{self.name}: popped old event. Trim other old events..")
                     logger.debug(f"{self.name}: {currval[2]} vs now={now} ({timetowait})..")
@@ -391,7 +396,11 @@ class Broadcaster:
 
                 else:  # we need to send later, let's wait
                     if BROADCASTER_VERBOSE or self.total_sent % BROADCASTER_TICK == 0:
-                        logger.debug(f"{self.name}: {pretxt} need to send at {df(currval[2], tz)}, waiting {td(timetowait)}, speed={self.speed}, waiting={round(realtimetowait, 1)}")
+                        txt = f"{self.name}: {pretxt} need to send at {df(currval[2], tz)}, waiting {td(timetowait)}, speed={self.speed}, waiting={round(realtimetowait, 1)}"
+                        if self.name in QUEUE_COLORS.keys():
+                            logger.debug(colored(txt, QUEUE_COLORS[self.name]))
+                        else:
+                            logger.debug(txt)
 
                     if not self.rdv.wait(timeout=realtimetowait):
                         # we timed out, we need to send

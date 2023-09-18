@@ -11,7 +11,6 @@ from emitpy.airport import ManagedAirportBase
 from emitpy.geo import MovePoint, printFeatures, asLineString
 from emitpy.service import Service
 from emitpy.graph import Route
-from emitpy.utils import compute_time, interpolate, compute_headings
 from emitpy.constants import FEATPROP, SERVICE_PHASE, MOVE_TYPE
 from emitpy.message import ServiceMessage
 from .ground_support_movement import GroundSupportMovement
@@ -51,12 +50,13 @@ class ServiceMovement(GroundSupportMovement):
         Since there is no movement associated, there is no sync label to be used.
         So the relative time will be relative to the supplied scheduled time, which normally is ONBLOCK/OFFBLOCK time.
         """
-        if self.service.pts_duration == 0:
-            self.addMessage(ServiceMessage(subject=f"«{self.service.label}» occured",
+        duration = self.service.duration()
+        if duration == 0:
+            self.addMessage(ServiceMessage(subject=f"«{self.service.label}» {SERVICE_PHASE.OCCURRED.value}",
                                            service=self,
                                            sync=SERVICE_PHASE.START.value,
                                            info=self.getInfo()))
-            logger.debug(f"{self.service.name} added 1 messages")
+            logger.debug(f"{self.service.name} added 1 message")
         else:
             self.addMessage(ServiceMessage(subject=f"«{self.service.label}» {SERVICE_PHASE.START.value}",
                                            service=self,
@@ -67,7 +67,7 @@ class ServiceMovement(GroundSupportMovement):
                                            service=self,
                                            sync=SERVICE_PHASE.END.value,
                                            info=self.getInfo(),
-                                           relative_time=(self.service.pts_duration * 60)))  # minutes
+                                           relative_time=(duration)))
             logger.debug(f"{self.service.name} added 2 messages")
 
     def drive(self):

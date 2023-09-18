@@ -114,12 +114,36 @@ class Service(GroundSupport):
     def setRamp(self, ramp: "Ramp"):
         self.ramp = ramp
 
+    def setQuantity(self, quantity: float):
+        self.quantity = quantity
+
     def setFlight(self, flight: "Flight"):
         self.flight = flight
 
     def setTurnaround(self, turnaround: "Turnaround"):
         self.turnaround = turnaround
 
+    def is_event(self) -> bool:
+        return False
+
+    def duration(self, dflt: int = 30 * 60):  # default is half an hour
+        # returns service duration in seconds
+        if self.quantity is not None:
+            return self.compute_duration(dflt=dflt)
+        if self.rst_schedule.duration is not None:
+            logger.debug(f"{self.name}: no quantity, using service duration")
+            return self.rst_schedule.duration * 60  # seconds
+        logger.warning(f"{self.name}: no quantity or no duration, using default")
+        return dflt
+
+    def compute_duration(self, dflt: int = 30 * 60):
+        if self.quantity is not None and self.vehicle is not None:
+            return self.vehicle.service_duration(self.quantity)
+        if self.rst_schedule.duration is not None:
+            logger.warning(f"{self.name}: no quantity or no vehicle, using service duration")
+            return self.rst_schedule.duration * 60  # seconds
+        logger.warning(f"{self.name}: no quantity or no vehicle, using default")
+        return dflt
 
 # ########################
 # Specific ground handling services
@@ -131,6 +155,9 @@ class EventService(Service):
 
     def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = 1):
         Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
+
+    def is_event(self) -> bool:
+        return True
 
 # PAX
 #

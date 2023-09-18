@@ -123,6 +123,10 @@ class FlightServices:
             alert_time = svc.get(TAR_SERVICE.ALERT.value)
             label = svc.get(TAR_SERVICE.LABEL.value)
             duration = svc.get(TAR_SERVICE.DURATION.value, 0)
+            quantity = svc.get(TAR_SERVICE.QUANTITY.value, 0)
+
+            if duration > 0 and quantity > 0:
+                logger.warning(f"{sname} has both duration and quantity")
 
             if self.flight.load_factor != 1.0:  # Wow
                 duration = duration * self.flight.load_factor
@@ -135,10 +139,13 @@ class FlightServices:
                                                      ramp=self.flight.ramp,
                                                      operator=self.operator)
 
-            this_service.setPTS(relstartime=scheduled, duration=duration, warn=warn_time, alert=alert_time)
+            this_service.setRSTSchedule(relstartime=scheduled, duration=duration, warn=warn_time, alert=alert_time)
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             this_service.setRamp(self.ramp)
+            if quantity > 0:
+                this_service.setQuantity(quantity)
+
             if label is not None:
                 this_service.setLabel(label)
             if sname == EVENT_ONLY_MESSAGE:  # TA service with no vehicle, we just emit messages on the wire
@@ -225,7 +232,7 @@ class FlightServices:
         # OFFBLOCK time for departure
         for service in self.services:
             emit = service["emit"]
-            if emit.has_no_move_ok():
+            if emit.is_event_service():
                 logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need scheduling of positions")
                 continue
             logger.debug(f"scheduling {service[TAR_SERVICE.TYPE.value]}..")
@@ -269,7 +276,7 @@ class FlightServices:
         print(self.flight, file=output)
         print(f"block time: {scheduled.isoformat()}", file=output)
 
-        print(f"PRECISION TIME SCHEDULE", file=output)
+        print(f"RELATIVE SERVICE TIME SCHEDULE", file=output)
         PTS_HEADERS = ["event", "start", "duration", "warn", "alert", "start time", "warn time", "alert time", "end time", "end warn time", "end alert time"]
         table = []
         scheduled = scheduled.replace(microsecond = 0)
@@ -280,28 +287,31 @@ class FlightServices:
             if sty == EVENT_ONLY_MESSAGE:
                 sty = s.label
             line.append(sty)
-            line.append(s.pts_reltime)
-            line.append(s.pts_duration)
-            line.append(s.pts_warn)
-            line.append(s.pts_alert)
-            line.append(scheduled + timedelta(minutes=s.pts_reltime))
-            if s.pts_warn is not None:
-                line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_warn))
+            line.append(s.rst_schedule.reltime)
+            line.append(s.rst_schedule.duration)
+            line.append(s.rst_schedule.warn)
+            line.append(s.rst_schedule.alert)
+            line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime))
+            if s.rst_schedule.warn is not None:
+                line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.warn))
             else:
                 line.append(None)
-            if s.pts_alert is not None:
-                line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_alert))
+            if s.rst_schedule.alert is not None:
+                line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.alert))
             else:
                 line.append(None)
-            line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_duration))
-            if s.pts_warn is not None:
-                line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_duration + s.pts_warn))
+            line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.duration))
+            if s.rst_schedule.warn is not None:
+                line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.duration + s.rst_schedule.warn))
             else:
                 line.append(None)
-            if s.pts_alert is not None:
-                line.append(scheduled + timedelta(minutes=s.pts_reltime + s.pts_duration + s.pts_alert))
+            if s.rst_schedule.alert is not None:
+                line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.duration + s.rst_schedule.alert))
             else:
                 line.append(None)
+            for i in range(5, 11):
+                if line[i] is not None:
+                    line[i] = line[i].strftime("%H:%M:%S")
             table.append(line)
         print(tabulate(table, headers=PTS_HEADERS), file=output)
 
@@ -354,7 +364,7 @@ class FlightServices:
     def format(self, saveToFile: bool = False):
         for service in self.services:
             emit = service["emit"]
-            if emit.has_no_move_ok():
+            if emit.is_event_service():
                 logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need formatting of positions")
                 continue
             logger.debug(f"formatting '{service['type']}' ({len(service['emit'].move_points)}, {len(service['emit']._emit_points)}, {len(service['emit'].getScheduledPoints())})..")
@@ -393,7 +403,7 @@ class FlightServices:
     def enqueueToRedis(self, queue):
         for service in self.services:
             emit = service["emit"]
-            if emit.has_no_move_ok():
+            if emit.is_event_service():
                 logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need enqueueing positions")
                 continue
             logger.debug(f"enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")

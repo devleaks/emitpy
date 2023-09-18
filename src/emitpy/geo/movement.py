@@ -5,11 +5,11 @@ import os
 import io
 import json
 import logging
-import math
 import copy
+
 from datetime import datetime, timedelta
 
-from geojson import Point, LineString, FeatureCollection, Feature
+from geojson import Point, FeatureCollection, Feature
 
 from tabulate import tabulate
 
@@ -121,16 +121,22 @@ class Movement(Messages):
 
     def getMessages(self):
         m = super().getMessages()
-        logger.debug(f"added super()")
+        # logger.debug(f"added super()")
         s = self.getSource()
         if s is not None:
             m = m + s.getMessages()
-            logger.debug(f"added source")
+            # logger.debug(f"added source")
         return m
 
     def getSource(self):
         # Abstract
         return None
+
+    def is_event_service(self):
+        svc = self.getSource()
+        if svc is not None and type(svc).__name__ == "EventService":  # isinstance(svc, EventService)
+            return True
+        return False
 
     def move(self):
         """
@@ -237,6 +243,11 @@ class Movement(Messages):
 
 
     def getRelativeEmissionTime(self, sync: str):
+        if self.is_event_service():
+            label = self.getSource().label
+            logger.debug(f"event service {label} relative time is relative to on/off block (was {sync}).")
+            return 0  # sync info in message at creation
+
         f = findFeatures(self.getPoints(), {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
             r = f[0]
@@ -254,6 +265,9 @@ class Movement(Messages):
     def schedule(self, sync, moment: datetime, do_print: bool = False):
         """
         """
+        if self.is_event_service():
+            return (True, "Movement::schedule: no need to save event service")
+
         # logger.debug(f"mark list: {self.getMarkList()}")
         offset = self.getRelativeEmissionTime(sync)
         if offset is not None:

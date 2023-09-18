@@ -10,71 +10,83 @@ from emitpy.message import Messages
 logger = logging.getLogger("GroundSupport")
 
 
-class PTSTime:
+class RSTSchedule:
+    # Relative service time schedule
 
-    def __init__(self, label: str, ref_scheduled: datetime, scheduled: int, duration: int, warn: int = None, alert: int = None):
+    def __init__(self, scheduled: int, duration: int, warn: int = None, alert: int = None, label: str = None):
 
-        self.label = label                 # Text to remember purpose
-        self.pts_reltime      = scheduled  # relative scheduled service date/time in minutes after/before(negative) on-block/off-block
-        self.pts_duration     = duration   # relative scheduled service duration in minutes, may be refined and computed from quantity+vehicle
-        self.pts_scheduled    = None       # absolute time for above
-        self.pts_estimated    = None
-        self.pts_actual_start = None
-        self.pts_actual_end   = None
+        self.label = label              # Text to remember purpose
 
-        self.pts_warn         = warn
-        self.pts_alert        = alert
+        self.reltime      = scheduled  # relative scheduled service date/time in minutes after/before(negative) on-block/off-block
+        self.duration     = duration   # relative scheduled service duration in minutes, may be refined and computed from quantity+vehicle
+
+        self.scheduled    = None       # absolute time for above
+        self.estimated    = None
+        self.actual_start = None
+        self.actual_end   = None
+
+        self.warn         = warn
+        self.alert        = alert
+
+    def getInfo(self):
+        return {
+            "label": self.label,
+            "start": self.reltime,
+            "duration": self.duration,
+            "warn": self.warn,
+            "alert": self.alert
+        }
 
     def getStartEndTimes(self, timetype: str = "scheduled"):
         if timetype == "actual":
-            return (self.pts_actual_start, self.pts_actual_end)
-        if timetype == "estimated" and self.pts_estimated is not None:
-            return (self.pts_estimated + timedelta(minutes=self.pts_reltime),
-                    self.pts_estimated + timedelta(minutes=(self.pts_reltime + self.pts_duration)))
-        return (self.pts_scheduled + timedelta(minutes=self.pts_reltime),
-                self.pts_scheduled + timedelta(minutes=(self.pts_reltime + self.pts_duration)))
+            return (self.actual_start, self.actual_end)
+        if timetype == "estimated" and self.estimated is not None:
+            return (self.estimated + timedelta(minutes=self.reltime),
+                    self.estimated + timedelta(minutes=(self.reltime + self.duration)))
+        return (self.scheduled + timedelta(minutes=self.reltime),
+                self.scheduled + timedelta(minutes=(self.reltime + self.duration)))
 
     def getWarnAlertTimes(self, timetype: str = "scheduled"):
         if timetype == "actual":
-            return (self.pts_actual_start + timedelta(minutes=self.pts_warn), self.pts_actual_start + timedelta(minutes=self.pts_alert))
-        if timetype == "estimated" and self.pts_estimated is not None:
-            return (self.pts_estimated + timedelta(minutes=self.pts_warn), self.pts_estimated + timedelta(minutes=self.pts_alert))
-        return (self.pts_scheduled + timedelta(minutes=self.pts_warn),
-                self.pts_scheduled + timedelta(minutes=self.pts_alert))
+            return (self.actual_start + timedelta(minutes=self.warn), self.actual_start + timedelta(minutes=self.alert))
+        if timetype == "estimated" and self.estimated is not None:
+            return (self.estimated + timedelta(minutes=self.warn), self.estimated + timedelta(minutes=self.alert))
+        return (self.scheduled + timedelta(minutes=self.warn),
+                self.scheduled + timedelta(minutes=self.alert))
 
 
 class GroundSupport(Messages):
 
-    def __init__(self, operator: "Company", scheduled: int = 0, duration: int = 0):
+    def __init__(self, operator: "Company", scheduled: int = 0, duration: int = 0, **kwargs):
         Messages.__init__(self)
+
+        self.name = None
+        self.label = None
 
         self.operator = operator
 
-        self.pts_reltime     = scheduled  # relative scheduled service date/time in minutes after/before(negative) on-block/off-block
-        self.pts_duration    = duration   # relative scheduled service duration in minutes, may be refined and computed from quantity+vehicle
-        self.pts_scheduled   = None       # absolute time for above
-        self.pts_estimated   = None
-        self.pts_actual      = None
+        self.rst_schedule = RSTSchedule(scheduled=scheduled,
+                                        duration=duration,
+                                        warn=kwargs.get("warn"),
+                                        alert=kwargs.get("alert"),
+                                        label=kwargs.get("label"))
 
-        self.pts_warn        = None
-        self.pts_alert       = None
-
-        self.scheduled = None  # scheduled service date/time = pts_refscheduled + pts_scheduled
-        self.estimated = None
+        self.scheduled   = None
+        self.scheduled_dt = None
+        self.estimated   = None
+        self.estimated_dt = None
         self.actual = None
         self.actual_end = None
 
-        self.pause_before = 0  # currently unused
-        self.pause_after = 0   # currently unused
-        self.setup_time = 0    # currently unused
+        self.pause_before = 0    # currently unused
+        self.pause_after = 0     # currently unused
+        self.setup_time = 0      # currently unused
         self.cleanup_time = 0    # currently unused
 
         self.vehicle = None
-        self.next_position = None
+        self.next_position = None  # where the vehicle will go after servicing this one
         self.route = []
-        self.name = None
-        self.label = None
-        self.quantity = None
+
 
     def getId(self):
         return self.name
@@ -83,45 +95,49 @@ class GroundSupport(Messages):
         return {
             "ground-support": type(self).__name__,
             "operator": self.operator.getInfo(),
-            "schedule": self.pts_reltime,
-            "duration": self.pts_duration,
+            "schedule": self.rst_schedule.reltime,
+            "duration": self.rst_schedule.duration,
             "name": self.name,
             "label": self.label
         }
 
-    def setPTS(self, relstartime: int, duration: int, warn: int = None, alert: int = None):
-        self.pts_reltime   = relstartime
-        self.pts_duration  = int(duration)
+    def setRSTSchedule(self, relstartime: int, duration: int, warn: int = None, alert: int = None):
+        self.rst_schedule.reltime   = relstartime
+        self.rst_schedule.duration  = int(duration)
         if warn is not None:
-            self.pts_warn = warn
+            self.rst_schedule.warn = warn
         if alert is not None:
-            self.pts_alert = alert
+            self.rst_schedule.alert = alert
 
     def setName(self, name: str):
         self.name = name
 
     def setLabel(self, label: str):
         self.label = label
+        self.rst_schedule.label = label
 
     def setVehicle(self, vehicle: Equipment):
         self.vehicle = vehicle
 
     def setNextPosition(self, position):
-        self.pos_next = position
+        self.next_position = position
 
-    def duration(self, dflt: int = 30 * 60):  # default is half an hour
-        return self.pts_duration * 60  # seconds
+    def duration(self, dflt: int = 30 * 60):
+        if self.rst_schedule.duration is not None:
+            return self.rst_schedule.duration * 60  # seconds
+        return dflt
 
     def compute_duration(self, dflt: int = 30 * 60):
-        if self.vehicle is None:
-            return dflt
-        return self.vehicle.service_duration(self.quantity)
+        return self.duration(dflt)
 
     def run(self, moment: datetime):
         return (False, "Service::run not implemented")
 
+    def getEstimatedTime(self):
+        return self.estimated_dt
+
     def setEstimatedTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):
-        self.estimated = dt
+        self.estimated_dt = dt
         self.schedule_history.append((dt.isoformat(), "ET", info_time.isoformat()))
 
     def setActualTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):

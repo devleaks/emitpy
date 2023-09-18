@@ -596,7 +596,7 @@ class AircraftTypeWithPerformance(AircraftType):
                     data = json.load(file)
             logger.debug(f"loaded {filename} for aircraft type {self.typeId.upper()}")
         else:  # fall back on aircraft performance category (A-F)
-            logger.warning(f"file not found {filename}")
+            logger.warning(f"file not found {filename}, using default")
             filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.getClass()+extension)
             if os.path.exists(filename):
                 with open(filename, "r") as file:

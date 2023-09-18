@@ -369,6 +369,7 @@ EVENT_ONLY_MESSAGE = "event"
 EVENT_ONLY_SERVICE = "EventService"
 
 
+# Keywords found in ta_profiles
 class TAR_SERVICE(Enum):
     TYPE = "type"
     START = "start"
@@ -377,6 +378,8 @@ class TAR_SERVICE(Enum):
     WARN  = "warn"
     MODEL = "model"
     LABEL = "event"
+    EVENT = "event"
+    QUANTITY = "quantity"
 
 
 class SERVICE_PHASE(Enum):
@@ -386,6 +389,7 @@ class SERVICE_PHASE(Enum):
     SERVICE_END = "service-end"
     LEAVE = "leave"
     END = "end"
+    OCCURRED = "occurred"  # when an event-type service happens
 
 
 class POI_TYPE(Enum):
@@ -416,7 +420,6 @@ class DEPARTURE_DELAY(IntEnum):
     RUNWAY_HOLD = 2
     TAKE_OFF_QUEUE = 3
     TAKE_OFF_HOLD = 4
-
 
 
 ########################################

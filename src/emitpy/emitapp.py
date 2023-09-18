@@ -263,9 +263,11 @@ class EmitApp(ManagedAirport):
     def do_flight(self, queue, emit_rate, airline, flightnumber, scheduled, apt, movetype, actype, ramp, icao24, acreg, runway: str = None, load_factor:float = 1.0, is_cargo: bool = False, do_services: bool = False, actual_datetime: str = None):
         # 0. Presentation + input
         fromto = "from" if movetype == ARRIVAL else "to"
+        arrdep = FLIGHT_PHASE.TOUCH_DOWN.value if movetype == ARRIVAL else FLIGHT_PHASE.TAKE_OFF.value
+        timeinfo = actual_datetime if actual_datetime is not None else scheduled
         logger.info("*" * 110)
         logger.info(f"***** {airline}{flightnumber} {scheduled} {movetype} {fromto} {apt} {actype} {icao24} {acreg} {ramp} {runway}")
-        logger.debug(f"**** scheduled {FLIGHT_PHASE.TOUCH_DOWN.value if movetype == ARRIVAL else FLIGHT_PHASE.TAKE_OFF.value} {actual_datetime if actual_datetime is not None else scheduled}")
+        logger.debug(f"**** scheduled {arrdep} {timeinfo}")
         logger.debug("*" * 109)
 
         emit_rate_svc = emit_rate
@@ -427,7 +429,7 @@ class EmitApp(ManagedAirport):
 
         # 7. Schedule emit
         logger.debug("..scheduling..")
-        ret = emit.schedule(sync, emit_time, do_print=True)
+        ret = emit.schedule(sync=sync, moment=None, do_print=True)  # moment=None means will use flight estimated time
         if not ret[0]:
             return StatusInfo(9, f"problem during schedule", ret[1])
 

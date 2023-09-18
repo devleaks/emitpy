@@ -6,11 +6,10 @@ from jsonpath import JSONPath
 
 from .emit import EmitPoint, Emit
 # pylint: disable=C0411
-from emitpy.message import ReMessage, EstimatedTimeMessage
+from emitpy.message import ReMessage
 from emitpy.constants import ID_SEP, FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASES, REDIS_TYPE, FLIGHT_DATABASE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
-from emitpy.utils import Timezone
 
 
 logger = logging.getLogger("ReEmit")
@@ -303,15 +302,6 @@ class ReEmit(Emit):
             is_arrival = self.getMeta("$.move.flight.is_arrival")
             if fid is not None:
                 am = self.managedAirport.airport.manager
-
-                TIME_NEW_ET_ADVANCE_WARNING=-1800
-                self.addMessage(EstimatedTimeMessage(flight_id=fid,
-                                                 is_arrival=is_arrival,
-                                                 scheduled_time=et,
-                                                 relative_time=TIME_NEW_ET_ADVANCE_WARNING,
-                                                 et=et))
-                logger.debug(f"sent new estimate message {fid}: {et}")
-
                 # 3. For flight: update runway, ramp
                 rwy = self.getMeta("$.props.flight.runway.resource")
                 et_from = et - timedelta(minutes=3)

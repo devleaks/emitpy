@@ -21,7 +21,6 @@ from redis.commands.json.path import Path
 import emitpy
 from emitpy.geo import MovePoint, cleanFeatures, findFeatures, Movement, toTraffic, toLST
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path
-from emitpy.message import EstimatedTimeMessage
 
 from emitpy.constants import SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
@@ -34,8 +33,6 @@ logger = logging.getLogger("Emit")
 
 BROADCAST_AT_VERTEX = False  # Tells whether emit should be produced at movement vertices (waypoints, cross roads, etc.)
 # Reality is False, but for debugging purposes setting to True can help follow paths/linestrings.
-
-must_spit_out = False  # must be a "global var", but only used in emit() in lambda expressions (should be scoped to emit() only.)
 
 
 class EmitPoint(MovePoint):
@@ -146,10 +143,10 @@ class Emit(Movement):
 
     def getMessages(self):
         m = super().getMessages()  # this emit's messages
-        logger.debug(f"added super()")
+        # logger.debug(f"added super()")
         if self.move is not None:
             m = m + self.move.getMessages()
-            logger.debug(f"added source")
+            # logger.debug(f"added source")
         return m
 
 
@@ -168,13 +165,6 @@ class Emit(Movement):
             self.emit_meta["time"] = source.getScheduleHistory(as_string=True)
         # logger.debug(f"{self.emit_meta}")
         return self.emit_meta
-
-
-    def has_no_move_ok(self):
-        svc = self.getSource()
-        if type(svc).__name__ == "EventService":  # isinstance(svc, EventService)
-            return True
-        return False
 
 
     def getKey(self, extension: str):
@@ -278,8 +268,8 @@ class Emit(Movement):
         """
         Save flight paths to file for emitted positions.
         """
-        if self.has_no_move_ok():
-            return (True, "Emit::no need to save event service")
+        if self.is_event_service():
+            return (True, "Emit::saveFile: no need to save event service")
 
         # 1. Save "raw emits"
         # filename = os.path.join(basename + "-5-emit.json")
@@ -383,7 +373,6 @@ class Emit(Movement):
 
     def emit(self, frequency: int):
         # Utility subfunctions
-        global must_spit_out
         must_spit_out = False
         emit_details = False
 
@@ -449,7 +438,7 @@ class Emit(Movement):
             return point_on_line(currpos, self.move_points[idx+1], dist)
 
         def emit_point(idx, pos, time, reason, waypt=False):
-            global must_spit_out
+            nonlocal must_spit_out
             e = EmitPoint.new(pos)
             e.setProp(FEATPROP.EMIT_REL_TIME.value, time)
             e.setProp(FEATPROP.EMIT_INDEX.value, len(self.getEmitPoints()))  # Sets unique index on emit features
@@ -476,7 +465,7 @@ class Emit(Movement):
             # logger.debug(f"emit_point: dist2nvtx={round(distance(e, self.move_points[idx+1])*1000,1)} i={idx} e={len(self.getEmitPoints())}")
 
         def pause_at_vertex(curr_time, time_to_next_emit, pause: float, idx, pos, time, reason):
-            global must_spit_out
+            nonlocal must_spit_out
             debug_pause = False
             if emit_details:
                 logger.debug(f"pause i={idx} p={pause}, e={len(self.getEmitPoints())}")
@@ -539,7 +528,7 @@ class Emit(Movement):
         #
         #
         if self.move_points is None or len(self.move_points) == 0:
-            if self.has_no_move_ok():
+            if self.is_event_service():
                 svc = self.getSource()
                 logger.debug(f"service {type(svc).__name__} «{svc.label}» has no vehicle, assuming event report only")
                 return (True, "Emit::emit: no moves, assuming event report only")
@@ -971,6 +960,16 @@ class Emit(Movement):
     def schedule(self, sync, moment: datetime, do_print: bool = False):
         """
         """
+        if self.is_event_service():
+            return (True, "Emit::schedule: no need to save event service")
+
+        dt_provided = True
+        if moment is None:
+            dt_provided = False
+            moment = self.getSource().getEstimatedTime()
+            if moment is None:
+                return (False, "Emit::schedule: no scheduled time")
+
         if self.emit_id is None:
             logger.debug(f"no emit id")
             return (False, f"Emit::schedule no emit id")
@@ -1000,7 +999,7 @@ class Emit(Movement):
                 self._scheduled_points.append(p)
             logger.debug(f"emit_point finishes at {when} ({when.timestamp()}) ({len(self._scheduled_points)} positions)")
             # now that we have "absolute time", we update the parent
-            ret = self.updateEstimatedTime()
+            ret = self.updateEstimatedTime(update_source=dt_provided)
             if not ret[0]:
                 return ret
             # May be should not do it here...
@@ -1017,6 +1016,13 @@ class Emit(Movement):
 
 
     def scheduleMessages(self, sync, moment: datetime, do_print: bool = False):
+        dt_provided = True
+        if moment is None:
+            dt_provided = False
+            moment = self.getSource().getEstimatedTime()
+            if moment is None:
+                return (False, "Emit::scheduleMessages: no scheduled time")
+
         output = io.StringIO()
 
         print("\n", file=output)
@@ -1033,6 +1039,7 @@ class Emit(Movement):
             logger.debug(f"{self.getId()}: t=0 at {t0}..")
         else:
             logger.warning(f"{self.getId()}: {sync} mark not found, using moment with no offset")
+        # t0 is ON/OFF BLOCK time
         for m in self.getMessages():
             when = t0
             offset = 0
@@ -1045,6 +1052,8 @@ class Emit(Movement):
                     logger.debug(f"{self.getId()}: {m.relative_sync} offset={offset}sec, total={total}")
                 else:
                     logger.warning(f"{self.getId()}: {m.relative_sync} mark not found, using moment with no offset")
+            else:
+                logger.debug(f"{self.getId()}: no relative sync, using ON/OFF BLOCK time")
             m.schedule(when)
             line = []
             line.append(m.getType())
@@ -1085,25 +1094,6 @@ class Emit(Movement):
             return f[0]
         logger.warning(f"{sync} not found in emission")
         return None
-
-
-    # def getRelativeEmissionTime(self, sync: str):
-    #     f = findFeatures(self.getEmitPoints(), {FEATPROP.MARK.value: sync})
-    #     if f is not None and len(f) > 0:
-    #         r = f[0]
-    #         logger.debug(f"found {sync}")
-    #         offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
-    #         if offset is not None:
-    #             return offset
-    #         else:
-    #             logger.warning(f"{FEATPROP.MARK.value} {sync} has no time offset, using 0")
-    #             return 0
-    #     if not self.has_no_move_ok():
-    #         logger.warning(f"{self.getId()}: {sync} not found in emission ({self.getMarkList()})")
-    #         self.write_debug("getRelativeEmissionTime")
-    #     else:
-    #         logger.debug(f"event service has no position emission time (just messages)")
-    #     return None
 
 
     def getAbsoluteEmissionTime(self, sync: str):
@@ -1148,14 +1138,15 @@ class Emit(Movement):
         return None
 
 
-    def updateEstimatedTime(self):
+    def updateEstimatedTime(self, update_source: bool = True):
         """
         Copies the estimated time into source movement.
         """
         et = self.getEstimatedTime()
         if et is not None:
             source = self.getSource()
-            source.setEstimatedTime(dt=et)
+            if update_source:
+                source.setEstimatedTime(dt=et)
             self.updateResources(et)
             logger.debug(f"estimated {source.getId()}: {et.isoformat()}")
             return (True, "Emit::updateEstimatedTime updated")
@@ -1175,16 +1166,6 @@ class Emit(Movement):
             fid = source.getId()
             is_arrival = source.is_arrival()
             am = source.managedAirport.airport.manager
-
-            TIME_NEW_ET_ADVANCE_WARNING=-1800
-            self.addMessage(EstimatedTimeMessage(flight_id=fid,
-                                                 is_arrival=is_arrival,
-                                                 scheduled_time=et,
-                                                 relative_time=TIME_NEW_ET_ADVANCE_WARNING,
-                                                 et=et))
-            logger.debug(f"sent new estimate message {fid}: {et}")
-
-
             rwy = source.runway.getResourceId()
             et_from = et - timedelta(minutes=3)
             et_to   = et + timedelta(minutes=3)

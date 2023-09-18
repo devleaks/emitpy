@@ -1187,73 +1187,50 @@ class FlightMovement(Movement):
         return (True, "Movement::taxiInterpolateAndTime done")
 
 
-    def add_tmo(self, TMO: float = 10 * NAUTICAL_MILE):
+    def add_tmo(self, TMO: float = 10 * NAUTICAL_MILE, mark: str = FLIGHT_PHASE.TEN_MILE_OUT.value):
         # We add a TMO point (Ten (nautical) Miles Out). Should be set before we interpolate.
         # TMO = 10 * NAUTICAL_MILE  # km
         move_points = super().getMovePoints()  # we don't need the taxi points
         idx = len(move_points) - 1  # last is end of roll, before last is touch down.
         totald = 0
         prev = 0
+        # If necessary, use "bird flight distance" with
+        # while ditance(move_points[idx], move_points[-2]) < TMO and idx > 1:  # last is end of roll, before last is touch down.)
         while totald < TMO and idx > 1:
             idx = idx - 1
             d = distance(move_points[idx], move_points[idx - 1])
             prev = totald
             totald = totald + d
             # logger.debug("add_tmo: %d: d=%f, t=%f" % (idx, d, totald))
-        # idx points at
-        left = TMO - prev
-        # logger.debug("add_tmo: %d: left=%f, TMO=%f" % (idx, left, TMO))
-        brng = bearing(move_points[idx], move_points[idx - 1])
-        tmopt = destination(move_points[idx], left, brng, {"units": "km"})
+        if idx >= 0:
+            # idx points at
+            left = TMO - prev
+            # logger.debug("add_tmo: %d: left=%f, TMO=%f" % (idx, left, TMO))
+            brng = bearing(move_points[idx], move_points[idx - 1])
+            tmopt = destination(move_points[idx], left, brng, {"units": "km"})
 
-        tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
-        tmomp.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.TEN_MILE_OUT.value)
+            tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
+            tmomp.setProp(FEATPROP.MARK.value, mark)
 
-        d = distance(tmomp, move_points[-2])  # last is end of roll, before last is touch down.
+            d = distance(tmomp, move_points[-2])  # last is end of roll, before last is touch down.
 
-        move_points.insert(idx, tmomp)
-        logger.debug(f"added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down")
+            move_points.insert(idx, tmomp)
+            logger.debug(f"added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down")
 
-        self.addMessage(FlightMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.TEN_MILE_OUT.value}",
-                                      flight=self,
-                                      sync=FLIGHT_PHASE.TEN_MILE_OUT.value))
+            self.addMessage(FlightMessage(subject=f"{self.flight_id} {mark}",
+                                          flight=self,
+                                          sync=mark))
+        else:
+            logger.warning(f"less than {TMO} miles, no {mark} point added")
 
         return (True, "Movement::add_tmo added")
 
 
     def add_faraway(self, FARAWAY: float = 100 * NAUTICAL_MILE):
         # We add a FARAWAY point when flight is at FARAWAY from begin of roll (i.e. at FARAWAY from airport).
-        move_points = super().getMovePoints()
-        start = move_points[0]
-        idx = 0
-        totald = 0
-        prev = 0
-        while totald < FARAWAY and idx < (len(self.getMovePoints()) - 1):
-            totald = distance(start, move_points[idx + 1])
-            prev = totald
-            idx = idx + 1
-            # logger.debug("add_faraway: %d: d=%f, t=%f" % (idx, d, totald))
-        # idx points at
-        left = FARAWAY - prev
-        # logger.debug("add_faraway: %d: left=%f, FARAWAY=%f" % (idx, left, FARAWAY))
-        if idx < len(self.getMovePoints()) - 1:
-            brng = bearing(move_points[idx], move_points[idx + 1])
-            tmopt = destination(move_points[idx], left, brng, {"units": "km"})
-
-            tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
-            tmomp.setProp(FEATPROP.MARK.value, FLIGHT_PHASE.FAR_AWAY.value)
-
-            d = distance(start, tmomp)
-            move_points.insert(idx, tmomp)
-            logger.debug(f"added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from airport")
-
-            self.addMessage(FlightMessage(subject=f"{self.flight_id} {FLIGHT_PHASE.FAR_AWAY.value}",
-                                          flight=self,
-                                          sync=FLIGHT_PHASE.FAR_AWAY.value))
-        else:
-            logger.debug(f"less than {FARAWAY} miles, no FAR_AWAY point added")
-
-        return (True, "Movement::add_faraway added")
+        # FARAWAY is ~100 miles away following airways (i.e. 100 miles of flight to go),
+        # not in straght line, although we could adjust algorithm if needed.
+        return self.add_tmo(TMO=FARAWAY, mark=FLIGHT_PHASE.FAR_AWAY.value)
 
 
 class ArrivalMove(FlightMovement):

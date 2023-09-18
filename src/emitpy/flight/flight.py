@@ -1,6 +1,6 @@
 # Everything Flight
 import logging
-import yaml
+import traceback
 from datetime import datetime, timedelta, timezone
 
 from emitpy.airspace import FlightRoute
@@ -9,7 +9,7 @@ from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
 from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE, RWY_ARRIVAL_SLOT, RWY_DEPARTURE_SLOT
 from emitpy.utils import FT
-from emitpy.message import Messages, FlightboardMessage
+from emitpy.message import Messages, FlightboardMessage, EstimatedTimeMessage
 
 logger = logging.getLogger("Flight")
 
@@ -191,6 +191,10 @@ class Flight(Messages):
         return self.operator.iata + " " + self.number + " " + self.scheduled_dt.strftime("%H:%M")
 
 
+    def getEstimatedTime(self):
+        return self.estimated_dt
+
+
     def is_cargo(self):
         """
         Returns whether a flight is a pure cargo/freit flight.
@@ -312,7 +316,7 @@ class Flight(Messages):
         return self.departure if self.is_arrival() else self.arrival
 
 
-    def setLinkedFlight(self, linked_flight: 'Flight') -> None:
+    def setLinkedFlight(self, linked_flight: "Flight") -> None:
         # Should check if already defined and different
         if linked_flight.linked_flight is None:
             self.linked_flight = linked_flight
@@ -325,9 +329,9 @@ class Flight(Messages):
     def setFL(self, flight_level: int) -> None:
         self.flight_level = flight_level
         if flight_level <= 100:
-            logger.warning("%d" % self.flight_level)
+            logger.warning(f"{self.flight_level}")
         else:
-            logger.debug("%d" % self.flight_level)
+            logger.debug(f"{self.flight_level}")
 
 
     def setLoadFactor(self, load_factor: float):
@@ -337,11 +341,11 @@ class Flight(Messages):
             logger.warning(f"invalid load factor {load_factor} ∉ [0,2]")
 
 
-    def setFlightService(self, flight_service: 'FlightService'):
+    def setFlightService(self, flight_service: "FlightService"):
         self.turnaround = flight_service
 
 
-    def setTurnaround(self, turnaround: 'Turnaround'):
+    def setTurnaround(self, turnaround: "Turnaround"):
         self.turnaround = turnaround
 
 
@@ -396,7 +400,7 @@ class Flight(Messages):
                     if name in am.runway_allocator.resources.keys():
                         reqtime = self.scheduled_dt + timedelta(minutes=20)  # time to taxi
                         reqduration = RWY_DEPARTURE_SLOT if self.is_departure() else RWY_ARRIVAL_SLOT
-                        reqend  = reqtime + timedelta(seconds=reqduration)  # time to take-off + WTC spacing
+                        reqend = reqtime + timedelta(seconds=reqduration)  # time to take-off + WTC spacing
                         #
                         # @TODO: If not available, should take next availability and "queue"
                         #
@@ -407,11 +411,11 @@ class Flight(Messages):
                         logger.warning(f"resource {name} not found, runway unchanged")
                     logger.debug(f"{self.getName()}: {name}")
                 else:
-                    logger.warning(f"no runway, runway unchanged")
+                    logger.warning("no runway, runway unchanged")
             else:
-                 logger.warning(f"no move, runway unchanged")
+                logger.warning("no move, runway unchanged")
         else:
-            logger.warning(f"no RWY, runway unchanged")
+            logger.warning("no RWY, runway unchanged")
 
 
     def makeFlightRoute(self):
@@ -423,8 +427,8 @@ class Flight(Messages):
 
         fplen = len(self.flightroute.nodes())
         if fplen < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
-            logger.warning("flight route is too short %d" % fplen)
-        logger.debug("loaded %d waypoints" % fplen)
+            logger.warning(f"flight route is too short {fplen}")
+        logger.debug(f"loaded {fplen} waypoints")
 
 
     def printFlightRoute(self):
@@ -440,6 +444,13 @@ class Flight(Messages):
         self.schedule_history.append((dt.isoformat(), "ET", info_time.isoformat()))
         self.estimate_opposite()
 
+        if dt < info_time:
+            logger.warning("announce event after occurance")
+        rt = dt - info_time
+        self.addMessage(EstimatedTimeMessage(flight_id=self.getId(),
+                                             is_arrival=self.is_arrival(),
+                                             relative_time=rt.seconds,
+                                             et=dt))
 
     def setActualTime(self, dt: datetime, info_time: datetime = datetime.now().astimezone()):
         self.actual_dt = dt

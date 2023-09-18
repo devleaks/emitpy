@@ -16,17 +16,14 @@ from datetime import datetime
 
 import emitpy
 from emitpy.managedairport import ManagedAirport
-from emitpy.business import Airline, Company, AirportManager
-from emitpy.aircraft import AircraftType, AircraftTypeWithPerformance, Aircraft
-from emitpy.service import Service, ServiceMovement, FlightServices, Mission, MissionMove
-from emitpy.emit import Emit, ReEmit
-from emitpy.broadcast import EnqueueToRedis, Queue
+from emitpy.business import Airline, AirportManager
+from emitpy.aircraft import AircraftType, AircraftTypeWithPerformance
 from emitpy.airspace import SignificantPoint, NavAid, CPIDENT, AirwaySegment, Terminal, ControlledAirspace, XPAerospace
-from emitpy.airport import Airport, ManagedAirportBase, XPAirport
+from emitpy.airport import Airport, XPAirport
 from emitpy.weather import WebWeatherEngine
 
-from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
-from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE, FLIGHTROUTE_DATABASE
+from emitpy.constants import REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
+from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, AIRCRAFT_TYPE_DATABASE, FLIGHTROUTE_DATABASE
 
 from emitpy.utils import NAUTICAL_MILE
 from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT
