@@ -11,6 +11,7 @@ from datetime import datetime
 
 from emitpy.constants import REDIS_DATABASE, REDIS_DB
 from emitpy.parameters import WEATHER_DIR
+from emitpy.utils import key_path
 from .utils import normalize_dt
 
 logger = logging.getLogger("WeatherEngine")
