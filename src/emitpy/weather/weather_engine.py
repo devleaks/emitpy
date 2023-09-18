@@ -9,6 +9,7 @@ import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+from emitpy.constants import REDIS_DATABASE, REDIS_DB
 from emitpy.parameters import WEATHER_DIR
 from .utils import normalize_dt
 
