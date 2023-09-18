@@ -23,6 +23,7 @@ from emitpy.emit import Emit, ReEmit
 from emitpy.broadcast import EnqueueToRedis, Queue
 from emitpy.airspace import SignificantPoint, NavAid, CPIDENT, AirwaySegment, Terminal, ControlledAirspace, XPAerospace
 from emitpy.airport import Airport, ManagedAirportBase, XPAirport
+from emitpy.weather import WebWeatherEngine
 
 from emitpy.constants import REDIS_TYPE, REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, RAMP_TYPE, AIRCRAFT_TYPE_DATABASE, FLIGHTROUTE_DATABASE
@@ -47,6 +48,7 @@ class LoadApp(ManagedAirport):
         self._aerospace = XPAerospace
         self._managedairport = XPAirport
         self._airportmanager = AirportManager
+        self._weather_engine = WebWeatherEngine # XPWeatherEngine
 
         ManagedAirport.__init__(self, icao=icao, app=self)
 
