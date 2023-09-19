@@ -404,10 +404,7 @@ class AirportManager:
                             icao24 = AirportManager.randomICAO24(15)
                             vehicle.setICAO24(icao24)  # starts with F like fleet.
                             # Set service props
-                            vehicle.flow = equipment.get(EQUIPMENT.FLOW.value, 1)
-                            vehicle.capacity = equipment.get(EQUIPMENT.CAPACITY.value, inf)
-                            vehicle.setup_time = equipment.get(EQUIPMENT.SETUP.value, 0)
-                            vehicle.cleanup_time = equipment.get(EQUIPMENT.CLEANUP.value, 0)
+                            vehicle.setProperties(equipment)
                             #
                             if vname in self.equipments:
                                 logger.warning(f"{vname} already exists, overriding")

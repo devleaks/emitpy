@@ -8,7 +8,7 @@ from math import inf
 import re
 
 from emitpy.business import Identity, Company
-from emitpy.constants import DEFAULT_VEHICLE, DEFAULT_VEHICLE_ICAO
+from emitpy.constants import DEFAULT_VEHICLE, DEFAULT_VEHICLE_ICAO, EQUIPMENT
 
 logger = logging.getLogger("Equipment")
 
@@ -32,7 +32,7 @@ class Equipment(Identity):
         self.callsign = None
 
         self.model = ""
-        self.model_name = "Generic GSE Vehicle"
+        self.label = "Generic GSE Vehicle"
 
         self.mesh  = ["emitpy/gse/marshall.obj"]
 
@@ -112,7 +112,6 @@ class Equipment(Identity):
                 return getattr(servicevehicleclasses, vtype)(registration=registration, operator=operator)
         return None
 
-
     def getId(self):
         return self.name  # registration
 
@@ -132,7 +131,7 @@ class Equipment(Identity):
             "service": re.sub("Vehicle(.*)$", "", type(self).__name__).lower(),  # a try..., not 100% correct
 #             "classname": type(self).__name__,
             "model": self.model,
-            "model_name": self.model_name
+            "model_name": self.label
         }
 
     def addAllocation(self, reservation):
@@ -150,9 +149,14 @@ class Equipment(Identity):
     def setNextPosition(self, position):
         self.next_position = position
 
-
     def getPosition(self):
         return self.position
+
+    def setProperties(self, props: dict):
+        self.flow = props.get(EQUIPMENT.FLOW.value, 1)
+        self.capacity = props.get(EQUIPMENT.CAPACITY.value, inf)
+        self.setup_time = props.get(EQUIPMENT.SETUP.value, 0)
+        self.cleanup_time = props.get(EQUIPMENT.CLEANUP.value, 0)
 
     def refill(self, quantity: float=None):
         """
@@ -199,7 +203,7 @@ class Equipment(Identity):
         """
         service_time = 0
         if self.flow != 0:
-            service_time = quantity / self.flow
+            service_time = round(quantity / self.flow, 3)
         if add_setup:
             logger.debug(f"adding setup {self.setup_time}/cleanup {self.cleanup_time}")
             return self.setup_time + service_time + self.cleanup_time
@@ -224,6 +228,8 @@ class Equipment(Identity):
 
         return served
 
+    def has_capacity(self) -> bool:
+        return self.capacity is not None and self.capacity != inf
 
 # ########################
 # FUEL
@@ -235,7 +241,7 @@ class FuelVehicle(Equipment):
 
         self.icao = "ZZZE"
         self.model = ""
-        self.model_name = "Generic fuel vehicle (medium size tanker)"
+        self.label = "Generic fuel vehicle (medium size tanker)"
         self.capacity = 20
         self.flow = 0.9 / 60
         self.speeds = {
@@ -258,7 +264,7 @@ class FuelVehiclePump(FuelVehicle):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZF"
         self.model = "pump"
-        self.model_name = "Fuel pump vehicle"
+        self.label = "Fuel pump vehicle"
         self.capacity = inf
         self.flow = 2.0 / 60
         self.speeds = {
@@ -274,7 +280,7 @@ class FuelVehicleHydrant(FuelVehicle):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZF"
         self.model = "hydrant"
-        self.model_name = "Fuel hydrant vehicle"
+        self.label = "Fuel hydrant vehicle"
         self.capacity = inf
         self.flow = 2.0 / 60
         self.speeds = {
@@ -290,7 +296,7 @@ class FuelVehicleLargeTanker(FuelVehicle):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZG"
         self.model = "large-tanker"
-        self.model_name = "Fuel tanker large"
+        self.label = "Fuel tanker large"
         self.capacity = 40
         self.flow = 1.5 / 60
         self.speeds = {
@@ -306,7 +312,7 @@ class FuelVehicleMediumTanker(FuelVehicle):
         FuelVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZE"
         self.model = "medium-tanker"
-        self.model_name = "Fuel tanker medium"
+        self.label = "Fuel tanker medium"
         self.capacity = 20
         self.flow = 0.9 / 60
         self.speeds = {
@@ -325,7 +331,7 @@ class CateringVehicle(Equipment):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZH"
         self.model = ""
-        self.model_name = "Catering vehicle"
+        self.label = "Catering vehicle"
         self.setup_time = 4
         self.flow = 1/20
 
@@ -338,7 +344,7 @@ class CleaningVehicle(Equipment):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZX"
         self.model = ""
-        self.model_name = "Cleaning vehicle"
+        self.label = "Cleaning vehicle"
         self.setup_time = 4
         self.flow = 1/20
 
@@ -351,7 +357,7 @@ class SewageVehicle(Equipment):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZV"
         self.model = ""
-        self.model_name = "Sewage vehicle"
+        self.label = "Sewage vehicle"
         self.setup_time = 4
         self.flow = 1/20
 
@@ -364,7 +370,7 @@ class WaterVehicle(Equipment):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZW"
         self.model = ""
-        self.model_name = "Water vehicle"
+        self.label = "Water vehicle"
         self.setup_time = 4
         self.flow = 1/20
 
@@ -377,7 +383,7 @@ class CargoVehicle(Equipment):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZU"
         self.model = ""
-        self.model_name = "Cargo mover vehicle"
+        self.label = "Cargo mover vehicle"
         self.setup_time = 4
         self.flow = 1
 
@@ -387,7 +393,7 @@ class CargoVehicleUld(CargoVehicle):
         CargoVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZT"
         self.model = "uld"
-        self.model_name = "Cargo ULD lift"
+        self.label = "Cargo ULD lift"
         self.setup_time = 4
         self.flow = 1
 
@@ -397,7 +403,7 @@ class CargoVehicleUldTrain(CargoVehicle):
         CargoVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZT"
         self.model = "uld-train"
-        self.model_name = "Cargo ULD train"
+        self.label = "Cargo ULD train"
         self.setup_time = 4
         self.flow = 1
 
@@ -410,7 +416,7 @@ class BaggageVehicle(Equipment):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZB"
         self.model = ""
-        self.model_name = "Baggage train"
+        self.label = "Baggage train"
         self.setup_time = 1
         self.flow = 10
 
@@ -420,7 +426,7 @@ class BaggageVehicleBelt(BaggageVehicle):
         BaggageVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZB"
         self.model = "belt"
-        self.model_name = "Baggage belt vehicle"
+        self.label = "Baggage belt vehicle"
         self.capacity = inf
         self.flow = 1
         self.speeds = {
@@ -436,7 +442,7 @@ class BaggageVehicleTrain(BaggageVehicle):
         BaggageVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZD"
         self.model = "train"
-        self.model_name = "Baggage train"
+        self.label = "Baggage train"
         self.capacity = 50
         self.flow = 10 / 60
         self.speeds = {
@@ -452,7 +458,7 @@ class BaggageVehicleSmallTrain(BaggageVehicle):
         BaggageVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZI"
         self.model = "small-train"
-        self.model_name = "Baggage train (small)"
+        self.label = "Baggage train (small)"
         self.capacity = 100
         self.flow = 10 / 60
         self.speeds = {
@@ -468,7 +474,7 @@ class BaggageVehicleLargeTrain(BaggageVehicle):
         BaggageVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZJ"
         self.model = "large-train"
-        self.model_name = "Baggage train (large)"
+        self.label = "Baggage train (large)"
         self.capacity = 100
         self.flow = 10 / 60
         self.speeds = {
@@ -487,7 +493,7 @@ class CrewVehicle(Equipment):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZK"
         self.model = ""
-        self.model_name = "Crew bus"
+        self.label = "Crew bus"
         self.setup_time = 4
         self.flow = 1
 
@@ -497,7 +503,7 @@ class CrewVehicleBus(CrewVehicle):
         CrewVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZK"
         self.model = "bus"
-        self.model_name = "Crew bus"
+        self.label = "Crew bus"
         self.setup_time = 4
         self.flow = 1
 
@@ -507,7 +513,7 @@ class CrewVehicleLimousine(CrewVehicle):
         CrewVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZL"
         self.model = "limousine"
-        self.model_name = "Crew limousine"
+        self.label = "Crew limousine"
         self.setup_time = 4
         self.flow = 1
 
@@ -520,7 +526,7 @@ class PassengerVehicle(Equipment):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZQ"
         self.model = ""
-        self.model_name = "Passenger coach"
+        self.label = "Passenger coach"
         self.setup_time = 4
         self.flow = 1
 
@@ -530,7 +536,7 @@ class PassengerVehicleStair(PassengerVehicle):
         PassengerVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZS"
         self.model = "bus"
-        self.model_name = "Passenger coach"
+        self.label = "Passenger coach"
         self.setup_time = 4
         self.flow = 1
 
@@ -540,7 +546,7 @@ class PassengerVehicleBus(PassengerVehicle):
         PassengerVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZQ"
         self.model = "bus"
-        self.model_name = "Passenger coach"
+        self.label = "Passenger coach"
         self.setup_time = 4
         self.flow = 1
 
@@ -550,7 +556,7 @@ class PassengerVehicleLimousine(PassengerVehicle):
         PassengerVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZZ"
         self.model = "limousine"
-        self.model_name = "VIP limousine"
+        self.label = "VIP limousine"
         self.setup_time = 4
         self.flow = 1
 
@@ -563,7 +569,7 @@ class AircraftVehicle(Equipment):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZA"
         self.model = ""
-        self.model_name = "APU"
+        self.label = "APU"
         self.setup_time = 4
         self.flow = 1
 
@@ -573,7 +579,7 @@ class AircraftVehicleApu(AircraftVehicle):
         AircraftVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZA"
         self.model = "apu"
-        self.model_name = "APU"
+        self.label = "APU"
         self.setup_time = 4
         self.flow = 1
 
@@ -583,7 +589,7 @@ class AircraftVehicleAsu(AircraftVehicle):
         AircraftVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZA"
         self.model = "asu"
-        self.model_name = "ASU"
+        self.label = "ASU"
         self.setup_time = 4
         self.flow = 1
 
@@ -593,7 +599,7 @@ class AircraftVehiclePushback(AircraftVehicle):
         AircraftVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZP"
         self.model = "pushback"
-        self.model_name = "Pushback vehicle"
+        self.label = "Pushback vehicle"
         self.setup_time = 4
         self.flow = 1
 
@@ -603,7 +609,7 @@ class AircraftVehicleTow(AircraftVehicle):
         AircraftVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZT"
         self.model = "tow"
-        self.model_name = "Tow vehicle"
+        self.label = "Tow vehicle"
         self.setup_time = 5
         self.flow = 1
 
@@ -613,7 +619,7 @@ class AircraftVehicleMarshall(AircraftVehicle):
         AircraftVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZC"
         self.model = "marshall"
-        self.model_name = "Marshall vehicle"
+        self.label = "Marshall vehicle"
         self.setup_time = 4
         self.flow = 1
 
@@ -625,7 +631,7 @@ class MissionVehicle(Equipment):
     def __init__(self, registration: str, operator: Company):
         Equipment.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZR"
-        self.model_name = "Mission vehicle"
+        self.label = "Mission vehicle"
         self.setup_time = 4
         self.flow = 1
 
@@ -642,7 +648,7 @@ class MissionVehiclePolice(MissionVehicle):
         MissionVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZY"
         self.model = "police"
-        self.model_name = "Police vehicle"
+        self.label = "Police vehicle"
         self.setup_time = 4
         self.flow = 1
 
@@ -652,7 +658,7 @@ class MissionVehicleSecurity(MissionVehicle):
         MissionVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZR"
         self.model = "security"
-        self.model_name = "Security control vehicle"
+        self.label = "Security control vehicle"
         self.setup_time = 4
         self.flow = 1
 
@@ -662,7 +668,7 @@ class MissionVehicleEmergency(MissionVehicle):
         MissionVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZM"
         self.model = "emergency"
-        self.model_name = "Emergency vehicle (ambulance)"
+        self.label = "Emergency vehicle (ambulance)"
         self.setup_time = 4
         self.flow = 1
 
@@ -672,7 +678,7 @@ class MissionVehicleFire(MissionVehicle):
         MissionVehicle.__init__(self, registration=registration,  operator=operator)
         self.icao = "ZZZN"
         self.model = "fire"
-        self.model_name = "Fire vehicle"
+        self.label = "Fire vehicle"
         self.setup_time = 4
         self.flow = 1
         # May create a few subtypes later...

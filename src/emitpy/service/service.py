@@ -127,6 +127,9 @@ class Service(GroundSupport):
     def is_event(self) -> bool:
         return False
 
+    def using_quantity(self) -> bool:
+        return self.quantity is not None and self.vehicle is not None
+
     def duration(self, add_setup: bool = False):  # default is half an hour
         # returns service duration in seconds
         if self.quantity is not None:

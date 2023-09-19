@@ -207,8 +207,9 @@ class FlightServices:
                     logger.debug(f"service {sname}: reduced duration: load factor={self.flight.load_factor}")
                     duration2 = duration2 * self.flight.load_factor
 
-                this_service.setRSTSchedule(relstartime=scheduled, duration=duration2/60, warn=warn_time, alert=alert_time)
-                logger.debug(f"service {sname}: added RSTS sched={scheduled}, duration={duration2/60} min, w={warn_time}, a={alert_time} (with setup/cleanup)")
+                duration_str = round(duration2/60, 1)
+                this_service.setRSTSchedule(relstartime=scheduled, duration=duration_str, warn=warn_time, alert=alert_time)
+                logger.debug(f"service {sname}: added RSTS sched={scheduled}, duration={duration_str} min, w={warn_time}, a={alert_time} (with setup/cleanup)")
 
             logger.debug(f"..adding..")
             s2 = svc.copy()
