@@ -122,50 +122,73 @@ class FlightServices:
             warn_time = svc.get(TAR_SERVICE.WARN.value)
             alert_time = svc.get(TAR_SERVICE.ALERT.value)
             label = svc.get(TAR_SERVICE.LABEL.value)
-            duration = svc.get(TAR_SERVICE.DURATION.value, 0)
-            quantity = svc.get(TAR_SERVICE.QUANTITY.value, 0)
-
-            if duration > 0 and quantity > 0:
-                logger.warning(f"{sname} has both duration and quantity")
-
-            if self.flight.load_factor != 1.0:  # Wow
-                duration = duration * self.flight.load_factor
+            duration = svc.get(TAR_SERVICE.DURATION.value)
+            quantity = svc.get(TAR_SERVICE.QUANTITY.value)
 
             logger.debug(f"creating service {sname}..")
 
+            # Create service
             service_scheduled_dt = self.flight.scheduled_dt + timedelta(minutes=scheduled)
-            service_scheduled_end_dt = self.flight.scheduled_dt + timedelta(minutes=(scheduled+duration))
             this_service = Service.getService(sname)(scheduled=service_scheduled_dt,
                                                      ramp=self.flight.ramp,
                                                      operator=self.operator)
 
-            this_service.setRSTSchedule(relstartime=scheduled, duration=duration, warn=warn_time, alert=alert_time)
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             this_service.setRamp(self.ramp)
-            if quantity > 0:
-                this_service.setQuantity(quantity)
+            if label is None:
+                label = this_service.getId()
+                logger.warning(f"..service {sname} has no label, added label «{label}»..")
+            this_service.setLabel(label)
 
-            if label is not None:
-                this_service.setLabel(label)
-            if sname == EVENT_ONLY_MESSAGE:  # TA service with no vehicle, we just emit messages on the wire
-                label = svc.get(TAR_SERVICE.LABEL.value)  # Important to set it here, since not provided at creation
-                if label is None:
-                    this_service.label = this_service.getId()
-                    logger.warning(f"event service {svc} has no label, created event only service with label «{this_service.label}»..")
-                else:
-                    this_service.label = label
-                    logger.debug(f"created event only service with label «{this_service.label}»..")
-                    # this_service.setVehicle(None)
+            # 2 cases: Event or regular
+            if this_service.is_event():
+                this_service.setVehicle(None)
+                # there is no "quantity"
+                if quantity is not None:
+                    logger.debug(f"..event only service ignoring quantity..")
+                if duration is None:
+                    logger.debug(f"..event only service forced missing duration to 0..")
+                    duration = 0
+                if duration > 0 and self.flight.load_factor != 1.0:  # Wow
+                    logger.debug(f"service {sname}: reduced duration: load factor={self.flight.load_factor}")
+                    duration = duration * self.flight.load_factor
+                this_service.setRSTSchedule(relstartime=scheduled, duration=duration, warn=warn_time, alert=alert_time)  # duration in minutes
+                logger.debug(f"..created event only service with label «{this_service.label}»..")
             else:
                 equipment_model = svc.get(TAR_SERVICE.MODEL.value)
                 # should book vehicle a few minutes before and after...
+                # chicken/egg problem: for quantity based service, we need to know which vehicle
+                # before we can compute the duration...
+
+                service_scheduled_end_dt = None
+                # Duration or quantity?
+                if duration is not None and quantity is not None:
+                    logger.warning(f"{sname} has both duration and quantity, using quantity")
+                    duration = None
+
+                if duration is None and quantity is None:
+                    duration = this_service.duration()
+                    service_scheduled_end_dt = service_scheduled_dt + timedelta(seconds=duration)
+                    this_service.setRSTSchedule(relstartime=scheduled, duration=duration/60, warn=warn_time, alert=alert_time)
+                    logger.warning(f"{sname} has no duration and no quantity, using default duration {duration} min")
+
+                if duration is None and quantity is not None:
+                    this_service.setQuantity(quantity)
+                    # This will be done in selectEquipment()
+                    # duration = this_equipment.getDuration(quantity=quantity)
+                    logger.debug(f"{sname} uses quantity, duration estimated during vehicle assignment")
+
+                if duration is not None and quantity is None:
+                    this_service.setRSTSchedule(relstartime=scheduled, duration=duration, warn=warn_time, alert=alert_time)  # duration is in minutes
+                    logger.debug(f"{sname} has fixed duration {duration} min (without setup/cleanup)")
+
                 this_equipment = am.selectEquipment(operator=self.operator,
                                                     service=this_service,
                                                     model=equipment_model,
                                                     reqtime=service_scheduled_dt,
                                                     reqend=service_scheduled_end_dt,
-                                                    use=True)  # this will attach this_equipment to this_service
+                                                    use=True)     # this will attach this_equipment to this_service
 
                 if this_equipment is None:
                     return (False, f"FlightServices::service: vehicle not found for {sname}")
@@ -178,16 +201,20 @@ class FlightServices:
 
                 if equipment_startpos is None or equipment_endpos is None:
                     logger.warning(f"positions: {equipment_startpos} -> {equipment_endpos}")
-                # logger.debug(".. moving ..")
-                # move = ServiceMovement(this_service, self.airport)
-                # move.move()
-                # move.save()
 
-            logger.debug(f".. adding ..")
+                duration2 = this_service.duration()
+                if self.flight.load_factor != 1.0:  # Wow
+                    logger.debug(f"service {sname}: reduced duration: load factor={self.flight.load_factor}")
+                    duration2 = duration2 * self.flight.load_factor
+
+                this_service.setRSTSchedule(relstartime=scheduled, duration=duration2/60, warn=warn_time, alert=alert_time)
+                logger.debug(f"service {sname}: added RSTS sched={scheduled}, duration={duration2/60} min, w={warn_time}, a={alert_time} (with setup/cleanup)")
+
+            logger.debug(f"..adding..")
             s2 = svc.copy()
             s2["service"] = this_service
             self.services.append(s2)
-            logger.debug(".. done")
+            logger.debug("..done")
 
         return (True, "FlightServices::service: completed")
 

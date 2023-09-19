@@ -534,7 +534,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(0, "completed successfully", flight.getId())
 
         # 0. Presentation + input
-        logger.debug("*" * 110)
+        logger.debug("=" * 150)
         logger.debug(f"**** {airline.iata}{flightnumber} {scheduled} {movetype} {fromto} {apt} {actype} {icao24} {acreg} {ramp} {runway}")
         logger.debug(f"* done schedule {FLIGHT_PHASE.TOUCH_DOWN.value if movetype == ARRIVAL else FLIGHT_PHASE.TAKE_OFF.value} {actual_datetime if actual_datetime is not None else scheduled}")
 

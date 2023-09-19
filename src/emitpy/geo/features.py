@@ -397,10 +397,9 @@ class Ramp(FeatureWithProps):
         return self.getName()
 
     def hasJetway(self) -> bool:
-        test = self.getProp(FEATPROP.JETWAY.value)
-        if test == True:
-            return True
-        return False
+        # by opposition, if no jetway, assume remote parking area
+        test = self.getProp(FEATPROP.JETWAY.value)  # must be exactly True
+        return test if test == True else False
 
     def busy(self):
         self["properties"]["available"] = False

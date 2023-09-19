@@ -109,8 +109,8 @@ TAG_SEP = "|"
 FLIGHT_TIME_FORMAT = "%Y%m%d%H%M"
 AIRAC_CYCLE = "AIRAC"
 
-DEFAULT_VEHICLE = ":default"
-DEFAULT_VEHICLE_SHORT = "SV"
+DEFAULT_VEHICLE = ":def"
+DEFAULT_VEHICLE_SHORT = "std"
 DEFAULT_VEHICLE_ICAO = "ZZZC"  # marshall car
 
 class POI_COMBO(Enum):
@@ -380,6 +380,19 @@ class TAR_SERVICE(Enum):
     LABEL = "event"
     EVENT = "event"
     QUANTITY = "quantity"
+
+
+# Keywords found in ta_profiles
+class EQUIPMENT(Enum):
+    TYPE = "type"
+    COUNT = "fleet"
+    MODEL = "model"
+    LABEL = "event"
+    QUANTITY = "fleet"
+    CAPACITY = "capacity"
+    FLOW = "flow"
+    CLEANUP = "cleanup-time"
+    SETUP = "setup-time"
 
 
 class SERVICE_PHASE(Enum):

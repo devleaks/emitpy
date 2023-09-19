@@ -101,6 +101,7 @@ class ServiceMovement(GroundSupportMovement):
         startpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.START.value)
         move_points.append(startpos)
 
+        logger.debug(f"At parking.")
         self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.START.value}",
                                        service=self,
                                        sync=SERVICE_PHASE.START.value,
@@ -114,6 +115,7 @@ class ServiceMovement(GroundSupportMovement):
             startnp[0].setSpeed(speeds["slow"])  # starts moving
             move_points.append(startnp[0])
 
+        logger.debug(f"Left parking..")
         # logger.debug("start vertex %s" % (startnp[0]))
 
         startnv = self.airport.service_roads.nearest_vertex(startpos)
@@ -129,31 +131,33 @@ class ServiceMovement(GroundSupportMovement):
             # else:
             #     logger.debug(f'created ramp service points {list(gseprofile["services"].keys())}')
 
-        ramp_stop = self.service.ramp.getServicePOI(service_type, self.service.actype)
+        service_pos = self.service.ramp.getServicePOI(service_type, self.service.actype)
+        svc_end = service_pos.copy()
+
         wer = service_type
-        if ramp_stop is None:
+        if service_pos is None:
             logger.warning(f"failed to find ramp stop for { self.service.actype.typeId }, { service_type }, using ramp center")
-            ramp_stop = self.service.ramp  # use center of ramp
+            service_pos = self.service.ramp  # use center of ramp
             wer = "center"
 
-        if ramp_stop is None:
+        if service_pos is None:
             logger.warning(f"failed to find ramp stop and/or center for { service_type }")
             return (False, ":move: failed to find ramp stop")
 
-        # logger.debug("ramp %s" % (ramp_stop))
+        # logger.debug("ramp %s" % (service_pos))
 
         # find closest point on network to ramp
-        ramp_npe = self.airport.service_roads.nearest_point_on_edge(ramp_stop)
+        ramp_npe = self.airport.service_roads.nearest_point_on_edge(service_pos)
         if ramp_npe[0] is None:
-            logger.warning(f"no nearest_point_on_edge for ramp_stop ({wer})")
-        ramp_nv = self.airport.service_roads.nearest_vertex(ramp_stop)
+            logger.warning(f"no nearest_point_on_edge for service_pos ({wer})")
+        ramp_nv = self.airport.service_roads.nearest_vertex(service_pos)
         if ramp_nv[0] is None:
-            logger.warning(f"no nearest_vertex for ramp_stop ({wer})")
+            logger.warning(f"no nearest_vertex for service_pos ({wer})")
 
         # logger.debug("ramp vertex %s" % (ramp_nv[0]))
 
         # route from start to ramp
-        logger.debug(f"route from start {startnv[0].id} to ramp/{wer} {ramp_nv[0].id} (vertices)")
+        logger.debug(f"..route from start {startnv[0].id} to ramp/{wer} {ramp_nv[0].id} (vertices)..")
         rt1 = Route(self.airport.service_roads, startnv[0].id, ramp_nv[0].id)
         # rt1.find()  # auto route
         # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, ramp_nv[0].id)
@@ -168,50 +172,103 @@ class ServiceMovement(GroundSupportMovement):
         else:
             logger.debug(f"no route from start {startnv[0].id} to ramp {ramp_nv[0].id}")
 
+        # Phases ARRIVED / LEAVE is relative to the RAMP, not the service position
         if ramp_npe[0] is not None:
             ramp_npe[0].setSpeed(speeds["slow"])
             ramp_npe[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
             move_points.append(ramp_npe[0])
+            self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}",
+                                           service=self,
+                                           sync=SERVICE_PHASE.ARRIVED.value,
+                                           info=self.getInfo()))
+        else:
+             logger.warning(f"could not find ramp_npe (arriving)")
 
-        self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}",
-                                       service=self,
-                                       sync=SERVICE_PHASE.ARRIVED.value,
-                                       info=self.getInfo()))
+        logger.debug(f"..reached ramp..")
         # ###
         # If there is a stop poi named "STANDBY" and if the service has pause_before > 0
         # we first go to the standby position and wait pause_before minutes.
         #
+        # before service, may first go to ramp rest area.
         ramp_standby = self.service.ramp.getServicePOI("standby", self.service.actype)
+        logger.debug(f"..stand-by?..")
         if ramp_standby is not None and self.service.pause_before > 0:
             ramp_standby_pos = MovePoint.new(ramp_standby)
             ramp_standby_pos.setSpeed(0)
-
-
             ramp_standby_pos.setProp(FEATPROP.MARK.value, "standby-before-service")
             ramp_standby_pos.setPause(self.service.pause_before)
             move_points.append(ramp_standby_pos)
             logger.debug(f"added pause {self.service.pause_before}m before service")
+        else:
+            logger.debug(f"..(no standby before service)..")
 
-        ramp_stop.setSpeed(0)
-        ramp_stop.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
+        service_pos.setSpeed(0)  # service_pos should have orientation set
+        service_pos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
+        logger.debug(f"..reached service position..")
 
-        # Adding service time
-        service_duration = self.service.duration()
-        ramp_stop.setPause(service_duration)
-        logger.debug(f"service duration {service_duration}")
-        move_points.append(ramp_stop)
-
-        self.service.vehicle.setPosition(ramp_stop)
-
+        # .. servicing ..
+        service_duration = self.service.duration(add_setup=True)
+        service_pos.setPause(service_duration)
+        logger.debug(f"..serving (service duration {service_duration} secs)..")
+        move_points.append(service_pos)
+        self.service.vehicle.setPosition(service_pos)
+        # to be correct, service will start after setup_time...
+        reltime = 0
+        if self.service.vehicle.setup_time is not None:
+            reltime = self.service.vehicle.setup_time
         self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has started",
                                        service=self,
                                        sync=SERVICE_PHASE.SERVICE_START.value,
+                                       relative_time=reltime,
                                        info=self.getInfo()))
 
-        # .. servicing ..
-        # before service, may first go to ramp rest area.
-        # after service, may first go to ramp rest area before leaving ramp.
+        # service terminated
+        # svc_end is service_pos.copy()
+        logger.debug(f"..leaving service position..")
+        svc_end.setSpeed(0)
+        svc_end.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_END.value)
+        move_points.append(svc_end)
+
+        # to be correct, service will end before cleanup_time...
+        reltime = 0
+        if self.service.vehicle.cleanup_time is not None:
+            reltime = - self.service.vehicle.cleanup_time
+        self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has ended",
+                                       service=self,
+                                       sync=SERVICE_PHASE.SERVICE_END.value,
+                                       relative_time=reltime,
+                                       info=self.getInfo()))
+        # ###
+        # If there is a stop poi named "REST" and if the service has pause_after > 0
+        # we first go to the rest position and wait pause_after minutes.
         #
+        # after service, may first go to ramp rest area before leaving ramp.
+        logger.debug(f"..resting close by?..")
+        ramp_rest = self.service.ramp.getServicePOI("standby", self.service.actype)
+        if ramp_rest is not None and self.service.pause_after > 0:
+            ramp_rest_pos = MovePoint.new(ramp_rest)
+            ramp_rest_pos.setSpeed(0)
+            ramp_rest_pos.setProp(FEATPROP.MARK.value, "rest-after-service")
+            ramp_rest_pos.setPause(self.service.pause_after)
+            move_points.append(ramp_standby_pos)
+            logger.debug(f"added pause {self.service.pause_after}m after service")
+        else:
+            logger.debug(f"..(no pause after, leaving ramp)..")
+
+        if ramp_npe[0] is not None:
+            ramp_leave = ramp_npe[0].copy()
+            ramp_leave.setSpeed(speeds["slow"])
+            ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
+            move_points.append(ramp_leave)
+            self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}",
+                                           service=self,
+                                           sync=SERVICE_PHASE.LEAVE.value,
+                                           info=self.getInfo()))
+        else:
+             logger.warning(f"could not find ramp_npe (leaving)")
+
+        logger.debug(f"..leaving ramp..")
+
         # find end position if none is given
         finalpos = self.service.vehicle.next_position
         if finalpos is None:
@@ -231,41 +288,8 @@ class ServiceMovement(GroundSupportMovement):
         if endnv[0] is None:
             logger.warning("no nearest_vertex for end")
 
-        svc_end = ramp_stop.copy()
-        svc_end.setSpeed(0)
-        svc_end.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_END.value)
-        move_points.append(svc_end)
-
-        self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has ended",
-                                       service=self,
-                                       sync=SERVICE_PHASE.SERVICE_END.value,
-                                       info=self.getInfo()))
-        # ###
-        # If there is a stop poi named "REST" and if the service has pause_after > 0
-        # we first go to the rest position and wait pause_after minutes.
-        #
-        ramp_rest = self.service.ramp.getServicePOI("standby", self.service.actype)
-        if ramp_rest is not None and self.service.pause_after > 0:
-            ramp_rest_pos = MovePoint.new(ramp_rest)
-            ramp_rest_pos.setSpeed(0)
-            ramp_rest_pos.setProp(FEATPROP.MARK.value, "rest-after-service")
-            ramp_rest_pos.setPause(self.service.pause_after)
-            move_points.append(ramp_standby_pos)
-            logger.debug(f"added pause {self.service.pause_after}m after service")
-
         # route ramp to end position
-        if ramp_npe[0] is not None:
-            ramp_leave = ramp_npe[0].copy()
-            ramp_leave.setSpeed(speeds["slow"])
-            ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
-            move_points.append(ramp_leave)
-
-        self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}",
-                                       service=self,
-                                       sync=SERVICE_PHASE.LEAVE.value,
-                                       info=self.getInfo()))
-
-        logger.debug(f"route from {ramp_nv[0].id} to {endnv[0].id}")
+        logger.debug(f"..route from {ramp_nv[0].id} to {endnv[0].id}..")
         r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)
         if r2.found():
             for vtx in r2.get_vertices():
@@ -275,6 +299,8 @@ class ServiceMovement(GroundSupportMovement):
                 move_points.append(pos)
         else:
             logger.debug(f"no route from ramp {ramp_nv[0].id} to end {endnv[0].id}")
+
+        logger.debug(f"..reaching next position..")
 
         if endnp is not None:
             endnp[0].setSpeed(speeds["slow"])
@@ -287,6 +313,7 @@ class ServiceMovement(GroundSupportMovement):
         finalpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.END.value)
         move_points.append(finalpos)
         self.service.vehicle.setPosition(finalpos)
+        logger.debug(f"..parked at next position")
 
         self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.END.value}",
                                        service=self,
@@ -321,10 +348,10 @@ class ServiceMovement(GroundSupportMovement):
             return (False, "ServiceMovement::drive_loop: service has no vehicle")
 
         # CHECK: Vehicle has "capacity"
-        if vehicle.max_capacity is None:
+        if vehicle.capacity is None:
             return (False, "ServiceMovement::drive_loop: service vehicle has no capacity")
 
-        if vehicle.max_capacity == inf:
+        if vehicle.capacity == inf:
             return (False, "ServiceMovement::drive_loop: service vehicle has infinite capacity, we travel once only")
 
         # CHECK: Service has quantity
@@ -451,10 +478,10 @@ class ServiceMovement(GroundSupportMovement):
         logger.debug("ready to loop")
         vehicle = self.service.vehicle
         service = self.service
-        logger.debug(f"vehicle capacity {vehicle.max_capacity}, current load {vehicle.current_load}")
+        logger.debug(f"vehicle capacity {vehicle.capacity}, current load {vehicle.current_load}")
 
         # Availability on first trip:
-        equipment_capacity = vehicle.max_capacity - vehicle.current_load  # may not be empty when it arrives
+        equipment_capacity = vehicle.capacity - vehicle.current_load  # may not be empty when it arrives
         # .. servicing ..
         # before service, may first go to ramp rest area.
         # after service, may first go to ramp rest area before leaving ramp.
@@ -463,7 +490,7 @@ class ServiceMovement(GroundSupportMovement):
         while self.service.quantity > 0:
             #
             # Fill vehicle, decrease service quantity
-            if vehicle.max_capacity == inf:  # infinite capacity; served in one trip, should not come here...
+            if vehicle.capacity == inf:  # infinite capacity; served in one trip, should not come here...
                 vehicle.current_load = service.quantity
                 svc_duration = vehicle.service_duration(service.quantity)
                 service.quantity = 0
@@ -474,8 +501,8 @@ class ServiceMovement(GroundSupportMovement):
                 service.quantity = 0
             else:
                 logger.debug(f"loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining")
-                vehicle.current_load = vehicle.max_capacity
-                svc_duration = vehicle.service_duration(vehicle.max_capacity)
+                vehicle.current_load = vehicle.capacity
+                svc_duration = vehicle.service_duration(vehicle.capacity)
                 service.quantity = service.quantity - equipment_capacity
 
             logger.debug(f"loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining, load duration={svc_duration}")
@@ -518,7 +545,7 @@ class ServiceMovement(GroundSupportMovement):
             pos.setPause(svc_duration)
 
             vehicle.current_load = 0
-            equipment_capacity = vehicle.max_capacity
+            equipment_capacity = vehicle.capacity
 
             # go back to ramp
             # depot ->network edge (close to depot)

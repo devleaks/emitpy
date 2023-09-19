@@ -8,9 +8,9 @@ import logging
 import random
 import importlib
 import operator as py_operator
-import json
 import csv
 import yaml
+from math import inf
 
 
 from .airline import Airline
@@ -20,10 +20,11 @@ from emitpy.resource import AllocationTable
 # from emitpy.service import FlightServices
 
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB, EVENT_ONLY_SERVICE
-from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT, DEFAULT_VEHICLE, DEFAULT_VEHICLE_SHORT
-from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
-from emitpy.utils import key_path, rejson, rejson_keys, Timezone
+from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT, DEFAULT_VEHICLE, DEFAULT_VEHICLE_SHORT, EQUIPMENT
+from emitpy.parameters import MANAGED_AIRPORT_DIR
+from emitpy.utils import key_path, rejson, rejson_keys, KebabToCamel
 from emitpy.emit import ReEmit
+# from emitpy.service import Service
 
 logger = logging.getLogger("AirportManager")
 
@@ -298,9 +299,9 @@ class AirportManager:
                 if c is not None:
                     k = key.decode("UTF-8").split(ID_SEP)
                     self.companies[k[-1]] =Company(orgId=c["orgId"],
-                                      classId=c["classId"],
-                                      typeId=c["typeId"],
-                                      name=c["name"])
+                                                   classId=c["classId"],
+                                                   typeId=c["typeId"],
+                                                   name=c["name"])
                 else:
                     logger.warning(f"not found {key}")
             logger.debug("loaded (Redis)")
@@ -379,21 +380,35 @@ class AirportManager:
                     self.data = yaml.safe_load(fp)
                 logger.debug(f"{business} loaded")
                 servicevehicleclasses = importlib.import_module(name=".service.equipment", package="emitpy")
-                for vtype in self.data["Equipment"]:
-                    (vcl, vqty) = list(vtype.items())[0]
-                    # logger.debug(f"doing {vtype}..")
-                    names = vcl.split("Vehicle")
-                    vname_root = names[0][0:3].upper()
-                    if len(names) > 1 and names[1] != "":
-                        vname_root = vname_root + names[1][0:2].upper()
+                #  type: fuel
+                #  model: large-tanker
+                #  flow: 40
+                #  capacity: 34000
+                #  fleet: 4
+                for equipment in self.data["equipment"]:
+                    vtyp = equipment.get(EQUIPMENT.TYPE.value)
+                    vmod = equipment.get(EQUIPMENT.MODEL.value)
+                    vqty = equipment.get(EQUIPMENT.COUNT.value, 1)
+                    vcl = vtyp[0].upper() + vtyp[1:] + "Vehicle"
+                    vname_root = vtyp
+                    if vmod is not None:
+                        vcl = vcl + KebabToCamel(vmod)
+                        vname_root = vname_root + vmod.replace("-", "")
                     else:
-                        vname_root = vname_root + DEFAULT_VEHICLE_SHORT  # "standard vehicle"
+                        vname_root = vname_root + DEFAULT_VEHICLE_SHORT
+
                     if hasattr(servicevehicleclasses, vcl):
                         for idx in range(int(vqty)):
                             vname = f"{vname_root}{idx:03d}"
                             vehicle = getattr(servicevehicleclasses, vcl)(registration=vname, operator=self.operator)  ## getattr(sys.modules[__name__], str) if same module...
                             icao24 = AirportManager.randomICAO24(15)
                             vehicle.setICAO24(icao24)  # starts with F like fleet.
+                            # Set service props
+                            vehicle.flow = equipment.get(EQUIPMENT.FLOW.value, 1)
+                            vehicle.capacity = equipment.get(EQUIPMENT.CAPACITY.value, inf)
+                            vehicle.setup_time = equipment.get(EQUIPMENT.SETUP.value, 0)
+                            vehicle.cleanup_time = equipment.get(EQUIPMENT.CLEANUP.value, 0)
+                            #
                             if vname in self.equipments:
                                 logger.warning(f"{vname} already exists, overriding")
                             self.equipments[vname] = vehicle
@@ -415,7 +430,7 @@ class AirportManager:
 
 
     def selectEquipment(self, operator: "Company", service: "Service", reqtime: datetime, reqend: datetime = None,
-                              model: str=None, registration: str = None, use: bool=True):
+                        model: str = None, registration: str = None, use: bool = True):  # quantity: float = None,
         """
         Selects a equipment for ground support.
         The airport manager keeps a list of all vehicle and their use.
@@ -440,12 +455,12 @@ class AirportManager:
             vehicle = self.equipments[vname]
             logger.debug(f"found existing {vehicle.registration}")
             if use: # there is no check that the vehicle is available  !!!!!!! @todo
+                service.setVehicle(vehicle)
                 if reqend is None:
                     reqend = reqtime + timedelta(seconds=service.duration())
                 # @warning: We should book the vehicle before setting it for service.
                 # However, service.getId() complains it has no vehicle set, we set the vehicle "first"
                 # so that it appears nicely in the .getId() call. (and does not provoke a warning.)
-                service.setVehicle(vehicle)
                 res = self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
                 logger.debug(f"using {vehicle.registration} (**even if not available**)")
             return vehicle
@@ -475,8 +490,8 @@ class AirportManager:
             vcl_short = vcl_short + DEFAULT_VEHICLE_SHORT  # Standard Vehicle
             logger.debug(f"standard model is {vcl}, {vcl_short}")
         else:
-            model = model.replace("-", "_")  # now model is snake_case (was kebab-case)
-            mdl = ''.join(word.title() for word in model.split('_'))  # now model is CamelCase
+            # model = model.replace("-", "_")  # now model is snake_case (was kebab-case)
+            mdl = ''.join(word.title() for word in model.split('-'))  # now model is CamelCase
             vcl = vcl + mdl
             vcl_short = vcl_short + mdl[0:2].upper()
             logger.debug(f"model {model} is {vcl}, {vcl_short}")
@@ -516,7 +531,7 @@ class AirportManager:
                     idx = idx + 1
 
             if vehicle is None:
-                logger.debug(f"..no vehicle of type {vcl} available. Adding one..")
+                logger.debug(f"..no vehicle of type {vcl} available. Adding one..")  # !! infinite resources !!
                 vname = f"{vcl_short}{self.equipment_number:03d}"
                 self.equipment_number = self.equipment_number + 1
                 # create vehicle
@@ -538,13 +553,14 @@ class AirportManager:
         # If we have a vehicle, book it if requested, and returned it
         if vehicle is not None:
             if use:
+                service.setVehicle(vehicle)
                 if reqend is None:
                     reqend = reqtime + timedelta(seconds=service.duration())
                 # @warning: We should book the vehicle before setting it for service.
                 # However, service.getId() complains it has no vehicle set, we set the vehicle "first"
                 # so that it appears nicely in the .getId() call. (and does not provoke a warning.)
-                service.setVehicle(vehicle)
                 res = self.equipment_allocator.book(vehicle.getResourceId(), reqtime, reqend, service.getId())
+                vehicle.addAllocation(res)
                 logger.debug(f"vehicle booked {vehicle.getResourceId()} for {service.getId()}")
             else:
                 logger.debug(f"found vehicle {vehicle.getResourceId()} but not used")
@@ -822,7 +838,7 @@ class AirportManager:
         else:
             profile_name = profile_name + "-tiedown"
 
-        logger.debug(f"{profile_name}")
+        logger.debug(f"selected {profile_name}")
 
         if redis:
             key = key_path(REDIS_PREFIX.TAR_PROFILES.value, profile_name.replace("-", ":"))

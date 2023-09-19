@@ -47,12 +47,14 @@ class Equipment(Identity):
         }
 
         # Good handling
-        self.max_capacity = 1
+        self.flow = 1        # units per time, ex. 1 unit every 6 seconds= 1/6 ~= 0.1666
+        self.capacity = 1
         self.current_load = 0
 
-        self.setup_time = 0  # unsetup time is the same
-        self.flow = 1        # quantity per minute to load, unload, symmetric time
+        self.setup_time = 0  # secs
+        self.cleanup_time = 0
 
+        self._allocations = []
 
     @staticmethod
     def getCombo():
@@ -133,6 +135,9 @@ class Equipment(Identity):
             "model_name": self.model_name
         }
 
+    def addAllocation(self, reservation):
+        self._allocations.append(reservation)
+
     def getName(self):
         return f"{self.name} ({self.icao24})"  # registration
 
@@ -157,17 +162,17 @@ class Equipment(Identity):
         :type       quantity:  float
         """
         if quantity is None:
-            refill_quantity = self.max_capacity -  self.current_load
+            refill_quantity = self.capacity -  self.current_load
         else:
             refill_quantity = quantity
 
-        if self.current_load + refill_quantity > self.max_capacity:
-            self.current_load = self.max_capacity
+        if self.current_load + refill_quantity > self.capacity:
+            self.current_load = self.capacity
             # warning exceeds
         else:
             self.current_load = self.current_load + refill_quantity
 
-        return self.service_duration(refill_quantity)
+        return self.service_duration(quantity=refill_quantity, add_setup=True)
 
     def empty(self, quantity: float=None):
         """
@@ -186,13 +191,19 @@ class Equipment(Identity):
         else:
             self.current_load = self.current_load - empty_quantity
 
-        return self.service_duration(empty_quantity)
+        return self.service_duration(quantity=empty_quantity, add_setup=True)
 
-    def service_duration(self, quantity: float):
+    def service_duration(self, quantity: float, add_setup: bool = False):
         """
-        Time in seconds to perform a service operation provided the supplied quantity.
+        Time in seconds to deliver the service for the supplied quantity.
         """
-        return self.setup_time + quantity / self.flow
+        service_time = 0
+        if self.flow != 0:
+            service_time = quantity / self.flow
+        if add_setup:
+            logger.debug(f"adding setup {self.setup_time}/cleanup {self.cleanup_time}")
+            return self.setup_time + service_time + self.cleanup_time
+        return service_time
 
     def service(self, quantity: float=None):
         """
@@ -225,7 +236,7 @@ class FuelVehicle(Equipment):
         self.icao = "ZZZE"
         self.model = ""
         self.model_name = "Generic fuel vehicle (medium size tanker)"
-        self.max_capacity = 20
+        self.capacity = 20
         self.flow = 0.9 / 60
         self.speeds = {
             "slow": 5,
@@ -238,7 +249,7 @@ class FuelVehicle(Equipment):
         return (2 * self.setup_time )+ quantity / self.flow  # minutes
 
     def refill(self):
-        if self.max_capacity != inf:   # untested what happens if one refills infinity
+        if self.capacity != inf:   # untested what happens if one refills infinity
             super().refill()
 
 class FuelVehiclePump(FuelVehicle):
@@ -248,7 +259,7 @@ class FuelVehiclePump(FuelVehicle):
         self.icao = "ZZZF"
         self.model = "pump"
         self.model_name = "Fuel pump vehicle"
-        self.max_capacity = inf
+        self.capacity = inf
         self.flow = 2.0 / 60
         self.speeds = {
             "slow": 5,
@@ -264,7 +275,7 @@ class FuelVehicleHydrant(FuelVehicle):
         self.icao = "ZZZF"
         self.model = "hydrant"
         self.model_name = "Fuel hydrant vehicle"
-        self.max_capacity = inf
+        self.capacity = inf
         self.flow = 2.0 / 60
         self.speeds = {
             "slow": 5,
@@ -280,7 +291,7 @@ class FuelVehicleLargeTanker(FuelVehicle):
         self.icao = "ZZZG"
         self.model = "large-tanker"
         self.model_name = "Fuel tanker large"
-        self.max_capacity = 40
+        self.capacity = 40
         self.flow = 1.5 / 60
         self.speeds = {
             "slow": 5,
@@ -296,7 +307,7 @@ class FuelVehicleMediumTanker(FuelVehicle):
         self.icao = "ZZZE"
         self.model = "medium-tanker"
         self.model_name = "Fuel tanker medium"
-        self.max_capacity = 20
+        self.capacity = 20
         self.flow = 0.9 / 60
         self.speeds = {
             "slow": 5,
@@ -410,7 +421,7 @@ class BaggageVehicleBelt(BaggageVehicle):
         self.icao = "ZZZB"
         self.model = "belt"
         self.model_name = "Baggage belt vehicle"
-        self.max_capacity = inf
+        self.capacity = inf
         self.flow = 1
         self.speeds = {
             "slow": 5,
@@ -426,7 +437,7 @@ class BaggageVehicleTrain(BaggageVehicle):
         self.icao = "ZZZD"
         self.model = "train"
         self.model_name = "Baggage train"
-        self.max_capacity = 50
+        self.capacity = 50
         self.flow = 10 / 60
         self.speeds = {
             "slow": 3,
@@ -442,7 +453,7 @@ class BaggageVehicleSmallTrain(BaggageVehicle):
         self.icao = "ZZZI"
         self.model = "small-train"
         self.model_name = "Baggage train (small)"
-        self.max_capacity = 100
+        self.capacity = 100
         self.flow = 10 / 60
         self.speeds = {
             "slow": 3,
@@ -458,7 +469,7 @@ class BaggageVehicleLargeTrain(BaggageVehicle):
         self.icao = "ZZZJ"
         self.model = "large-train"
         self.model_name = "Baggage train (large)"
-        self.max_capacity = 100
+        self.capacity = 100
         self.flow = 10 / 60
         self.speeds = {
             "slow": 3,

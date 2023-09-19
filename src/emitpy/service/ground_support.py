@@ -9,6 +9,7 @@ from emitpy.message import Messages
 
 logger = logging.getLogger("GroundSupport")
 
+DEFAULT_DURATION_MINUTES = 30
 
 class RSTSchedule:
     # Relative service time schedule
@@ -78,10 +79,10 @@ class GroundSupport(Messages):
         self.actual = None
         self.actual_end = None
 
-        self.pause_before = 0    # currently unused
-        self.pause_after = 0     # currently unused
-        self.setup_time = 0      # currently unused
-        self.cleanup_time = 0    # currently unused
+        self.pause_before = 0    # currently unused, ideal is to have vehicle go on parking next to ac before
+        self.pause_after = 0     # currently unused, ideal is to have vehicle go on parking next to ac after
+        self.setup_time = 0      # currently unused, wait between arrival et service position and start of service
+        self.cleanup_time = 0    # currently unused, wait between end of service and departure from service position
 
         self.vehicle = None
         self.next_position = None  # where the vehicle will go after servicing this one
@@ -95,8 +96,7 @@ class GroundSupport(Messages):
         return {
             "ground-support": type(self).__name__,
             "operator": self.operator.getInfo(),
-            "schedule": self.rst_schedule.reltime,
-            "duration": self.rst_schedule.duration,
+            "schedule": self.rst_schedule.getInfo(),
             "name": self.name,
             "label": self.label
         }
@@ -122,12 +122,12 @@ class GroundSupport(Messages):
     def setNextPosition(self, position):
         self.next_position = position
 
-    def duration(self, dflt: int = 30 * 60):
+    def duration(self, dflt: int = DEFAULT_DURATION_MINUTES * 60):
         if self.rst_schedule.duration is not None:
             return self.rst_schedule.duration * 60  # seconds
         return dflt
 
-    def compute_duration(self, dflt: int = 30 * 60):
+    def compute_duration(self, dflt: int = DEFAULT_DURATION_MINUTES * 60):
         return self.duration(dflt)
 
     def run(self, moment: datetime):
