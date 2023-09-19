@@ -47,7 +47,7 @@ class MissionMove(GroundSupportMovement):
         pos = MovePoint.new(start_pos)
 
         pos.setSpeed(0)  # starts at rest
-        pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.START.value)
+        pos.setMark(MISSION_PHASE.START.value)
         pos.setColor(MISSION_COLOR.START.value)
         move_points.append(pos)
         logger.debug(f"start added")
@@ -70,7 +70,7 @@ class MissionMove(GroundSupportMovement):
         else:
             pos = start_npe[0]
             pos.setSpeed(speeds["slow"])  # starts moving
-            pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
+            pos.setMark(MISSION_PHASE.EN_ROUTE.value)
             pos.setColor(MISSION_COLOR.EN_ROUTE.value)
             move_points.append(pos)
 
@@ -110,7 +110,7 @@ class MissionMove(GroundSupportMovement):
                     pos = MovePoint.new(vtx)
                     pos.setProp("_serviceroad", vtx.id)
                     pos.setSpeed(speeds["normal"])
-                    pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
+                    pos.setMark(MISSION_PHASE.EN_ROUTE.value)
                     pos.setColor(MISSION_COLOR.EN_ROUTE.value)
                     move_points.append(pos)
                     last_vtx = vtx
@@ -125,14 +125,14 @@ class MissionMove(GroundSupportMovement):
             else:  # move to it
                 pos = cp_npe[0]
                 pos.setSpeed(speeds["slow"])  # starts moving
-                pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
+                pos.setMark(MISSION_PHASE.EN_ROUTE.value)
                 pos.setColor(MISSION_COLOR.EN_ROUTE.value)
                 move_points.append(pos)
 
             # finally reaches checkpoint
             pos = MovePoint.new(cp)
             pos.setSpeed(0)  # starts moving
-            pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.CHECKPOINT.value)
+            pos.setMark(MISSION_PHASE.CHECKPOINT.value)
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
             pos.setPause(self.mission.duration(cp))
             move_points.append(pos)
@@ -150,7 +150,7 @@ class MissionMove(GroundSupportMovement):
             else:  # move to it
                 pos = cp_npe[0]
                 pos.setSpeed(speeds["slow"])  # starts moving
-                pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
+                pos.setMark(MISSION_PHASE.EN_ROUTE.value)
                 pos.setColor(MISSION_COLOR.EN_ROUTE.value)
                 move_points.append(pos)
 
@@ -189,7 +189,7 @@ class MissionMove(GroundSupportMovement):
                 # vtx = self.airport.service_roads.get_vertex(vid)
                 pos = MovePoint.new(vtx)
                 pos.setProp("_serviceroad", vtx.id)
-                pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
+                pos.setMark(MISSION_PHASE.EN_ROUTE.value)
                 pos.setColor(MISSION_COLOR.EN_ROUTE.value)
                 pos.setSpeed(speeds["normal"])
                 move_points.append(pos)
@@ -199,14 +199,14 @@ class MissionMove(GroundSupportMovement):
         # from vertex to closest point on service road network to final_pos
         pos = final_npe[0]
         pos.setSpeed(speeds["slow"])
-        pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.EN_ROUTE.value)
+        pos.setMark(MISSION_PHASE.EN_ROUTE.value)
         pos.setColor(MISSION_COLOR.EN_ROUTE.value)
         move_points.append(pos)
 
         # from closest point on service road network to final_pos, stops there
         pos = MovePoint.new(final_pos)
         pos.setSpeed(0)  # ends at rest
-        pos.setProp(FEATPROP.MARK.value, MISSION_PHASE.END.value)
+        pos.setMark(MISSION_PHASE.END.value)
         pos.setColor(MISSION_COLOR.END.value)
         move_points.append(pos)
 

@@ -128,6 +128,7 @@ class Service(GroundSupport):
         return False
 
     def using_quantity(self) -> bool:
+        # logger.debug(f"{self.getId()}: {self.quantity is not None and self.vehicle is not None}")
         return self.quantity is not None and self.vehicle is not None
 
     def duration(self, add_setup: bool = False):  # default is half an hour

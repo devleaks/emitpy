@@ -71,25 +71,25 @@ class ServiceMovement(GroundSupportMovement):
             logger.debug(f"{self.service.name} added 2 messages")
 
     def drive(self):
-        move_points = self.getMovePoints()
         # Special case 1: Service "event reporting only", no move
         if self.service.vehicle is None:  # Service with no vehicle movement
             logger.debug(f"service {type(self.service).__name__} «{self.service.label}» has no vehicle, assuming event report only")
             self.no_drive()
             logger.debug(f"generated {len(self.getMovePoints())} points")
-            return (True, "ServiceMovement::move: no moves, assuming event report only")
+            return (True, "ServiceMovement::drive: no moves, assuming event report only")
 
         # Special case 2: Service vehicle going back and forth between ramp and depot
-        if type(self.service).__name__ in MOVE_LOOP:
-            logger.debug(f"moving loop for {type(self.service).__name__}..")
+        # if type(self.service).__name__ in MOVE_LOOP:
+        if self.service.using_quantity() and self.service.vehicle is not None and self.service.vehicle.has_capacity():
+            logger.debug(f"moving loop for {self.service.getId()}..")
             ret = self.drive_loop()
             if ret[0]:
-                logger.debug(f"..moved")
-                return (True, "ServiceMovement::move completed")  # return ret?
-            logger.warning(ret[1])
+                return ret
+            logger.warning("!!!!!!!!!!!" + ret[1])
             logger.debug(f"..loop did not complete successfully, using normal move..")
 
         # Normal case:
+        move_points = self.getMovePoints()
         speeds = self.service.vehicle.speed
 
         startpos = self.service.vehicle.getPosition()
@@ -98,10 +98,10 @@ class ServiceMovement(GroundSupportMovement):
         service_type = type(self.service).__name__.replace("Service", "").lower()
 
         startpos.setSpeed(0)  # starts at rest
-        startpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.START.value)
+        startpos.setMark(SERVICE_PHASE.START.value)
         move_points.append(startpos)
 
-        logger.debug(f"At parking.")
+        logger.debug(f"At start position.")
         self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.START.value}",
                                        service=self,
                                        sync=SERVICE_PHASE.START.value,
@@ -115,7 +115,7 @@ class ServiceMovement(GroundSupportMovement):
             startnp[0].setSpeed(speeds["slow"])  # starts moving
             move_points.append(startnp[0])
 
-        logger.debug(f"Left parking..")
+        logger.debug(f"Leaving start position..")
         # logger.debug("start vertex %s" % (startnp[0]))
 
         startnv = self.airport.service_roads.nearest_vertex(startpos)
@@ -175,14 +175,14 @@ class ServiceMovement(GroundSupportMovement):
         # Phases ARRIVED / LEAVE is relative to the RAMP, not the service position
         if ramp_npe[0] is not None:
             ramp_npe[0].setSpeed(speeds["slow"])
-            ramp_npe[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
+            ramp_npe[0].setMark(SERVICE_PHASE.ARRIVED.value)
             move_points.append(ramp_npe[0])
             self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}",
                                            service=self,
                                            sync=SERVICE_PHASE.ARRIVED.value,
                                            info=self.getInfo()))
         else:
-             logger.warning(f"could not find ramp_npe (arriving)")
+            logger.warning(f"could not find ramp_npe (arriving)")
 
         logger.debug(f"..reached ramp..")
         # ###
@@ -195,7 +195,7 @@ class ServiceMovement(GroundSupportMovement):
         if ramp_standby is not None and self.service.pause_before > 0:
             ramp_standby_pos = MovePoint.new(ramp_standby)
             ramp_standby_pos.setSpeed(0)
-            ramp_standby_pos.setProp(FEATPROP.MARK.value, "standby-before-service")
+            ramp_standby_pos.setMark("standby-before-service")
             ramp_standby_pos.setPause(self.service.pause_before)
             move_points.append(ramp_standby_pos)
             logger.debug(f"added pause {self.service.pause_before}m before service")
@@ -203,7 +203,7 @@ class ServiceMovement(GroundSupportMovement):
             logger.debug(f"..(no standby before service)..")
 
         service_pos.setSpeed(0)  # service_pos should have orientation set
-        service_pos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
+        service_pos.setMark(SERVICE_PHASE.SERVICE_START.value)
         logger.debug(f"..reached service position..")
 
         # .. servicing ..
@@ -226,7 +226,7 @@ class ServiceMovement(GroundSupportMovement):
         # svc_end is service_pos.copy()
         logger.debug(f"..leaving service position..")
         svc_end.setSpeed(0)
-        svc_end.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_END.value)
+        svc_end.setMark(SERVICE_PHASE.SERVICE_END.value)
         move_points.append(svc_end)
 
         # to be correct, service will end before cleanup_time...
@@ -248,7 +248,7 @@ class ServiceMovement(GroundSupportMovement):
         if ramp_rest is not None and self.service.pause_after > 0:
             ramp_rest_pos = MovePoint.new(ramp_rest)
             ramp_rest_pos.setSpeed(0)
-            ramp_rest_pos.setProp(FEATPROP.MARK.value, "rest-after-service")
+            ramp_rest_pos.setMark("rest-after-service")
             ramp_rest_pos.setPause(self.service.pause_after)
             move_points.append(ramp_standby_pos)
             logger.debug(f"added pause {self.service.pause_after}m after service")
@@ -258,14 +258,14 @@ class ServiceMovement(GroundSupportMovement):
         if ramp_npe[0] is not None:
             ramp_leave = ramp_npe[0].copy()
             ramp_leave.setSpeed(speeds["slow"])
-            ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
+            ramp_leave.setMark(SERVICE_PHASE.LEAVE.value)
             move_points.append(ramp_leave)
             self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}",
                                            service=self,
                                            sync=SERVICE_PHASE.LEAVE.value,
                                            info=self.getInfo()))
         else:
-             logger.warning(f"could not find ramp_npe (leaving)")
+            logger.warning(f"could not find ramp_npe (leaving)")
 
         logger.debug(f"..leaving ramp..")
 
@@ -297,20 +297,20 @@ class ServiceMovement(GroundSupportMovement):
                 pos.setProp("_serviceroad", vtx.id)
                 pos.setSpeed(speeds["normal"])
                 move_points.append(pos)
+            logger.debug(f"..travelling to next position..")
         else:
             logger.debug(f"no route from ramp {ramp_nv[0].id} to end {endnv[0].id}")
-
-        logger.debug(f"..reaching next position..")
 
         if endnp is not None:
             endnp[0].setSpeed(speeds["slow"])
             move_points.append(endnp[0])
+            logger.debug(f"..closing to next position..")
 
         if finalpos == startpos:
             finalpos = finalpos.copy()  # in case same as start...
 
         finalpos.setSpeed(0)
-        finalpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.END.value)
+        finalpos.setMark(SERVICE_PHASE.END.value)
         move_points.append(finalpos)
         self.service.vehicle.setPosition(finalpos)
         logger.debug(f"..parked at next position")
@@ -338,12 +338,13 @@ class ServiceMovement(GroundSupportMovement):
         until all load is loaded/unloaded.
         """
         # Temp disabled
-        return (False, "ServiceMovement::drive_loop currently not usable or not implemented")
-
+        # return (False, "ServiceMovement::drive_loop currently not usable or not implemented")
+        MAX_ROUNDTRIPS = 4
         move_points = self.getMovePoints()
+        service = self.service
+        vehicle = service.vehicle
 
         # CHECK: Service has vehicle
-        vehicle = self.service.vehicle
         if vehicle is None:
             return (False, "ServiceMovement::drive_loop: service has no vehicle")
 
@@ -355,21 +356,18 @@ class ServiceMovement(GroundSupportMovement):
             return (False, "ServiceMovement::drive_loop: service vehicle has infinite capacity, we travel once only")
 
         # CHECK: Service has quantity
-        if self.service.quantity is None or self.service.quantity <= 0:
+        if service.quantity is None or self.service.quantity == 0:
             return (False, "ServiceMovement::drive_loop: service has no quantity")
 
         # CHECK: Vehicle or service have "load/unload time" (direct value or computed from capacity + flow)
         # CHECK: Service has speed of service:
-        if self.service.flow is None or self.service.quantity <= 0:
-            return (False, "ServiceMovement::drive_loop: service has no service speed (flow)")
+        if vehicle.flow is None:
+            return (False, "ServiceMovement::drive_loop: vehicle has no service speed (flow)")
 
-        # CHECK: Vehicle or service have "setup/unsetup time" (optional)
-        if self.service.setup_time is None:
-            logger.debug("forced service setup time to 0")
-            self.service.setup_time = 0
-
-        # CHECK: Quantity/capacity does not involve "too many" roundtrips (max ~10)
-
+        # # CHECK: Vehicle or service have "setup/unsetup time" (optional)
+        # if service.setup_time is None:
+        #     logger.debug("forced service setup time to 0")
+        #     self.service.setup_time = 0
 
         # BEGINNING OF LOOP, go to ramp
         #
@@ -380,8 +378,9 @@ class ServiceMovement(GroundSupportMovement):
         service_type = type(self.service).__name__.replace("Service", "").lower()
 
         startpos.setSpeed(0)  # starts at rest
-        startpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.START.value)
+        startpos.setMark(SERVICE_PHASE.START.value)
         move_points.append(startpos)
+        logger.debug("At start position")
 
         # starting position to network
         startnp = self.airport.service_roads.nearest_point_on_edge(startpos)
@@ -391,6 +390,7 @@ class ServiceMovement(GroundSupportMovement):
             startnp[0].setSpeed(speeds["slow"])  # starts moving
             move_points.append(startnp[0])
 
+        logger.debug("Leaving start position..")
         # logger.debug("start vertex %s" % (startnp[0]))
 
         startnv = self.airport.service_roads.nearest_vertex(startpos)
@@ -407,7 +407,6 @@ class ServiceMovement(GroundSupportMovement):
                 logger.debug(f"created ramp service points {list(gseprofile['services'].keys())}")
 
         ramp_stop = self.service.ramp.getServicePOI(service_type, self.service.actype)
-
         if ramp_stop is None:
             logger.warning(f"failed to find ramp stop for { service_type }, using ramp center")
             ramp_stop = self.service.ramp  # use center of ramp
@@ -429,7 +428,7 @@ class ServiceMovement(GroundSupportMovement):
         # logger.debug("ramp vertex %s" % (ramp_nv[0]))
 
         # route from start to ramp
-        logger.debug(f"route from start {startnv[0].id} to ramp {ramp_nv[0].id} (vertices)")
+        logger.debug(f"..route from start {startnv[0].id} to ramp {ramp_nv[0].id} (vertices)..")
         rt1 = Route(self.airport.service_roads, startnv[0].id, ramp_nv[0].id)
         # rt1.find()  # auto route
         # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, ramp_nv[0].id)
@@ -446,16 +445,41 @@ class ServiceMovement(GroundSupportMovement):
 
         if ramp_npe[0] is not None:
             ramp_npe[0].setSpeed(speeds["slow"])
-            ramp_npe[0].setProp(FEATPROP.MARK.value, SERVICE_PHASE.ARRIVED.value)
+            ramp_npe[0].setMark(SERVICE_PHASE.ARRIVED.value)
             move_points.append(ramp_npe[0])
+            self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}",
+                                           service=self,
+                                           sync=SERVICE_PHASE.ARRIVED.value,
+                                           info=self.getInfo()))
+        else:
+            logger.warning(f"could not find ramp_npe (arriving)")
+
+        logger.debug(f"..reached ramp..")
 
         ramp_stop.setSpeed(0)
-        ramp_stop.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_START.value)
+        ramp_stop.setMark(SERVICE_PHASE.SERVICE_START.value)
         move_points.append(ramp_stop)
+        logger.debug(f"..reached service position..")
 
         self.service.vehicle.setPosition(ramp_stop)
 
+        # before service, may first go to ramp rest area.
+        ramp_standby = self.service.ramp.getServicePOI("standby", self.service.actype)
+        logger.debug(f"..stand-by?..")
+        if ramp_standby is not None and self.service.pause_before > 0:
+            ramp_standby_pos = MovePoint.new(ramp_standby)
+            ramp_standby_pos.setSpeed(0)
+            ramp_standby_pos.setMark("standby-before-service")
+            ramp_standby_pos.setPause(self.service.pause_before)
+            move_points.append(ramp_standby_pos)
+            logger.debug(f"added pause {self.service.pause_before}m before service")
+        else:
+            logger.debug(f"..(no standby before service)..")
+
+        # Prepare looping
+        #
         # Prepare nearest depot
+        logger.debug("..preparing for loop..")
         nearest_depot = self.airport.getNearestServiceDepot(service_type, ramp_stop)
         # CHECK: Service has depot where to load/drop?
         if nearest_depot is None:
@@ -467,113 +491,147 @@ class ServiceMovement(GroundSupportMovement):
         if nd_nv[0] is None:
             logger.warning("no nearest_vertex for nearest_depot")
 
-        # route ramp -> nearest depot
+        # Prepare route ramp -> nearest depot
         logger.debug(f"route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id} (vertices)")
-        go_unload = Route(self.airport.service_roads, ramp_nv[0].id, nd_nv[0].id)
-        if not go_unload.found():
+        go_to_depot = Route(self.airport.service_roads, ramp_nv[0].id, nd_nv[0].id)
+        if not go_to_depot.found():
             logger.warning("no route from ramp to nearest depot")
-        go_load = Route(self.airport.service_roads, nd_nv[0].id, ramp_nv[0].id)
-        if not go_load.found():
+        go_to_ramp = Route(self.airport.service_roads, nd_nv[0].id, ramp_nv[0].id)
+        if not go_to_ramp.found():
             logger.warning("no route from nearest depot to ramp")
-        logger.debug("ready to loop")
-        vehicle = self.service.vehicle
-        service = self.service
-        logger.debug(f"vehicle capacity {vehicle.capacity}, current load {vehicle.current_load}")
+        #
+        # Looping ready
+        logger.debug("..loop ready to be used..")
 
-        # Availability on first trip:
-        equipment_capacity = vehicle.capacity - vehicle.current_load  # may not be empty when it arrives
+        logger.debug("LOOP STARTED..")
+        loading = self.service.quantity > 0
+        loadstr = "load" if loading else "unload"
+        opploadstr = "unload" if loading else "load"
+        unit_left = abs(self.service.quantity)
+        logger.debug(f"vehicle capacity {vehicle.capacity}, current load {vehicle.current_load}, quantity {unit_left}, loading={loading}")
+
+        # to be correct, service will start after setup_time...
+        reltime = 0
+        if vehicle.setup_time is not None:
+            reltime = vehicle.setup_time
+        self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has started",
+                                       service=self,
+                                       sync=SERVICE_PHASE.SERVICE_START.value,
+                                       relative_time=reltime,
+                                       info=self.getInfo()))
+
         # .. servicing ..
         # before service, may first go to ramp rest area.
         # after service, may first go to ramp rest area before leaving ramp.
         #
         # LOOP, go to next position
-        while self.service.quantity > 0:
+        num_roundtrips = 0
+        while unit_left > 0 and num_roundtrips < MAX_ROUNDTRIPS:
             #
             # Fill vehicle, decrease service quantity
-            if vehicle.capacity == inf:  # infinite capacity; served in one trip, should not come here...
-                vehicle.current_load = service.quantity
-                svc_duration = vehicle.service_duration(service.quantity)
-                service.quantity = 0
-            elif service.quantity < equipment_capacity:  # one last trip
-                vehicle.current_load = vehicle.current_load + service.quantity
-                svc_duration = vehicle.service_duration(service.quantity)
-                logger.debug(f"loaded {service.quantity}, 0 remaining")
-                service.quantity = 0
+            if loading:
+                done = vehicle.load(quantity=unit_left)
             else:
-                logger.debug(f"loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining")
-                vehicle.current_load = vehicle.capacity
-                svc_duration = vehicle.service_duration(vehicle.capacity)
-                service.quantity = service.quantity - equipment_capacity
+                done = vehicle.unload(quantity=unit_left)
+            this_load_duration = vehicle.service_duration(quantity=done, add_setup=True)
+            unit_left = unit_left - done
+            this_load = ramp_stop.copy()
+            this_load.setPause(this_load_duration)
+            logger.debug(f"{loadstr}ed {done}, {unit_left} remaining, load duration={this_load_duration}")
 
-            logger.debug(f"loaded {equipment_capacity}, {service.quantity - equipment_capacity} remaining, load duration={svc_duration}")
-            ramp_stop.setPause(svc_duration)
+            if unit_left > 0:  # need to go to depot
+                logger.debug(f"Going to depot..")
+                # go to nearest depot
+                # ramp->network edge
+                pos = MovePoint.new(ramp_npe[0])
+                pos.setMark(None)
+                pos.setSpeed(speeds["slow"])
+                move_points.append(pos)
+                logger.debug(f"..leaving service position..")
+                # network edge->network vertex
+                pos = MovePoint.new(nd_nv[0])
+                pos.setMark(None)
+                pos.setProp("_serviceroad", nd_nv[0].id)
+                pos.setSpeed(speeds["slow"])
+                move_points.append(pos)
+                logger.debug(f"..leaving ramp..")
+                # network vertex->network vertex
+                if go_to_depot.found():
+                    for vtx in go_to_depot.get_vertices():
+                        # vtx = self.airport.service_roads.get_vertex(vid)
+                        pos = MovePoint.new(vtx)
+                        pos.setMark(None)
+                        pos.setProp("_serviceroad", vtx.id)
+                        pos.setSpeed(speeds["normal"])
+                        move_points.append(pos)
+                    logger.debug(f"..travelling to depot..")
+                else:
+                    logger.debug(f"no route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id}")
+                # network vertex->network edge (close to depot)
+                pos = MovePoint.new(nd_npe[0])
+                pos.setMark(None)
+                pos.setSpeed(speeds["slow"])
+                move_points.append(pos)
+                logger.debug(f"..approaching depot..")
+                # network edge-> depot
+                pos = MovePoint.new(nearest_depot)
+                pos.setMark(None)
+                pos.setSpeed(speeds["slow"])
+                move_points.append(pos)
+                logger.debug(f"..parking at depot..")
+                #
+                # Empty or refill vehicle
+                vehicle.setPosition(pos)
+                if loading:
+                    refill = vehicle.unload()
+                else:
+                    refill = vehicle.load()
+                refill_duration = vehicle.service_duration(refill, add_setup=True)
+                pos.setPause(refill_duration)
+                logger.debug(f"..{opploadstr}ed at depot, duration={refill_duration}..")
 
-            # go to nearest depot
-            # ramp->network edge
-            pos = MovePoint.new(ramp_npe[0])
-            pos.setSpeed(speeds["slow"])
-            move_points.append(pos)
-            # network edge->network vertex
-            pos = MovePoint.new(nd_nv[0])
-            pos.setProp("_serviceroad", nd_nv[0].id)
-            pos.setSpeed(speeds["slow"])
-            move_points.append(pos)
-            # network vertex->network vertex
-            if go_unload.found():
-                for vtx in go_unload.get_vertices():
-                    # vtx = self.airport.service_roads.get_vertex(vid)
-                    pos = MovePoint.new(vtx)
-                    pos.setProp("_serviceroad", vtx.id)
-                    pos.setSpeed(speeds["normal"])
-                    move_points.append(pos)
-            else:
-                logger.debug(f"no route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id}")
-            # network vertex->network edge (close to depot)
-            pos = MovePoint.new(nd_npe[0])
-            pos.setSpeed(speeds["slow"])
-            move_points.append(pos)
-            # network edge-> depot
-            pos = MovePoint.new(nearest_depot)
-            pos.setSpeed(speeds["slow"])
-            move_points.append(pos)
+                # go back to ramp
+                # depot ->network edge (close to depot)
+                pos = MovePoint.new(nd_npe[0])
+                pos.setMark(None)
+                pos.setSpeed(speeds["slow"])
+                move_points.append(pos)
+                logger.debug(f"..leaving depot parking..")
+                # network edge->network vertex (close to depot)
+                pos = MovePoint.new(nd_nv[0])
+                pos.setMark(None)
+                pos.setSpeed(speeds["slow"])
+                move_points.append(pos)
+                logger.debug(f"..leaving depot..")
+                # network vertex->network vertex
+                if go_to_ramp.found():
+                    for vtx in go_to_ramp.get_vertices():
+                        # vtx = self.airport.service_roads.get_vertex(vid)
+                        pos = MovePoint.new(vtx)
+                        pos.setMark(None)
+                        pos.setProp("_serviceroad", vtx.id)
+                        pos.setSpeed(speeds["normal"])
+                        move_points.append(pos)
+                    logger.debug(f"..travelling to ramp..")
+                else:
+                    logger.debug(f"no route from nearest depot {nd_nv[0].id} to ramp {ramp_nv[0].id}")
+                # ramp->network edge
+                pos = MovePoint.new(ramp_npe[0])
+                pos.setMark(None)
+                pos.setSpeed(speeds["slow"])
+                move_points.append(pos)
+                logger.debug(f"..reached ramp..")
+                # network edge->ramp
+                pos = MovePoint.new(ramp_stop)
+                pos.setMark(None)
+                pos.setSpeed(speeds["slow"])
+                move_points.append(pos)
+                logger.debug(f"..reached service position")
+                num_roundtrips = num_roundtrips + 1
 
-            #
-            # Empty vehicle
-            vehicle.setPosition(pos)
-            svc_duration = vehicle.service_duration(vehicle.current_load)
-            logger.debug(f"unloaded {vehicle.current_load}, {service.quantity} remaining, unload duration={svc_duration}")
-            pos.setPause(svc_duration)
-
-            vehicle.current_load = 0
-            equipment_capacity = vehicle.capacity
-
-            # go back to ramp
-            # depot ->network edge (close to depot)
-            pos = MovePoint.new(nd_npe[0])
-            pos.setSpeed(speeds["slow"])
-            move_points.append(pos)
-            # network edge->network vertex (close to depot)
-            pos = MovePoint.new(nd_nv[0])
-            pos.setSpeed(speeds["slow"])
-            move_points.append(pos)
-            # network vertex->network vertex
-            if go_load.found():
-                for vtx in go_load.get_vertices():
-                    # vtx = self.airport.service_roads.get_vertex(vid)
-                    pos = MovePoint.new(vtx)
-                    pos.setProp("_serviceroad", vtx.id)
-                    pos.setSpeed(speeds["normal"])
-                    move_points.append(pos)
-            else:
-                logger.debug(f"no route from nearest depot {nd_nv[0].id} to ramp {ramp_nv[0].id}")
-            # ramp->network edge
-            pos = MovePoint.new(ramp_npe[0])
-            pos.setSpeed(speeds["slow"])
-            move_points.append(pos)
-            # network edge->ramp
-            pos = MovePoint.new(ramp_stop)
-            pos.setSpeed(speeds["slow"])
-            move_points.append(pos)
+        logger.debug(f"..LOOP TERMINATED ({num_roundtrips} round trips)")
+        if num_roundtrips > MAX_ROUNDTRIPS:
+            logger.warning(f"SERVICE INTERRUMPTED TOO MANY ROUNDTRIPS ({num_roundtrips})")
 
         # END OF LOOP, go to next position
         #
@@ -598,15 +656,31 @@ class ServiceMovement(GroundSupportMovement):
 
         svc_end = ramp_stop.copy()
         svc_end.setSpeed(0)
-        svc_end.setProp(FEATPROP.MARK.value, SERVICE_PHASE.SERVICE_END.value)
+        svc_end.setMark(SERVICE_PHASE.SERVICE_END.value)
         move_points.append(svc_end)
+        logger.debug(f"..leaving service position..")
+
+        reltime = 0
+        if vehicle.cleanup_time is not None:
+            reltime = - vehicle.cleanup_time
+        self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has ended",
+                                       service=self,
+                                       sync=SERVICE_PHASE.SERVICE_END.value,
+                                       relative_time=reltime,
+                                       info=self.getInfo()))
 
         # route ramp to end position
+        # to be correct, service will end before cleanup_time...
         if ramp_npe[0] is not None:
             ramp_leave = ramp_npe[0].copy()
             ramp_leave.setSpeed(speeds["slow"])
-            ramp_leave.setProp(FEATPROP.MARK.value, SERVICE_PHASE.LEAVE.value)
+            ramp_leave.setMark(SERVICE_PHASE.LEAVE.value)
             move_points.append(ramp_leave)
+            self.addMessage(ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}",
+                                           service=self,
+                                           sync=SERVICE_PHASE.LEAVE.value,
+                                           info=self.getInfo()))
+            logger.debug(f"..leaving ramp..")
 
         logger.debug(f"route from {ramp_nv[0].id} to {endnv[0].id}")
         r2 = Route(self.airport.service_roads, ramp_nv[0].id, endnv[0].id)
@@ -616,30 +690,31 @@ class ServiceMovement(GroundSupportMovement):
                 pos.setProp("_serviceroad", vtx.id)
                 pos.setSpeed(speeds["normal"])
                 move_points.append(pos)
+            logger.debug(f"..travelling to next position..")
         else:
             logger.debug(f"no route from ramp {ramp_nv[0].id} to end {endnv[0].id}")
 
         if endnp is not None:
             endnp[0].setSpeed(speeds["slow"])
             move_points.append(endnp[0])
+            logger.debug(f"..closing to next position..")
 
         if finalpos == startpos:
             finalpos = finalpos.copy()  # in case same as start...
 
         finalpos.setSpeed(0)
-        finalpos.setProp(FEATPROP.MARK.value, SERVICE_PHASE.END.value)
+        finalpos.setMark(SERVICE_PHASE.END.value)
         move_points.append(finalpos)
+        logger.debug(f"..parked at next position")
         self.service.vehicle.setPosition(finalpos)
 
-        # No interpolation necessary:
-        # Each point should have speed set, altitude and vspeed irrelevant.
-        ret = doTime(self.getMovePoints())
-        if not ret[0]:
-            return ret
+        # Sets unique index on service movement features
+        idx = 0
+        for f in self.getMovePoints():
+            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
+            idx = idx + 1
 
         # printFeatures(self.getMovePoints(), "route")
-        printFeatures([Feature(geometry=asLineString(self.getMovePoints()))], "route")
-
+        # printFeatures([Feature(geometry=asLineString(self.getMovePoints()))], "route")
         logger.debug(f"generated {len(self.getMovePoints())} points")
-        return (False, "ServiceMovement::make not implemented")
-
+        return (True, "ServiceMovement::drive_loop completed")

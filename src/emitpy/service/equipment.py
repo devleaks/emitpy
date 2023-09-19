@@ -154,7 +154,10 @@ class Equipment(Identity):
 
     def setProperties(self, props: dict):
         self.flow = props.get(EQUIPMENT.FLOW.value, 1)
-        self.capacity = props.get(EQUIPMENT.CAPACITY.value, inf)
+        capacity = props.get(EQUIPMENT.CAPACITY.value, inf)
+        if isinstance(capacity, str) and capacity[0:3].lower() == "inf":
+            capacity = inf
+        self.capacity = capacity
         self.setup_time = props.get(EQUIPMENT.SETUP.value, 0)
         self.cleanup_time = props.get(EQUIPMENT.CLEANUP.value, 0)
 
@@ -203,33 +206,54 @@ class Equipment(Identity):
         """
         service_time = 0
         if self.flow != 0:
-            service_time = round(quantity / self.flow, 3)
+            service_time = round(abs(quantity) / self.flow, 3)
         if add_setup:
             logger.debug(f"adding setup {self.setup_time}/cleanup {self.cleanup_time}")
             return self.setup_time + service_time + self.cleanup_time
         return service_time
 
-    def service(self, quantity: float=None):
+    def load(self, quantity: float=None):
         """
-        Serve quantity. Returns quantity served.
+        From vehicle TO aircraft
         """
         if quantity is None:
-            logger.debug(f"served {self.current_load:f}.")
             served = self.current_load
-            self.current_load = 0
+            self.current_load = 0  # empty
+            logger.debug(f"loaded {served:f}.")
         elif self.current_load > quantity:
             self.current_load = self.current_load - quantity
             served = quantity
-            logger.debug(f"served {quantity:f}. {self.current_load:f} remaning")
+            logger.debug(f"loaded {quantity:f}. {self.current_load:f} in vehicle")
         else:
             served = self.current_load
-            logger.warning(f"can only serve {self.current_load:f} out of {quantity:f}. {quantity - self.current_load:f} remaning to serve")
-            self.current_load = 0
-
+            self.current_load = 0  # empty
+            logger.warning(f"can only load {self.current_load:f} out of {quantity:f}. {(quantity - served):f} remaning to serve")
         return served
 
+    def unload(self, quantity: float=None):
+        """
+        From aircraft TO vehicle
+        """
+        if quantity is None:
+            unloaded = self.capacity - self.current_load
+            self.current_load = self.capacity  # full
+            logger.debug(f"unloaded {unloaded:f}.")
+        elif self.capacity_left() > quantity:
+            self.current_load = self.current_load + quantity
+            unloaded = quantity
+            logger.debug(f"unloaded {quantity:f}. {self.current_load:f} in vehicle")
+        else:
+            unloaded = self.capacity_left()
+            self.current_load = self.capacity  # full
+            logger.warning(f"can only unload {unloaded:f} out of {quantity:f}. {(quantity - unloaded):f} remaning to serve")
+        return unloaded
+
     def has_capacity(self) -> bool:
+        # logger.debug(f"{self.getId()}: {self.capacity is not None and self.capacity != inf}")
         return self.capacity is not None and self.capacity != inf
+
+    def capacity_left(self):
+        return self.capacity - self.current_load
 
 # ########################
 # FUEL
@@ -250,9 +274,6 @@ class FuelVehicle(Equipment):
             "fast": 50
         }
         self.setup_time = 4 * 60    # in seconds
-
-    def service_duration(self, quantity: float):
-        return (2 * self.setup_time )+ quantity / self.flow  # minutes
 
     def refill(self):
         if self.capacity != inf:   # untested what happens if one refills infinity
