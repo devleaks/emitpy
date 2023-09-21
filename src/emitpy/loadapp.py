@@ -81,10 +81,10 @@ class LoadApp(ManagedAirport):
         status = self.load(data_to_load)
         if not status[0]:
             logger.error(f"{status[1]}")
-            logger.error(".. NOT DONE")
+            logger.error("..NOT DONE")
             logger.debug("NOT COMPLETED SUCCESSFULLY")
         else:
-            logger.debug(".. saved")
+            logger.debug("..saved")
             logger.debug("completed successfully")
 
         logger.debug("=" * 90)
@@ -736,7 +736,7 @@ class LoadApp(ManagedAirport):
                                   unit='km',
                                   radius=100*NAUTICAL_MILE,
                                   dest=store)
-        logger.debug(f".. stored in {store} ..done")
+        logger.debug(f"..stored in {store} ..done")
         #
         logger.debug(f"loaded {cnt}")
         return (True, f"LoadApp::loadHolds: loaded holding positions")
@@ -846,9 +846,9 @@ if __name__ == "__main__":
     r.select(currdb)
 
     if a is None or MANAGED_AIRPORT_LAST_UPDATED not in a or AIRAC_CYCLE not in a and a["ICAO"] == MANAGED_AIRPORT_ICAO:
-        logger.info(f"No managed airport: loading all ..")
+        logger.info(f"No managed airport: loading all..")
         d = LoadApp(icao=MANAGED_AIRPORT_ICAO)
-        logger.debug(f".. loaded")
+        logger.debug(f"..loaded")
         sys.exit(2)
 
     if len(sys.argv) < 2:
@@ -858,11 +858,11 @@ if __name__ == "__main__":
         logger.info("you can load any of the following: actype, acperf, acequiv, actaprof, airport, airline, airroute, alfreq, alroute, alroutefreq, comp, gse, gsefleet, ramp, rwy, apoi, spoi, cpoi, info")
     if len(sys.argv) > 1:
         logger.info(f"Managed airport: {a}")
-        logger.debug(f"loading or updating {sys.argv[1:]} ..")
+        logger.debug(f"loading or updating {sys.argv[1:]}..")
         d = LoadApp(icao=MANAGED_AIRPORT_ICAO, data_to_load=sys.argv[1:])
         if "info" not in sys.argv[1:]:
             logger.info(f"Managed airport: info not updated")
-        logger.debug(f".. updated")
+        logger.debug(f"..updated")
         sys.exit(3)
 
     sys.exit(0)

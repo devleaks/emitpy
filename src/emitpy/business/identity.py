@@ -64,16 +64,12 @@ class Identity:
     def register(self):
         thisone = self.getId()
         if thisone in ALL_IDENTITIES.keys():
-            if False:
-                print(f"Identity: entity {thisone} already registered")
+            print(f"Identity: entity {thisone} already registered")
         else:
             ALL_IDENTITIES[thisone] = self
 
-    def getId(self):
-        return Identity.mkId(orgId=self.orgId, classId=self.classId, typeId=self.typeId, name=self.name)
-
-    def getKey(self):
-        return self.getId()
+    def getIdentity(self, asArray: bool = False):
+        return self.getInfo() if asArray else Identity.mkId(orgId=self.orgId, classId=self.classId, typeId=self.typeId, name=self.name)
 
     def getInfo(self):
         return {
@@ -82,6 +78,12 @@ class Identity:
             "typeId": self.typeId,
             "name": self.name
         }
+
+    def getId(self):
+        return self.getIdentity()
+
+    def getKey(self):
+        return self.getId()
 
     def save(self, redis):
         """

@@ -41,23 +41,23 @@ class Route:
         logger.debug("trying networkx shortest_path..")
         try:
             self.route = shortest_path(self.graph.nx, source=self.src, target=self.dst, weight="weight")
-            logger.debug(".. found")
-            # logger.debug(".. found %s", self.route)
+            logger.debug("..found")
+            # logger.debug("..found %s", self.route)
             return self.route
         except exception.NetworkXNoPath:
-            logger.debug(".. not found")
+            logger.debug("..not found")
 
         # logger.debug("trying local AStar..")
         # atry = self.graph.AStar(self.src, self.dst)
         # if atry is not None:
-        #     logger.debug(".. found")
+        #     logger.debug("..found")
         #     self.route = atry
         #     return
 
         # logger.debug("trying AStar.. (reverse)")
         # atry = self.graph.AStar(self.dst, self.src)
         # if atry is not None:
-        #     logger.debug(".. found")
+        #     logger.debug("..found")
         #     atry.reverse()
         #     self.route = atry
         #     return
@@ -65,14 +65,14 @@ class Route:
         # logger.debug("trying Dijkstra..")
         # atry = self.graph.Dijkstra(self.src, self.dst)
         # if atry is not None and len(atry) > 2:
-        #     logger.debug(".. found (%d)", len(atry))
+        #     logger.debug("..found (%d)", len(atry))
         #     self.route = atry
         #     return
 
         # logger.debug("trying Dijkstra.. (reverse)")
         # atry = self.graph.Dijkstra(self.dst, self.src)
         # if atry is not None and len(atry) > 2:
-        #     logger.debug(".. found (%d)", len(atry))
+        #     logger.debug("..found (%d)", len(atry))
         #     atry.reverse()
         #     self.route = atry
 

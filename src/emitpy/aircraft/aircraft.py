@@ -1132,6 +1132,8 @@ class Aircraft(Identity):
         self.actype = actype
         self.callsign = None
         self.serial_number = None
+        self.configuration = None  # "C36 Y247" or "C46 W43 Y208"
+
 
     def setCallsign(self, callsign: str):
         """
@@ -1152,13 +1154,14 @@ class Aircraft(Identity):
         self.icao24 = icao24
 
     def getId(self):
-        return self.name  # == self.registration
+        return self.name  # == self.registration, (not correct, should return Indentity string)
 
     def getInfo(self) -> dict:
         """
         Gets information about this aircraft. Recurse to aircraft details (aircraft type, operator, etc).
         """
         return {
+            "identity": self.getIdentity(),
             "actype": self.actype.getInfo(),
             "operator": self.operator.getInfo(),
             "acreg": self.registration,

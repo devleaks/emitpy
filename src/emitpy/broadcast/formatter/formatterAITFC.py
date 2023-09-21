@@ -3,7 +3,6 @@
 import logging
 import datetime
 import json
-from jsonpath import JSONPath
 import flatdict
 
 from emitpy.constants import FEATPROP

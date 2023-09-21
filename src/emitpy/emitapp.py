@@ -560,7 +560,7 @@ class EmitApp(ManagedAirport):
         # @todo: pass service operator
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=self.operator)
         # operator = self.airport.manager.getCompany(operator)
-        logger.debug(".. done collecting data for flight services")
+        logger.debug("..done collecting data for flight services")
 
         # 2. Present collected data
         # 3. Create flight/mission/service...

@@ -10,7 +10,7 @@ import logging
 
 from datetime import datetime, timedelta, timezone
 
-from geojson import FeatureCollection
+from geojson import FeatureCollection, Feature
 from geojson.geometry import Geometry
 from turfpy.measurement import distance, bearing, destination
 
@@ -19,7 +19,7 @@ from tabulate import tabulate
 from redis.commands.json.path import Path
 
 import emitpy
-from emitpy.geo import MovePoint, cleanFeatures, findFeatures, Movement, toTraffic, toLST
+from emitpy.geo import MovePoint, cleanFeatures, findFeatures, Movement, toTraffic, toLST, asLineString
 from emitpy.utils import interpolate as doInterpolation, compute_headings, key_path
 
 from emitpy.constants import SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
@@ -195,7 +195,7 @@ class Emit(Movement):
         meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
         redis.delete(meta_id)
         redis.json().set(meta_id, Path.root_path(), self.getMeta())
-        logger.debug(f".. meta saved {meta_id}")
+        logger.debug(f"..meta saved {meta_id}")
         return (True, "Emit::saveMeta saved")
 
 
@@ -271,21 +271,23 @@ class Emit(Movement):
         if self.is_event_service():
             return (True, "Emit::saveFile: no need to save event service")
 
+        ident = self.getId()
+        db = REDIS_DATABASES[self.emit_type] if self.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
+        basename = os.path.join(MANAGED_AIRPORT_AODB, db, ident)
+
         # 1. Save "raw emits"
-        # filename = os.path.join(basename + "-5-emit.json")
-        # with open(filename, "w") as fp:
-        #     json.dump(self.getEmitPoints(), fp, indent=4)
+        filename = os.path.join(basename + "-5-emit.json")
+        with open(filename, "w") as fp:
+            json.dump(self.getEmitPoints(), fp, indent=4)
 
         # 2. Save "raw emits" and linestring
-        # ls = Feature(geometry=asLineString(self.getEmitPoints()))
-        # filename = os.path.join(basename + "-5-emit_ls.geojson")
-        # with open(filename, "w") as fp:
-        #     json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())+ [ls]), fp, indent=4)
+        ls = Feature(geometry=asLineString(self.getEmitPoints()))
+        filename = os.path.join(basename + "-5-emit_ls.geojson")
+        with open(filename, "w") as fp:
+            json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())+ [ls]), fp, indent=4)
 
         # 3. Save linestring with timestamp
         # Save for traffic analysis
-        # logger.debug(f"{self.getInfo()}")
-
         ret = self.saveTraffic()
         if not ret[0]:
             logger.warning("could not save traffic file")
@@ -618,10 +620,10 @@ class Emit(Movement):
                 if pause is not None and pause > 0:
                     total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }")
                     if emit_details:
-                        logger.debug(f".. done pausing at vertex. {time_to_next_emit} sec left before next emit")
+                        logger.debug(f"..done pausing at vertex. {time_to_next_emit} sec left before next emit")
                 else:
                     if emit_details:
-                        logger.debug(f".. done emitting vertex (no pause {pause}).")
+                        logger.debug(f"..done emitting vertex (no pause {pause}).")
 
             if time_to_next_emit == 0:  # need to emit now
                 if emit_details:
@@ -664,10 +666,10 @@ class Emit(Movement):
                     if pause is not None and pause > 0:
                         total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }")
                         if emit_details:
-                            logger.debug(f".. 2 done pausing at vertex. {time_to_next_emit} sec left before next emit")
+                            logger.debug(f"..2 done pausing at vertex. {time_to_next_emit} sec left before next emit")
                     else:
                         if emit_details:
-                            logger.debug(f".. done emitting vertex (no pause {pause}).")
+                            logger.debug(f"..done emitting vertex (no pause {pause}).")
 
 
             if emit_details:
@@ -687,7 +689,7 @@ class Emit(Movement):
                 pause = currpos.getProp(FEATPROP.PAUSE.value)
                 if pause is not None and pause > 0:
                     total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }")
-                    logger.debug(f".. done pausing at vertex. {time_to_next_emit} sec left before next emit")
+                    logger.debug(f"..done pausing at vertex. {time_to_next_emit} sec left before next emit")
                 if emit_details:
                     logger.debug(f"..done moving to next vertex with time remaining before next emit. {time_to_next_emit} sec left before next emit, moving to next vertex")
 
@@ -710,7 +712,7 @@ class Emit(Movement):
                     time_to_next_emit = future_emit
                     if emit_details:
                         # logger.debug(f"2vtx={time_to_next_vtx}, 2emt={time_to_next_emit}")
-                        logger.debug(f".. done moving on edge by {time_to_next_emit} sec. {time_to_next_vtx} remaining to next vertex")
+                        logger.debug(f"..done moving on edge by {time_to_next_emit} sec. {time_to_next_vtx} remaining to next vertex")
 
                 if time_to_next_vtx > 0:
                     # jump to next vertex because time_to_next_vtx <= future_emit
@@ -727,9 +729,9 @@ class Emit(Movement):
                     pause = currpos.getProp(FEATPROP.PAUSE.value)
                     if pause is not None and pause > 0:
                         total_time, time_to_next_emit = pause_at_vertex(total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }, e={len(self.getEmitPoints())}")
-                        logger.debug(f".. done pausing at vertex. {time_to_next_emit} sec left before next emit")
+                        logger.debug(f"..done pausing at vertex. {time_to_next_emit} sec left before next emit")
                     if emit_details:
-                        logger.debug(f".. done jumping to next vertex. {time_to_next_emit} sec left before next emit")
+                        logger.debug(f"..done jumping to next vertex. {time_to_next_emit} sec left before next emit")
 
             if must_spit_out:
                 logger.warning(f"mark {nextmark} not emitted")
@@ -826,9 +828,9 @@ class Emit(Movement):
         to_interp = self.getEmitPoints()
         # before = []
         check = "vspeed"
-        logger.debug(f"{self.getId()}: interpolating ..")
+        logger.debug(f"{self.getId()}: interpolating..")
         for name in ["speed", "vspeed", "altitude"]:
-            logger.debug(f".. {name} ..")
+            logger.debug(f"..{name}..")
             if name == check:
                 before = list(map(lambda x: x.getProp(name), to_interp))
             x = to_interp[0].getProp(name)

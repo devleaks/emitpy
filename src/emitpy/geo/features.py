@@ -342,6 +342,15 @@ class FeatureWithProps(Feature):
             return r[0]
         return None
 
+    def getFeaturePath(self, path: str):
+        r = JSONPath(path).parse(self)
+        if len(r) == 1:
+            return r[0]
+        if len(r) > 1:
+            print(f"FeatureWithProps.getFeaturePath(): ambiguous return value for {path}, returning first element in list")
+            return r[0]
+        return None
+
 
 # ################################
 # LOCATION

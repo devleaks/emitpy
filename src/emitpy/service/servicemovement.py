@@ -456,13 +456,6 @@ class ServiceMovement(GroundSupportMovement):
 
         logger.debug(f"..reached ramp..")
 
-        ramp_stop.setSpeed(0)
-        ramp_stop.setMark(SERVICE_PHASE.SERVICE_START.value)
-        move_points.append(ramp_stop)
-        logger.debug(f"..reached service position..")
-
-        self.service.vehicle.setPosition(ramp_stop)
-
         # before service, may first go to ramp rest area.
         ramp_standby = self.service.ramp.getServicePOI("standby", self.service.actype)
         logger.debug(f"..stand-by?..")
@@ -476,10 +469,27 @@ class ServiceMovement(GroundSupportMovement):
         else:
             logger.debug(f"..(no standby before service)..")
 
+        ramp_stop.setSpeed(0)
+        ramp_stop.setMark(SERVICE_PHASE.SERVICE_START.value)
+        move_points.append(ramp_stop)
+        logger.debug(f"..reached service position..")
+
+        self.service.vehicle.setPosition(ramp_stop)
+
+        # to be correct, service will start after setup_time...
+        reltime = 0
+        if vehicle.setup_time is not None:
+            reltime = vehicle.setup_time
+        self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has started",
+                                       service=self,
+                                       sync=SERVICE_PHASE.SERVICE_START.value,
+                                       relative_time=reltime,
+                                       info=self.getInfo()))
+
         # Prepare looping
         #
         # Prepare nearest depot
-        logger.debug("..preparing for loop..")
+        logger.debug("..preparing loop..")
         nearest_depot = self.airport.getNearestServiceDepot(service_type, ramp_stop)
         # CHECK: Service has depot where to load/drop?
         if nearest_depot is None:
@@ -499,9 +509,9 @@ class ServiceMovement(GroundSupportMovement):
         go_to_ramp = Route(self.airport.service_roads, nd_nv[0].id, ramp_nv[0].id)
         if not go_to_ramp.found():
             logger.warning("no route from nearest depot to ramp")
+        logger.debug("..loop prepared..")
         #
         # Looping ready
-        logger.debug("..loop ready to be used..")
 
         logger.debug("LOOP STARTED..")
         loading = self.service.quantity > 0
@@ -510,21 +520,6 @@ class ServiceMovement(GroundSupportMovement):
         unit_left = abs(self.service.quantity)
         logger.debug(f"vehicle capacity {vehicle.capacity}, current load {vehicle.current_load}, quantity {unit_left}, loading={loading}")
 
-        # to be correct, service will start after setup_time...
-        reltime = 0
-        if vehicle.setup_time is not None:
-            reltime = vehicle.setup_time
-        self.addMessage(ServiceMessage(subject=f"Service {self.getId()} has started",
-                                       service=self,
-                                       sync=SERVICE_PHASE.SERVICE_START.value,
-                                       relative_time=reltime,
-                                       info=self.getInfo()))
-
-        # .. servicing ..
-        # before service, may first go to ramp rest area.
-        # after service, may first go to ramp rest area before leaving ramp.
-        #
-        # LOOP, go to next position
         num_roundtrips = 0
         while unit_left > 0 and num_roundtrips < MAX_ROUNDTRIPS:
             #
@@ -537,6 +532,7 @@ class ServiceMovement(GroundSupportMovement):
             unit_left = unit_left - done
             this_load = ramp_stop.copy()
             this_load.setPause(this_load_duration)
+            this_load.setComment(f"{loadstr} at ramp")
             logger.debug(f"{loadstr}ed {done}, {unit_left} remaining, load duration={this_load_duration}")
 
             if unit_left > 0:  # need to go to depot
@@ -546,6 +542,7 @@ class ServiceMovement(GroundSupportMovement):
                 pos = MovePoint.new(ramp_npe[0])
                 pos.setMark(None)
                 pos.setSpeed(speeds["slow"])
+                pos.setComment("leaving to depot")
                 move_points.append(pos)
                 logger.debug(f"..leaving service position..")
                 # network edge->network vertex
@@ -553,6 +550,7 @@ class ServiceMovement(GroundSupportMovement):
                 pos.setMark(None)
                 pos.setProp("_serviceroad", nd_nv[0].id)
                 pos.setSpeed(speeds["slow"])
+                pos.setComment("leaving ramp")
                 move_points.append(pos)
                 logger.debug(f"..leaving ramp..")
                 # network vertex->network vertex
@@ -563,6 +561,7 @@ class ServiceMovement(GroundSupportMovement):
                         pos.setMark(None)
                         pos.setProp("_serviceroad", vtx.id)
                         pos.setSpeed(speeds["normal"])
+                        pos.setComment("travelling to depot")
                         move_points.append(pos)
                     logger.debug(f"..travelling to depot..")
                 else:
@@ -571,6 +570,7 @@ class ServiceMovement(GroundSupportMovement):
                 pos = MovePoint.new(nd_npe[0])
                 pos.setMark(None)
                 pos.setSpeed(speeds["slow"])
+                pos.setComment("approaching depot")
                 move_points.append(pos)
                 logger.debug(f"..approaching depot..")
                 # network edge-> depot
@@ -578,6 +578,7 @@ class ServiceMovement(GroundSupportMovement):
                 pos.setMark(None)
                 pos.setSpeed(speeds["slow"])
                 move_points.append(pos)
+                pos.setComment("parking at depot")
                 logger.debug(f"..parking at depot..")
                 #
                 # Empty or refill vehicle
@@ -588,6 +589,7 @@ class ServiceMovement(GroundSupportMovement):
                     refill = vehicle.load()
                 refill_duration = vehicle.service_duration(refill, add_setup=True)
                 pos.setPause(refill_duration)
+                pos.setComment(f"{opploadstr} at depot")
                 logger.debug(f"..{opploadstr}ed at depot, duration={refill_duration}..")
 
                 # go back to ramp
@@ -595,12 +597,14 @@ class ServiceMovement(GroundSupportMovement):
                 pos = MovePoint.new(nd_npe[0])
                 pos.setMark(None)
                 pos.setSpeed(speeds["slow"])
+                pos.setComment("leaving depot parking")
                 move_points.append(pos)
                 logger.debug(f"..leaving depot parking..")
                 # network edge->network vertex (close to depot)
                 pos = MovePoint.new(nd_nv[0])
                 pos.setMark(None)
                 pos.setSpeed(speeds["slow"])
+                pos.setComment("leaving depot")
                 move_points.append(pos)
                 logger.debug(f"..leaving depot..")
                 # network vertex->network vertex
@@ -611,6 +615,7 @@ class ServiceMovement(GroundSupportMovement):
                         pos.setMark(None)
                         pos.setProp("_serviceroad", vtx.id)
                         pos.setSpeed(speeds["normal"])
+                        pos.setComment("travelling to ramp")
                         move_points.append(pos)
                     logger.debug(f"..travelling to ramp..")
                 else:
@@ -619,12 +624,14 @@ class ServiceMovement(GroundSupportMovement):
                 pos = MovePoint.new(ramp_npe[0])
                 pos.setMark(None)
                 pos.setSpeed(speeds["slow"])
+                pos.setComment("reached ramp")
                 move_points.append(pos)
                 logger.debug(f"..reached ramp..")
                 # network edge->ramp
                 pos = MovePoint.new(ramp_stop)
                 pos.setMark(None)
                 pos.setSpeed(speeds["slow"])
+                pos.setComment("reached service position")
                 move_points.append(pos)
                 logger.debug(f"..reached service position")
                 num_roundtrips = num_roundtrips + 1
@@ -668,6 +675,18 @@ class ServiceMovement(GroundSupportMovement):
                                        sync=SERVICE_PHASE.SERVICE_END.value,
                                        relative_time=reltime,
                                        info=self.getInfo()))
+
+        logger.debug(f"..resting close by?..")
+        ramp_rest = self.service.ramp.getServicePOI("standby", self.service.actype)
+        if ramp_rest is not None and service.pause_after > 0:
+            ramp_rest_pos = MovePoint.new(ramp_rest)
+            ramp_rest_pos.setSpeed(0)
+            ramp_rest_pos.setMark("rest-after-service")
+            ramp_rest_pos.setPause(self.service.pause_after)
+            move_points.append(ramp_standby_pos)
+            logger.debug(f"added pause {self.service.pause_after}m after service")
+        else:
+            logger.debug(f"..(no pause after, leaving ramp)..")
 
         # route ramp to end position
         # to be correct, service will end before cleanup_time...

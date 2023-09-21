@@ -753,7 +753,7 @@ class Hypercaster:
                             # queue was working before, will continue to work but some parameters are reset
                             self.queues[qn].broadcaster = oldbr
                             oldbr.reset(speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
-                            hyperlogger.debug(f".. queue {qn} speed {self.queues[qn].speed} (was {oldsp}) " +
+                            hyperlogger.debug(f"..queue {qn} speed {self.queues[qn].speed} (was {oldsp}) " +
                                          f"starttime {self.queues[qn].starttime} (was {oldst}) reset")
                         hyperlogger.debug(f"..done")
 
@@ -780,7 +780,7 @@ class Hypercaster:
 
         self.pubsub.unsubscribe(pattern)
         self.redis.delete(QUIT_KEY)
-        hyperlogger.info(".. admin bye")
+        hyperlogger.info("..admin bye")
 
     def shutdown(self):
         """

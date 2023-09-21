@@ -812,7 +812,7 @@ class FlightMovement(Movement):
                 #         p.setProp("holding-pattern-idx", holdidx)
                 #         holdidx = holdidx - 1
                 #         revmoves.append(p)
-                #     logger.debug(".. done (%d points added)" % (len(hold_pts)))
+                #     logger.debug("..done (%d points added)" % (len(hold_pts)))
                 # else:
                 #     logger.debug("holding fix %s not found" % (self.holdingpoint))
 
@@ -1029,15 +1029,15 @@ class FlightMovement(Movement):
         to_interp = self.getMovePoints()
         # before = []
         check = "altitude"
-        logger.debug("interpolating ..")
+        logger.debug("interpolating..")
         for name in ["speed", "vspeed", "altitude"]:
-            logger.debug(f".. {name} ..")
+            logger.debug(f"..{name}..")
             if name == check:
                 before = list(map(lambda x: x.getProp(name), to_interp))
             status = doInterpolation(to_interp, name)
             if not status[0]:
                 logger.warning(status[1])
-        logger.debug(".. done.")
+        logger.debug("..done.")
 
         logger.debug("checking and transposing altitudes to geojson coordinates..")
         for f in to_interp:
@@ -1047,7 +1047,7 @@ class FlightMovement(Movement):
                     f["geometry"]["coordinates"].append(float(a))
                 else:
                     logger.warning(f"no altitude? {f.getProp(FEATPROP.MOVE_INDEX.value)}.")
-        logger.debug(".. done.")
+        logger.debug("..done.")
 
         # name = check
         # for i in range(len(to_interp)):
@@ -1166,13 +1166,13 @@ class FlightMovement(Movement):
         if self.taxipos is None:
             return (False, "Movement::taxiInterpolateAndTime no move")
 
-        logger.debug("interpolate speed ..")
+        logger.debug("interpolate speed..")
         status = doInterpolation(self.taxipos, "speed")
         if not status[0]:
             logger.warning(status[1])
             return status
 
-        logger.debug(".. compute time ..")
+        logger.debug("..compute time..")
         status = doTime(self.taxipos)
         if not status[0]:
             logger.warning(status[1])
@@ -1182,7 +1182,7 @@ class FlightMovement(Movement):
             f.setProp(FEATPROP.SAVED_TIME.value, f.time())
             f.setProp(FEATPROP.GROUNDED.value, True)
 
-        logger.debug(".. done.")
+        logger.debug("..done.")
 
         return (True, "Movement::taxiInterpolateAndTime done")
 
