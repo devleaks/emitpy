@@ -658,8 +658,8 @@ class XPAerospace(Aerospace):
         latmin, latmax = (23, 27)
         def inBbox(p):
             if LOCAL_HOLDS_ONLY:
-                lat = p["geometry"]["coordinates"][1]
-                lon = p["geometry"]["coordinates"][0]
+                lat = p.lat()
+                lon = p.lon()
                 return (lat > latmin) and (lat < latmax) and (lon > lonmin) and (lon < lonmax)
             return True
 

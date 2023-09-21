@@ -2,7 +2,7 @@
 import logging
 import copy
 
-from geojson import Feature, LineString, Point, FeatureCollection
+from emitpy.geo.turf import Feature, LineString, Point, FeatureCollection
 
 from emitpy.graph import Route
 
@@ -129,7 +129,7 @@ class FlightRoute:
         for n in self.nodes():
             f = a.get_vertex(n)
             self._route.features.append(f)
-            self.routeLS.coordinates.append(f["geometry"]["coordinates"])
+            self.routeLS.coordinates.append(f.coords())
             self.waypoints.append(f)
         logger.debug(f"..done")
 

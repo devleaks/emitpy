@@ -5,7 +5,7 @@ import logging
 from math import inf
 
 
-from geojson import Feature
+from emitpy.geo.turf import Feature
 
 from emitpy.airport import ManagedAirportBase
 from emitpy.geo import MovePoint, printFeatures, asLineString

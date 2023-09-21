@@ -11,7 +11,7 @@ import json
 from abc import ABC, abstractmethod
 from enum import Enum
 
-from geojson import Point, LineString, Polygon, Feature
+from emitpy.geo.turf import Point, LineString, Polygon, Feature
 from emitpy.geo.turf import distance, destination
 
 from emitpy.graph import Vertex, Edge, Graph
@@ -401,11 +401,7 @@ class Terminal(SignificantPoint):
         self.longname = longname
         self._as_waypoint = f"{name[0:2]}:{iata}"
         Terminal.AS_WAYPOINTS[self.as_waypoint] = self  # keep region:iata name for reference in lnav
-
-        if len(self["geometry"]["coordinates"]) > 2:
-            self["geometry"]["coordinates"][2] = alt
-        else:
-            self["geometry"]["coordinates"].append(alt)
+        self.setAltitude(alt)
 
     @staticmethod
     def as_waypoint(name):

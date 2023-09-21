@@ -1,5 +1,5 @@
 # Creates KML 3D flight path for visualisation in Google Earth or alike
-from geojson import Feature
+from emitpy.geo.turf import Feature
 
 
 def header(name: str, desc: str):

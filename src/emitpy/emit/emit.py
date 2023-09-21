@@ -10,7 +10,7 @@ import logging
 
 from datetime import datetime, timedelta, timezone
 
-from geojson import FeatureCollection, Feature
+from emitpy.geo.turf import FeatureCollection, Feature
 from geojson.geometry import Geometry
 from emitpy.geo.turf import distance, bearing, destination
 
@@ -848,12 +848,13 @@ class Emit(Movement):
         if x is not None:
             logger.debug(f"{self.getId()}: checking and transposing altitudes to geojson coordinates..")
             for f in to_interp:
-                if len(f["geometry"]["coordinates"]) == 2:
-                    a = f.altitude()
-                    if a is not None:
-                        f["geometry"]["coordinates"].append(float(a))
-                    else:
-                        logger.warning(f"no altitude? {f.getProp(FEATPROP.EMIT_INDEX.value)}.")
+                a = f.altitude()  # will get and set it properly
+                # if len(f.coords()) == 2:
+                #     a = f.altitude()
+                #     if a is not None:
+                #         f["geometry"]["coordinates"].append(float(a))
+                #     else:
+                #         logger.warning(f"no altitude? {f.getProp(FEATPROP.EMIT_INDEX.value)}.")
             logger.debug(f"{self.getId()}: .. done.")
         else:
             # may be we should then set altitude to the airport

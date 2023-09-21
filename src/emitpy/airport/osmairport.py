@@ -6,7 +6,7 @@ import json
 import yaml
 import logging
 
-from geojson import Point, Feature
+from emitpy.geo.turf import Point, Feature
 from emitpy.geo.turf import distance, bearing
 
 from .airport import ManagedAirportBase

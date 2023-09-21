@@ -8,7 +8,7 @@ import time
 from math import inf
 import networkx as nx
 
-from geojson import Point, LineString, Feature
+from emitpy.geo.turf import Point, LineString, Feature
 from emitpy.geo.turf import distance, destination, bearing, point_in_polygon, point_to_line_distance
 
 from emitpy.geo import FeatureWithProps, line_intersect, printFeatures

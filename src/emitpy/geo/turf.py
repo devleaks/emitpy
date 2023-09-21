@@ -2,6 +2,10 @@
 # No library is satisfying...
 # Inconsistencies, missing functions, errors, wrong GeoJSON handling...
 #
+# _Feature         = Feature as used by the base geo package, as used in utility functions.
+# Feature          = Feature as simple as possible BUT with EmitPy interface
+# FeatureWithProps = Feature with sofisticatde fonctions and shortcuts
+#
 import copy
 import inspect
 from jsonpath import JSONPath
@@ -24,6 +28,7 @@ from emitpy.constants import FEATPROP, TAG_SEP
 class Feature(_Feature):
 
     def __init__(self, geometry, properties: dict = {}, **extra):
+        self["type"] = "Feature"  # see https://github.com/jazzband/geojson/issues/178
         _Feature.__init__(self, geometry=geometry, properties=properties)
         self.id = extra.get("id")
 
@@ -40,7 +45,6 @@ class EmitpyFeature(Feature):
     """
     def __init__(self, id=None, geometry=None, properties=None, **extra):
         # MUST CALL BEFORE: def __init__(self, geometry: Geometry, properties: dict):
-        self["type"] = "Feature"  # see https://github.com/jazzband/geojson/issues/178
         Feature.__init__(self, id=id, geometry=geometry, properties=copy.deepcopy(properties) if properties is not None else None)
         self.setVersion()
         self.setClass()
@@ -79,10 +83,7 @@ class EmitpyFeature(Feature):
     def betterFeatures(arr):
         return [ EmitpyFeature.convert(f) for f in arr ]
 
-    def version(self):
-        return self.getProp(FEATPROP.VERSION.value)
-
-    def geometry(self):
+    def getGeometry(self):
         return self["geometry"] if "geometry" in self else None
 
     def coords(self):
@@ -90,12 +91,6 @@ class EmitpyFeature(Feature):
 
     def props(self):
         return self["properties"] if "properties" in self else None
-
-    def lat(self):
-        return self["geometry"]["coordinates"][1] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
-
-    def lon(self):
-        return self["geometry"]["coordinates"][0] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
 
     def geomtype(self):
         return self["geometry"]["type"] if (("geometry" in self) and ("type" in self["geometry"])) else None
@@ -109,12 +104,39 @@ class EmitpyFeature(Feature):
     def setVersion(self, v: str = emitpy.__version__):
         self.setProp(FEATPROP.VERSION.value, v)
 
+    def version(self):
+        return self.getProp(FEATPROP.VERSION.value)
+
+    def lat(self):
+        return self["geometry"]["coordinates"][1] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
+
+    def lon(self):
+        return self["geometry"]["coordinates"][0] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
+
+    def getId(self):
+        return self.id if hasattr(self, "id") else self.getProp("id")
+
+    def getKey(self):
+        # return type(self).__name__ + ID_SEP + self.getId()
+        return self.getId()
+
+    def setId(self, ident: str):
+        # id is a special attribute for Features
+        self.id = ident
+
     def setClass(self, c: str = None, force: bool = False):
         if force or self.getClass() is None:
             self.setProp(FEATPROP.CLASS.value, c if c is not None else type(self).__name__)
 
     def getClass(self):
         return self.getProp(FEATPROP.CLASS.value)
+
+    def setProp(self, name: str, value):
+        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
+        if name == FEATPROP.ALTITUDE.value:
+            self.setAltitude(value)
+        else:
+            self["properties"][name] = value
 
     def getProp(self, name: str):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
@@ -125,32 +147,15 @@ class EmitpyFeature(Feature):
         print("feature has no properties?")
         return None
 
-    def setProp(self, name: str, value):
-        # Wrapper around Feature properties (inexistant in GeoJSON Feature)
-        if name == FEATPROP.ALTITUDE.value:
-            self.setAltitude(value)
-        else:
-            self["properties"][name] = value
-
-    def getName(self):
-        return self.getProp(FEATPROP.NAME.value)
+    def addProps(self, values: dict):
+        for name, value in values.items():
+            self.setProp(name, value)
 
     def setName(self, name: str):
         self.setProp(FEATPROP.NAME.value, name)
 
-    def getId(self):
-        return self.id if hasattr(self, "id") else self.getProp("id")
-
-    def getKey(self):
-        # return type(self).__name__ + ID_SEP + self.getId()
-        return self.getId()
-
-    def setId(self, ident: str):
-        self.id = ident
-
-    def addProps(self, values: dict):
-        for name, value in values.items():
-            self.setProp(name, value)
+    def getName(self):
+        return self.getProp(FEATPROP.NAME.value)
 
     def getMark(self):
         return self.getProp(FEATPROP.MARK.value)
@@ -158,7 +163,9 @@ class EmitpyFeature(Feature):
     def setMark(self, mark):
         return self.setProp(FEATPROP.MARK.value, mark)
 
-        # For historical reasons, tags are kept in |-separated strings like tag1|tag2.
+    # Tags
+    #
+    # For historical reasons, tags are kept in |-separated strings like tag1|tag2.
     def setTag(self, tagname: str, tagvalue: str):
         tags = self.getTags(tagname)
         if tagvalue not in tags:
@@ -188,6 +195,8 @@ class EmitpyFeature(Feature):
     def setTags(self, tagname: str, tags, sep=TAG_SEP):
         self.setProp(tagname, sep.join(tags))
 
+    # Color
+    #
     def hasColor(self):
         return self.getProp("marker-color") is not None or self.getProp("stroke") is not None
 
@@ -214,6 +223,8 @@ class EmitpyFeature(Feature):
             "fill-opacity": 0.5
         })
 
+    # Altitude
+    #
     def setAltitude(self, alt: float, ref: str = "ASL"):  # ref={ASL|AGL|BARO}
         # ref could be ASL, AGL, BARO
         # Altitude should be in meters
@@ -242,6 +253,8 @@ class EmitpyFeature(Feature):
     def alt(self):
         return self.altitude()
 
+    # Special kinematics
+    #
     def setSpeed(self, speed: float):
         # Speed should be in meters per second
         self.setProp(name=FEATPROP.SPEED.value, value=speed)
@@ -348,8 +361,8 @@ class EmitpyFeature(Feature):
             return r[0]
         return None
 
-
-
+# Utility functions
+#
 # Measures
 def distance(p1, p2, units: str = "km"):
     return turf_distance(p1, p2, units)

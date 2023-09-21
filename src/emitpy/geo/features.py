@@ -1,11 +1,10 @@
 """
 GeoJSON Features with special meaning or type (class).
 """
-from geojson import Polygon, Point, LineString, Feature
 from datetime import datetime, timedelta
 
-import emitpy
-from emitpy.constants import FEATPROP, POI_TYPE, TAG_SEP, SERVICE_COLOR
+from emitpy.constants import FEATPROP, POI_TYPE, SERVICE_COLOR
+from emitpy.geo.turf import Polygon, Point, LineString, Feature
 from emitpy.geo.turf import EmitpyFeature as FeatureWithProps
 from emitpy.geo.turf import bearing, destination
 

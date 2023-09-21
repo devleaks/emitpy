@@ -8,7 +8,7 @@ import random
 import json
 
 from math import inf
-from geojson import Point, Feature, FeatureCollection
+from emitpy.geo.turf import Point, Feature, FeatureCollection
 from emitpy.geo.turf import distance, destination, bearing
 
 from emitpy.graph import Vertex, Edge, USAGE_TAG
@@ -294,7 +294,7 @@ class XPAirport(ManagedAirportBase):
                 if len(args) >= 4:
                     src = self.taxiways.get_vertex(args[0])
                     dst = self.taxiways.get_vertex(args[1])
-                    cost = distance(src["geometry"], dst["geometry"])
+                    cost = distance(src.getGeometry(), dst.getGeometry())
                     edge = None
                     if len(args) == 5:
                         # args[2] = {oneway|twoway}, args[3] = {runway|taxiway}
@@ -354,7 +354,7 @@ class XPAirport(ManagedAirportBase):
                 if len(args) >= 3:
                     src = self.service_roads.get_vertex(args[0])
                     dst = self.service_roads.get_vertex(args[1])
-                    cost = distance(src["geometry"], dst["geometry"])
+                    cost = distance(src.getGeometry(), dst.getGeometry())
                     edge = None
                     name = args[4] if len(args) == 5 else ""
                     edge = Edge(src=src, dst=dst, weight=cost, directed=False, usage=["ground"], name=name)
@@ -599,7 +599,7 @@ class XPAirport(ManagedAirportBase):
             r = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if r is not None:
                 f = FeatureWithProps.new(r)
-                return Ramp(name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=r["geometry"]["coordinates"], orientation=f.getProp("orientation"), use=f.getProp("use"))
+                return Ramp(name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=r.coords(), orientation=f.getProp("orientation"), use=f.getProp("use"))
         return self.ramps[name] if name in self.ramps.keys() else None
 
     def makeAdditionalAerowayPOIS(self):
@@ -612,22 +612,22 @@ class XPAirport(ManagedAirportBase):
             name = line.getProp(FEATPROP.RUNWAY.value)
             self.takeoff_queues[name] = []
 
-            qb = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
-            qe = Feature(geometry=Point(line["geometry"]["coordinates"][-1]))
+            qb = Feature(geometry=Point(line.coords()[0]))
+            qe = Feature(geometry=Point(line.coords()[-1]))
             rwy = self.procedures.RWYS[name]
             rwypt = rwy.getPoint()
             db = distance(qb, rwypt)
             de = distance(qe, rwypt)
             if de < db:  # need to inverse coordinates, we start from the TAKE-OFF HOLD position (=queue id 0)
-                line["geometry"]["coordinates"].reverse()
+                line.coords().reverse()
 
-            maxlen = ls_length(line["geometry"])
+            maxlen = ls_length(line.getGeometry())
             logger.debug(f"{name} takeoff queue is {round(maxlen, 0)}m")
             currlen = 0
             qid = 0
 
             # First add the takeoff hold position, last (and mandatory) queue position
-            f = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
+            f = Feature(geometry=Point(line.coords()[0]))
             p = FeatureWithProps.new(f)
             p.setProp(FEATPROP.RUNWAY.value, name)
             p.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.QUEUE_POSITION.value)
@@ -638,7 +638,7 @@ class XPAirport(ManagedAirportBase):
             qid = qid + 1
 
             while currlen < maxlen and qid < TAKE_OFF_QUEUE_SIZE:
-                f = ls_point_at(line["geometry"], currlen)
+                f = ls_point_at(line.getGeometry(), currlen)
                 if f is not None:
                     p = FeatureWithProps.new(f)
                     p.setProp(FEATPROP.RUNWAY.value, name)
@@ -983,7 +983,7 @@ class XPAirport(ManagedAirportBase):
         
     def getDefaultCheckpoints(self):
         return FeatureCollection(features=[FeatureWithProps(
-            geometry=self.geometry(),
+            geometry=self.getGeometry(),
             properties={
                 "poi-type": "checkpoint",
                 "service": "checkpoint",
@@ -995,7 +995,7 @@ class XPAirport(ManagedAirportBase):
 
     def getCentralRestArea(self):
         return [FeatureWithProps(
-            geometry=self.geometry(),
+            geometry=self.getGeometry(),
             properties={
                 "poi-type": "rest-area",
                 "service": "*",
@@ -1004,7 +1004,7 @@ class XPAirport(ManagedAirportBase):
 
     def getCentralDepot(self, service: str):
         return FeatureWithProps(
-            geometry=self.geometry(),
+            geometry=self.getGeometry(),
             properties={
                 "poi-type": "service",
                 "service": service,

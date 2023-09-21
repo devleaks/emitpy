@@ -8,11 +8,11 @@ from shapely.geometry import GeometryCollection, MultiLineString, MultiPoint
 
 
 def shapeFlight(moves):
-    return LineString( [f["geometry"]["coordinates"] for f in moves] )
+    return LineString( [f.coords() for f in moves] )
 
 
 def shapeAirspaces(airspaces):
-    return dict([(Polygon(f["geometry"]["coordinates"][0]), f) for f in airspaces])
+    return dict([(Polygon(f.coords()[0]), f) for f in airspaces])
 
 
 def airspace_intersects(airspaces, flight: LineString):

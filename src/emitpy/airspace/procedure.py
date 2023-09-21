@@ -346,10 +346,7 @@ class RWY(Procedure):
         """
         Sets altitude of threshold point
         """
-        if len(self.point["geometry"]["coordinates"]) > 2:
-            self.point["geometry"]["coordinates"][2] = alt
-        else:
-            self.point["geometry"]["coordinates"].append(alt)
+        self.point.setAltitude(alt)
 
     def getPoint(self):
         """
@@ -549,8 +546,8 @@ class CIFP:
             #             region=self.icao[0:2],
             #             airport=self.icao,
             #             pointtype="RWY",
-            #             lat=apt["geometry"]["coordinates"][1],
-            #             lon=apt["geometry"]["coordinates"][0]
+            #             lat=apt.coords()[1],
+            #             lon=apt.coords()[0]
             #         )
             #         logger.warning(f"runway {k} for {self.icao} has no threshold, replaced by airport coordinates.")
 

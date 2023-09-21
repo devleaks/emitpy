@@ -3,7 +3,7 @@ import logging
 
 from math import pi
 
-from geojson import Point, LineString, Feature, FeatureCollection
+from emitpy.geo.turf import Point, LineString, Feature, FeatureCollection
 from emitpy.geo.turf import destination, bearing, distance
 #from .movement import MovePoint
 

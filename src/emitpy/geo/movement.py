@@ -9,7 +9,7 @@ import copy
 
 from datetime import datetime, timedelta
 
-from geojson import Point, FeatureCollection, Feature
+from emitpy.geo.turf import Point, FeatureCollection, Feature
 
 from tabulate import tabulate
 

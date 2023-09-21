@@ -15,21 +15,21 @@ import logging
 import pickle
 import random
 import operator
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
-from datetime import datetime, timezone
+from datetime import datetime
 
 from emitpy.geo.turf import distance, point_to_line_distance
 
-from emitpy.graph import Graph, USAGE_TAG
+from emitpy.graph import Graph
 from emitpy.geo import Location
 
 from emitpy.airspace import CIFP, Terminal
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
-from emitpy.parameters import DATA_DIR, METAR_HISTORICAL
-from emitpy.geo import FeatureWithProps, Ramp, Runway, cleanFeatures
+from emitpy.parameters import DATA_DIR
+from emitpy.geo import FeatureWithProps, Ramp, Runway
 from emitpy.utils import Timezone, FT, key_path, rejson
 
 logger = logging.getLogger("Airport")
@@ -303,8 +303,8 @@ class Airport(Location):
             "city": self.getProp(FEATPROP.CITY.value),
             "country": self.getProp(FEATPROP.COUNTRY.value),
             "iso_region": self.region,
-            "lat": self["geometry"]["coordinates"][1],
-            "lon": self["geometry"]["coordinates"][0],
+            "lat": self.lat(),
+            "lon": self.lon(),
             "alt": self.altitude()
         }
 

@@ -9,7 +9,7 @@ import copy
 from math import pi
 from datetime import timedelta
 
-from geojson import LineString, FeatureCollection, Feature
+from emitpy.geo.turf import LineString, FeatureCollection, Feature
 from emitpy.geo.turf import distance, destination, bearing
 
 from tabulate import tabulate
@@ -989,8 +989,8 @@ class FlightMovement(Movement):
                 logger.debug("skipping %d (special mark)" % (i))
                 move_points.append(self._premoves[i])
             else:
-                li = LineString([self._premoves[i-1]["geometry"]["coordinates"], self._premoves[i]["geometry"]["coordinates"]])
-                lo = LineString([self._premoves[i]["geometry"]["coordinates"], self._premoves[i+1]["geometry"]["coordinates"]])
+                li = LineString([self._premoves[i-1].coords(), self._premoves[i].coords()])
+                lo = LineString([self._premoves[i].coords(), self._premoves[i+1].coords()])
                 s = last_speed  # arrin[i].speed()
                 if s is None:
                     s = last_speed
@@ -1041,12 +1041,13 @@ class FlightMovement(Movement):
 
         logger.debug("checking and transposing altitudes to geojson coordinates..")
         for f in to_interp:
-            if len(f["geometry"]["coordinates"]) == 2:
-                a = f.altitude()
-                if a is not None:
-                    f["geometry"]["coordinates"].append(float(a))
-                else:
-                    logger.warning(f"no altitude? {f.getProp(FEATPROP.MOVE_INDEX.value)}.")
+            a = f.altitude()
+            # if len(f["geometry"]["coordinates"]) == 2:
+            #     a = f.altitude()
+            #     if a is not None:
+            #         f["geometry"]["coordinates"].append(float(a))
+            #     else:
+            #         logger.warning(f"no altitude? {f.getProp(FEATPROP.MOVE_INDEX.value)}.")
         logger.debug("..done.")
 
         # name = check

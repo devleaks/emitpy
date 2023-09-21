@@ -1,5 +1,5 @@
 # Creates CZML flight path for visualisation in Cesium
-from geojson import Feature
+from emitpy.geo.turf import Feature
 
 
 def toCZML(path: [Feature]):

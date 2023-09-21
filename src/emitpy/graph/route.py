@@ -4,7 +4,7 @@ A Route is a collection of ordered graph vertices.
 import logging
 from networkx import shortest_path, exception
 
-# from geojson import Point, Feature
+# from emitpy.geo.turf import Point, Feature
 from emitpy.geo.turf import distance
 
 logger = logging.getLogger("Route")

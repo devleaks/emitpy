@@ -1,6 +1,6 @@
 from .features import FeatureWithProps
 
-def asTrafficCSV(features: [FeatureWithProps], header:bool = True):
+def asTrafficCSV(features: [FeatureWithProps], header: bool = True):
     # mandatory: timestamp, icao24, latitude, longitude, groundspeed, track, vertical_rate, callsign, altitude
     csv = ""
     if header:
@@ -13,7 +13,7 @@ def asTrafficCSV(features: [FeatureWithProps], header:bool = True):
         callsign = c["properties"]["flight"]["callsign"]
 
     for f in features:
-        if f["geometry"]["type"] == "Point":
+        if f.geomtype() == "Point":
             s = f"{int(f.getAbsoluteEmissionTime())},{icao24},{callsign},{f.lat()},{f.lon()},{f.altitude(0)},{f.speed(0)},{f.heading(0)},{f.vspeed(0)}\n"
             csv = csv + s
 
