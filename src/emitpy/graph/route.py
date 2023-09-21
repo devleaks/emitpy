@@ -5,7 +5,7 @@ import logging
 from networkx import shortest_path, exception
 
 # from geojson import Point, Feature
-from turfpy.measurement import distance
+from emitpy.geo.turf import distance
 
 logger = logging.getLogger("Route")
 

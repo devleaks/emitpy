@@ -8,7 +8,7 @@ import logging
 import random
 from enum import Enum
 
-from turfpy.measurement import distance, bearing
+from emitpy.geo.turf import distance, bearing
 
 from emitpy.utils import ConvertDMSToDD, FT
 from emitpy.parameters import XPLANE_DIR

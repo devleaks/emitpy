@@ -4,7 +4,7 @@ GeoJSON Features with special meaning or type (class).
 import copy
 import inspect
 from geojson import Polygon, Point, LineString, Feature
-from turfpy.measurement import bearing, destination
+from emitpy.geo.turf import bearing, destination
 from jsonpath import JSONPath
 from datetime import datetime, timedelta
 
@@ -481,13 +481,13 @@ class Ramp(FeatureWithProps):
         service_pois["center"] = self
 
         # compute parking begin (nose tip of plane)
-        parking_nose = destination(self, aircraft_length / 2000, heading, {"units": "km"})
+        parking_nose = destination(self, aircraft_length / 2000, heading)
         parking_nose = FeatureWithProps.new(parking_nose)
         parking_nose.setColor("#dd0000")
         service_pois["nose"] = parking_nose
 
         # compute parking end
-        parking_end = destination(self, aircraft_length / 1000, antiheading, {"units": "km"})
+        parking_end = destination(self, aircraft_length / 1000, antiheading)
         parking_end = FeatureWithProps.new(parking_end)
         parking_end.setColor("#dd0000")
         service_pois["end"] = parking_end
@@ -498,8 +498,8 @@ class Ramp(FeatureWithProps):
         gseprofile = aircraft.getGSEProfile(redis=redis)
         positions = gseprofile["services"]
         for svc in positions:
-            poiaxe = destination(self,   positions[svc][0]/1000, antiheading, {"units": "km"})
-            poilat = destination(poiaxe, positions[svc][1]/1000, antiheading + 90, {"units": "km"})
+            poiaxe = destination(self,   positions[svc][0]/1000, antiheading)
+            poilat = destination(poiaxe, positions[svc][1]/1000, antiheading + 90)
             pos = FeatureWithProps.new(poilat)
             pos.setProp(FEATPROP.POI_TYPE.value, POI_TYPE.RAMP_SERVICE_POINT.value)
             pos.setProp(FEATPROP.SERVICE.value, svc)

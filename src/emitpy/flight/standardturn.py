@@ -4,7 +4,7 @@ import logging
 from math import pi
 
 from geojson import Point, LineString, Feature, FeatureCollection
-from turfpy.measurement import destination, bearing, distance
+from emitpy.geo.turf import destination, bearing, distance
 #from .movement import MovePoint
 
 logger = logging.getLogger("standard_turns")
@@ -36,8 +36,8 @@ def extend_line(line, pct=40):
     brng = bearing(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
     newdist = distance(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
     dist = max(30, newdist * pct / 100)  # km
-    far0 = destination(Feature(geometry=Point(line["coordinates"][0])), dist, brng + 180, {"units": "km"})
-    far1 = destination(Feature(geometry=Point(line["coordinates"][1])), dist, brng, {"units": "km"})
+    far0 = destination(Feature(geometry=Point(line["coordinates"][0])), dist, brng + 180)
+    far1 = destination(Feature(geometry=Point(line["coordinates"][1])), dist, brng)
     return Feature(geometry=LineString([far1["geometry"]["coordinates"], far0["geometry"]["coordinates"]]),
                    properties={
                        "name": f"B {brng}",

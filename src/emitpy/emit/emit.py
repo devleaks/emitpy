@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 
 from geojson import FeatureCollection, Feature
 from geojson.geometry import Geometry
-from turfpy.measurement import distance, bearing, destination
+from emitpy.geo.turf import distance, bearing, destination
 
 from tabulate import tabulate
 
@@ -386,10 +386,10 @@ class Emit(Movement):
 
         def point_on_line(c, n, d):
             # brng = bearing(c, n)
-            # dest = destination(c, d / 1000, brng, {"units": "km"})
+            # dest = destination(c, d / 1000, brng)
             # if emit_details:
             #     logger.debug(f"d={d})")
-            return MovePoint.convert(destination(c, d / 1000, bearing(c, n), {"units": "km"}))
+            return MovePoint.convert(destination(c, d / 1000, bearing(c, n)))
 
         def time_distance_to_next_vtx(c0, idx):  # time it takes to go from c0 to vtx[idx+1]
             totald = distance(self.move_points[idx], self.move_points[idx+1])  * 1000  # km

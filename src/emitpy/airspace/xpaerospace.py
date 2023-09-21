@@ -9,7 +9,7 @@ import json
 from importlib_resources import files
 
 from math import inf
-from turfpy.measurement import distance
+from emitpy.geo.turf import distance
 
 from emitpy.geo import FeatureWithProps
 from emitpy.constants import REDIS_PREFIX, REDIS_DB

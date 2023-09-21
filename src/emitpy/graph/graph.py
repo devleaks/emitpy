@@ -9,7 +9,7 @@ from math import inf
 import networkx as nx
 
 from geojson import Point, LineString, Feature
-from turfpy.measurement import distance, destination, bearing, boolean_point_in_polygon, point_to_line_distance
+from emitpy.geo.turf import distance, destination, bearing, point_in_polygon, point_to_line_distance
 
 from emitpy.geo import FeatureWithProps, line_intersect, printFeatures
 
@@ -146,7 +146,7 @@ class Graph:  # Graph(FeatureCollection)?
     def get_vertices(self, connected_only: bool = False, bbox: Feature = None):
         varr = filter(lambda x: x.connected, self.vert_dict.values()) if connected_only else self.vert_dict.values()
         if bbox is not None:
-            ret = list(map(lambda x: x.id, filter(lambda x: boolean_point_in_polygon(Feature(geometry=Point(x["geometry"]["coordinates"])), bbox), varr)))
+            ret = list(map(lambda x: x.id, filter(lambda x: point_in_polygon(Feature(geometry=Point(x["geometry"]["coordinates"])), bbox), varr)))
             logger.debug("box bounded from %d to %d.", len(self.vert_dict), len(ret))
             return ret
         return list(map(lambda x: x.id, varr))
@@ -176,7 +176,7 @@ class Graph:  # Graph(FeatureCollection)?
                         bbOk = True
                         if "bbox" in options:
                             dstp = self.get_vertex(dst)
-                            bbOk = boolean_point_in_polygon(dstp, options["bbox"])
+                            bbOk = point_in_polygon(dstp, options["bbox"])
                         # logger.debug("%s %s %s %s %s" % (dst, v.usage, code, txyOk, scdOk))
                         if bbOk:
                             connectionKeys.append(dst)
@@ -232,13 +232,13 @@ class Graph:  # Graph(FeatureCollection)?
             LINE_LENGTH = 0.5  # km
             # extends original line, segments can sometimes be very short (openstreetmap)
             brng = bearing(Feature(geometry=Point(line["geometry"]["coordinates"][0])), Feature(geometry=Point(line["geometry"]["coordinates"][1])))
-            p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng, {"units": "km"})
-            p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 180, {"units": "km"})
+            p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng)
+            p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 180)
             linext = Feature(geometry=LineString([p0["geometry"]["coordinates"], p1["geometry"]["coordinates"]]))
             # make perpendicular, long enough
             brng = bearing(Feature(geometry=Point(line["geometry"]["coordinates"][0])), Feature(geometry=Point(line["geometry"]["coordinates"][1])))
-            p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng + 90, {"units": "km"})
-            p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 90, {"units": "km"})
+            p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng + 90)
+            p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 90)
             perp = Feature(geometry=LineString([p0["geometry"]["coordinates"], p1["geometry"]["coordinates"]]))
             # printFeatures([linext, perp], "nearest_point_on_line")
             return line_intersect(linext, perp)

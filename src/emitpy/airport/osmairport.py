@@ -7,7 +7,7 @@ import yaml
 import logging
 
 from geojson import Point, Feature
-from turfpy.measurement import distance, bearing
+from emitpy.geo.turf import distance, bearing
 
 from .airport import ManagedAirportBase
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR

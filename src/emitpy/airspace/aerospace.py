@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 
 from geojson import Point, LineString, Polygon, Feature
-from turfpy.measurement import distance, destination
+from emitpy.geo.turf import distance, destination
 
 from emitpy.graph import Vertex, Edge, Graph
 from emitpy.geo import FeatureWithProps
@@ -504,12 +504,12 @@ class Hold(Restriction):
 
         # 4 corners and 2 arc centers p1 -> p2 -> p3 -> p4 -> p1
         p1 = self.fix
-        p2 = destination(p1, length, self.course, {"units": "km"})
+        p2 = destination(p1, length, self.course)
 
         hold = [p1, p2]  # start from p1, to to p2, then 180 turn:
 
         perpendicular = self.course + 90 * (1 if self.turn == "R" else -1)
-        c23 = destination(p2, radius, perpendicular, {"units": "km"})
+        c23 = destination(p2, radius, perpendicular)
 
         logger.debug(f"fix:{self.fix.id} turn={self.turn} course={self.course:f} perp={perpendicular:f}")
 
@@ -522,12 +522,12 @@ class Hold(Restriction):
             arc.reverse()
         hold = hold + arc
 
-        p3 = destination(p2, 2*radius, perpendicular, {"units": "km"})
+        p3 = destination(p2, 2*radius, perpendicular)
         hold.append(p3)
-        p4 = destination(p1, 2*radius, perpendicular, {"units": "km"})
+        p4 = destination(p1, 2*radius, perpendicular)
         hold.append(p4)
 
-        c41 = destination(p1, radius, perpendicular, {"units": "km"})
+        c41 = destination(p1, radius, perpendicular)
         arc = line_arc(c41, radius, start_angle + 180, start_angle + 360, finesse)
         if self.turn == "L":
             arc.reverse()

@@ -1,7 +1,7 @@
 #
 import logging
 
-from turfpy.measurement import distance, bearing
+from emitpy.geo.turf import distance, bearing
 from emitpy.constants import FEATPROP
 from emitpy.geo import c360
 

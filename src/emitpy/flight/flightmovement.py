@@ -10,7 +10,7 @@ from math import pi
 from datetime import timedelta
 
 from geojson import LineString, FeatureCollection, Feature
-from turfpy.measurement import distance, destination, bearing
+from emitpy.geo.turf import distance, destination, bearing
 
 from tabulate import tabulate
 
@@ -326,7 +326,7 @@ class FlightMovement(Movement):
                 alt = 0
 
             brg = bearing(rwy_threshold, rwy.end.getPoint())
-            takeoff_hold = destination(rwy_threshold, TOH_BLASTOFF, brg, {"units": "km"})
+            takeoff_hold = destination(rwy_threshold, TOH_BLASTOFF, brg)
             logger.debug(f"departure from {rwy.name}, {brg:f}")
 
             p = addMovepoint(arr=self._premoves,
@@ -341,7 +341,7 @@ class FlightMovement(Movement):
             logger.debug(f"takeoff hold at {rwy.name}, {TOH_BLASTOFF:f}")
 
             takeoff_distance = actype.getSI(ACPERF.takeoff_distance) * self.airport.runwayIsWet() / 1000  # must be km for destination()
-            takeoff = destination(takeoff_hold, takeoff_distance, brg, {"units": "km"})
+            takeoff = destination(takeoff_hold, takeoff_distance, brg)
 
             p = addMovepoint(arr=self._premoves,
                              src=takeoff,
@@ -370,7 +370,7 @@ class FlightMovement(Movement):
             currpos, newidx = moveOn(fc, fcidx, p, initial_climb_distance)
             # we ignore currpos for now, we will climb straight, we ignore points
             # between fcidx and newidx during initial climb...
-            initial_climb = destination(takeoff, initial_climb_distance, brg, {"units": "km"})
+            initial_climb = destination(takeoff, initial_climb_distance, brg)
             currpos = addMovepoint(arr=self._premoves,
                                    src=initial_climb,
                                    alt=alt,
@@ -593,12 +593,12 @@ class FlightMovement(Movement):
                 alt = 0
 
             brg = bearing(rwy_threshold, rwy.end.getPoint())
-            touch_down = destination(rwy_threshold, LAND_TOUCH_DOWN, brg, {"units": "km"})
+            touch_down = destination(rwy_threshold, LAND_TOUCH_DOWN, brg)
             logger.debug(f"(rev) arrival runway {rwy.name}, {brg:f}")
 
             # First point is end off roll out, read to exit the runway and taxi
             rollout_distance = actype.getSI(ACPERF.landing_distance) * self.airport.runwayIsWet() / 1000 # must be km for destination()
-            end_rollout = destination(touch_down, rollout_distance, brg, {"units": "km"})
+            end_rollout = destination(touch_down, rollout_distance, brg)
 
             currpos = addMovepoint(arr=revmoves,
                                    src=end_rollout,
@@ -639,7 +639,7 @@ class FlightMovement(Movement):
 
             # we ignore currpos for now, we will descent straight, we ignore points
             # between fcidx and newidx during final descent...
-            final_fix = destination(touch_down, final_distance, brg + 180, {"units": "km"})
+            final_fix = destination(touch_down, final_distance, brg + 180)
 
             currpos = addMovepoint(arr=revmoves,
                                    src=final_fix,
@@ -1207,7 +1207,7 @@ class FlightMovement(Movement):
             left = TMO - prev
             # logger.debug("add_tmo: %d: left=%f, TMO=%f" % (idx, left, TMO))
             brng = bearing(move_points[idx], move_points[idx - 1])
-            tmopt = destination(move_points[idx], left, brng, {"units": "km"})
+            tmopt = destination(move_points[idx], left, brng)
 
             tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
             tmomp.setMark(mark)

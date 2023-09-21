@@ -5,7 +5,7 @@ import json
 import math
 
 from geojson import Point, LineString, Polygon, Feature, FeatureCollection
-from turfpy.measurement import distance, destination, bearing, bbox
+from emitpy.geo.turf import distance, destination, bearing, bbox
 from .features import FeatureWithProps
 
 logger = logging.getLogger("geoutils")
@@ -85,7 +85,7 @@ def moveOn(arr, idx, currpos, dist):
 		return moveOn(arr, idx + 1, nextp, dist - left)
 	# we progress towards next point without reaching it
 	brng = bearing(arr[idx], nextp)
-	dest = destination(currpos, dist, brng, {"units": "m"})  # dist in m
+	dest = destination(currpos, dist, brng, units="m")  # dist in m
 	# logger.debug("distance to run reached, %f left on segment %d" % (left - dist, idx + 1))
 	return (dest, idx)
 
@@ -285,7 +285,7 @@ def ls_point_at(ls: LineString, dist: float):
 	lastvertex = ls["coordinates"][i-2]
 	left = dist - prevtotal
 	brng = bearing(ffp(lastvertex), ffp(ls["coordinates"][i-1]))
-	dest = destination(ffp(lastvertex), left, brng, {"units": "m"})
+	dest = destination(ffp(lastvertex), left, brng, units="m")
 	return dest
 
 

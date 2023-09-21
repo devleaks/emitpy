@@ -9,7 +9,7 @@ import json
 
 from math import inf
 from geojson import Point, Feature, FeatureCollection
-from turfpy.measurement import distance, destination, bearing
+from emitpy.geo.turf import distance, destination, bearing
 
 from emitpy.graph import Vertex, Edge, USAGE_TAG
 from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, FeatureWithProps, ls_length, ls_point_at

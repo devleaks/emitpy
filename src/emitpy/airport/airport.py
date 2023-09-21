@@ -21,7 +21,7 @@ from timezonefinder import TimezoneFinder
 from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
 
-from turfpy.measurement import distance, point_to_line_distance
+from emitpy.geo.turf import distance, point_to_line_distance
 
 from emitpy.graph import Graph, USAGE_TAG
 from emitpy.geo import Location
