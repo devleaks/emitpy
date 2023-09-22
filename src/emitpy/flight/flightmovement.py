@@ -9,7 +9,7 @@ import copy
 from math import pi
 from datetime import timedelta
 
-from emitpy.geo.turf import LineString, FeatureCollection, Feature
+from emitpy.geo.turf import LineString, FeatureCollection, Feature, saveGeoJSON
 from emitpy.geo.turf import distance, destination, bearing
 
 from tabulate import tabulate
@@ -178,8 +178,7 @@ class FlightMovement(Movement):
             #     json.dump(arr, fp, indent=4)
 
             filename = os.path.join(basename + "-" + name + ".geojson")
-            with open(filename, "w") as fp:
-                json.dump(FeatureCollection(features=cleanFeatures(arr)), fp, indent=4)
+            saveGeoJSON(filename, FeatureCollection(features=cleanFeatures(arr)))
 
         # saveMe(self.flight.flightplan_wpts, "1-plan")
         ls = Feature(geometry=asLineString(self.flight.flightplan_wpts))
@@ -280,7 +279,12 @@ class FlightMovement(Movement):
         def addMovepoint(arr, src, alt, speed, vspeed, color, mark, ix):
             # create a copy of src, add properties on copy, and add copy to arr.
             # logger.debug(f"{mark} {ix}, s={speed}")
-            mvpt = MovePoint(geometry=src["geometry"], properties={})
+            geom = None
+            if type(src) == dict:
+                geom = src.geometry
+            else:
+                geom = src.geometry
+            mvpt = MovePoint(geometry=geom, properties={})
             mvpt.setAltitude(alt)
             mvpt.setSpeed(speed)
             mvpt.setVSpeed(vspeed)
@@ -999,9 +1003,9 @@ class FlightMovement(Movement):
 
                 if arc is not None:
                     mid = arc[int(len(arc) / 2)]
-                    mid["properties"] = self._premoves[i]["properties"]
+                    mid.properties = self._premoves[i].properties
                     for p in arc:
-                        move_points.append(MovePoint(geometry=p["geometry"], properties=mid["properties"]))
+                        move_points.append(MovePoint(geometry=p.geometry, properties=mid.properties))
                 else:
                     move_points.append(self._premoves[i])
 
@@ -1042,10 +1046,10 @@ class FlightMovement(Movement):
         logger.debug("checking and transposing altitudes to geojson coordinates..")
         for f in to_interp:
             a = f.altitude()
-            # if len(f["geometry"]["coordinates"]) == 2:
+            # if len(f.geometry["coordinates"]) == 2:
             #     a = f.altitude()
             #     if a is not None:
-            #         f["geometry"]["coordinates"].append(float(a))
+            #         f.geometry["coordinates"].append(float(a))
             #     else:
             #         logger.warning(f"no altitude? {f.getProp(FEATPROP.MOVE_INDEX.value)}.")
         logger.debug("..done.")
@@ -1210,7 +1214,7 @@ class FlightMovement(Movement):
             brng = bearing(move_points[idx], move_points[idx - 1])
             tmopt = destination(move_points[idx], left, brng)
 
-            tmomp = MovePoint(geometry=tmopt["geometry"], properties={})
+            tmomp = MovePoint(geometry=tmopt.geometry, properties={})
             tmomp.setMark(mark)
 
             d = distance(tmomp, move_points[-2])  # last is end of roll, before last is touch down.

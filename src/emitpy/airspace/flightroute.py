@@ -121,16 +121,16 @@ class FlightRoute:
         """
         a = self.getAirspace()
 
-        self.routeLS = LineString()
+        logger.debug(f"doing..")
         self._route = FeatureCollection(features=[])
         self.waypoints = []
-
-        logger.debug(f"doing..")
+        ls_coords = []
         for n in self.nodes():
             f = a.get_vertex(n)
             self._route.features.append(f)
-            self.routeLS.coordinates.append(f.coords())
+            ls_coords.append(f.coords())
             self.waypoints.append(f)
+        self.routeLS = LineString(ls_coords)
         logger.debug(f"..done")
 
 

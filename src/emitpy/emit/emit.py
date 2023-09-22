@@ -10,7 +10,7 @@ import logging
 
 from datetime import datetime, timedelta, timezone
 
-from emitpy.geo.turf import FeatureCollection, Feature
+from emitpy.geo.turf import FeatureCollection, Feature, saveGeoJSON
 from geojson.geometry import Geometry
 from emitpy.geo.turf import distance, bearing, destination
 
@@ -253,14 +253,12 @@ class Emit(Movement):
             json.dump(self.getMeta(), fp, indent=4)
         with open(fnbase + "debug-emit-info.out", "w") as fp:
             json.dump(self.getInfo(), fp, indent=4)
-        with open(fnbase + "debug-emit-data.geojson", "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())), fp, indent=4)
+        saveGeoJSON(filename=fnbase + "debug-emit-data.geojson", geojson=FeatureCollection(features=cleanFeatures(self.getEmitPoints())))
         with open(fnbase + "debug-move-info.out", "w") as fp:
             json.dump(self.move.getInfo(), fp, indent=4)
         # with open(fnbase + "debug-move-emit-data.geojson", "w") as fp:
         #     json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())), fp, indent=4)
-        with open(fnbase + "debug-move-move-data.geojson", "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self.move.getMovePoints())), fp, indent=4)
+        saveGeoJSON(filename=fnbase + "debug-move-move-data.geojson", geojson=FeatureCollection(features=cleanFeatures(self.move.getMovePoints())))
         logger.warning(f"..written debug files {fnbase}")
 
 
@@ -278,13 +276,13 @@ class Emit(Movement):
         # 1. Save "raw emits"
         filename = os.path.join(basename + "-5-emit.json")
         with open(filename, "w") as fp:
-            json.dump(self.getEmitPoints(), fp, indent=4)
+            arr = [f.to_geojson() for f in self.getEmitPoints()]
+            json.dump(arr, fp)
 
         # 2. Save "raw emits" and linestring
         ls = Feature(geometry=asLineString(self.getEmitPoints()))
         filename = os.path.join(basename + "-5-emit_ls.geojson")
-        with open(filename, "w") as fp:
-            json.dump(FeatureCollection(features=cleanFeatures(self.getEmitPoints())+ [ls]), fp, indent=4)
+        saveGeoJSON(filename, FeatureCollection(features=cleanFeatures(self.getEmitPoints())+ [ls]))
 
         # 3. Save linestring with timestamp
         # Save for traffic analysis

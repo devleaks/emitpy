@@ -33,12 +33,14 @@ def extend_line(line, pct=40):
     # New 25/2/22: ... with a minimum of 20-40 km, because sometimes, segments are very short.
     # We noticed segments can sometimes be as long as 300km
     #
-    brng = bearing(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
-    newdist = distance(Feature(geometry=Point(line["coordinates"][0])), Feature(geometry=Point(line["coordinates"][1])))
+    brng = bearing(Feature(geometry=Point(line.coordinates[0])), Feature(geometry=Point(line.coordinates[1])))
+    newdist = distance(Feature(geometry=Point(line.coordinates[0])), Feature(geometry=Point(line.coordinates[1])))
     dist = max(30, newdist * pct / 100)  # km
-    far0 = destination(Feature(geometry=Point(line["coordinates"][0])), dist, brng + 180)
-    far1 = destination(Feature(geometry=Point(line["coordinates"][1])), dist, brng)
-    return Feature(geometry=LineString([far1["geometry"]["coordinates"], far0["geometry"]["coordinates"]]),
+    far0 = destination(Feature(geometry=Point(line.coordinates[0])), dist, brng + 180)
+    far0 = Feature(geometry=far0.getGeometry(), properties=far0.getProperties())
+    far1 = destination(Feature(geometry=Point(line.coordinates[1])), dist, brng)
+    far1 = Feature(geometry=far1.getGeometry(), properties=far1.getProperties())
+    return Feature(geometry=LineString([far1.geometry.coordinates, far0.geometry.coordinates]),
                    properties={
                        "name": f"B {brng}",
                        "bearing": brng
@@ -46,18 +48,18 @@ def extend_line(line, pct=40):
 
 
 def line_offset(line, offset):
-    p0 = Feature(geometry=Point(line["geometry"]["coordinates"][0]))
-    p1 = Feature(geometry=Point(line["geometry"]["coordinates"][1]))
+    p0 = Feature(geometry=Point(line.geometry.coordinates[0]))
+    p1 = Feature(geometry=Point(line.geometry.coordinates[1]))
     brg = bearing(p0, p1)
     brg = brg - 90 # sign(offset) * 90
     d0 = destination(p0, offset, brg)
     d1 = destination(p1, offset, brg)
-    return Feature(geometry=LineString([d0["geometry"]["coordinates"], d1["geometry"]["coordinates"]]))
+    return Feature(geometry=LineString([d0.geometry.coordinates, d1.geometry.coordinates]))
 
 
 def line_intersect(line1, line2):
-    coords1 = line1["geometry"]["coordinates"]
-    coords2 = line2["geometry"]["coordinates"]
+    coords1 = line1.geometry.coordinates
+    coords2 = line2.geometry.coordinates
     x1 = coords1[0][0]
     y1 = coords1[0][1]
     x2 = coords1[1][0]
@@ -101,8 +103,8 @@ def line_arc(center, radius, start, end, steps=8):
 
 def standard_turn_flyby(l0, l1, radius, precision=8):
     local_debug = False
-    b_in = bearing(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
-    b_out = bearing(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
+    b_in = bearing(Feature(geometry=Point(l0.coordinates[1])), Feature(geometry=Point(l0.coordinates[0])))
+    b_out = bearing(Feature(geometry=Point(l1.coordinates[1])), Feature(geometry=Point(l1.coordinates[0])))
     turnAngle = turn(b_in, b_out)
 
     # Eliminate almost straight turns
@@ -122,8 +124,8 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
             logger.debug(f"standard_turn: large turn (turn={turnAngle:f}°)")
 
     # Eliminate short segement turns (impossible)
-    d_in = distance(Feature(geometry=Point(l0["coordinates"][1])), Feature(geometry=Point(l0["coordinates"][0])))
-    d_out = distance(Feature(geometry=Point(l1["coordinates"][1])), Feature(geometry=Point(l1["coordinates"][0])))
+    d_in = distance(Feature(geometry=Point(l0.coordinates[1])), Feature(geometry=Point(l0.coordinates[0])))
+    d_out = distance(Feature(geometry=Point(l1.coordinates[1])), Feature(geometry=Point(l1.coordinates[0])))
 
     r = 1.5 * radius / 1000  # km
     if d_in < r or d_out < r:

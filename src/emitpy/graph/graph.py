@@ -58,7 +58,7 @@ class Vertex(FeatureWithProps):
 class Edge(FeatureWithProps):
 
     def __init__(self, src: Vertex, dst: Vertex, weight: float, directed: bool, usage: [str]=[], name=None, linestring: LineString = None):
-        ls = linestring if linestring is not None else LineString([src["geometry"]["coordinates"], dst["geometry"]["coordinates"]])
+        ls = linestring if linestring is not None else LineString([src.getCoordinates(), dst.getCoordinates()])
         FeatureWithProps.__init__(self, geometry=ls)
         self.start = src
         self.end = dst
@@ -96,7 +96,7 @@ class Edge(FeatureWithProps):
         # If an edge is a linestring rather than a straight line from src to end, returns all intermediate points.
         pts = []
         pts.append(self.src)  # extremity points have their own props from vertex
-        coords = self.coords()
+        coords = self.getCoordinates()
         if len(coords) > 2:
             props = self.props()  # copies edge props to each "inner" point
             if props is None:
@@ -146,7 +146,7 @@ class Graph:  # Graph(FeatureCollection)?
     def get_vertices(self, connected_only: bool = False, bbox: Feature = None):
         varr = filter(lambda x: x.connected, self.vert_dict.values()) if connected_only else self.vert_dict.values()
         if bbox is not None:
-            ret = list(map(lambda x: x.id, filter(lambda x: point_in_polygon(Feature(geometry=Point(x["geometry"]["coordinates"])), bbox), varr)))
+            ret = list(map(lambda x: x.id, filter(lambda x: point_in_polygon(Feature(geometry=Point(x.getCoordinates())), bbox), varr)))
             logger.debug("box bounded from %d to %d.", len(self.vert_dict), len(ret))
             return ret
         return list(map(lambda x: x.id, varr))
@@ -231,15 +231,15 @@ class Graph:  # Graph(FeatureCollection)?
         def nearest_point_on_line(point, line, dist):
             LINE_LENGTH = 0.5  # km
             # extends original line, segments can sometimes be very short (openstreetmap)
-            brng = bearing(Feature(geometry=Point(line["geometry"]["coordinates"][0])), Feature(geometry=Point(line["geometry"]["coordinates"][1])))
+            brng = bearing(Feature(geometry=Point(line.getCoordinates()[0])), Feature(geometry=Point(line.getCoordinates()[1])))
             p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng)
             p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 180)
-            linext = Feature(geometry=LineString([p0["geometry"]["coordinates"], p1["geometry"]["coordinates"]]))
+            linext = Feature(geometry=LineString([p0.getCoordinates(), p1.getCoordinates()]))
             # make perpendicular, long enough
-            brng = bearing(Feature(geometry=Point(line["geometry"]["coordinates"][0])), Feature(geometry=Point(line["geometry"]["coordinates"][1])))
+            brng = bearing(Feature(geometry=Point(line.getCoordinates()[0])), Feature(geometry=Point(line.getCoordinates()[1])))
             p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng + 90)
             p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 90)
-            perp = Feature(geometry=LineString([p0["geometry"]["coordinates"], p1["geometry"]["coordinates"]]))
+            perp = Feature(geometry=LineString([p0.getCoordinates(), p1.getCoordinates()]))
             # printFeatures([linext, perp], "nearest_point_on_line")
             return line_intersect(linext, perp)
 
@@ -249,17 +249,17 @@ class Graph:  # Graph(FeatureCollection)?
         dist = inf
         for e in self.edges_arr:
             if (not with_connection) or (with_connection and (len(e.start.adjacent) > 0 or len(e.end.adjacent) > 0)):
-                d = point_to_line_distance(point, Feature(geometry=e["geometry"]))
+                d = point_to_line_distance(point, Feature(geometry=e.geometry))
                 if d < dist:
                     dist = d
                     edge = e
                     nconn = (len(e.start.adjacent), len(e.end.adjacent))
         if dist == 0:
-            d = distance(point, Feature(geometry=Point(edge.start["geometry"]["coordinates"])))
+            d = distance(point, Feature(geometry=Point(edge.start.getCoordinates())))
             if d == 0:
                 logger.debug("nearest point is start of edge")
                 return(edge.start, 0, edge, nconn)
-            d = distance(point, Feature(geometry=Point(edge.end["geometry"]["coordinates"])))
+            d = distance(point, Feature(geometry=Point(edge.end.getCoordinates())))
             if d == 0:
                 logger.debug("nearest point is end of edge")
                 return(edge.end, 0, edge, nconn)

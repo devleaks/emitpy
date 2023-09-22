@@ -9,8 +9,9 @@ def asTrafficCSV(features: [FeatureWithProps], header: bool = True):
     c = features[0]  # constants
     icao24 = c.getProp("icao24")
     callsign = None
-    if "flight" in c["properties"] and "callsign" in c["properties"]["flight"]:
-        callsign = c["properties"]["flight"]["callsign"]
+    flight = c.getProp("flight")
+    if flight is not None:
+        callsign = flight.get("callsign")
 
     for f in features:
         if f.geomtype() == "Point":

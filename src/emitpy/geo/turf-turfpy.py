@@ -1,57 +1,37 @@
 # Wrapper around mig python missing geo library
 # No library is satisfying...
 # Inconsistencies, missing functions, errors, wrong GeoJSON handling...
-# including errors (e.g. geojson polygons)
-#
-# _Feature = Feature as used by the base geo package
-# Feature = Feature as simple as possible BUT with EmitPy interface
-# FeatureWithProps = Feature with sofisticatde feature fonctions and shortcuts
 #
 import copy
 import inspect
-import json
 from jsonpath import JSONPath
 
-from turf.helpers import Point, LineString, Polygon, FeatureCollection
-from turf.helpers import Feature as _Feature
-#
-from turf import distance as turf_distance
-from turf import destination as turf_destination
-from turf import bearing as turf_bearing
-from turf import bbox as turf_bbox
-from turf import boolean_point_in_polygon as turf_boolean_point_in_polygon
-from turf import point_to_line_distance as turf_point_to_line_distance
-from turf import line_intersect as turf_line_intersect
+from geojson import FeatureCollection, Point, LineString, Polygon
+from geojson import Feature as _Feature
+
+from turfpy.measurement import distance as turf_distance
+from turfpy.measurement import destination as turf_destination
+from turfpy.measurement import bearing as turf_bearing
+from turfpy.measurement import bbox as turf_bbox
+from turfpy.measurement import boolean_point_in_polygon as turf_boolean_point_in_polygon
+from turfpy.measurement import point_to_line_distance as turf_point_to_line_distance
+from turfpy.misc import line_intersect as turf_line_intersect
 
 import emitpy
 from emitpy.constants import FEATPROP, TAG_SEP
 
 
 class Feature(_Feature):
-    # When emitpy uses a s simple GeoJSON Feature, it uses this one:
-    # Which is the package's Feature with 3 functions to get geometry, properties, and coordinates
-    # Emitpy should never use the package Feature directly.
-    #
+
     def __init__(self, geometry, properties: dict = {}, **extra):
-        _Feature.__init__(self, geom=geometry, properties=properties)  # Feature as defined in pyturf
+        self["type"] = "Feature"  # see https://github.com/jazzband/geojson/issues/178
+        _Feature.__init__(self, geometry=geometry, properties=properties)
         self.id = extra.get("id")
-
-    # def __str__(self):
-    #     return json.dumps(self.to_geojson())
-
-    def getGeometry(self):
-        return self.geometry
-
-    def getProperties(self):
-        return self.properties
-
-    def getCoordinates(self):
-        return self.geometry.get("coordinates") if self.geometry is not None else None
 
 
 class EmitpyFeature(Feature):
     """
-    A EmitpyFeature is a GeoJSON Feature<Point> (mainly) with facilities to set a few standard
+    A FeatureWithProps is a GeoJSON Feature<Point> with facilities to set a few standard
     properties like altitude, speed, vertical speed and properties.
     It can also set colors for geojson.io map display.
     Altitude is stored in third geometry coordinates array value:
@@ -59,9 +39,9 @@ class EmitpyFeature(Feature):
     An OPTIONAL third-position element SHALL be the height in meters above or below the WGS 84 reference ellipsoid.
     (https://datatracker.ietf.org/doc/rfc7946/?include_text=1)
     """
-    def __init__(self, geometry, properties={}, **extra):
-        Feature.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
-        self.id = extra.get("id")
+    def __init__(self, id=None, geometry=None, properties=None, **extra):
+        # MUST CALL BEFORE: def __init__(self, geometry: Geometry, properties: dict):
+        Feature.__init__(self, id=id, geometry=geometry, properties=copy.deepcopy(properties) if properties is not None else None)
         self.setVersion()
         self.setClass()
 
@@ -82,22 +62,13 @@ class EmitpyFeature(Feature):
             i = f["properties"]["id"]
         # print(f"FeatureWithProps::new: id={i}")  #, cls={cls}")
 
-        if type(f) == dict:
-            if hasattr(a, "id"):
-                return cls(id=i, geometry=f["geometry"], properties=f["properties"])
-            else:
-                t = cls(geometry=f["geometry"], properties=f["properties"])
-                if i is not None:
-                    t.id = i
-                return t
+        if hasattr(a, "id"):
+            return cls(id=i, geometry=f["geometry"], properties=f["properties"])
         else:
-            if hasattr(a, "id"):
-                return cls(id=i, geometry=f.getGeometry(), properties=f.getProperties())
-            else:
-                t = cls(geometry=f.getGeometry(), properties=f.getProperties())
-                if i is not None:
-                    t.id = i
-                return t
+            t = cls(geometry=f["geometry"], properties=f["properties"])
+            if i is not None:
+                t.id = i
+            return t
 
 
     @staticmethod
@@ -106,33 +77,31 @@ class EmitpyFeature(Feature):
 
     @staticmethod
     def betterFeatures(arr):
-        return [ EmitpyFeature.new(f) for f in arr ]
+        return [ EmitpyFeature.convert(f) for f in arr ]
 
     def version(self):
         return self.getProp(FEATPROP.VERSION.value)
 
-    # def geometry(self):
-    #     return self["geometry"] if "geometry" in self else None
+    def getGeometry(self):
+        return self["geometry"] if "geometry" in self else None
+
+    def geometry(self):
+        return self["geometry"] if "geometry" in self else None
 
     def coords(self):
-        return self.geometry.get("coordinates")
+        return self["geometry"]["coordinates"] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
 
     def props(self):
-        return self.properties
+        return self["properties"] if "properties" in self else None
 
     def lat(self):
-        return self.geometry.coordinates[1]
+        return self["geometry"]["coordinates"][1] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
 
     def lon(self):
-        return self.geometry.coordinates[0]
-
-    def alt(self):
-        # Altitude can be stored at two places
-        # Assumes Feature is <Point>
-        return self.altitude()
+        return self["geometry"]["coordinates"][0] if (("geometry" in self) and ("coordinates" in self["geometry"])) else None
 
     def geomtype(self):
-        return self.geometry.type
+        return self["geometry"]["type"] if (("geometry" in self) and ("type" in self["geometry"])) else None
 
     def is_type(self, geomtype: str):
         return geomtype == self.geomtype()
@@ -154,14 +123,17 @@ class EmitpyFeature(Feature):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
         if name == FEATPROP.ALTITUDE.value:
             return self.altitude()
-        return self.properties.get(name)
+        if type(self["properties"]) in [dict]:
+            return self["properties"].get(name)
+        print("feature has no properties?")
+        return None
 
     def setProp(self, name: str, value):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
         if name == FEATPROP.ALTITUDE.value:
             self.setAltitude(value)
         else:
-            self.properties[name] = value
+            self["properties"][name] = value
 
     def getName(self):
         return self.getProp(FEATPROP.NAME.value)
@@ -248,35 +220,30 @@ class EmitpyFeature(Feature):
     def setAltitude(self, alt: float, ref: str = "ASL"):  # ref={ASL|AGL|BARO}
         # ref could be ASL, AGL, BARO
         # Altitude should be in meters
-        if len(self.geometry.coordinates) > 2:
-            l = list(self.geometry.coordinates)
-            l[2] = alt
-            self.geometry.coordinates = tuple(l)
+        if len(self["geometry"]["coordinates"]) > 2:
+            self["geometry"]["coordinates"][2] = alt
         else:
-            l = list(self.geometry.coordinates)
-            l.append(alt)
-            self.geometry.coordinates = tuple(l)
-        self.properties[FEATPROP.ALTITUDE.value] = alt
-        self.properties[FEATPROP.ALTITUDE.value + "-reference"] = ref
+            self["geometry"]["coordinates"].append(alt)
+        self["properties"][FEATPROP.ALTITUDE.value] = alt
+        self["properties"][FEATPROP.ALTITUDE.value + "-reference"] = ref
 
     def altitude(self, default: float = None):
         # Altitude can be stored at two places
         # Assumes Feature is <Point>
-        if len(self.geometry.coordinates) > 2:
-            return self.geometry.coordinates[2]
-        alt = self.properties.get(FEATPROP.ALTITUDE.value, None)
+        if len(self["geometry"]["coordinates"]) > 2:
+            return self["geometry"]["coordinates"][2]
+        alt = self["properties"][FEATPROP.ALTITUDE.value] if FEATPROP.ALTITUDE.value in self["properties"] else None
         if alt is not None:  # write it to coordinates
             alt = float(alt)
-            if len(self.geometry.coordinates) > 2:
-                l = list(self.geometry.coordinates)
-                l[2] = alt
-                self.geometry.coordinates = tuple(l)
+            if len(self["geometry"]["coordinates"]) > 2:
+                self["geometry"]["coordinates"][2] = alt
             else:
-                l = list(self.geometry.coordinates)
-                l.append(alt)
-                self.geometry.coordinates = tuple(l)
+                self["geometry"]["coordinates"].append(alt)
             return alt
         return default
+
+    def alt(self):
+        return self.altitude()
 
     def setSpeed(self, speed: float):
         # Speed should be in meters per second
@@ -367,7 +334,7 @@ class EmitpyFeature(Feature):
 
 
     def getPropPath(self, path: str):
-        r = JSONPath(path).parse(self.properties)
+        r = JSONPath(path).parse(self["properties"])
         if len(r) == 1:
             return r[0]
         if len(r) > 1:
@@ -385,13 +352,10 @@ class EmitpyFeature(Feature):
         return None
 
 
+
 # Measures
 def distance(p1, p2, units: str = "km"):
-    if units == "km":
-        units = "kilometers"
-    if units == "m":
-        units = "meters"
-    return turf_distance(p1, p2, {"units": units})
+    return turf_distance(p1, p2, units)
 
 def point_to_line_distance(point, line):
     return turf_point_to_line_distance(point, line)
@@ -404,11 +368,7 @@ def bbox(p1, p2):
 
 # Move
 def destination(start, length, course, units: str = "km"):
-    if units == "km":
-        units = "kilometers"
-    if units == "m":
-        units = "meters"
-    return mkFeature(turf_destination(start, length, course, {"units": units}))
+    return turf_destination(start, length, course, {"units": units})
 
 # Checks
 def point_in_polygon(point, polygon):
@@ -422,25 +382,3 @@ def line_intersect_polygon(line, polygon) -> int:
         if fc is not None:
             return len(fc)  # number of intersecting points
     return 0
-
-
-# Miscellaneous
-def mkFeature(f):
-    # some functions return dict or str
-    if isinstance(f, Feature):
-        return f
-    return Feature(geometry=f["geometry"], properties=f["properties"])
-
-
-def saveGeoJSON(filename, geojson):
-    with open(filename, "w") as fp:
-        json.dump(geojson.to_geojson(), fp, indent=4)
-
-def loadGeoJSON(filename):
-    data = None
-    with open(filename, "r") as fp:
-        data = json.load(fp)
-    if data is not None:
-        return FeatureCollection(features=[ mkFeature(f) for f in data["features"] ])
-    return None
-

@@ -248,7 +248,7 @@ class Airport(Location):
                        alt=info["alt"])
 
     def __str__(self):
-        return f"{self['properties']['name']}, {self['properties']['city']}, {self['properties']['country']} ({self.iata}, {self.icao})"
+        return f"{self.getProp('name')}, {self.getProp('city')}, {self.getProp('country')} ({self.iata}, {self.icao})"
 
 
     def getId(self):
@@ -305,7 +305,7 @@ class Airport(Location):
             "iso_region": self.region,
             "lat": self.lat(),
             "lon": self.lon(),
-            "alt": self.altitude()
+            "alt": self.alt()
         }
 
 
@@ -392,13 +392,13 @@ class AirportWithProcedures(Airport):
     def new(cls, apt: Airport):
         base = cls(icao=apt.icao,
                    iata=apt.iata,
-                   name=apt["properties"]["name"],
-                   city=apt["properties"]["city"],
-                   country=apt["properties"]["country"],
+                   name=apt.getProp("name"),
+                   city=apt.getProp("city"),
+                   country=apt.getProp("country"),
                    region=apt.region,
-                   lat=apt["geometry"]["coordinates"][1],
-                   lon=apt["geometry"]["coordinates"][0],
-                   alt=apt["geometry"]["coordinates"][2] if len(apt["geometry"]["coordinates"]) > 2 else None)
+                   lat=apt.lat(),
+                   lon=apt.lon(),
+                   alt=apt.altitude())
         ret = base.load()
         if not ret[0]:
             logger.warning(f"could not load airport with procedures: {ret}")
@@ -1039,14 +1039,14 @@ class ManagedAirportBase(AirportWithProcedures):
     def findRunwayExits(self):
         fc = {}
         for rwy, runway in self.runways.items():
-            width = float(runway["properties"]["width"]) / 1000  # meters
-            line = FeatureWithProps(geometry=runway["properties"]["line"])
+            width = float(runway.getProp("width")) / 1000  # meters
+            line = FeatureWithProps(geometry=runway.getProp("line"))
             cnt = 0
             for k, v in self.taxiways.vert_dict.items():
                 d = point_to_line_distance(v, line)
                 if d < width:
                     name = f"runway-exit:RW{rwy}:{cnt}"
-                    fc[name] = FeatureWithProps(id=name, geometry=v["geometry"], properties={
+                    fc[name] = FeatureWithProps(id=name, geometry=v.getGeometry(), properties={
                         "poi-type": "runway-exit",
                         "runway": "RW"+rwy,
                         "name": str(cnt)

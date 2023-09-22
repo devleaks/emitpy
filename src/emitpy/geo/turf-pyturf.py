@@ -1,7 +1,6 @@
 # Wrapper around mig python missing geo library
 # No library is satisfying...
 # Inconsistencies, missing functions, errors, wrong GeoJSON handling...
-# including errors (e.g. geojson polygons)
 #
 # _Feature = Feature as used by the base geo package
 # Feature = Feature as simple as possible BUT with EmitPy interface
@@ -9,7 +8,6 @@
 #
 import copy
 import inspect
-import json
 from jsonpath import JSONPath
 
 from turf.helpers import Point, LineString, Polygon, FeatureCollection
@@ -28,30 +26,15 @@ from emitpy.constants import FEATPROP, TAG_SEP
 
 
 class Feature(_Feature):
-    # When emitpy uses a s simple GeoJSON Feature, it uses this one:
-    # Which is the package's Feature with 3 functions to get geometry, properties, and coordinates
-    # Emitpy should never use the package Feature directly.
-    #
+
     def __init__(self, geometry, properties: dict = {}, **extra):
         _Feature.__init__(self, geom=geometry, properties=properties)  # Feature as defined in pyturf
         self.id = extra.get("id")
 
-    # def __str__(self):
-    #     return json.dumps(self.to_geojson())
-
-    def getGeometry(self):
-        return self.geometry
-
-    def getProperties(self):
-        return self.properties
-
-    def getCoordinates(self):
-        return self.geometry.get("coordinates") if self.geometry is not None else None
-
 
 class EmitpyFeature(Feature):
     """
-    A EmitpyFeature is a GeoJSON Feature<Point> (mainly) with facilities to set a few standard
+    A FeatureWithProps is a GeoJSON Feature<Point> with facilities to set a few standard
     properties like altitude, speed, vertical speed and properties.
     It can also set colors for geojson.io map display.
     Altitude is stored in third geometry coordinates array value:
@@ -82,22 +65,13 @@ class EmitpyFeature(Feature):
             i = f["properties"]["id"]
         # print(f"FeatureWithProps::new: id={i}")  #, cls={cls}")
 
-        if type(f) == dict:
-            if hasattr(a, "id"):
-                return cls(id=i, geometry=f["geometry"], properties=f["properties"])
-            else:
-                t = cls(geometry=f["geometry"], properties=f["properties"])
-                if i is not None:
-                    t.id = i
-                return t
+        if hasattr(a, "id"):
+            return cls(id=i, geometry=f["geometry"], properties=f["properties"])
         else:
-            if hasattr(a, "id"):
-                return cls(id=i, geometry=f.getGeometry(), properties=f.getProperties())
-            else:
-                t = cls(geometry=f.getGeometry(), properties=f.getProperties())
-                if i is not None:
-                    t.id = i
-                return t
+            t = cls(geometry=f["geometry"], properties=f["properties"])
+            if i is not None:
+                t.id = i
+            return t
 
 
     @staticmethod
@@ -125,11 +99,6 @@ class EmitpyFeature(Feature):
 
     def lon(self):
         return self.geometry.coordinates[0]
-
-    def alt(self):
-        # Altitude can be stored at two places
-        # Assumes Feature is <Point>
-        return self.altitude()
 
     def geomtype(self):
         return self.geometry.type
@@ -264,7 +233,7 @@ class EmitpyFeature(Feature):
         # Assumes Feature is <Point>
         if len(self.geometry.coordinates) > 2:
             return self.geometry.coordinates[2]
-        alt = self.properties.get(FEATPROP.ALTITUDE.value, None)
+        alt = self.getProp(FEATPROP.ALTITUDE.value)
         if alt is not None:  # write it to coordinates
             alt = float(alt)
             if len(self.geometry.coordinates) > 2:
@@ -277,6 +246,9 @@ class EmitpyFeature(Feature):
                 self.geometry.coordinates = tuple(l)
             return alt
         return default
+
+    def alt(self):
+        return self.altitude()
 
     def setSpeed(self, speed: float):
         # Speed should be in meters per second
@@ -408,7 +380,7 @@ def destination(start, length, course, units: str = "km"):
         units = "kilometers"
     if units == "m":
         units = "meters"
-    return mkFeature(turf_destination(start, length, course, {"units": units}))
+    return turf_destination(start, length, course, {"units": units})
 
 # Checks
 def point_in_polygon(point, polygon):
@@ -422,25 +394,3 @@ def line_intersect_polygon(line, polygon) -> int:
         if fc is not None:
             return len(fc)  # number of intersecting points
     return 0
-
-
-# Miscellaneous
-def mkFeature(f):
-    # some functions return dict or str
-    if isinstance(f, Feature):
-        return f
-    return Feature(geometry=f["geometry"], properties=f["properties"])
-
-
-def saveGeoJSON(filename, geojson):
-    with open(filename, "w") as fp:
-        json.dump(geojson.to_geojson(), fp, indent=4)
-
-def loadGeoJSON(filename):
-    data = None
-    with open(filename, "r") as fp:
-        data = json.load(fp)
-    if data is not None:
-        return FeatureCollection(features=[ mkFeature(f) for f in data["features"] ])
-    return None
-

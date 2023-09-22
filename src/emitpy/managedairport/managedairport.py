@@ -127,7 +127,7 @@ class ManagedAirport:
             "city": self.city,
             "country": self.country,
             "regionName": self.region,
-            "elevation": self.altitude, # meters ASL
+            "elevation": self.elevation, # meters ASL
             "lat": self.latitude,
             "lon": self.longitude,
             "operator": self.operator
@@ -146,7 +146,7 @@ class ManagedAirport:
             self.region = this_airport.region
             self.latitude = this_airport.lat()
             self.longitude = this_airport.lon()
-            self.altitude = this_airport.altitude()
+            self.elevation = this_airport.altitude()
             self.name = this_airport.display_name
             self.operator = DEFAULT_AIRPORT_OPERATOR
             logger.debug(f"setAirportDetails: found {self.icao}")

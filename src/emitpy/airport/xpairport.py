@@ -162,7 +162,7 @@ class XPAirport(ManagedAirportBase):
                     # logger.debug("airport: %s" % newparam[4])
                     if newparam[4] == self.icao:  # it is the airport we are looking for
                         self.name = " ".join(newparam[5:])
-                        self.altitude = newparam[1]
+                        self.elevation = newparam[1]
                         # Info 4.a
                         logger.info("Found airport %s '%s' in '%s'.", newparam[4], self.name, scenery_pack_apt)
                         self.scenery_pack = scenery_pack_apt  # remember where we found it
@@ -677,7 +677,7 @@ class XPAirport(ManagedAirportBase):
 
         logger.debug("added %d queue points for %s" % (TAKE_OFF_QUEUE_SIZE, self.runway_exits.keys()))
         for name in self.runway_exits.keys():
-            self.runway_exits[name] = sorted(self.runway_exits[name], key=lambda f: f["properties"]["length"])
+            self.runway_exits[name] = sorted(self.runway_exits[name], key=lambda f: f.getProp("length"))
             logger.debug(f"added {len(self.runway_exits[name])} runway exits for {name}")
             # for f in self.runway_exits[name]:
             #     logger.debug("added %d runway exits for %s at %f" % (len(self.runway_exits[name]), name, f["properties"]["length"]))
@@ -697,7 +697,7 @@ class XPAirport(ManagedAirportBase):
         """
         Returns the takeoff queue position from the runway name and the position in the queue.
         """
-        res = list(filter(lambda f: f["properties"][FEATPROP.NAME.value] == qid, self.takeoff_queues[runway]))
+        res = list(filter(lambda f: f.getProp([FEATPROP.NAME.value]) == qid, self.takeoff_queues[runway]))
         return res[0]
 
 
@@ -714,7 +714,7 @@ class XPAirport(ManagedAirportBase):
         i = 0
         closest = None
         while closest is None and i < len(self.runway_exits[runway]):
-            if dist > self.runway_exits[runway][i]["properties"]["length"]:
+            if dist > self.runway_exits[runway][i].getProp("length"):
                 i = i + 1
             else:
                 closest = self.runway_exits[runway][i]
@@ -722,7 +722,7 @@ class XPAirport(ManagedAirportBase):
         if closest is None:
             closest = self.runway_exits[runway][-1]
 
-        logger.debug(f"runway {runway}, landing: {dist:f}, runway exit at {closest['properties']['length']:f}")
+        logger.debug(f"runway {runway}, landing: {dist:f}, runway exit at {closest.getProp('length'):f}")
         return closest
 
 

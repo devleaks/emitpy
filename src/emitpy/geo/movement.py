@@ -9,7 +9,7 @@ import copy
 
 from datetime import datetime, timedelta
 
-from emitpy.geo.turf import Point, FeatureCollection, Feature
+from emitpy.geo.turf import Point, FeatureCollection, Feature, saveGeoJSON
 
 from tabulate import tabulate
 
@@ -76,8 +76,7 @@ class Movement(Messages):
             #     json.dump(arr, fp, indent=4)
 
             filename = os.path.join(basename + "-" + name + ".geojson")
-            with open(filename, "w") as fp:
-                json.dump(FeatureCollection(features=cleanFeatures(arr)), fp, indent=4)
+            saveGeoJSON(filename, FeatureCollection(features=cleanFeatures(arr)))
 
         # saveMe(self.getMovePoints(), "moves")
         ls = Feature(geometry=asLineString(self.getMovePoints()))
