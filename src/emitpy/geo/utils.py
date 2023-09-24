@@ -11,29 +11,6 @@ from emitpy.geo import FeatureWithProps
 logger = logging.getLogger("geoutils")
 
 
-def mkBbox(a, b, enlarge: float = None):
-    """
-    Make a larger bounding box. We take direct line from A to B and extends the bounding box
-    by large kilometers in direction of NE et and SW.
-
-        :param      a:      { parameter_description }
-        :type       a:      { type_description }
-        :param      b:      { parameter_description }
-        :type       b:      { type_description }
-        :param      large:  The large
-        :type       large:  { type_description }
-    """
-    if enlarge is None:
-        return bbox(LineString([a.getCoordinates(), b.getCoordinates()]))
-
-    ll = Feature(geometry=Point((bb[0], bb[1])))
-    ur = Feature(geometry=Point((bb[2], bb[3])))
-    ll1 = destination(ll, enlarge, 225)  # going SW
-    ur1 = destination(ur, enlarge, 45)   # going NE
-    bb = bbox(LineString([ll1.getCoordinates(), ur1.getCoordinates()]))
-    return bb
-
-
 def mkPolygon(lat1, lon1, lat2, lon2, width):
     p1 = Feature(geometry=Point((lon1, lat1)))
     p2 = Feature(geometry=Point((lon2, lat2)))
@@ -47,17 +24,17 @@ def mkPolygon(lat1, lon1, lat2, lon2, width):
     a1 = destination(p1, width / 2, brng)
     a3 = destination(p2, width / 2, brng)
     # join
-    return Polygon( [ list(list(map(lambda x: x.getCoordinates(), [a0, a1, a3, a2, a0]))) ] )
+    return Polygon( [ list(list(map(lambda x: x.geometry.coordinates, [a0, a1, a3, a2, a0]))) ] )
 
 
 def jitter(point: Point, r: float = 0):
     if r == 0:
-        return point.getCoordinates()
+        return point.geometry.coordinates
     j = destination(Feature(geometry=point), random.random() * abs(r) / 1000, random.random() * 360)
     # should add some vertical uncertainty as well...
-    if len(j.getCoordinates()) == 3:  # alt = alt ± jitter
-        j.getCoordinates()[2] = j.getCoordinates()[2] + ((random.random() * abs(r) / 1000) * (-1 if random.random() > 0.5 else 1))
-    return j.getCoordinates()
+    if len(j.geometry.coordinates) == 3:  # alt = alt ± jitter
+        j.geometry.coordinates[2] = j.geometry.coordinates[2] + ((random.random() * abs(r) / 1000) * (-1 if random.random() > 0.5 else 1))
+    return j.geometry.coordinates
 
 
 def moveOn(arr, idx, currpos, dist):
@@ -67,7 +44,7 @@ def moveOn(arr, idx, currpos, dist):
         logger.debug("arrived")
         return (arr[-1], len(arr) - 1)
     if idx == len(arr) - 2:
-        logger.debug("last segment %d, %f left" % (idx, dist))
+        logger.debug(f"last segment {idx}, {dist} left")
         # do we reach destination?
         left = distance(currpos, arr[-1], 'm')
         if left < dist:  # we reached destination
@@ -88,8 +65,8 @@ def moveOn(arr, idx, currpos, dist):
 
 
 def line_intersect(line1, line2):
-    coords1 = line1.getCoordinates()
-    coords2 = line2.getCoordinates()
+    coords1 = line1.geometry.coordinates
+    coords2 = line2.geometry.coordinates
     x1 = coords1[0][0]
     y1 = coords1[0][1]
     x2 = coords1[1][0]
@@ -118,8 +95,8 @@ def asLineString(features):
     # reduce(lambda num1, num2: num1 * num2, my_numbers, 0)
     coords = []
     for x in features:
-        coords.append(x.getCoordinates())
-    # coords = reduce(lambda x, coords: coords + x.getCoordinates(), features, [])
+        coords.append(x.geometry.coordinates)
+    # coords = reduce(lambda x, coords: coords + x.geometry.coordinates, features, [])
     return LineString(coords)
 
 
@@ -130,7 +107,7 @@ def asFeatureLineStringWithTimestamps(features: [FeatureWithProps]):
 
     for f in features:
         if f.geometry["type"] == "Point":
-            ls.append(f.getCoordinates())
+            ls.append(f.geometry.coordinates)
             rt.append(f.getRelativeEmissionTime())
             at.append(f.getAbsoluteEmissionTime())
 
@@ -178,7 +155,7 @@ def asTrafficJSON(features: [FeatureWithProps]):
 def ls_length(ls):
     dist = 0
     last = None
-    for coord in ls.getCoordinates():
+    for coord in ls.geometry.coordinates:
         if last is not None:
             dist = dist + distance(Feature(Point(last)), Feature(Point(coord)))
         last = coord
@@ -314,17 +291,22 @@ def get_bounding_box(points, rounding: float = None):
     return (north, east, south, west)
 
 
-def c360(dp):
-    # angle is always in [0, 360[
-    if dp == 0:
-        return 0
-    while dp < 0:
-        dp = dp + 360
-    while dp >= 360:
-        dp = dp - 360
-    if dp == 0:
-        dp = abs(dp)  # avoid -0.0
-    return dp
+def mk180(a):
+    if a > 180:
+        return mk180(a - 360)
+    if a < -180:
+        return mk180(a + 360)
+    return a
+
+
+def mk360(a):
+    # Make angle in [0, 360]
+    if a < 0:
+        return mk360(a + 360)
+    elif a >= 360:
+        return mk360(a - 360)
+    return a
+
 
 def add_speed(r1, r2):
     # https://math.stackexchange.com/questions/1365622/adding-two-polar-vectors

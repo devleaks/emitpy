@@ -1,11 +1,11 @@
-# Wrapper around mig python missing geo library
+# Wrapper around python missing geo library
 # No library is satisfying...
 # Inconsistencies, missing functions, errors, wrong GeoJSON handling...
 # including errors (e.g. geojson polygons)
 #
 # _Feature = Feature as used by the base geo package
-# Feature = Feature as simple as possible BUT with EmitPy interface
-# FeatureWithProps = Feature with sofisticatde feature fonctions and shortcuts
+# Feature = Feature as simple as possible BUT with EmitPy interface, just changing __init__ really.
+# FeatureWithProps = Feature with access functions and shortcuts
 #
 import copy
 import inspect
@@ -36,18 +36,6 @@ class Feature(_Feature):
         _Feature.__init__(self, geom=geometry, properties=properties)  # Feature as defined in pyturf
         self.id = extra.get("id")
 
-    # def __str__(self):
-    #     return json.dumps(self.to_geojson())
-
-    def getGeometry(self):
-        return self.geometry
-
-    def getProperties(self):
-        return self.properties
-
-    def getCoordinates(self):
-        return self.geometry.get("coordinates") if self.geometry is not None else None
-
 
 class EmitpyFeature(Feature):
     """
@@ -71,6 +59,7 @@ class EmitpyFeature(Feature):
         a = inspect.signature(cls.__init__)
         # Does cls have an id parameter?
         # Does f have an id to carry over?
+        # Let's try really hard to find an id
         i = None
         if callable(getattr(f, "getId", None)):  # if f is a FeatureWithProps
             i = f.getId()
@@ -80,6 +69,8 @@ class EmitpyFeature(Feature):
             i = f["id"]
         elif "properties" in f and "id" in f["properties"]:  # if f is a Feature
             i = f["properties"]["id"]
+        elif hasattr(f, "properties") and type(f.properties) == dict:
+            i = f.properties.get("id")
         # print(f"FeatureWithProps::new: id={i}")  #, cls={cls}")
 
         if type(f) == dict:
@@ -92,9 +83,9 @@ class EmitpyFeature(Feature):
                 return t
         else:
             if hasattr(a, "id"):
-                return cls(id=i, geometry=f.getGeometry(), properties=f.getProperties())
+                return cls(id=i, geometry=f.geometry, properties=f.properties)
             else:
-                t = cls(geometry=f.getGeometry(), properties=f.getProperties())
+                t = cls(geometry=f.geometry, properties=f.properties)
                 if i is not None:
                     t.id = i
                 return t
@@ -385,6 +376,13 @@ class EmitpyFeature(Feature):
         return None
 
 
+    def flyOver(self):
+        return False
+
+#
+#
+#
+#
 # Measures
 def distance(p1, p2, units: str = "km"):
     if units == "km":
@@ -404,11 +402,18 @@ def bbox(p1, p2):
 
 # Move
 def destination(start, length, course, units: str = "km"):
+    def mkBearing(b):
+        if b > 180:
+            return mkBearing(b - 360)
+        if b < -180:
+            return mkBearing(b + 360)
+        return b
+
     if units == "km":
         units = "kilometers"
     if units == "m":
         units = "meters"
-    return mkFeature(turf_destination(start, length, course, {"units": units}))
+    return mkFeature(turf_destination(start, length, mkBearing(course), {"units": units}))
 
 # Checks
 def point_in_polygon(point, polygon):

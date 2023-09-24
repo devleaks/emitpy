@@ -1046,7 +1046,7 @@ class ManagedAirportBase(AirportWithProcedures):
                 d = point_to_line_distance(v, line)
                 if d < width:
                     name = f"runway-exit:RW{rwy}:{cnt}"
-                    fc[name] = FeatureWithProps(id=name, geometry=v.getGeometry(), properties={
+                    fc[name] = FeatureWithProps(id=name, geometry=v.geometry, properties={
                         "poi-type": "runway-exit",
                         "runway": "RW"+rwy,
                         "name": str(cnt)

@@ -793,19 +793,19 @@ class Emit(Movement):
         # logger.debug("summary: %f vs %f sec, %f vs %f km, %d vs %d" % (round(total_time, 2), round(self.move_points[-1].time(), 2), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.move_points), len(self.getEmitPoints())))
         # logger.debug("summary: %s vs %s, %f vs %f km, %d vs %d" % (timedelta(seconds=total_time), timedelta(seconds=round(self.move_points[-1].time(), 2)), round(total_dist/1000, 3), round(total_dist_vtx/1000, 3), len(self.move_points), len(self.getEmitPoints())))
         ####logger.debug(f"summary: {timedelta(seconds=total_time)} vs {timedelta(seconds=self.move_points[-1].time())}, {round(total_dist/1000, 3)} vs {round(total_dist_vtx/1000, 3)} km, {len(self.move_points)} vs {len(self.getEmitPoints())}")
-        move_marks = self.move.getMarkList()
+        move_marks = self.move.getMoveMarkList()  # union of move points and taxi
         emit_marks = self.getMarkList()
         # emit_moves_marks = self.getMoveMarkList()
         # if self.emit_type == "service"
         if len(move_marks) != len(emit_marks):
             logger.warning(f"move mark list differs from emit mark list (first_time_to_next_emit={first_time_to_next_emit})")
 
-            logger.debug(f"move mark list (len={len(move_marks)}): {move_marks}")
+            logger.debug(f"move mark list (len={len(move_marks)}): {move_marks} ({type(self.move)})")
             miss = list(filter(lambda f: f not in move_marks, emit_marks))
             logger.debug(f"not in move list: {miss}")
             # logger.debug(f"emit.move_points (move.getMovePoints()) mark list (len={len(emit_moves_marks)}): {emit_moves_marks}")
 
-            logger.debug(f"emit mark list (len={len(emit_marks)}): {emit_marks}")
+            logger.debug(f"emit mark list (len={len(emit_marks)}): {emit_marks} ({type(self)})")
             miss = list(filter(lambda f: f not in emit_marks, move_marks))
             logger.debug(f"not in emit list: {miss}")
             self.write_debug("emit")
@@ -883,22 +883,6 @@ class Emit(Movement):
         return (True, "Emit::interpolated speed and altitude")
 
 
-    # def getMarkList(self):
-    #     l = set()
-    #     [l.add(f.getMark()) for f in self.getEmitPoints()]
-    #     if None in l:
-    #         l.remove(None)
-    #     return l
-
-
-    def getMoveMarkList(self):
-        l = set()
-        [l.add(f.getMark()) for f in self.move_points]
-        if None in l:
-            l.remove(None)
-        return l
-
-
     def getTimedMarkList(self):
         l = dict()
 
@@ -951,7 +935,7 @@ class Emit(Movement):
             logger.debug(f"found {sync} mark, added {duration} sec. pause for a total of {r.getProp(FEATPROP.PAUSE.value)}")
         # should recompute emit
         if self.getEmitPoints() is not None:  # if already computed before, we need to recompute it
-           self.emit(self.frequency)
+            self.emit(self.frequency)
 
 
     def setPause(self, sync, duration: float):

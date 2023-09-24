@@ -294,7 +294,7 @@ class XPAirport(ManagedAirportBase):
                 if len(args) >= 4:
                     src = self.taxiways.get_vertex(args[0])
                     dst = self.taxiways.get_vertex(args[1])
-                    cost = distance(src.getGeometry(), dst.getGeometry())
+                    cost = distance(src.geometry, dst.geometry)
                     edge = None
                     if len(args) == 5:
                         # args[2] = {oneway|twoway}, args[3] = {runway|taxiway}
@@ -354,7 +354,7 @@ class XPAirport(ManagedAirportBase):
                 if len(args) >= 3:
                     src = self.service_roads.get_vertex(args[0])
                     dst = self.service_roads.get_vertex(args[1])
-                    cost = distance(src.getGeometry(), dst.getGeometry())
+                    cost = distance(src.geometry, dst.geometry)
                     edge = None
                     name = args[4] if len(args) == 5 else ""
                     edge = Edge(src=src, dst=dst, weight=cost, directed=False, usage=["ground"], name=name)
@@ -503,7 +503,7 @@ class XPAirport(ManagedAirportBase):
                             poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.service_pois))
                             n = poi_type + ":" + poi_name
                             p = FeatureWithProps.new(f)
-                            p.setProp(FEATPROP.NAME.value, n)
+                            p.setName(n)
                             self.service_pois[n] = p
 
             logger.info("loaded %d features.", len(self.service_pois))
@@ -535,11 +535,11 @@ class XPAirport(ManagedAirportBase):
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
                 if poi_type is not None and poi_type == "checkpoint":
-                        poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.check_pois))
-                        n = poi_type + ":" + poi_name
-                        p = FeatureWithProps.new(f)
-                        p.setProp(FEATPROP.NAME.value, n)
-                        self.check_pois[n] = p
+                    poi_name = f.getName() if f.getName() is not None else str(len(self.check_pois))
+                    n = poi_type + ":" + poi_name
+                    p = FeatureWithProps.new(f)
+                    p.setName(n)
+                    self.check_pois[n] = p
             logger.info("loaded %d features.", len(self.check_pois))
             self.data = None
 
@@ -621,7 +621,7 @@ class XPAirport(ManagedAirportBase):
             if de < db:  # need to inverse coordinates, we start from the TAKE-OFF HOLD position (=queue id 0)
                 line.coords().reverse()
 
-            maxlen = ls_length(line.getGeometry())
+            maxlen = ls_length(line.geometry)
             logger.debug(f"{name} takeoff queue is {round(maxlen, 0)}m")
             currlen = 0
             qid = 0
@@ -638,7 +638,7 @@ class XPAirport(ManagedAirportBase):
             qid = qid + 1
 
             while currlen < maxlen and qid < TAKE_OFF_QUEUE_SIZE:
-                f = ls_point_at(line.getGeometry(), currlen)
+                f = ls_point_at(line.geometry, currlen)
                 if f is not None:
                     p = FeatureWithProps.new(f)
                     p.setProp(FEATPROP.RUNWAY.value, name)
@@ -983,7 +983,7 @@ class XPAirport(ManagedAirportBase):
         
     def getDefaultCheckpoints(self):
         return FeatureCollection(features=[FeatureWithProps(
-            geometry=self.getGeometry(),
+            geometry=self.geometry,
             properties={
                 "poi-type": "checkpoint",
                 "service": "checkpoint",
@@ -995,7 +995,7 @@ class XPAirport(ManagedAirportBase):
 
     def getCentralRestArea(self):
         return [FeatureWithProps(
-            geometry=self.getGeometry(),
+            geometry=self.geometry,
             properties={
                 "poi-type": "rest-area",
                 "service": "*",
@@ -1004,7 +1004,7 @@ class XPAirport(ManagedAirportBase):
 
     def getCentralDepot(self, service: str):
         return FeatureWithProps(
-            geometry=self.getGeometry(),
+            geometry=self.geometry,
             properties={
                 "poi-type": "service",
                 "service": service,

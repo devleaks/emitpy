@@ -109,6 +109,7 @@ class Movement(Messages):
         return self._points
 
     def getMovePoints(self):
+        # when movement is completed by additional movement, this will return ALL points
         logger.debug(f"getting {len(self._points)} base positions ({type(self).__name__})")
         return self._points
 
@@ -189,23 +190,18 @@ class Movement(Messages):
 
 
     def getMarkList(self):
-        """
-        List all movement marks.
-
-        :returns:   { array of movement marks }
-        :rtype:     { ( str ) }
-        """
-        # l = set()
-        # [l.add(f.getProp(FEATPROP.MARK.value)) for f in self.getMovePoints()]
-        # if None in l:
-        #     l.remove(None)
-        # return l
-        marks = []
-        for f in self.getMovePoints():
-            marks.append(f.getProp(FEATPROP.MARK.value))
+        marks = [f.getProp(FEATPROP.MARK.value) for f in self.getPoints()]  # self.getMovePoints()
         marks = set(marks)
         if None in marks:
-             marks.remove(None)
+            marks.remove(None)
+        return marks
+
+
+    def getMoveMarkList(self):
+        marks = [f.getProp(FEATPROP.MARK.value) for f in self.getMovePoints()]  # self.getMovePoints()
+        marks = set(marks)
+        if None in marks:
+            marks.remove(None)
         return marks
 
 
@@ -231,14 +227,6 @@ class Movement(Messages):
         bb = get_bounding_box(self.getMovePoints(), rounding)
         logger.debug(f"bounding box: {bb}")
         return bb
-
-
-    def getMarkList(self):
-        l = set()
-        [l.add(f.getMark()) for f in self.getPoints()]
-        if None in l:
-            l.remove(None)
-        return l
 
 
     def getRelativeEmissionTime(self, sync: str):

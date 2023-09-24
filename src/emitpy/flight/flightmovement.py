@@ -27,7 +27,7 @@ from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.message import FlightMessage
 
 from emitpy.utils import interpolate as doInterpolation, compute_time as doTime
-from .standardturn import standard_turn_flyby
+from .standardturn import standard_turn_flyby, standard_turn_flyover
 
 logger = logging.getLogger("FlightMovement")
 
@@ -998,7 +998,11 @@ class FlightMovement(Movement):
                 s = last_speed  # arrin[i].speed()
                 if s is None:
                     s = last_speed
-                arc = standard_turn_flyby(li, lo, turnRadius(s))
+                arc = None
+                if self._premoves[i].flyOver():
+                    arc = standard_turn_flyover(li, lo, turnRadius(s))
+                else:
+                    arc = standard_turn_flyby(li, lo, turnRadius(s))
                 last_speed = s
 
                 if arc is not None:
@@ -1247,6 +1251,7 @@ class ArrivalMove(FlightMovement):
 
 
     def getMovePoints(self):
+        # That's where getMovePoints() differs from getPoints()
         base = super().getMovePoints()
         if len(base) == 0:
             logger.warning(f"({type(self).__name__}): no base points")
@@ -1377,6 +1382,7 @@ class DepartureMove(FlightMovement):
 
 
     def getMovePoints(self):
+        # That's where getMovePoints() differs from getPoints()
         start = 0
         if len(self.taxipos) > 0:  # it's ok, they can be added later
             logger.debug(f"({type(self).__name__}): starting with {len(self.taxipos)} taxi positions")
@@ -1553,7 +1559,7 @@ class DepartureMove(FlightMovement):
         return (True, "DepartureMove::taxi completed")
 
 
-class TowMovement(Movement):
+class TowMove(Movement):
     """
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
     from takeoff to landing and roll out.
