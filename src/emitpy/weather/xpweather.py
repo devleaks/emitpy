@@ -64,9 +64,9 @@ class XPAirportWeather(AirportWeather):
 
 		if self.raw is not None:
 			if self.source_date is None:
-				self.parsed = Metar.Metar(self.raw)
+				self.parsed = Metar.Metar(self.raw, strict=False)
 			else:
-				self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year)
+				self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year, strict=False)
 		else:
 			logger.warning(f"no metar for {self.icao} in file {fn}")
 		# if self.parsed is not None:
