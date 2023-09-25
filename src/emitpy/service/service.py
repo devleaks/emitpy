@@ -16,8 +16,13 @@ logger = logging.getLogger("Service")
 
 
 class Service(GroundSupport):
-
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
         GroundSupport.__init__(self, operator=operator)
         self.scheduled = scheduled
         self.quantity = quantity  # Size of service, that will define duration. Vehicle set the speed of processing quantity (flow)
@@ -40,14 +45,18 @@ class Service(GroundSupport):
 
     @staticmethod
     def getServiceName(service_class):
-        service_str = type(service_class).__name__ if isinstance(service_class, Service) else service_class
+        service_str = (
+            type(service_class).__name__
+            if isinstance(service_class, Service)
+            else service_class
+        )
         return service_str.replace("Service", "").lower()
 
     @staticmethod
     def getCombo():
         a = []
         for s in SERVICE:
-            a.append((s.value, s.value[0].upper()+s.value[1:]))
+            a.append((s.value, s.value[0].upper() + s.value[1:]))
         return a
 
     @staticmethod
@@ -58,7 +67,9 @@ class Service(GroundSupport):
         #     a[0] = a[0].replace("Service", "").lower()
         if len(a) > 3:
             dt = a[2]
-            a[2] = datetime.strptime(dt, FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
+            a[2] = datetime.strptime(dt, FLIGHT_TIME_FORMAT).replace(
+                tzinfo=timezone.utc
+            )
         return a
 
     def getId(self):
@@ -67,12 +78,18 @@ class Service(GroundSupport):
         Since several such services can be planned, we add the vehicle as a discriminent.
         """
         r = self.ramp.getName() if self.ramp is not None else "noramp"
-        s = self.scheduled.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT) if self.scheduled is not None else "noschedule"
+        s = (
+            self.scheduled.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
+            if self.scheduled is not None
+            else "noschedule"
+        )
         v = self.vehicle.getId() if self.vehicle is not None else "novehicle"
         if self.ramp is None:
             logger.warning(f"service on ramp {r} at {s} with vehicle {v} as no ramp")
         if self.scheduled is None:
-            logger.warning(f"service on ramp {r} at {s} with vehicle {v} as no schedule")
+            logger.warning(
+                f"service on ramp {r} at {s} with vehicle {v} as no schedule"
+            )
         # if self.vehicle is None:
         #     logger.warning(f"service on ramp {r} at {s} with vehicle {v} as no vehicle")
         return key_path(type(self).__name__, r, s, v)
@@ -84,12 +101,16 @@ class Service(GroundSupport):
             "service-identifier": self.getId(),
             "operator": self.operator.getInfo(),
             "ramp": self.ramp.getInfo(),
-            "vehicle": self.vehicle.getInfo() if self.vehicle is not None else "novehicle",
+            "vehicle": self.vehicle.getInfo()
+            if self.vehicle is not None
+            else "novehicle",
             "icao24": self.vehicle.icao24 if self.vehicle is not None else "novehicle",
-            "registration": self.vehicle.registration if self.vehicle is not None else "novehicle",
+            "registration": self.vehicle.registration
+            if self.vehicle is not None
+            else "novehicle",
             "scheduled": self.scheduled.isoformat(),
             "quantity": self.quantity,
-            "flight": self.flight.getId() if self.flight is not None else None
+            "flight": self.flight.getId() if self.flight is not None else None,
         }
 
     def getKey(self):
@@ -141,26 +162,41 @@ class Service(GroundSupport):
             service = self.rst_schedule.duration * 60
             setup_cleanup = 0
             if add_setup and self.vehicle is not None:
-                setup_cleanup = self.vehicle.service_duration(quantity=0, add_setup=True)
-                logger.debug(f"{self.getId()}: service={service}, setup/cleanup={setup_cleanup}, total={service+setup_cleanup}")
+                setup_cleanup = self.vehicle.service_duration(
+                    quantity=0, add_setup=True
+                )
+                logger.debug(
+                    f"{self.getId()}: service={service}, setup/cleanup={setup_cleanup}, total={service+setup_cleanup}"
+                )
             else:
                 logger.debug(f"{self.getId()}: service={service}, no setup/cleanup")
-            return service+setup_cleanup
-        logger.warning(f"{self.getId()}: no quantity or no duration, service takes no time")
+            return service + setup_cleanup
+        logger.warning(
+            f"{self.getId()}: no quantity or no duration, service takes no time"
+        )
         return 0
 
     def compute_duration(self, add_setup: bool = False):
         if self.quantity is not None and self.vehicle is not None:
             flow = self.vehicle.flow
-            duration = self.vehicle.service_duration(quantity=self.quantity, add_setup=False)
+            duration = self.vehicle.service_duration(
+                quantity=self.quantity, add_setup=False
+            )
             setup_cleanup = self.vehicle.service_duration(quantity=0, add_setup=True)
-            logger.debug(f"{self.getId()}: quantity ({self.quantity}) x vehicle {self.vehicle.getId()} flow ({flow}) => duration {duration} (setup/cleanup={setup_cleanup})")
+            logger.debug(
+                f"{self.getId()}: quantity ({self.quantity}) x vehicle {self.vehicle.getId()} flow ({flow}) => duration {duration} (setup/cleanup={setup_cleanup})"
+            )
             return duration + setup_cleanup if add_setup else duration
         if self.rst_schedule.duration is not None:
-            logger.warning(f"{self.name}: no quantity or no vehicle, using service fixed duration")
+            logger.warning(
+                f"{self.name}: no quantity or no vehicle, using service fixed duration"
+            )
             return self.rst_schedule.duration * 60  # seconds
-        logger.warning(f"{self.name}: no quantity or no vehicle, no fixed duration, service takes no time")
+        logger.warning(
+            f"{self.name}: no quantity or no vehicle, no fixed duration, service takes no time"
+        )
         return 0
+
 
 # ########################
 # Specific ground handling services
@@ -169,63 +205,141 @@ class Service(GroundSupport):
 # Message Only Service (no vehicle movement)
 #
 class EventService(Service):
-
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )
 
     def is_event(self) -> bool:
         return True
 
+
 # PAX
 #
 class PassengerService(Service):
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )
 
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
 # ARRIVAL
 #
 class CleaningService(Service):
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )
 
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
 class SewageService(Service):
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )
 
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
 # DEPARTURE
 #
 class CateringService(Service):
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )
 
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
 class WaterService(Service):
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )
 
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
 class FuelService(Service):
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )
 
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
 # BOTH
 #
 class CargoService(Service):
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )
 
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
 class BaggageService(Service):
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )
 
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
 
 class AircraftService(Service):
-
-    def __init__(self, scheduled: datetime, ramp: "Ramp", operator: "Company", quantity: float = None):
-        Service.__init__(self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity)
-
+    def __init__(
+        self,
+        scheduled: datetime,
+        ramp: "Ramp",
+        operator: "Company",
+        quantity: float = None,
+    ):
+        Service.__init__(
+            self, scheduled=scheduled, ramp=ramp, operator=operator, quantity=quantity
+        )

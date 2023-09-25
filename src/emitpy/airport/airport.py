@@ -27,7 +27,14 @@ from emitpy.graph import Graph
 from emitpy.geo import Location
 
 from emitpy.airspace import CIFP, Terminal
-from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
+from emitpy.constants import (
+    AIRPORT_DATABASE,
+    FEATPROP,
+    REDIS_PREFIX,
+    REDIS_DATABASE,
+    REDIS_LOVS,
+    REDIS_DB,
+)
 from emitpy.parameters import DATA_DIR
 from emitpy.geo import FeatureWithProps, Ramp, Runway
 from emitpy.utils import Timezone, FT, key_path, rejson
@@ -47,7 +54,18 @@ class Airport(Location):
     _DB = {}
     _DB_IATA = {}
 
-    def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
+    def __init__(
+        self,
+        icao: str,
+        iata: str,
+        name: str,
+        city: str,
+        country: str,
+        region: str,
+        lat: float,
+        lon: float,
+        alt: float,
+    ):
         Location.__init__(self, name, city, country, lat, lon, alt)
         self.icao = icao
         self.iata = iata
@@ -63,7 +81,16 @@ class Airport(Location):
         self.timezone = None
 
         # this is the airway network representation of this airport
-        self.terminal = Terminal(name=icao, lat=lat, lon=lon, alt=alt, iata=iata, longname=name, country=country, city=city)
+        self.terminal = Terminal(
+            name=icao,
+            lat=lat,
+            lon=lon,
+            alt=alt,
+            iata=iata,
+            longname=name,
+            country=country,
+            city=city,
+        )
 
     @staticmethod
     def loadAll():
@@ -99,17 +126,19 @@ class Airport(Location):
             lon = float(row["longitude_deg"]) if row["longitude_deg"] != "" else 0.0
             if lat != 0.0 or lon != 0.0:
                 alt = 0
-                if "elevation_ft" in row and row["elevation_ft"]  != "":
-                    alt = float(row["elevation_ft"])*FT
-                apt = Airport(icao=row["ident"],
-                              iata=row["iata_code"],
-                              name=row["name"],
-                              city=row["municipality"],
-                              country=row["iso_country"],
-                              region=row["iso_region"],
-                              lat=lat,
-                              lon=lon,
-                              alt=alt)
+                if "elevation_ft" in row and row["elevation_ft"] != "":
+                    alt = float(row["elevation_ft"]) * FT
+                apt = Airport(
+                    icao=row["ident"],
+                    iata=row["iata_code"],
+                    name=row["name"],
+                    city=row["municipality"],
+                    country=row["iso_country"],
+                    region=row["iso_region"],
+                    lat=lat,
+                    lon=lon,
+                    alt=alt,
+                )
                 apt.display_name = row["name"]
                 Airport._DB[row["ident"]] = apt
                 Airport._DB_IATA[row["iata_code"]] = apt
@@ -119,9 +148,8 @@ class Airport(Location):
         file.close()
         logger.debug(f"loaded {len(Airport._DB)} airports")
 
-
     @staticmethod
-    def find(code: str, redis = None):
+    def find(code: str, redis=None):
         """
         Finds an airport by its IATA (always 3 letter) or ICAO (2-4, often 4 letter) code.
 
@@ -130,9 +158,13 @@ class Airport(Location):
         """
         if redis is not None:
             if len(code) == 4:
-                k = key_path(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value))
+                k = key_path(
+                    key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value)
+                )
             else:
-                k = key_path(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value))
+                k = key_path(
+                    key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value)
+                )
             ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value, path=f".{code}")
             if ac is not None:
                 return Airport.fromFeature(info=ac)
@@ -142,9 +174,8 @@ class Airport(Location):
 
         return Airport.findICAO(code) if len(code) == 4 else Airport.findIATA(code)
 
-
     @staticmethod
-    def findICAO(icao: str, redis = None):
+    def findICAO(icao: str, redis=None):
         """
         Finds an Airport be its ICAO code.
 
@@ -152,7 +183,9 @@ class Airport(Location):
         :type       icao:  str
         """
         if redis is not None:
-            k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value, icao[0:2], icao)
+            k = key_path(
+                REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value, icao[0:2], icao
+            )
             ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             # k = key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value)
             # ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value, path=f".{icao}")
@@ -166,9 +199,8 @@ class Airport(Location):
             return Airport._DB[icao] if icao in Airport._DB else None
         return None
 
-
     @staticmethod
-    def findIATA(iata: str, redis = None):
+    def findIATA(iata: str, redis=None):
         """
         Finds an Airport be its IATA code.
 
@@ -188,9 +220,8 @@ class Airport(Location):
             return Airport._DB_IATA[iata] if iata in Airport._DB_IATA else None
         return None
 
-
     @staticmethod
-    def getCombo(redis = None):
+    def getCombo(redis=None):
         """
         Returns a list of pairs (code, description) ssorted by description.
         """
@@ -198,12 +229,14 @@ class Airport(Location):
             k = key_path(REDIS_DATABASE.LOVS.value, REDIS_LOVS.AIRPORTS.value)
             # return rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             temp = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
-            return {"airports": [{"iata": k, "name": v} for k,v in temp.items()]}
+            return {"airports": [{"iata": k, "name": v} for k, v in temp.items()]}
 
         l = filter(lambda a: len(a.airlines) > 0, Airport._DB_IATA.values())
-        m = [(a.iata, a.display_name) for a in sorted(l, key=operator.attrgetter('display_name'))]
+        m = [
+            (a.iata, a.display_name)
+            for a in sorted(l, key=operator.attrgetter("display_name"))
+        ]
         return m
-
 
     @classmethod
     def fromFeature(cls, info):
@@ -216,15 +249,21 @@ class Airport(Location):
         :type       info:  { type_description }
         """
         # logger.debug(f"{json.dumps(info, indent=2)}")
-        return Airport(icao=info["icao"],
-                       iata=info["iata"],
-                       name=info["properties"]["name"],
-                       city=info["properties"]["city"],
-                       country=info["properties"]["country"],
-                       region=info["region"],
-                       lat=float(info["geometry"]["coordinates"][1]),
-                       lon=float(info["geometry"]["coordinates"][0]),
-                       alt=float(info["geometry"]["coordinates"][2] if len(info["geometry"]["coordinates"])>2 else None))
+        return Airport(
+            icao=info["icao"],
+            iata=info["iata"],
+            name=info["properties"]["name"],
+            city=info["properties"]["city"],
+            country=info["properties"]["country"],
+            region=info["region"],
+            lat=float(info["geometry"]["coordinates"][1]),
+            lon=float(info["geometry"]["coordinates"][0]),
+            alt=float(
+                info["geometry"]["coordinates"][2]
+                if len(info["geometry"]["coordinates"]) > 2
+                else None
+            ),
+        )
 
     @classmethod
     def fromInfo(cls, info):
@@ -237,34 +276,32 @@ class Airport(Location):
         :type       info:  { type_description }
         """
         # logger.debug(f"{json.dumps(info, indent=2)}")
-        return Airport(icao=info["icao"],
-                       iata=info["iata"],
-                       name=info["name"],
-                       city=info["city"],
-                       country=info["country"],
-                       region=info["iso_region"],
-                       lat=info["lat"],
-                       lon=info["lon"],
-                       alt=info["alt"])
+        return Airport(
+            icao=info["icao"],
+            iata=info["iata"],
+            name=info["name"],
+            city=info["city"],
+            country=info["country"],
+            region=info["iso_region"],
+            lat=info["lat"],
+            lon=info["lon"],
+            alt=info["alt"],
+        )
 
     def __str__(self):
         return f"{self.getProp('name')}, {self.getProp('city')}, {self.getProp('country')} ({self.iata}, {self.icao})"
 
-
     def getId(self):
         return self.terminal.getId()
 
-
     def getTerminal(self):
         return self.terminal
-
 
     def loadFromFile(self):
         """
         Loads individual airport data.
         """
         return [False, "no load implemented"]
-
 
     def addAirline(self, airline, isHub: bool = False):
         """
@@ -279,7 +316,6 @@ class Airport(Location):
         if isHub:
             self.addHub(airline)
 
-
     def addHub(self, airline):
         """
         Adds an airline as a hub operator at that airport.
@@ -290,7 +326,6 @@ class Airport(Location):
         :type       isHub:    bool
         """
         self.hub[airline.icao] = airline
-
 
     def getInfo(self) -> dict:
         """
@@ -305,13 +340,11 @@ class Airport(Location):
             "iso_region": self.region,
             "lat": self.lat(),
             "lon": self.lon(),
-            "alt": self.alt()
+            "alt": self.alt(),
         }
-
 
     def getKey(self):
         return self.icao
-
 
     def miles(self, airport):
         """
@@ -322,7 +355,6 @@ class Airport(Location):
         :type       airport:  { type_description }
         """
         return distance(self, airport)
-
 
     def save(self, base, redis):
         """
@@ -336,8 +368,9 @@ class Airport(Location):
         if redis is not None:
             redis.delete(key_path(base, self.icao[0:2], self.getKey()))
             # redis.set(key_path(base, self.icao[0:2], self.getKey()), json.dumps(self.getInfo()))
-            redis.json().set(key_path(base, self.icao[0:2], self.getKey()), "$", self.getInfo())
-
+            redis.json().set(
+                key_path(base, self.icao[0:2], self.getKey()), "$", self.getInfo()
+            )
 
     def getTimezone(self):
         """
@@ -356,7 +389,9 @@ class Airport(Location):
                 tzinfo = ZoneInfo(tzname)
                 if tzinfo is not None:
                     self.tzname = tzname
-                    self.tzoffset = round(datetime.now(tz=tzinfo).utcoffset().seconds / 3600, 1)
+                    self.tzoffset = round(
+                        datetime.now(tz=tzinfo).utcoffset().seconds / 3600, 1
+                    )
                     # self.timezone = tzinfo  # is 100% correct too
                     self.timezone = Timezone(offset=self.tzoffset, name=self.tzname)
                     logger.debug(f"timezone set from TimezoneFinder ({tzname})")
@@ -381,24 +416,49 @@ class AirportWithProcedures(Airport):
     AirportWithProcedures also is the parent of BaseAirport.
     """
 
-    def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
-        Airport.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+    def __init__(
+        self,
+        icao: str,
+        iata: str,
+        name: str,
+        city: str,
+        country: str,
+        region: str,
+        lat: float,
+        lon: float,
+        alt: float,
+    ):
+        Airport.__init__(
+            self,
+            icao=icao,
+            iata=iata,
+            name=name,
+            city=city,
+            country=country,
+            region=region,
+            lat=lat,
+            lon=lon,
+            alt=alt,
+        )
         self.procedures = None
         self.weather = None
-        self.operational_rwys = {}  # runway(s) in operation if metar provided, runways in here are RWY objects, not GeoJSON Feature.
-
+        self.operational_rwys = (
+            {}
+        )  # runway(s) in operation if metar provided, runways in here are RWY objects, not GeoJSON Feature.
 
     @classmethod
     def new(cls, apt: Airport):
-        base = cls(icao=apt.icao,
-                   iata=apt.iata,
-                   name=apt.getProp("name"),
-                   city=apt.getProp("city"),
-                   country=apt.getProp("country"),
-                   region=apt.region,
-                   lat=apt.lat(),
-                   lon=apt.lon(),
-                   alt=apt.altitude())
+        base = cls(
+            icao=apt.icao,
+            iata=apt.iata,
+            name=apt.getProp("name"),
+            city=apt.getProp("city"),
+            country=apt.getProp("country"),
+            region=apt.region,
+            lat=apt.lat(),
+            lon=apt.lon(),
+            alt=apt.altitude(),
+        )
         ret = base.load()
         if not ret[0]:
             logger.warning(f"could not load airport with procedures: {ret}")
@@ -414,13 +474,11 @@ class AirportWithProcedures(Airport):
         #     "procedures": self.procedures.getInfo()
         # }
 
-
     def load(self):
         """
         Load ManagedAirportBase data from files.
         """
         return self.loadProcedures()  # which includes runways that are RWY objects
-
 
     def loadProcedures(self):
         """
@@ -431,7 +489,6 @@ class AirportWithProcedures(Airport):
         """
         self.procedures = CIFP(self.icao)
         return [True, "XPAirport::loadProcedures: loaded"]
-
 
     def has_procedures(self) -> bool:
         """
@@ -527,13 +584,17 @@ class AirportWithProcedures(Airport):
         # Runway specific procs:
         if runway.name in all_procs:
             sel_procs.update(all_procs[runway.name])
-            logger.debug(f"added rwy specific {procname}s: {runway.name}: {all_procs[runway.name].keys()}")
+            logger.debug(
+                f"added rwy specific {procname}s: {runway.name}: {all_procs[runway.name].keys()}"
+            )
 
         # Procedures valid for "both" runways:
         both = runway.both()
         if both in all_procs:
             sel_procs.update(all_procs[both])
-            logger.debug(f"added both-rwys {procname}s: {both}: {all_procs[both].keys()}")
+            logger.debug(
+                f"added both-rwys {procname}s: {both}: {all_procs[both].keys()}"
+            )
 
         # Procedures valid for all runways:
         if "ALL" in all_procs:
@@ -549,7 +610,7 @@ class AirportWithProcedures(Airport):
         logger.warning(f"no {procname} found for runway {runway.name}")
         return None
 
-    def selectSID(self, runway: 'Runway'):
+    def selectSID(self, runway: "Runway"):
         """
         Randomly select a SID for supplied runway.
         @todo: Need to be a lot more clever to find procedure.
@@ -562,7 +623,7 @@ class AirportWithProcedures(Airport):
         """
         return self.getProc(runway, self.procedures.SIDS, "SID")
 
-    def selectSTAR(self, runway: 'Runway'):
+    def selectSTAR(self, runway: "Runway"):
         """
         Randomly select a STAR for supplied runway.
         @todo: Need to be a lot more clever to find procedure.
@@ -575,7 +636,9 @@ class AirportWithProcedures(Airport):
         """
         return self.getProc(runway, self.procedures.STARS, "STAR")
 
-    def selectApproach(self, procedure: 'STAR', runway: 'Runway'):  # Procedure should be a STAR
+    def selectApproach(
+        self, procedure: "STAR", runway: "Runway"
+    ):  # Procedure should be a STAR
         """
         Randomly select an APPCH for supplied runway and STAR.
         @todo: Need to be a lot more clever to find procedure.
@@ -605,7 +668,6 @@ class AirportWithProcedures(Airport):
         logger.warning(f"RWY {n} not found")
         return None
 
-
     def setWeather(self, weather: AirportWeather):
         if weather is not None:
             self.weather = weather
@@ -617,7 +679,9 @@ class AirportWithProcedures(Airport):
                     wind_dir = self.weather.get_wind().direction
                     if wind_dir is not None:  # wind dir is variable, any runway is fine
                         logger.debug(f"wind direction {wind_dir:.1f}")
-                        self.operational_rwys = self.procedures.getOperationalRunways(wind_dir)
+                        self.operational_rwys = self.procedures.getOperationalRunways(
+                            wind_dir
+                        )
                     else:
                         logger.debug("no wind direction (may be variable)")
                         self.operational_rwys = self.procedures.getRunways()
@@ -628,14 +692,12 @@ class AirportWithProcedures(Airport):
             self.operational_rwys = self.procedures.getRunways()
             logger.debug("no weather, using all runways")
 
-
     def updateWeather(self, weather_engine, moment: str = None):
         logger.debug("collecting weather information..")
         # Prepare airport for each movement
         weather = weather_engine.get_airport_weather(icao=self.icao, moment=moment)
         self.setWeather(weather=weather)  # calls prepareRunways()
         logger.debug("..done")
-
 
     def runwayIsWet(self):
         """
@@ -655,8 +717,7 @@ class AirportWithProcedures(Airport):
                 landing = 1.4
         return landing
 
-
-    def selectRWY(self, flight: 'Flight'):
+    def selectRWY(self, flight: "Flight"):
         """
         Selects a valid runway for flight, depending on QFU, flight type (pax, cargo), destination, etc.
 
@@ -673,7 +734,9 @@ class AirportWithProcedures(Airport):
                     if self.has_proc(v, self.procedures.SIDS):
                         candidates.append(v)
                 else:
-                    if self.has_proc(v, self.procedures.STARS) or self.has_proc(v, self.procedures.APPCHS) :
+                    if self.has_proc(v, self.procedures.STARS) or self.has_proc(
+                        v, self.procedures.APPCHS
+                    ):
                         candidates.append(v)
 
         if len(candidates) == 0:
@@ -703,21 +766,42 @@ class ManagedAirportBase(AirportWithProcedures):
     any combination of the above providers.
     """
 
-    def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
-        AirportWithProcedures.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+    def __init__(
+        self,
+        icao: str,
+        iata: str,
+        name: str,
+        city: str,
+        country: str,
+        region: str,
+        lat: float,
+        lon: float,
+        alt: float,
+    ):
+        AirportWithProcedures.__init__(
+            self,
+            icao=icao,
+            iata=iata,
+            name=name,
+            city=city,
+            country=country,
+            region=region,
+            lat=lat,
+            lon=lon,
+            alt=alt,
+        )
         self.airspace = None
         self.manager = None
         self.taxiways = Graph()
         self.service_roads = Graph()
-        self.runways = {}               # GeoJSON Features
-        self.ramps = {}                 # GeoJSON Features
+        self.runways = {}  # GeoJSON Features
+        self.ramps = {}  # GeoJSON Features
 
         self.runways_in_use = []
 
         self.aeroway_pois = None
         self.service_pois = None
         self.check_pois = {}
-
 
     @classmethod
     def new(cls, cache, apt):
@@ -739,7 +823,8 @@ class ManagedAirportBase(AirportWithProcedures):
                 region=apt["regionName"],
                 lat=apt["lat"],
                 lon=apt["lon"],
-                alt=apt["elevation"])
+                alt=apt["elevation"],
+            )
             logger.debug("..loading managed airport..")
             ret = airport.load()
             if not ret[0]:
@@ -750,7 +835,6 @@ class ManagedAirportBase(AirportWithProcedures):
                 pickle.dump(airport, fp)
             logger.debug("..done")
         return airport
-
 
     def setAirspace(self, airspace):
         """
@@ -784,10 +868,16 @@ class ManagedAirportBase(AirportWithProcedures):
         base = self.getInfo()
         base["procedures"] = self.procedures.getInfo()
         base["runways"] = list(self.runways.keys())
-        base["taxiway-network"] = (len(self.taxiways.vert_dict.keys()), len(self.taxiways.edges_arr))
+        base["taxiway-network"] = (
+            len(self.taxiways.vert_dict.keys()),
+            len(self.taxiways.edges_arr),
+        )
         base["ramps"] = list(self.ramps.keys())
         base["aeroways-pois"] = list(self.aeroway_pois.keys())
-        base["serviceroad-network"] = (len(self.service_roads.vert_dict.keys()), len(self.service_roads.edges_arr))
+        base["serviceroad-network"] = (
+            len(self.service_roads.vert_dict.keys()),
+            len(self.service_roads.edges_arr),
+        )
         base["service-pois"] = list(self.service_pois.keys())
         base["check-pois"] = list(self.check_pois.keys())
         return base
@@ -826,7 +916,6 @@ class ManagedAirportBase(AirportWithProcedures):
 
         return [True, "Airport::load loaded"]
 
-
     def loadFromFile(self):
         """
         Load file at self.filename and place content in self.data.
@@ -854,7 +943,9 @@ class ManagedAirportBase(AirportWithProcedures):
             with open(df, "r") as fp:
                 self.data = json.load(fp)
                 if self.data is not None and self.data["features"] is not None:
-                    self.data["features"] = FeatureWithProps.betterFeatures(self.data["features"])
+                    self.data["features"] = FeatureWithProps.betterFeatures(
+                        self.data["features"]
+                    )
             return [True, f"GeoJSONAirport::file {name} loaded"]
         logger.warning(f"{df} not found")
         return [False, "GeoJSONAirport::loadGeometries file %s not found", df]
@@ -918,12 +1009,11 @@ class ManagedAirportBase(AirportWithProcedures):
         :returns:   The ramp combo.
         :rtype:     { return_type_description }
         """
-        l = sorted(self.ramps.values(),key=lambda x: x.getName())
+        l = sorted(self.ramps.values(), key=lambda x: x.getName())
         # a = [(a.getName(), a.getName()) for a in l]
         # return a
         a = [{"name": a.getName(), "id": a.getName()} for a in l]
         return {"ramps": a}
-
 
     def getRunwayCombo(self):
         """
@@ -932,7 +1022,7 @@ class ManagedAirportBase(AirportWithProcedures):
         :returns:   The runway combo.
         :rtype:     { return_type_description }
         """
-        l = sorted(self.runways.values(),key=lambda x: x.getName())
+        l = sorted(self.runways.values(), key=lambda x: x.getName())
         a = [(a.getName(), "RW" + a.getName()) for a in l]
         return a
 
@@ -963,7 +1053,6 @@ class ManagedAirportBase(AirportWithProcedures):
         logger.warning(f"runway {n} not found")
         return None
 
-
     def getRunways(self):
         """
         Utility function to get all Runway's for resource usage.
@@ -972,7 +1061,6 @@ class ManagedAirportBase(AirportWithProcedures):
         :rtype:     { return_type_description }
         """
         return self.runways
-
 
     def getRamps(self):
         """
@@ -983,8 +1071,7 @@ class ManagedAirportBase(AirportWithProcedures):
         """
         return self.ramps
 
-
-    def selectRamp(self, flight: 'Flight') -> Ramp:
+    def selectRamp(self, flight: "Flight") -> Ramp:
         """
         Gets a valid ramp for flight depending on its attibutes.
 
@@ -996,15 +1083,19 @@ class ManagedAirportBase(AirportWithProcedures):
         """
         return random.choice(list(self.ramps.values()))
 
-
     def pairRunways(self):
         """
         { function_description }
         """
         if len(self.runways) == 2:
             rwk = list(self.runways.keys())
-            self.runways[rwk[0]].end, self.runways[rwk[1]].end = self.runways[rwk[1]], self.runways[rwk[0]]
-            logger.debug(f"{self.icao}: {self.runways[rwk[0]].name} and {self.runways[rwk[1]].name} paired")
+            self.runways[rwk[0]].end, self.runways[rwk[1]].end = (
+                self.runways[rwk[1]],
+                self.runways[rwk[0]],
+            )
+            logger.debug(
+                f"{self.icao}: {self.runways[rwk[0]].name} and {self.runways[rwk[1]].name} paired"
+            )
         else:
             logger.debug(f"{self.icao}: pairing {self.runways.keys()}")
             for k, r in self.runways.items():
@@ -1028,13 +1119,16 @@ class ManagedAirportBase(AirportWithProcedures):
                     if rw in self.runways.keys():
                         r.end = self.runways[rw]
                         self.runways[rw].end = r
-                        uuid = k+"-"+rw if k < rw else rw+"-"+k
+                        uuid = k + "-" + rw if k < rw else rw + "-" + k
                         r.uuid = uuid
                         r.end.uuid = uuid
-                        logger.debug(f"{self.icao}: {r.getProp(FEATPROP.NAME.value)} and {rw} paired as {uuid}")
+                        logger.debug(
+                            f"{self.icao}: {r.getProp(FEATPROP.NAME.value)} and {rw} paired as {uuid}"
+                        )
                     else:
-                        logger.warning(f"{self.icao}: {rw} ont found to pair {r.getProp(FEATPROP.NAME.value)}")
-
+                        logger.warning(
+                            f"{self.icao}: {rw} ont found to pair {r.getProp(FEATPROP.NAME.value)}"
+                        )
 
     def findRunwayExits(self):
         fc = {}
@@ -1046,11 +1140,15 @@ class ManagedAirportBase(AirportWithProcedures):
                 d = point_to_line_distance(v, line)
                 if d < width:
                     name = f"runway-exit:RW{rwy}:{cnt}"
-                    fc[name] = FeatureWithProps(id=name, geometry=v.geometry, properties={
-                        "poi-type": "runway-exit",
-                        "runway": "RW"+rwy,
-                        "name": str(cnt)
-                    })
+                    fc[name] = FeatureWithProps(
+                        id=name,
+                        geometry=v.geometry,
+                        properties={
+                            "poi-type": "runway-exit",
+                            "runway": "RW" + rwy,
+                            "name": str(cnt),
+                        },
+                    )
                     cnt = cnt + 1
             logger.debug(f"{self.icao}: {rwy} found {cnt} exits")
 

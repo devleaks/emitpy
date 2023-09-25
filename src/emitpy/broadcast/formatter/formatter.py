@@ -3,7 +3,6 @@ from emitpy.constants import FEATPROP
 
 
 class Formatter:
-
     NAME = "abc"
     FILE_EXTENSION = "json"
 
@@ -29,7 +28,6 @@ class Formatter:
 
 
 class FormatterRaw(Formatter):
-
     NAME = "raw"
     FILE_EXTENSION = "geojson"
 

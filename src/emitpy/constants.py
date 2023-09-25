@@ -9,7 +9,7 @@ from enum import Enum, IntEnum, Flag
 #
 # 1. Vehicle
 AIRCRAFT = "aircraft"
-GSE      = "gse"
+GSE = "gse"
 # CAR = "car"
 # BUS = "bus"
 # LORRY = "lorry"
@@ -17,22 +17,23 @@ GSE      = "gse"
 
 
 # 2. Companies
-AIRLINE  = "airline"
+AIRLINE = "airline"
 FLIGHT_OPERATOR = "flight-operator"
 
 # TRANSPORTER = "transporter"
 # LOGISTICS = "logistics"
-HANDLER  = "handler"    # GSE, etc.
+HANDLER = "handler"  # GSE, etc.
 OPERATOR = "operator"  # GSE, etc.
 
 
 # 3. Airports (detailed and managed)
 AIRLINES = "airlines"
 AIRPORTS = "airports"
-ROUTES   = "routes"
+ROUTES = "routes"
 
 PASSENGER = "pax"
-CARGO    = "cargo"
+CARGO = "cargo"
+
 
 #
 # TYPES
@@ -44,9 +45,11 @@ class PAYLOAD(Enum):
     TECH = "tech"
     PRIVATE = "priv"
 
+
 # 2. freit type
 BULK = "bulk"
 PARCEL = "parcel"
+
 
 # 3. GSE types
 class SERVICE(Enum):
@@ -65,7 +68,8 @@ class SERVICE(Enum):
 # File databases
 #
 DATA = "data"  # root data dir
-AODB = "db"    # root AODB dir
+AODB = "db"  # root AODB dir
+
 
 class AODB_DIRECTORIES(Enum):
     FLIGHTS = "flights"
@@ -74,6 +78,7 @@ class AODB_DIRECTORIES(Enum):
     MOVEMENTS = "moves"
     METAR = "metar"
     DEBUG = "debug"
+
 
 MANAGED_AIRPORT_KEY = "managed"
 MANAGED_AIRPORT_LAST_UPDATED = "last-updated"
@@ -113,6 +118,7 @@ DEFAULT_VEHICLE = ":def"
 DEFAULT_VEHICLE_SHORT = "std"
 DEFAULT_VEHICLE_ICAO = "ZZZC"  # marshall car
 
+
 class POI_COMBO(Enum):
     RAMP = "ramp"
     SERVICE = "svc"
@@ -150,7 +156,7 @@ class REDIS_DATABASE(Enum):
     METAR = "metar"
     MISSIONS = "missions"
     MOVEMENTS = "movements"
-    QUEUES = "queues"   # Note: Used both as a key and as a pubsub queue name for internal queue management
+    QUEUES = "queues"  # Note: Used both as a key and as a pubsub queue name for internal queue management
     SERVICES = "services"
     COMPAGNIES = "company-directory"
     PEOPLE = "directory"
@@ -158,16 +164,19 @@ class REDIS_DATABASE(Enum):
     EMIT_METAS = "emit-meta"
     UNKNOWN = "unknowndb"
 
+
 class REDIS_DB(IntEnum):
-    APP = 0    # App data, dynamic
-    REF = 1    # App data, static
+    APP = 0  # App data, dynamic
+    REF = 1  # App data, static
     CACHE = 2  # Real temp cache
-    PERM = 3   # Permanent (METAR, etc.)
+    PERM = 3  # Permanent (METAR, etc.)
+
 
 class EMIT_TYPE(Enum):
     FLIGHT = "flight"
     MISSION = "mission"
     SERVICE = "service"
+
 
 REDIS_DATABASES = {
     "allocation": REDIS_DATABASE.ALLOCATIONS.value,
@@ -176,8 +185,9 @@ REDIS_DATABASES = {
     "metar": REDIS_DATABASE.METAR.value,
     "mission": REDIS_DATABASE.MISSIONS.value,
     "service": REDIS_DATABASE.SERVICES.value,
-    "unknowndb": REDIS_DATABASE.UNKNOWN.value  # should be symmetric to avoid issues
+    "unknowndb": REDIS_DATABASE.UNKNOWN.value,  # should be symmetric to avoid issues
 }
+
 
 # Type of data stored into keys
 class REDIS_TYPE(Enum):
@@ -187,6 +197,7 @@ class REDIS_TYPE(Enum):
     EMIT_KML = "k"
     FORMAT = "f"
     QUEUE = "q"
+
 
 # Type of data stored into keys
 class REDIS_LOVS(Enum):
@@ -202,7 +213,7 @@ class REDIS_LOVS(Enum):
 
 class REDIS_PREFIX(Enum):
     AEROWAYS = "aeroways"
-    AIRWAYS  = "aeroways"
+    AIRWAYS = "aeroways"
     AIRCRAFT_EQUIS = key_path("aircraft", "equivalences")
     AIRCRAFT_PERFS = key_path("aircraft", "performances")
     AIRCRAFT_TARPROFILES = key_path("aircraft", "service-profiles")
@@ -210,7 +221,7 @@ class REDIS_PREFIX(Enum):
     AIRCRAFT_TYPES = key_path("aircraft", "types")
     AIRLINE_ROUTES = key_path("business", "airroutes", "airlines")
     AIRLINES = key_path("business", "airlines")
-    AIRPORT  = "airport"
+    AIRPORT = "airport"
     AIRPORT_ROUTES = key_path("business", "airroutes", "airports")
     AIRPORTS = "airports"
     AIRPORTS_GEO_INDEX = key_path("airports", "_geo_index")
@@ -270,12 +281,12 @@ class REDIS_PREFIX(Enum):
 # F 16m 80m 747_800, airbus
 #
 AIRCRAFT_CLASSES = {  # Half width of taxiway in meters
-    'A': 4,     # 7.5m
-    'B': 6,     # 10.5m
-    'C': 8,     # 15m or 18m
-    'D': 9,     # 18m or 23m
-    'E': 12,    # 23m
-    'F': 15     # 30m
+    "A": 4,  # 7.5m
+    "B": 6,  # 10.5m
+    "C": 8,  # 15m or 18m
+    "D": 9,  # 18m or 23m
+    "E": 12,  # 23m
+    "F": 15,  # 30m
 }
 
 AICRAFT_DEFAULT = "AIRBUS"  # {"AIRBUS","BOEING"}
@@ -306,7 +317,8 @@ ARRIVAL = "arrival"
 DEPARTURE = "departure"
 
 RWY_DEPARTURE_SLOT = 180  # seconds
-RWY_ARRIVAL_SLOT   = 180  # seconds (note: possible issues if not symmetric)
+RWY_ARRIVAL_SLOT = 180  # seconds (note: possible issues if not symmetric)
+
 
 # Type of data stored into files
 class MOVE_TYPE(Enum):
@@ -354,8 +366,9 @@ class FLIGHT_PHASE(Enum):
     TOP_OF_ASCENT = "TOP_OF_ASCENT"
     TOP_OF_DESCENT = "TOP_OF_DESCENT"
 
-ARRIVAL_TIME   = FLIGHT_PHASE.TOUCH_DOWN.value  # {TOUCH_DOWN|ONBLOCK}
-DEPARTURE_TIME = FLIGHT_PHASE.TAKE_OFF.value    # {OFFBLOCK|TAKE_OFF_HOLD|TAKE_OFF}
+
+ARRIVAL_TIME = FLIGHT_PHASE.TOUCH_DOWN.value  # {TOUCH_DOWN|ONBLOCK}
+DEPARTURE_TIME = FLIGHT_PHASE.TAKE_OFF.value  # {OFFBLOCK|TAKE_OFF_HOLD|TAKE_OFF}
 
 
 class MISSION_PHASE(Enum):
@@ -375,7 +388,7 @@ class TAR_SERVICE(Enum):
     START = "start"
     DURATION = "duration"
     ALERT = "alert"
-    WARN  = "warn"
+    WARN = "warn"
     MODEL = "model"
     LABEL = "event"
     EVENT = "event"
@@ -414,11 +427,15 @@ class POI_TYPE(Enum):
     RAMP_SERVICE_POINT = "ramp-service-point"
     QUEUE_POSITION = "toq-pos"
 
+
 QUEUE_GAP = 200  # meters
+
 
 class RAMP_TYPE(Enum):
     JETWAY = "jetway"
     TIE_DOWN = "tiedown"
+
+
 #   HANGAR = "hangar"
 
 
@@ -448,8 +465,8 @@ class FEATPROP(Enum):
     COMMENT = "comment"
     CONTROL_TIME = "control-time"
     COUNTRY = "country"
-    COURSE = "course" # direction in which goes the aircraft, sometimes called TRACK or TRACKING
-    DELAY = "delay"   # was pause in emitjs
+    COURSE = "course"  # direction in which goes the aircraft, sometimes called TRACK or TRACKING
+    DELAY = "delay"  # was pause in emitjs
     EMIT_ABS_TIME = "emit-absolute-time"
     EMIT_ABS_TIME_FMT = "emit-absolute-time-human"
     EMIT_ABSOLUTE_TIME = "emit-absolute-time"
@@ -478,13 +495,13 @@ class FEATPROP(Enum):
     PLAN_SEGMENT_TYPE = "_plan_segment_type"
     POI_TYPE = "poi-type"
     PREMOVE_INDEX = "move-pre-index"
-    REGION  = "region"
+    REGION = "region"
     RUNWAY = "runway"
     SAVED_TIME = "saved-time"
     SERVICE = "service"
-    SERVICE_TYPE = "service-type"   # ~ SERVICE?
-    SPEED = "speed"                 # ground speed
-    TASPEED = "true-air-speed"      # TAS
+    SERVICE_TYPE = "service-type"  # ~ SERVICE?
+    SPEED = "speed"  # ground speed
+    TASPEED = "true-air-speed"  # TAS
     STOP_TIME = "stop-time"
     TIME = "time"
     TYPE_ID = "typeId"
@@ -501,12 +518,17 @@ TAKE_OFF_QUEUE_SIZE = 4  # DO NOT CHANGE
 
 # Average default speeds
 TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
-SLOW_SPEED = 1.4 # 1.4m/s = 5km/h = slow speed
+SLOW_SPEED = 1.4  # 1.4m/s = 5km/h = slow speed
 
 # Point emission limit and control
-EMIT_RATES = [(str(x), str(x)) for x in (list(range(31)) + [60, 120, 300, 600, 900, 1200, 1800, 3600])]  # possible values
-RATE_LIMIT = 10       # Maximum frequency when range of emission is limited to managed airport
-EMIT_RANGE = 5        # Maximum range (in kilometers) of emission when rate under RATE_LIMIT
+EMIT_RATES = [
+    (str(x), str(x))
+    for x in (list(range(31)) + [60, 120, 300, 600, 900, 1200, 1800, 3600])
+]  # possible values
+RATE_LIMIT = (
+    10  # Maximum frequency when range of emission is limited to managed airport
+)
+EMIT_RANGE = 5  # Maximum range (in kilometers) of emission when rate under RATE_LIMIT
 
 # Miscellaneous
 DEFAULT_FREQUENCY = 30  # a message every 30 seconds
@@ -517,18 +539,15 @@ GSE_EMIT_WHEN_STOPPED = False
 # Redis
 #
 # Broadcaster Queues
-INTERNAL_QUEUES = {
-    "raw": "raw",
-    "wire": "wire"
-}
+INTERNAL_QUEUES = {"raw": "raw", "wire": "wire"}
 
-LIVETRAFFIC_QUEUE = "lt"            # should be lt
-LIVETRAFFIC_FORMATTER = "rttfc"     # {aitfc|rttfc|xpplanes}
+LIVETRAFFIC_QUEUE = "lt"  # should be lt
+LIVETRAFFIC_FORMATTER = "rttfc"  # {aitfc|rttfc|xpplanes}
 LIVETRAFFIC_VERBOSE = True
 
 # Redis Publish/Subscribe
 PUBSUB_CHANNEL_PREFIX = "emitpy:"
-QUEUE_DATA   = key_path(REDIS_DATABASE.QUEUES.value,"data")
+QUEUE_DATA = key_path(REDIS_DATABASE.QUEUES.value, "data")
 
 
 ########################################

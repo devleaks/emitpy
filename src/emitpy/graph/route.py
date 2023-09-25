@@ -35,13 +35,15 @@ class Route:
         def heuristic_distance(src, dst):
             n0 = self.graph.nx.nodes[src]
             n1 = self.graph.nx.nodes[dst]
-            d = distance(n0['v'], n1['v'])
+            d = distance(n0["v"], n1["v"])
             # logger.debug("heuristic_distance: %s->%s=%f" % (i0, i1, d))
             return d
 
         logger.debug("trying networkx shortest_path..")
         try:
-            self.route = shortest_path(self.graph.nx, source=self.src, target=self.dst, weight="weight")
+            self.route = shortest_path(
+                self.graph.nx, source=self.src, target=self.dst, weight="weight"
+            )
             logger.debug("..found")
             # logger.debug("..found %s", self.route)
             return self.route
@@ -88,7 +90,6 @@ class Route:
     def found(self):
         return (self.route and len(self.route) > 2) or self._direct
 
-
     def get_edges(self):
         # From liste of vertices, build list of edges
         # but also set the size of the taxiway in the vertex
@@ -99,12 +100,10 @@ class Route:
                 self.edges.append(e)
         return self.edges
 
-
     def get_vertices(self):
         if self.vertices is None:
             self.vertices = list(map(lambda x: self.graph.get_vertex(x), self.route))
         return self.vertices
-
 
     def get_points(self):
         # If an edge is a linestring rather than a straight line from src to end, returns all intermediate points as well.

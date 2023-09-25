@@ -12,9 +12,25 @@ from emitpy.geo.turf import Point, Feature, FeatureCollection
 from emitpy.geo.turf import distance, destination, bearing
 
 from emitpy.graph import Vertex, Edge, USAGE_TAG
-from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, FeatureWithProps, ls_length, ls_point_at
+from emitpy.geo import (
+    Ramp,
+    ServiceParking,
+    Runway,
+    mkPolygon,
+    FeatureWithProps,
+    ls_length,
+    ls_point_at,
+)
 from emitpy.parameters import DATA_DIR, XPLANE_DIR, MANAGED_AIRPORT_DIR
-from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE, SERVICE
+from emitpy.constants import (
+    TAKE_OFF_QUEUE_SIZE,
+    FEATPROP,
+    POI_TYPE,
+    TAG_SEP,
+    POI_COMBO,
+    RAMP_TYPE,
+    SERVICE,
+)
 from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP, QUEUE_GAP
 from emitpy.utils import key_path, rejson
 
@@ -57,9 +73,31 @@ class XPAirport(ManagedAirportBase):
     """
     Managed Airport represetation extracted from X-Plane airport data files (apt.dat).
     """
-    def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
 
-        ManagedAirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+    def __init__(
+        self,
+        icao: str,
+        iata: str,
+        name: str,
+        city: str,
+        country: str,
+        region: str,
+        lat: float,
+        lon: float,
+        alt: float,
+    ):
+        ManagedAirportBase.__init__(
+            self,
+            icao=icao,
+            iata=iata,
+            name=name,
+            city=city,
+            country=country,
+            region=region,
+            lat=lat,
+            lon=lon,
+            alt=alt,
+        )
 
         self.loaded = False
 
@@ -73,7 +111,6 @@ class XPAirport(ManagedAirportBase):
         self.runway_exits = {}
         self.takeoff_queues = {}
         self.all_pois_combo = {}
-
 
     def load(self):
         """
@@ -92,7 +129,6 @@ class XPAirport(ManagedAirportBase):
         logger.debug(f"..complement done")
         return [True, ":XPAirport::load loaded"]
 
-
     def loadFromFile(self):
         """
         Scans scenery_packs collection for apt.dat files.
@@ -102,7 +138,9 @@ class XPAirport(ManagedAirportBase):
         GLOBAL_AIRPORTS = "Global Airports"
 
         # Add scenery packs, which include Global Airports scenery in XP11
-        scenery_packs_file = os.path.join(XPLANE_DIR, "Custom Scenery", "scenery_packs.ini")
+        scenery_packs_file = os.path.join(
+            XPLANE_DIR, "Custom Scenery", "scenery_packs.ini"
+        )
         global_airport11 = None
         if os.path.exists(scenery_packs_file):
             scenery_packs = open(scenery_packs_file, "r")
@@ -112,29 +150,45 @@ class XPAirport(ManagedAirportBase):
                 # logger.debug("loadFromFile: SCENERY_PACK '%s'", scenery)
                 if re.match("^SCENERY_PACK", scenery, flags=0):
                     scenery_pack_dir = scenery[13:-1]
-                    scenery_pack_apt = os.path.join(XPLANE_DIR, scenery_pack_dir, "Earth nav data", "apt.dat")
+                    scenery_pack_apt = os.path.join(
+                        XPLANE_DIR, scenery_pack_dir, "Earth nav data", "apt.dat"
+                    )
                     # logger.debug("loadFromFile: APT.DAT %s", scenery_pack_apt)
-                    if os.path.exists(scenery_pack_apt) and os.path.isfile(scenery_pack_apt):
+                    if os.path.exists(scenery_pack_apt) and os.path.isfile(
+                        scenery_pack_apt
+                    ):
                         if GLOBAL_AIRPORTS in scenery_pack_dir:
                             global_airport11 = {}
                             global_airport11["default airports 11"] = scenery_pack_apt
                         else:
                             APT_FILES[scenery_pack_dir] = scenery_pack_apt
-                            logger.debug(f"loadFromFile: Added '{scenery_pack_dir}' file {scenery_pack_apt}")
+                            logger.debug(
+                                f"loadFromFile: Added '{scenery_pack_dir}' file {scenery_pack_apt}"
+                            )
                     else:
-                        logger.debug(f"loadFromFile: scenery file not found {scenery_pack_apt}")
+                        logger.debug(
+                            f"loadFromFile: scenery file not found {scenery_pack_apt}"
+                        )
                 scenery = scenery_packs.readline()
             scenery_packs.close()
         else:
-            logger.debug(f"loadFromFile: scenery packs file not found {scenery_packs_file}")
+            logger.debug(
+                f"loadFromFile: scenery packs file not found {scenery_packs_file}"
+            )
 
         # Add XP 12 location for Global Airports
         # This is added at the end, since we should find airport in custom folder first.
         # X-Plane Global Airport is the last try
-        default_airports_file = os.path.join(XPLANE_DIR, "Global Scenery", GLOBAL_AIRPORTS, "Earth nav data", "apt.dat")
-        if os.path.exists(default_airports_file) and os.path.isfile(default_airports_file):
+        default_airports_file = os.path.join(
+            XPLANE_DIR, "Global Scenery", GLOBAL_AIRPORTS, "Earth nav data", "apt.dat"
+        )
+        if os.path.exists(default_airports_file) and os.path.isfile(
+            default_airports_file
+        ):
             APT_FILES["default airports 12"] = default_airports_file
-            logger.debug(f"loadFromFile: Added default airports file (XP12) {default_airports_file}")
+            logger.debug(
+                f"loadFromFile: Added default airports file (XP12) {default_airports_file}"
+            )
         # else:
         #     logger.warning(f"Airport::load: default airport file {DEFAULT_AIRPORTS} not found")
 
@@ -142,7 +196,9 @@ class XPAirport(ManagedAirportBase):
         # We add it after XP12 since it is older
         if global_airport11 is not None:
             APT_FILES["default airports 11"] = global_airport11["default airports 11"]
-            logger.debug(f"loadFromFile: Added default airports file (XP11) {global_airport11['default airports 11']}")
+            logger.debug(
+                f"loadFromFile: Added default airports file (XP11) {global_airport11['default airports 11']}"
+            )
 
         # logger.debug(f"loadFromFile: APT files: {APT_FILES}")
         logger.debug(f"loadFromFile: searching..")
@@ -156,19 +212,32 @@ class XPAirport(ManagedAirportBase):
             apt_dat = open(filename, "r", encoding="utf-8", errors="ignore")
             line = apt_dat.readline()
 
-            while not self.loaded and line:  # while we have not found our airport and there are more lines in this pack
+            while (
+                not self.loaded and line
+            ):  # while we have not found our airport and there are more lines in this pack
                 if re.match("^1 ", line, flags=0):  # if it is a "startOfAirport" line
-                    newparam = line.split()  # if no characters supplied to split(), multiple space characters as one
+                    newparam = (
+                        line.split()
+                    )  # if no characters supplied to split(), multiple space characters as one
                     # logger.debug("airport: %s" % newparam[4])
                     if newparam[4] == self.icao:  # it is the airport we are looking for
                         self.name = " ".join(newparam[5:])
                         self.elevation = newparam[1]
                         # Info 4.a
-                        logger.info("Found airport %s '%s' in '%s'.", newparam[4], self.name, scenery_pack_apt)
-                        self.scenery_pack = scenery_pack_apt  # remember where we found it
+                        logger.info(
+                            "Found airport %s '%s' in '%s'.",
+                            newparam[4],
+                            self.name,
+                            scenery_pack_apt,
+                        )
+                        self.scenery_pack = (
+                            scenery_pack_apt  # remember where we found it
+                        )
                         self.lines.append(AptLine(line))  # keep first line
                         line = apt_dat.readline()  # next line in apt.dat
-                        while line and not re.match("^1 ", line, flags=0):  # while we do not encounter a line defining a new airport...
+                        while line and not re.match(
+                            "^1 ", line, flags=0
+                        ):  # while we do not encounter a line defining a new airport...
                             testline = AptLine(line)
                             if testline.linecode() is not None:
                                 self.lines.append(testline)
@@ -179,7 +248,7 @@ class XPAirport(ManagedAirportBase):
                         logger.info(f"read {len(self.lines)} lines for {self.name}.")
                         self.loaded = True
 
-                if(line):  # otherwize we reached the end of file
+                if line:  # otherwize we reached the end of file
                     line = apt_dat.readline()  # next line in apt.dat
 
             apt_dat.close()
@@ -187,7 +256,6 @@ class XPAirport(ManagedAirportBase):
 
         logger.debug(f"loadFromFile: ..done")
         return [True, "XPAirport::loadFromFile: loaded"]
-
 
     def loadRunways(self):
         """
@@ -203,9 +271,31 @@ class XPAirport(ManagedAirportBase):
         for aptline in self.lines:
             if aptline.linecode() == 100:  # runway
                 args = aptline.content().split()
-                runway = mkPolygon(float(args[8]), float(args[9]), float(args[17]), float(args[18]), float(args[0]))
-                runways[args[7]]  = Runway(name=args[7], width=float(args[0]), lat1=float(args[8]), lon1=float(args[9]), lat2=float(args[17]), lon2=float(args[18]), surface=runway)
-                runways[args[16]] = Runway(name=args[16], width=float(args[0]), lat1=float(args[17]), lon1=float(args[18]), lat2=float(args[8]), lon2=float(args[9]), surface=runway)
+                runway = mkPolygon(
+                    float(args[8]),
+                    float(args[9]),
+                    float(args[17]),
+                    float(args[18]),
+                    float(args[0]),
+                )
+                runways[args[7]] = Runway(
+                    name=args[7],
+                    width=float(args[0]),
+                    lat1=float(args[8]),
+                    lon1=float(args[9]),
+                    lat2=float(args[17]),
+                    lon2=float(args[18]),
+                    surface=runway,
+                )
+                runways[args[16]] = Runway(
+                    name=args[16],
+                    width=float(args[0]),
+                    lat1=float(args[17]),
+                    lon1=float(args[18]),
+                    lat2=float(args[8]),
+                    lon2=float(args[9]),
+                    surface=runway,
+                )
         self.runways = runways
         logger.debug(f"added {len(runways.keys())} runways: {runways.keys()}")
 
@@ -214,7 +304,6 @@ class XPAirport(ManagedAirportBase):
         logger.debug(f"..paired")
 
         return [True, "XPAirport::loadRunways loaded"]
-
 
     def loadRamps(self):
         """
@@ -231,15 +320,23 @@ class XPAirport(ManagedAirportBase):
 
         ramp = None
         for aptline in self.lines:
-            if aptline.linecode() == 1300: # ramp  name: str, ramptype: str, position: [float], orientation: float, size: str
+            if (
+                aptline.linecode() == 1300
+            ):  # ramp  name: str, ramptype: str, position: [float], orientation: float, size: str
                 args = aptline.content().split()
                 name = " ".join(args[5:])
                 ramptype = RAMP_TYPE.TIE_DOWN.value  # default
                 if args[3] in ["gate"]:  # 1300: “gate”, “hangar”, “misc” or “tie-down”
                     ramptype = RAMP_TYPE.JETWAY.value
-                ramp = Ramp(name=name, ramptype=ramptype, position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[4])
+                ramp = Ramp(
+                    name=name,
+                    ramptype=ramptype,
+                    position=(float(args[1]), float(args[0])),
+                    orientation=float(args[2]),
+                    use=args[4],
+                )
                 ramps[name] = ramp
-            elif ramp is not None and aptline.linecode() == 1301: # ramp details
+            elif ramp is not None and aptline.linecode() == 1301:  # ramp details
                 args = aptline.content().split()
                 if len(args) > 0:
                     ramp.setProp("icao-width", args[0])
@@ -273,9 +370,17 @@ class XPAirport(ManagedAirportBase):
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
+
         def addVertex(aptline):
             args = aptline.content().split()
-            return self.taxiways.add_vertex(Vertex(node=args[3], point=Point((float(args[1]), float(args[0]))), usage=[args[2]], name=" ".join(args[3:])))
+            return self.taxiways.add_vertex(
+                Vertex(
+                    node=args[3],
+                    point=Point((float(args[1]), float(args[0]))),
+                    usage=[args[2]],
+                    name=" ".join(args[3:]),
+                )
+            )
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
@@ -285,11 +390,11 @@ class XPAirport(ManagedAirportBase):
         # 1204 departure 16L,34R
         # 1204 arrival 16L,34R
         # 1204 ils 16L,34R
-        edgeCount = 0   # just for info
+        edgeCount = 0  # just for info
         edgeActiveCount = 0
         edge = False
         for aptline in self.lines:
-            if aptline.linecode() == 1202: # edge
+            if aptline.linecode() == 1202:  # edge
                 args = aptline.content().split()
                 if len(args) >= 4:
                     src = self.taxiways.get_vertex(args[0])
@@ -298,15 +403,33 @@ class XPAirport(ManagedAirportBase):
                     edge = None
                     if len(args) == 5:
                         # args[2] = {oneway|twoway}, args[3] = {runway|taxiway}
-                        edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=[args[3]], name=args[4])
+                        edge = Edge(
+                            src=src,
+                            dst=dst,
+                            weight=cost,
+                            directed=(args[2] == "oneway"),
+                            usage=[args[3]],
+                            name=args[4],
+                        )
                     else:
-                        edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2]=="oneway"), usage=args[3], name="")
+                        edge = Edge(
+                            src=src,
+                            dst=dst,
+                            weight=cost,
+                            directed=(args[2] == "oneway"),
+                            usage=args[3],
+                            name="",
+                        )
                     if args[2] == "oneway":
                         edge.setColor("#AA4444")
                     self.taxiways.add_edge(edge)
                     edgeCount += 1
                 else:
-                    logger.debug("not enough params %d %s.", aptline.linecode(), aptline.content())
+                    logger.debug(
+                        "not enough params %d %s.",
+                        aptline.linecode(),
+                        aptline.content(),
+                    )
             elif aptline.linecode() == 1204 and edge:
                 args = aptline.content().split()
                 if len(args) >= 2:
@@ -314,7 +437,11 @@ class XPAirport(ManagedAirportBase):
                     edge.setTag(USAGE_TAG, args[1])
                     edgeActiveCount += 1
                 else:
-                    logger.debug("not enough params %d %s.", aptline.linecode(), aptline.content())
+                    logger.debug(
+                        "not enough params %d %s.",
+                        aptline.linecode(),
+                        aptline.content(),
+                    )
             else:
                 edge = False
 
@@ -325,7 +452,12 @@ class XPAirport(ManagedAirportBase):
 
         self.taxiways.purge()
         # Info 6
-        logger.info("added %d nodes, %d edges (%d enhanced).", len(self.taxiways.vert_dict), edgeCount, edgeActiveCount)
+        logger.info(
+            "added %d nodes, %d edges (%d enhanced).",
+            len(self.taxiways.vert_dict),
+            edgeCount,
+            edgeActiveCount,
+        )
         return [True, "XPAirport::loadTaxiways loaded"]
 
     def loadServiceRoads(self):
@@ -337,19 +469,27 @@ class XPAirport(ManagedAirportBase):
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
+
         def addVertex(aptline):
             args = aptline.content().split()
-            return self.service_roads.add_vertex(Vertex(node=args[3], point=Point((float(args[1]), float(args[0]))), usage=[ args[2]], name=" ".join(args[3:])))
+            return self.service_roads.add_vertex(
+                Vertex(
+                    node=args[3],
+                    point=Point((float(args[1]), float(args[0]))),
+                    usage=[args[2]],
+                    name=" ".join(args[3:]),
+                )
+            )
 
         vertexlines = list(filter(lambda x: x.linecode() == 1201, self.lines))
         v = list(map(addVertex, vertexlines))
         logger.debug(f"loaded {len(v)} vertices")
 
         # 1206 107 11 twoway C
-        edgeCount = 0   # just for info
+        edgeCount = 0  # just for info
         edge = False
         for aptline in self.lines:
-            if aptline.linecode() == 1206: # edge for ground vehicle
+            if aptline.linecode() == 1206:  # edge for ground vehicle
                 args = aptline.content().split()
                 if len(args) >= 3:
                     src = self.service_roads.get_vertex(args[0])
@@ -357,21 +497,33 @@ class XPAirport(ManagedAirportBase):
                     cost = distance(src.geometry, dst.geometry)
                     edge = None
                     name = args[4] if len(args) == 5 else ""
-                    edge = Edge(src=src, dst=dst, weight=cost, directed=False, usage=["ground"], name=name)
+                    edge = Edge(
+                        src=src,
+                        dst=dst,
+                        weight=cost,
+                        directed=False,
+                        usage=["ground"],
+                        name=name,
+                    )
                     # if args[2] == "oneway":
                     #     edge.setColor("#AA4444")
                     self.service_roads.add_edge(edge)
                     edgeCount += 1
                 else:
-                    logger.debug("not enough params %d %s.", aptline.linecode(), aptline.content())
+                    logger.debug(
+                        "not enough params %d %s.",
+                        aptline.linecode(),
+                        aptline.content(),
+                    )
             else:
                 edge = False
 
         self.service_roads.purge()
         # Info 6
-        logger.info("added %d nodes, %d edges.", len(self.service_roads.vert_dict), edgeCount)
+        logger.info(
+            "added %d nodes, %d edges.", len(self.service_roads.vert_dict), edgeCount
+        )
         return [True, "XPAirport::loadServiceNetwork loaded"]
-
 
     def loadPOIS(self):
         """
@@ -402,7 +554,6 @@ class XPAirport(ManagedAirportBase):
         logger.debug("loaded")
         return [True, "GeoJSONAirport::loadPOIS loaded"]
 
-
     def loadServiceDestinations(self):
         """
         Loads X-Plane ATC/animated traffic service destinations from apt.dat lines.
@@ -424,7 +575,13 @@ class XPAirport(ManagedAirportBase):
             if aptline.linecode() in [1400, 1401]:  # equipment paarking or destination
                 args = aptline.content().split()
                 name = " ".join(args[4:])
-                svc = ServiceParking(name=name, parking_type=aptline.linecode(), position=(float(args[1]),float(args[0])), orientation=float(args[2]), use=args[3])
+                svc = ServiceParking(
+                    name=name,
+                    parking_type=aptline.linecode(),
+                    position=(float(args[1]), float(args[0])),
+                    orientation=float(args[2]),
+                    use=args[3],
+                )
                 if aptline.linecode() == 1400:
                     svc_park = svc_park + 1
                     svc.setColor("#ffdddd")
@@ -435,7 +592,10 @@ class XPAirport(ManagedAirportBase):
                     svc.setProp("location", "destination")
                 service_destinations[name] = svc
         self.service_destinations = service_destinations
-        logger.debug("added %d service_destinations (park=%d, dest=%d)" % (len(service_destinations.keys()), svc_park, svc_dest))
+        logger.debug(
+            "added %d service_destinations (park=%d, dest=%d)"
+            % (len(service_destinations.keys()), svc_park, svc_dest)
+        )
         return [True, "XPAirport::loadServiceDestination loaded"]
 
     def loadAerowaysPOIS(self):
@@ -498,9 +658,15 @@ class XPAirport(ManagedAirportBase):
                     if poi_type in [POI_TYPE.DEPOT.value, POI_TYPE.REST_AREA.value]:
                         poi_svc = f.getProp(FEATPROP.SERVICE.value)
                         if poi_svc is None:
-                            logger.warning(f"poi {poi_type} has no service {f}, skipping")
+                            logger.warning(
+                                f"poi {poi_type} has no service {f}, skipping"
+                            )
                         else:
-                            poi_name = f.getProp(FEATPROP.NAME.value) if f.getProp(FEATPROP.NAME.value) is not None else str(len(self.service_pois))
+                            poi_name = (
+                                f.getProp(FEATPROP.NAME.value)
+                                if f.getProp(FEATPROP.NAME.value) is not None
+                                else str(len(self.service_pois))
+                            )
                             n = poi_type + ":" + poi_name
                             p = FeatureWithProps.new(f)
                             p.setName(n)
@@ -509,7 +675,9 @@ class XPAirport(ManagedAirportBase):
             logger.info("loaded %d features.", len(self.service_pois))
             self.data = None
 
-        logger.debug(f"added {len(self.service_pois)} points of interest: {self.service_pois.keys()}")
+        logger.debug(
+            f"added {len(self.service_pois)} points of interest: {self.service_pois.keys()}"
+        )
         return [True, "XPAirport::loadServicePOIS loaded"]
 
     def getServicePoisCombo(self, service: str = None):
@@ -535,7 +703,11 @@ class XPAirport(ManagedAirportBase):
             for f in self.data["features"]:
                 poi_type = f.getProp(FEATPROP.POI_TYPE.value)
                 if poi_type is not None and poi_type == "checkpoint":
-                    poi_name = f.getName() if f.getName() is not None else str(len(self.check_pois))
+                    poi_name = (
+                        f.getName()
+                        if f.getName() is not None
+                        else str(len(self.check_pois))
+                    )
                     n = poi_type + ":" + poi_name
                     p = FeatureWithProps.new(f)
                     p.setName(n)
@@ -543,18 +715,20 @@ class XPAirport(ManagedAirportBase):
             logger.info("loaded %d features.", len(self.check_pois))
             self.data = None
 
-        logger.debug(f"added {len(self.check_pois)} points of control: {self.check_pois.keys()}")
+        logger.debug(
+            f"added {len(self.check_pois)} points of control: {self.check_pois.keys()}"
+        )
         return [True, "XPAirport::loadCheckpointPOIS loaded"]
 
     def getCheckpointCombo(self):
         """
         Returns a list of (code, description) pairs for all checkpoints.
         """
-        l = sorted(self.check_pois.values(),key=lambda x: x.getName())
+        l = sorted(self.check_pois.values(), key=lambda x: x.getName())
         a = [(a.getName(), a.getName()) for a in l]
         return a
 
-    def getCheckpoint(self, name, redis = None):
+    def getCheckpoint(self, name, redis=None):
         """
         Gets a named checkpoint.
 
@@ -562,7 +736,12 @@ class XPAirport(ManagedAirportBase):
         :type       name:  { type_description }
         """
         if redis:
-            k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.MISSION.value, name)
+            k = key_path(
+                REDIS_PREFIX.AIRPORT.value,
+                REDIS_PREFIX.GEOJSON.value,
+                REDIS_PREFIX.MISSION.value,
+                name,
+            )
             r = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             f = FeatureWithProps.new(r)
             return f
@@ -575,7 +754,11 @@ class XPAirport(ManagedAirportBase):
         :param      name:  The name
         :type       name:  { type_description }
         """
-        return self.check_pois[name] if name in self.check_pois.keys() else self.getPOIFromCombo(name)
+        return (
+            self.check_pois[name]
+            if name in self.check_pois.keys()
+            else self.getPOIFromCombo(name)
+        )
 
     def getAerowayPOI(self, name):
         """
@@ -587,7 +770,7 @@ class XPAirport(ManagedAirportBase):
         res = list(filter(lambda f: f.name == name, self.aeroway_pois))
         return res[0] if len(res) == 1 else None
 
-    def getRamp(self, name, redis = None):
+    def getRamp(self, name, redis=None):
         """
         Gets the ramp as a X-Plane entity (not a GeoJSON feature)
 
@@ -595,11 +778,22 @@ class XPAirport(ManagedAirportBase):
         :type       name:  { type_description }
         """
         if redis:
-            k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RAMPS.value, name)
+            k = key_path(
+                REDIS_PREFIX.AIRPORT.value,
+                REDIS_PREFIX.GEOJSON.value,
+                REDIS_PREFIX.RAMPS.value,
+                name,
+            )
             r = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if r is not None:
                 f = FeatureWithProps.new(r)
-                return Ramp(name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=r.coords(), orientation=f.getProp("orientation"), use=f.getProp("use"))
+                return Ramp(
+                    name=f.getProp("name"),
+                    ramptype=f.getProp("sub-type"),
+                    position=r.coords(),
+                    orientation=f.getProp("orientation"),
+                    use=f.getProp("use"),
+                )
         return self.ramps[name] if name in self.ramps.keys() else None
 
     def makeAdditionalAerowayPOIS(self):
@@ -618,7 +812,9 @@ class XPAirport(ManagedAirportBase):
             rwypt = rwy.getPoint()
             db = distance(qb, rwypt)
             de = distance(qe, rwypt)
-            if de < db:  # need to inverse coordinates, we start from the TAKE-OFF HOLD position (=queue id 0)
+            if (
+                de < db
+            ):  # need to inverse coordinates, we start from the TAKE-OFF HOLD position (=queue id 0)
                 line.coords().reverse()
 
             maxlen = ls_length(line.geometry)
@@ -651,7 +847,6 @@ class XPAirport(ManagedAirportBase):
                 else:
                     logger.debug(f"no room for position {qid} for {name}")
 
-
         def makeRunwayExits(exitpt):
             name = exitpt.getProp(FEATPROP.RUNWAY.value)
             rwy = self.procedures.RWYS[name]
@@ -663,10 +858,12 @@ class XPAirport(ManagedAirportBase):
                 self.runway_exits[name] = []
             self.runway_exits[name].append(exitpt)
 
-
         if self.procedures is None:
             logger.warning("procedures not loaded")
-            return [False, ":XPAirport::makeAdditionalAerowayPOIS: procedures not loaded"]
+            return [
+                False,
+                ":XPAirport::makeAdditionalAerowayPOIS: procedures not loaded",
+            ]
 
         for k in self.aeroway_pois.values():
             pt = k.getProp(FEATPROP.POI_TYPE.value)
@@ -675,31 +872,39 @@ class XPAirport(ManagedAirportBase):
             if pt == POI_TYPE.RUNWAY_EXIT.value:
                 makeRunwayExits(k)
 
-        logger.debug("added %d queue points for %s" % (TAKE_OFF_QUEUE_SIZE, self.runway_exits.keys()))
+        logger.debug(
+            "added %d queue points for %s"
+            % (TAKE_OFF_QUEUE_SIZE, self.runway_exits.keys())
+        )
         for name in self.runway_exits.keys():
-            self.runway_exits[name] = sorted(self.runway_exits[name], key=lambda f: f.getProp("length"))
-            logger.debug(f"added {len(self.runway_exits[name])} runway exits for {name}")
+            self.runway_exits[name] = sorted(
+                self.runway_exits[name], key=lambda f: f.getProp("length")
+            )
+            logger.debug(
+                f"added {len(self.runway_exits[name])} runway exits for {name}"
+            )
             # for f in self.runway_exits[name]:
             #     logger.debug("added %d runway exits for %s at %f" % (len(self.runway_exits[name]), name, f["properties"]["length"]))
 
         return [True, ":XPAirport::makeAdditionalAerowayPOIS: loaded"]
 
-
     def has_takeoff_queue(self, runway):
         return runway in self.takeoff_queues and len(self.takeoff_queues[runway]) > 0
 
-
     def takeoff_queue_points(self, runway):
         return self.takeoff_queues[runway] if runway in self.takeoff_queues else None
-
 
     def queue_point(self, runway, qid):
         """
         Returns the takeoff queue position from the runway name and the position in the queue.
         """
-        res = list(filter(lambda f: f.getProp([FEATPROP.NAME.value]) == qid, self.takeoff_queues[runway]))
+        res = list(
+            filter(
+                lambda f: f.getProp([FEATPROP.NAME.value]) == qid,
+                self.takeoff_queues[runway],
+            )
+        )
         return res[0]
-
 
     def closest_runway_exit(self, runway, dist):
         """
@@ -722,13 +927,15 @@ class XPAirport(ManagedAirportBase):
         if closest is None:
             closest = self.runway_exits[runway][-1]
 
-        logger.debug(f"runway {runway}, landing: {dist:f}, runway exit at {closest.getProp('length'):f}")
+        logger.debug(
+            f"runway {runway}, landing: {dist:f}, runway exit at {closest.getProp('length'):f}"
+        )
         return closest
-
 
     """
     In Service POI Feature<Point>, property "service" is a list of | separated services, and "poi" is {depot|rest}.
     """
+
     def getServicePOIs(self, service_name: str):
         """
         Returns a list of POIs for the supplied service.
@@ -744,19 +951,24 @@ class XPAirport(ManagedAirportBase):
                         sl.append(f)
         return sl
 
-    def getServicePOI(self, name: str, redis = None):
+    def getServicePOI(self, name: str, redis=None):
         """
         Returns the named POI.
         """
         if redis:
-            k = key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.GROUNDSUPPORT.value, name)
+            k = key_path(
+                REDIS_PREFIX.AIRPORT.value,
+                REDIS_PREFIX.GEOJSON.value,
+                REDIS_PREFIX.GROUNDSUPPORT.value,
+                name,
+            )
             r = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             f = FeatureWithProps.new(r)
             return f
 
         return self.service_pois[name] if name in self.service_pois.keys() else None
 
-    def selectServicePOI(self, name: str, service: str, redis = None):
+    def selectServicePOI(self, name: str, service: str, redis=None):
         """
         Returns the named POI if existing, otherwise tries to locate an alternative POI
         for the supplied service.
@@ -769,7 +981,11 @@ class XPAirport(ManagedAirportBase):
         if name == POI_TYPE.DEPOT.value:  # keyword for any depot for service
             logger.debug(f"trying generic depot")
             return self.selectRandomServiceDepot(service, redis)
-        if name in [POI_TYPE.REST_AREA.value, "rest", "parking"]:  # keyword for any rest area/parking for service
+        if name in [
+            POI_TYPE.REST_AREA.value,
+            "rest",
+            "parking",
+        ]:  # keyword for any rest area/parking for service
             logger.debug(f"trying generic rest area")
             return self.selectRandomServiceRestArea(service, redis)
 
@@ -781,7 +997,6 @@ class XPAirport(ManagedAirportBase):
             return self.getCheckpoint(key_path(*a[1:]), redis)
         if a[0] == POI_COMBO.SERVICE.value:
             return self.getServicePOI(key_path(*a[1:]), redis)
-
 
         # logger.debug(f"{name} trying service poi..")
         # ret = self.service_pois[name] if name in self.service_pois.keys() else None
@@ -821,16 +1036,21 @@ class XPAirport(ManagedAirportBase):
         logger.debug(f"found {poi_list[0].getProp('name')}")
         return closest
 
-    def getDepots(self, service_name: str, redis = None):
+    def getDepots(self, service_name: str, redis=None):
         """
         Get all depot POIs for named service.
 
         :param      service_name:  The service name
         :type       service_name:  str
         """
-        return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value, self.getServicePOIs(service_name)))
+        return list(
+            filter(
+                lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.DEPOT.value,
+                self.getServicePOIs(service_name),
+            )
+        )
 
-    def getDepotNames(self, service_name: str, redis = None):
+    def getDepotNames(self, service_name: str, redis=None):
         """
         Get all depot POIs for named service.
 
@@ -840,7 +1060,7 @@ class XPAirport(ManagedAirportBase):
         l = self.getDepots(service_name, redis)
         return [(f.getName(), f.getName()) for f in l]
 
-    def getNearestServiceDepot(self, service_name: str, position: Feature, redis = None):
+    def getNearestServiceDepot(self, service_name: str, position: Feature, redis=None):
         """
         Get nearest depot POI for named service.
 
@@ -849,16 +1069,22 @@ class XPAirport(ManagedAirportBase):
         """
         return self.getNearestPOI(self.getDepots(service_name), position)
 
-    def getRestAreas(self, service_name: str, redis = None):
+    def getRestAreas(self, service_name: str, redis=None):
         """
         Get all rest area POIs for named service.
 
         :param      service_name:  The service name
         :type       service_name:  str
         """
-        return list(filter(lambda f: f.getProp(FEATPROP.POI_TYPE.value) == POI_TYPE.REST_AREA.value, self.getServicePOIs(service_name)))
+        return list(
+            filter(
+                lambda f: f.getProp(FEATPROP.POI_TYPE.value)
+                == POI_TYPE.REST_AREA.value,
+                self.getServicePOIs(service_name),
+            )
+        )
 
-    def getRestAreaNames(self, service_name: str, redis = None):
+    def getRestAreaNames(self, service_name: str, redis=None):
         """
         Get all depot POIs for named service.
 
@@ -868,7 +1094,9 @@ class XPAirport(ManagedAirportBase):
         l = self.getRestAreas(service_name, redis)
         return [(f.getName(), f.getName()) for f in l]
 
-    def getNearestServiceRestArea(self, service_name: str, position: Feature, redis = None):
+    def getNearestServiceRestArea(
+        self, service_name: str, position: Feature, redis=None
+    ):
         """
         Get nearest rest area POI for named service.
 
@@ -877,7 +1105,7 @@ class XPAirport(ManagedAirportBase):
         """
         return self.getNearestPOI(self.getRestAreas(service_name), position)
 
-    def selectRandomServiceDepot(self, service: str, redis = None):
+    def selectRandomServiceDepot(self, service: str, redis=None):
         """
         Selects a random depot for named service.
 
@@ -891,7 +1119,7 @@ class XPAirport(ManagedAirportBase):
             return None
         return random.choice(l)
 
-    def selectRandomServiceRestArea(self, service: str, redis = None):
+    def selectRandomServiceRestArea(self, service: str, redis=None):
         """
         Selects a random service area for named service.
 
@@ -905,7 +1133,7 @@ class XPAirport(ManagedAirportBase):
             return None
         return random.choice(l)
 
-    def getServiceDepot(self, name: str, service_name: str=None, redis = None):
+    def getServiceDepot(self, name: str, service_name: str = None, redis=None):
         """
         Returns the named depot POI if existing, otherwise tries to locate an alternative depot for service.
 
@@ -914,14 +1142,18 @@ class XPAirport(ManagedAirportBase):
         :param      service:  The service
         :type       service:  str
         """
-        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name, redis = None)
+        dl = (
+            self.service_pois
+            if service_name is None
+            else self.getServicePOIs(service_name, redis=None)
+        )
         dn = list(filter(lambda f: f.getName() == name, dl))
         if len(dn) == 0:
             logger.warning(f"{ name } not found")
             return None
         return dn[0]  # name may not be unique
 
-    def getServiceRestArea(self, name: str, service_name: str=None, redis = None):
+    def getServiceRestArea(self, name: str, service_name: str = None, redis=None):
         """
         Returns the named rest area POI if existing, otherwise tries to locate an alternative rest area for service.
 
@@ -930,7 +1162,11 @@ class XPAirport(ManagedAirportBase):
         :param      service:  The service
         :type       service:  str
         """
-        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name)
+        dl = (
+            self.service_pois
+            if service_name is None
+            else self.getServicePOIs(service_name)
+        )
         dn = list(filter(lambda f: f.getName() == name, dl))
         if len(dn) == 0:
             logger.warning(f"{ name } not found")
@@ -947,7 +1183,11 @@ class XPAirport(ManagedAirportBase):
         """
         if len(self.all_pois_combo) == 0:  # builds the list
             self.getPOICombo()
-        return self.all_pois_combo[combo_name] if combo_name in self.all_pois_combo.keys() else None
+        return (
+            self.all_pois_combo[combo_name]
+            if combo_name in self.all_pois_combo.keys()
+            else None
+        )
 
     def getPOICombo(self):
         """
@@ -956,7 +1196,9 @@ class XPAirport(ManagedAirportBase):
         Original item is retrieved with getPOI
         """
         if len(self.all_pois_combo) > 0:  # builds the list
-            return [(v.combo_name, v.display_name) for v in self.all_pois_combo.values()]
+            return [
+                (v.combo_name, v.display_name) for v in self.all_pois_combo.values()
+            ]
 
         # In the process, we add a .desc attribute to simplify presentation in list
         # Ramps
@@ -980,27 +1222,37 @@ class XPAirport(ManagedAirportBase):
 
     def getDefaultAerowaysPOIS(self):
         return None
-        
+
     def getDefaultCheckpoints(self):
-        return FeatureCollection(features=[FeatureWithProps(
-            geometry=self.geometry,
-            properties={
-                "poi-type": "checkpoint",
-                "service": "checkpoint",
-                "name": "default checkpoint"
-        })])
+        return FeatureCollection(
+            features=[
+                FeatureWithProps(
+                    geometry=self.geometry,
+                    properties={
+                        "poi-type": "checkpoint",
+                        "service": "checkpoint",
+                        "name": "default checkpoint",
+                    },
+                )
+            ]
+        )
 
     def getDefaultServicePOIS(self):
-        return FeatureCollection(features=self.getCentralRestArea() + self.getCentralDepots())
+        return FeatureCollection(
+            features=self.getCentralRestArea() + self.getCentralDepots()
+        )
 
     def getCentralRestArea(self):
-        return [FeatureWithProps(
-            geometry=self.geometry,
-            properties={
-                "poi-type": "rest-area",
-                "service": "*",
-                "name": "default central parking"
-        })]
+        return [
+            FeatureWithProps(
+                geometry=self.geometry,
+                properties={
+                    "poi-type": "rest-area",
+                    "service": "*",
+                    "name": "default central parking",
+                },
+            )
+        ]
 
     def getCentralDepot(self, service: str):
         return FeatureWithProps(
@@ -1008,8 +1260,9 @@ class XPAirport(ManagedAirportBase):
             properties={
                 "poi-type": "service",
                 "service": service,
-                "name": "default depot " + str(service)
-            })
+                "name": "default depot " + str(service),
+            },
+        )
 
     def getCentralDepots(self):
         fc = []

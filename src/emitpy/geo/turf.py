@@ -14,6 +14,7 @@ from jsonpath import JSONPath
 
 from turf.helpers import Point, LineString, Polygon, FeatureCollection
 from turf.helpers import Feature as _Feature
+
 #
 from turf import distance as turf_distance
 from turf import destination as turf_destination
@@ -33,7 +34,9 @@ class Feature(_Feature):
     # Emitpy should never use the package Feature directly.
     #
     def __init__(self, geometry, properties: dict = {}, **extra):
-        _Feature.__init__(self, geom=geometry, properties=properties)  # Feature as defined in pyturf
+        _Feature.__init__(
+            self, geom=geometry, properties=properties
+        )  # Feature as defined in pyturf
         self.id = extra.get("id")
 
 
@@ -47,6 +50,7 @@ class EmitpyFeature(Feature):
     An OPTIONAL third-position element SHALL be the height in meters above or below the WGS 84 reference ellipsoid.
     (https://datatracker.ietf.org/doc/rfc7946/?include_text=1)
     """
+
     def __init__(self, geometry, properties={}, **extra):
         Feature.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
         self.id = extra.get("id")
@@ -90,14 +94,13 @@ class EmitpyFeature(Feature):
                     t.id = i
                 return t
 
-
     @staticmethod
     def convert(f):
         return EmitpyFeature.new(f)
 
     @staticmethod
     def betterFeatures(arr):
-        return [ EmitpyFeature.new(f) for f in arr ]
+        return [EmitpyFeature.new(f) for f in arr]
 
     def version(self):
         return self.getProp(FEATPROP.VERSION.value)
@@ -136,7 +139,9 @@ class EmitpyFeature(Feature):
 
     def setClass(self, c: str = None, force: bool = False):
         if force or self.getClass() is None:
-            self.setProp(FEATPROP.CLASS.value, c if c is not None else type(self).__name__)
+            self.setProp(
+                FEATPROP.CLASS.value, c if c is not None else type(self).__name__
+            )
 
     def getClass(self):
         return self.getProp(FEATPROP.CLASS.value)
@@ -181,13 +186,14 @@ class EmitpyFeature(Feature):
         return self.setProp(FEATPROP.MARK.value, mark)
 
         # For historical reasons, tags are kept in |-separated strings like tag1|tag2.
+
     def setTag(self, tagname: str, tagvalue: str):
         tags = self.getTags(tagname)
         if tagvalue not in tags:
             tags.append(tagvalue)
         self.setTags(tagname, tags)
 
-    def unsetTag(self, tagname:str, tagvalue: str):
+    def unsetTag(self, tagname: str, tagvalue: str):
         tags = self.getTags(tagname)
         ndx = -1
         try:
@@ -211,30 +217,24 @@ class EmitpyFeature(Feature):
         self.setProp(tagname, sep.join(tags))
 
     def hasColor(self):
-        return self.getProp("marker-color") is not None or self.getProp("stroke") is not None
+        return (
+            self.getProp("marker-color") is not None
+            or self.getProp("stroke") is not None
+        )
 
     def setColor(self, color: str):
         # geojson.io specific
-        self.addProps({
-            "marker-color": color,
-            "marker-size": "medium",
-            "marker-symbol": ""
-        })
+        self.addProps(
+            {"marker-color": color, "marker-size": "medium", "marker-symbol": ""}
+        )
 
     def setStrokeColor(self, color: str):
         # geojson.io specific
-        self.addProps({
-            "stroke": color,
-            "stroke-width": 2,
-            "stroke-opacity": 1
-        })
+        self.addProps({"stroke": color, "stroke-width": 2, "stroke-opacity": 1})
 
     def setFillColor(self, color: str):
         # geojson.io specific
-        self.addProps({
-            "fill": color,
-            "fill-opacity": 0.5
-        })
+        self.addProps({"fill": color, "fill-opacity": 0.5})
 
     def setAltitude(self, alt: float, ref: str = "ASL"):  # ref={ASL|AGL|BARO}
         # ref could be ASL, AGL, BARO
@@ -279,7 +279,6 @@ class EmitpyFeature(Feature):
             return default
         return float(a)
 
-
     def setGroundSpeed(self, speed: float):
         # Speed should be in meters per second
         self.setProp(name=FEATPROP.SPEED.value, value=speed)
@@ -289,7 +288,6 @@ class EmitpyFeature(Feature):
         if a is None or a == "None":
             return default
         return float(a)
-
 
     def setVSpeed(self, vspeed: float):
         # Vertical speed should be in meters per second
@@ -301,7 +299,6 @@ class EmitpyFeature(Feature):
             return default
         return float(a)
 
-
     def setCourse(self, course: float):
         # Course should be in decimal degrees, if possible confined to [0, 360[. (@todo)
         self.setProp(FEATPROP.COURSE.value, course)
@@ -311,7 +308,6 @@ class EmitpyFeature(Feature):
         if a is None or a == "None":
             return default
         return float(a)
-
 
     def setHeading(self, heading: float):
         # Heading should be in decimal degrees, if possible confined to [0, 360[. (@todo)
@@ -323,7 +319,6 @@ class EmitpyFeature(Feature):
             return default
         return float(a)
 
-
     def setTime(self, time: float):
         self.setProp(FEATPROP.TIME.value, time)
 
@@ -332,7 +327,6 @@ class EmitpyFeature(Feature):
         if a is None or a == "None":
             return default
         return float(a)
-
 
     def setPause(self, time: float):
         self.setProp(FEATPROP.PAUSE.value, time)
@@ -346,7 +340,6 @@ class EmitpyFeature(Feature):
             return default
         return float(a)
 
-
     def setComment(self, comment: str):
         self.setProp(FEATPROP.COMMENT.value, comment)
 
@@ -356,13 +349,14 @@ class EmitpyFeature(Feature):
             return default
         return a
 
-
     def getPropPath(self, path: str):
         r = JSONPath(path).parse(self.properties)
         if len(r) == 1:
             return r[0]
         if len(r) > 1:
-            print(f"FeatureWithProps.getPropPath(): ambiguous return value for {path}, returning first element in list")
+            print(
+                f"FeatureWithProps.getPropPath(): ambiguous return value for {path}, returning first element in list"
+            )
             return r[0]
         return None
 
@@ -371,13 +365,15 @@ class EmitpyFeature(Feature):
         if len(r) == 1:
             return r[0]
         if len(r) > 1:
-            print(f"FeatureWithProps.getFeaturePath(): ambiguous return value for {path}, returning first element in list")
+            print(
+                f"FeatureWithProps.getFeaturePath(): ambiguous return value for {path}, returning first element in list"
+            )
             return r[0]
         return None
 
-
     def flyOver(self):
         return False
+
 
 #
 #
@@ -391,14 +387,18 @@ def distance(p1, p2, units: str = "km"):
         units = "meters"
     return turf_distance(p1, p2, {"units": units})
 
+
 def point_to_line_distance(point, line):
     return turf_point_to_line_distance(point, line)
+
 
 def bearing(p1, p2):
     return turf_bearing(p1, p2)
 
+
 def bbox(p1, p2):
     return turf_bbox(p1, p2)
+
 
 # Move
 def destination(start, length, course, units: str = "km"):
@@ -413,11 +413,15 @@ def destination(start, length, course, units: str = "km"):
         units = "kilometers"
     if units == "m":
         units = "meters"
-    return mkFeature(turf_destination(start, length, mkBearing(course), {"units": units}))
+    return mkFeature(
+        turf_destination(start, length, mkBearing(course), {"units": units})
+    )
+
 
 # Checks
 def point_in_polygon(point, polygon):
     return turf_boolean_point_in_polygon(point, polygon)
+
 
 def line_intersect_polygon(line, polygon) -> int:
     # Returns number of intersecting points
@@ -441,11 +445,11 @@ def saveGeoJSON(filename, geojson):
     with open(filename, "w") as fp:
         json.dump(geojson.to_geojson(), fp, indent=4)
 
+
 def loadGeoJSON(filename):
     data = None
     with open(filename, "r") as fp:
         data = json.load(fp)
     if data is not None:
-        return FeatureCollection(features=[ mkFeature(f) for f in data["features"] ])
+        return FeatureCollection(features=[mkFeature(f) for f in data["features"]])
     return None
-

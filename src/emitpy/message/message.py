@@ -40,22 +40,20 @@ class MESSAGE_STATUS(Enum):
 
 class MESSAGE_ICON(Enum):
     # twitter bootstrap inspired: success,warning,error,info,primary,disabled,light,dark,default
-    DEFAULT   = "default"
-    INFO      = "info"
+    DEFAULT = "default"
+    INFO = "info"
     DEPARTURE = "aircraft-departure"
-    ARRIVAL   = "aircraft-arrival"
-    AIRCRAFT  = "aircraft"
-    GSE       = "truck"
-    MARSHALL  = "taxi"
+    ARRIVAL = "aircraft-arrival"
+    AIRCRAFT = "aircraft"
+    GSE = "truck"
+    MARSHALL = "taxi"
 
 
 class Message:
-
     def __init__(self, category: str, **kwargs):
-
         self.ident = kwargs.get("id", f"{uuid.uuid4()}")
         # Message display
-        self.source = kwargs.get("source", None)    # ~ From:
+        self.source = kwargs.get("source", None)  # ~ From:
         self.subject = kwargs.get("subject", None)
         self.body = kwargs.get("body", None)
 
@@ -71,12 +69,18 @@ class Message:
         self.status = kwargs.get("status", MESSAGE_STATUS.CREATED.value)
 
         # Message timing information data and meta-data
-        self.relative_entity = kwargs.get("entity", None)    # parent entity can be emit, movement(flight, mission, service), or flight
-        self.relative_sync = kwargs.get("sync", None)        # mark in *parent* entity
-        self.relative_time = kwargs.get("relative_time", 0)  # seconds relative to above for emission
+        self.relative_entity = kwargs.get(
+            "entity", None
+        )  # parent entity can be emit, movement(flight, mission, service), or flight
+        self.relative_sync = kwargs.get("sync", None)  # mark in *parent* entity
+        self.relative_time = kwargs.get(
+            "relative_time", 0
+        )  # seconds relative to above for emission
 
         #
-        self.scheduled_time = kwargs.get("scheduled_time", None)  # scheduled emission time in entity
+        self.scheduled_time = kwargs.get(
+            "scheduled_time", None
+        )  # scheduled emission time in entity
         self.absolute_time = None
 
     def __str__(self):
@@ -111,7 +115,7 @@ class Message:
             "icon-color": self.category,
             "status": self.status,
             "relative_sync": self.relative_sync,
-            "relative_time": self.relative_time
+            "relative_time": self.relative_time,
         }
         r["scheduled_time"] = None
         if self.scheduled_time is not None:
@@ -130,9 +134,13 @@ class Message:
         old_schedule = self.absolute_time
         self.scheduled_time = moment
         self.absolute_time = moment + timedelta(seconds=self.relative_time)
-        logger.debug(f"{type(self).__name__} {self.ident}: {self.absolute_time.isoformat()} (relative={self.relative_time}) (subject={self.subject})")
+        logger.debug(
+            f"{type(self).__name__} {self.ident}: {self.absolute_time.isoformat()} (relative={self.relative_time}) (subject={self.subject})"
+        )
         if old_schedule is not None:
-            logger.debug(f"{type(self).__name__} {self.ident}: recheduled from {old_schedule} to {self.absolute_time.isoformat()}")
+            logger.debug(
+                f"{type(self).__name__} {self.ident}: recheduled from {old_schedule} to {self.absolute_time.isoformat()}"
+            )
         return self.absolute_time
 
     def getAbsoluteEmissionTime(self):
@@ -150,15 +158,16 @@ class ReMessage(Message):
     # (See ReEmit.)
     #
     def __init__(self, category: str, data):
-
         self.ident = data.get("id")
         Message.__init__(self, category=category, id=self.ident)
 
         self.data = data
-        self.subject = data.get("subject")                 # for label/debugging purpose
-        self.relative_sync = data.get("relative_sync")     # mark in parent entity
-        self.relative_time = data.get("relative_time", 0)  # seconds relative to above for emission
-        self.scheduled_time = data.get("scheduled_time")   # scheduled emission time
+        self.subject = data.get("subject")  # for label/debugging purpose
+        self.relative_sync = data.get("relative_sync")  # mark in parent entity
+        self.relative_time = data.get(
+            "relative_time", 0
+        )  # seconds relative to above for emission
+        self.scheduled_time = data.get("scheduled_time")  # scheduled emission time
         self.absolute_time = None
 
     def getType(self):
@@ -189,9 +198,13 @@ class ReMessage(Message):
         if self.data is not None:
             old_schedule = self.data.get("absolute_emission_time")
         self.absolute_time = moment + timedelta(seconds=self.relative_time)
-        logger.debug(f"{type(self).__name__} {self.ident}: {self.absolute_time.isoformat()} (relative={self.relative_time}) (subject={self.subject})")
+        logger.debug(
+            f"{type(self).__name__} {self.ident}: {self.absolute_time.isoformat()} (relative={self.relative_time}) (subject={self.subject})"
+        )
         if old_schedule is not None:
-            logger.debug(f"{type(self).__name__} {self.ident}: recheduled from {old_schedule} to {self.absolute_time.isoformat()}")
+            logger.debug(
+                f"{type(self).__name__} {self.ident}: recheduled from {old_schedule} to {self.absolute_time.isoformat()}"
+            )
         return self.absolute_time
 
 
@@ -199,10 +212,11 @@ class Messages:
     """
     Message Trait for movements, flights, services, and missions
     """
+
     def __init__(self):
         self.movement = None
         self.messages = []
-        self.schedule_history = []      # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
+        self.schedule_history = []  # [(timestamp, {ETA|ETD|STA|STD}, datetime)]
 
     def setMovement(self, movement):
         self.movement = movement
@@ -242,12 +256,8 @@ class EstimatedTimeMessage(Message):
     """
     A EstimatedTimeMessage is a message about a estimated time of arrival or departure flight from the ManagedAirport.
     """
-    def __init__(self,
-                 flight_id: str,
-                 is_arrival: bool,
-                 et: datetime,
-                 **kwargs):
 
+    def __init__(self, flight_id: str, is_arrival: bool, et: datetime, **kwargs):
         self.is_arrival = is_arrival
         a = flight_id.split("-")
         self.scheduled_time = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
@@ -258,10 +268,9 @@ class EstimatedTimeMessage(Message):
         title = title + "ESTIMATED AT "
         title = title + et.replace(microsecond=0).isoformat()
 
-        Message.__init__(self,
-                         category=MESSAGE_CATEGORY.FLIGHTINFO.value,
-                         subject=title,
-                         **kwargs)
+        Message.__init__(
+            self, category=MESSAGE_CATEGORY.FLIGHTINFO.value, subject=title, **kwargs
+        )
 
     def getInfo(self):
         a = super().getInfo()
@@ -273,10 +282,8 @@ class FlightboardMessage(Message):
     """
     A FlightboardMessage is a message about a scheduled arrival or departure flight from the ManagedAirport.
     """
-    def __init__(self,
-                 flight: "Flight",
-                 **kwargs):
 
+    def __init__(self, flight: "Flight", **kwargs):
         self.operator = flight.operator.iata
         self.flight_number = str(flight.number)
         self.is_arrival = flight.is_arrival()
@@ -289,11 +296,13 @@ class FlightboardMessage(Message):
         title = title + self.airport + " SCHEDULED AT "
         title = title + self.scheduled_time.isoformat()
 
-        Message.__init__(self,
-                         category=MESSAGE_CATEGORY.FLIGHTBOARD.value,
-                         entity=flight,
-                         subject=title,
-                         **kwargs)
+        Message.__init__(
+            self,
+            category=MESSAGE_CATEGORY.FLIGHTBOARD.value,
+            entity=flight,
+            subject=title,
+            **kwargs,
+        )
 
     def getInfo(self):
         a = super().getInfo()
@@ -307,34 +316,32 @@ class MovementMessage(Message):
     """
     A MovementMessage is a message sent during a Movement (flight, service, mission).
     """
-    def __init__(self,
-                 subject: str,
-                 move: "Movement",
-                 sync: str,
-                 info: dict = None,
-                 **kwargs):
 
-        Message.__init__(self, subject=subject,
-                               category=MESSAGE_CATEGORY.MOVEMENT.value,
-                               entity=move,
-                               sync=sync,
-                               payload=info,
-                               **kwargs)
+    def __init__(
+        self, subject: str, move: "Movement", sync: str, info: dict = None, **kwargs
+    ):
+        Message.__init__(
+            self,
+            subject=subject,
+            category=MESSAGE_CATEGORY.MOVEMENT.value,
+            entity=move,
+            sync=sync,
+            payload=info,
+            **kwargs,
+        )
+
 
 class FlightMessage(MovementMessage):
     """
     A FilghtMessage is a message sent during a flight.
     """
-    def __init__(self,
-                 subject: str,
-                 flight: "FlightMovement",
-                 sync: str,
-                 info: dict = None):
 
-        MovementMessage.__init__(self, subject=subject,
-                                       move=flight,
-                                       sync=sync,
-                                       info=info)
+    def __init__(
+        self, subject: str, flight: "FlightMovement", sync: str, info: dict = None
+    ):
+        MovementMessage.__init__(
+            self, subject=subject, move=flight, sync=sync, info=info
+        )
 
     def getInfo(self):
         a = super().getInfo()
@@ -346,18 +353,18 @@ class MissionMessage(MovementMessage):
     """
     A MovementMessage is a message sent during a mission.
     """
-    def __init__(self,
-                 subject: str,
-                 mission: "MissionMovement",
-                 sync: str,
-                 info: dict = None,
-                 **kwargs):
 
-        MovementMessage.__init__(self, subject=subject,
-                                       move=mission,
-                                       sync=sync,
-                                       info=info,
-                                       **kwargs)
+    def __init__(
+        self,
+        subject: str,
+        mission: "MissionMovement",
+        sync: str,
+        info: dict = None,
+        **kwargs,
+    ):
+        MovementMessage.__init__(
+            self, subject=subject, move=mission, sync=sync, info=info, **kwargs
+        )
 
     def getInfo(self):
         a = super().getInfo()
@@ -369,18 +376,18 @@ class ServiceMessage(MovementMessage):
     """
     A ServiceMessage is sent when a service starts or terminates.
     """
-    def __init__(self,
-                 subject: str,
-                 service: "ServiceMovementment",
-                 sync: str,
-                 info: dict,
-                 **kwargs):
 
-        MovementMessage.__init__(self, subject=subject,
-                                       move=service,
-                                       sync=sync,
-                                       info=info,
-                                       **kwargs)
+    def __init__(
+        self,
+        subject: str,
+        service: "ServiceMovementment",
+        sync: str,
+        info: dict,
+        **kwargs,
+    ):
+        MovementMessage.__init__(
+            self, subject=subject, move=service, sync=sync, info=info, **kwargs
+        )
 
     def getInfo(self):
         a = super().getInfo()
@@ -415,4 +422,3 @@ class ServiceMessage(MovementMessage):
 
 #     def __init__(self):
 #         Message.__init__(self, subject="", body="")
-

@@ -5,9 +5,17 @@ from datetime import datetime, timedelta
 from jsonpath import JSONPath
 
 from .emit import EmitPoint, Emit
+
 # pylint: disable=C0411
 from emitpy.message import ReMessage
-from emitpy.constants import ID_SEP, FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
+from emitpy.constants import (
+    ID_SEP,
+    FEATPROP,
+    MOVE_TYPE,
+    FLIGHT_PHASE,
+    SERVICE_PHASE,
+    MISSION_PHASE,
+)
 from emitpy.constants import REDIS_DATABASES, REDIS_TYPE, FLIGHT_DATABASE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
@@ -21,6 +29,7 @@ class ReEmit(Emit):
     based on new schedule or added pauses.
     Uses ReMessage to reschedule Messages.
     """
+
     def __init__(self, ident: str, redis):
         """
         Creates a Emit instance from cached data.
@@ -30,7 +39,7 @@ class ReEmit(Emit):
         ident should be the emit key used to store emit points.
         """
         Emit.__init__(self, move=None)
-        self.redis = redis # this is a local sign we use Redis
+        self.redis = redis  # this is a local sign we use Redis
         self.managedAirport = None
 
         ret = self.parseKey(ident)
@@ -44,10 +53,8 @@ class ReEmit(Emit):
         if self.move_points is None:
             logger.warning(f"{ident} not loaded")
 
-
     def setManagedAirport(self, airport):
         self.managedAirport = airport
-
 
     def parseKey(self, key: str):
         """
@@ -78,9 +85,10 @@ class ReEmit(Emit):
         self.frequency = int(arr[-2])
         self.emit_id = ID_SEP.join(arr[1:-2])
 
-        logger.debug(f"{arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}")
+        logger.debug(
+            f"{arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}"
+        )
         return (True, "ReEmit::parseKey parsed")
-
 
     def load(self):
         # First load meta in case we need some info
@@ -102,7 +110,6 @@ class ReEmit(Emit):
 
         return (True, "ReEmit::load loaded")
 
-
     def loadMetaFromCache(self):
         meta_id = self.getKey(REDIS_TYPE.EMIT_META.value)
         logger.debug(f"trying to read {meta_id}..")
@@ -114,10 +121,9 @@ class ReEmit(Emit):
             logger.debug(f"..no meta for {meta_id}")
         return (True, "ReEmit::loadMetaFromCache loaded")
 
-
     def loadFromCache(self):
         def toEmitPoint(s: str):
-            f = json.loads(s.decode('UTF-8'))
+            f = json.loads(s.decode("UTF-8"))
             return EmitPoint.new(f)
 
         emit_id = self.getKey(REDIS_TYPE.EMIT.value)
@@ -130,7 +136,6 @@ class ReEmit(Emit):
         else:
             logger.debug(f"..could not load {emit_id}")
         return (True, "ReEmit::loadFromCache loaded")
-
 
     def loadMessages(self):
         mid = self.getKey(REDIS_TYPE.EMIT_MESSAGE.value)
@@ -145,7 +150,6 @@ class ReEmit(Emit):
         logger.debug(f"loaded {len(raw_msgs)} messages")
 
         return (True, "ReEmit::loadMessages loaded")
-
 
     def getMeta(self, path: str = None, return_first_only: bool = True):
         # logger.debug(f"from ReEmit")
@@ -162,7 +166,6 @@ class ReEmit(Emit):
         # return entire meta structure
         return self.emit_meta
 
-
     def loadFromFile(self, emit_id):
         # load output of Movement file.
         basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE, emit_id)
@@ -178,15 +181,20 @@ class ReEmit(Emit):
         logger.debug(f"cannot find {filename}")
         return (False, "ReEmit::loadFromFile not loaded")
 
-
     def extractMove(self):
         """
         Move points are saved in emission points.
         """
-        self.setMovePoints(list(filter(lambda f: not f.getProp(FEATPROP.BROADCAST.value), self.getEmitPoints())))
+        self.setMovePoints(
+            list(
+                filter(
+                    lambda f: not f.getProp(FEATPROP.BROADCAST.value),
+                    self.getEmitPoints(),
+                )
+            )
+        )
         logger.debug(f"extracted {len(self.move_points)} points")
         return (True, "ReEmit::extractMove loaded")
-
 
     # def parseMeta(self):
     #     """
@@ -210,8 +218,6 @@ class ReEmit(Emit):
 
     #     return (True, "ReEmit::parseMeta loaded")
 
-
-
     # For the following functions, recall we don't have a self.move, just self.move_points (the points).
     # All we have are meta data associated with the move, that was saved at that time.
     # So the following functions mainly aims at adjusting the meta data associated with the move
@@ -231,7 +237,11 @@ class ReEmit(Emit):
             is_arrival = self.getMeta("$.move.flight.is_arrival")
             if is_arrival is None:
                 logger.warning(f"cannot get move for {self.emit_id}")
-            mark = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
+            mark = (
+                FLIGHT_PHASE.TOUCH_DOWN.value
+                if is_arrival
+                else FLIGHT_PHASE.TAKE_OFF.value
+            )
         elif self.emit_type == MOVE_TYPE.SERVICE.value:
             mark = SERVICE_PHASE.SERVICE_START.value
         elif self.emit_type == MOVE_TYPE.MISSION.value:
@@ -249,7 +259,6 @@ class ReEmit(Emit):
         logger.warning(f"could not estimate")
         return None
 
-
     def updateEstimatedTime(self):
         """
         Copies the estimated time into movement meta data.
@@ -260,7 +269,7 @@ class ReEmit(Emit):
             etinfo = self.getMeta("$.time")
             estat = datetime.now().astimezone()
             if etinfo is not None:
-                    etinfo.append( (et.isoformat(), "ET", estat.isoformat()) )
+                etinfo.append((et.isoformat(), "ET", estat.isoformat()))
             else:
                 logger.debug(f"{ident} had no estimates, adding")
                 if self.emit_meta is not None:
@@ -277,7 +286,6 @@ class ReEmit(Emit):
 
         logger.warning(f"no estimated time")
         return (True, "ReEmit::updateEstimatedTime updated")
-
 
     def updateResources(self, et: datetime):
         """
@@ -305,7 +313,7 @@ class ReEmit(Emit):
                 # 3. For flight: update runway, ramp
                 rwy = self.getMeta("$.props.flight.runway.resource")
                 et_from = et - timedelta(minutes=3)
-                et_to   = et + timedelta(minutes=3)
+                et_to = et + timedelta(minutes=3)
                 rwrsc = am.runway_allocator.findReservation(rwy, fid, self.redis)
                 if rwrsc is not None:
                     rwrsc.setEstimatedTime(et_from, et_to)
@@ -317,10 +325,10 @@ class ReEmit(Emit):
                 ramp = self.getMeta("$.props.flight.ramp.name")
                 if is_arrival:
                     et_from = et
-                    et_to   = et + timedelta(minutes=150)
+                    et_to = et + timedelta(minutes=150)
                 else:
                     et_from = et - timedelta(minutes=150)
-                    et_to   = et
+                    et_to = et
                 rprsc = am.ramp_allocator.findReservation(ramp, fid, self.redis)
                 if rprsc is not None:
                     rprsc.setEstimatedTime(et_from, et_to)
@@ -366,6 +374,7 @@ class ReEmitAll:
     """
     Convenience wrapper to collect all ReEmits for supplied movement (Emit Meta Data)
     """
+
     def __init__(self, ident: str, redis):
         self.redis = redis
         self.ident = ident
@@ -378,7 +387,6 @@ class ReEmitAll:
         ret = self.fetch()
         if not ret[0]:
             logger.warning(ret[1])
-
 
     def parseKey(self, ident):
         valid_extensions = set(item.value for item in REDIS_TYPE)
@@ -401,7 +409,6 @@ class ReEmitAll:
         logger.debug(f"{arr}: emit_type={self.emit_type}, emit_id={self.emit_id}")
         return (True, "ReEmitAll::parseKey parsed")
 
-
     def fetch(self):
         # Find all emit (different rates and queues?)
         key_base = key_path(self.ident, "*", REDIS_TYPE.EMIT)
@@ -416,7 +423,6 @@ class ReEmitAll:
 
         # Reschedule each
         return (True, "ReEmitAll::fetch fetched")
-
 
     def emits(self):
         return self.emits

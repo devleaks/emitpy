@@ -16,13 +16,24 @@ class FlightRoute:
     If we do not find a route from departure to arrival, has_plan() returns False.
     """
 
-    def __init__(self, managedAirport, fromICAO: str, toICAO: str,
-                 useNAT: bool = True, usePACOT: bool = True, useAWYLO: bool = True, useAWYHI: bool = True,
-                 cruiseAlt: float = 35000, cruiseSpeed: float = 420,
-                 ascentRate: float = 2500, ascentSpeed: float = 250,
-                 descentRate: float = 1500, descentSpeed: float = 250,
-                 force: bool = False, autoroute: bool = True):
-
+    def __init__(
+        self,
+        managedAirport,
+        fromICAO: str,
+        toICAO: str,
+        useNAT: bool = True,
+        usePACOT: bool = True,
+        useAWYLO: bool = True,
+        useAWYHI: bool = True,
+        cruiseAlt: float = 35000,
+        cruiseSpeed: float = 420,
+        ascentRate: float = 2500,
+        ascentSpeed: float = 250,
+        descentRate: float = 1500,
+        descentSpeed: float = 250,
+        force: bool = False,
+        autoroute: bool = True,
+    ):
         self.managedAirport = managedAirport
         self.fromICAO = fromICAO
         self.toICAO = toICAO
@@ -47,13 +58,11 @@ class FlightRoute:
         if autoroute:
             self.makeFlightRoute()
 
-
     def getAirspace(self):
         """
         Gets the airspace.
         """
         return self.managedAirport.airport.airspace
-
 
     def nodes(self):
         """
@@ -64,13 +73,11 @@ class FlightRoute:
 
         return self.flight_plan.route if self.flight_plan is not None else None
 
-
     def has_route(self):
         """
         Returns whether a route is found.
         """
         return self.flight_plan is not None and self.flight_plan.found()
-
 
     def makeFlightRoute(self):
         """
@@ -105,15 +112,18 @@ class FlightRoute:
         # Routing
         logger.debug(f"from {s[0].id} to {e[0].id}..")
         if s[0] is not None and e[0] is not None:
-            self.flight_plan = Route(a, s[0].id, e[0].id) # self.flight_plan.find()  # auto route
+            self.flight_plan = Route(
+                a, s[0].id, e[0].id
+            )  # self.flight_plan.find()  # auto route
             if self.flight_plan is not None and self.flight_plan.found():
                 self._convertToGeoJSON()
             else:
                 cnt = 10
-                logger.warning(f"{'>' * cnt} no route from {self.fromICAO} to {self.toICAO} {'<' * cnt}")
+                logger.warning(
+                    f"{'>' * cnt} no route from {self.fromICAO} to {self.toICAO} {'<' * cnt}"
+                )
 
         logger.debug(f"..done")
-
 
     def makeGreatCircleFlightRoute(self):
         """
@@ -154,7 +164,6 @@ class FlightRoute:
             logger.warning(f"direct route from {self.fromICAO} to {self.toICAO}")
         logger.debug(f"..done")
 
-
     def _convertToGeoJSON(self):
         """
         Convert the route of a flight plan to a geojson feature collection
@@ -174,14 +183,12 @@ class FlightRoute:
         self.routeLS = LineString(ls_coords)
         logger.debug(f"..done")
 
-
     def route(self):
         """
         Returns flight route from airspace vertices,
         returns a copy because Feature properties will be modified
         """
         return copy.deepcopy(self.waypoints)
-
 
     def print(self):
         """
@@ -199,7 +206,6 @@ class FlightRoute:
             fp = fp + fi + SEP
         return fp.strip(SEP)
 
-
     def getGeoJSON(self, include_ls: bool = False):
         """
         Returns flight route from airspace vertices in GeoJSON FeatureCollection
@@ -209,5 +215,7 @@ class FlightRoute:
         """
         fc = copy.deepcopy(self._route)
         if include_ls:
-            fc.features.append(Feature(geometry=self.routeLS, properties={"tag": "route"}))
+            fc.features.append(
+                Feature(geometry=self.routeLS, properties={"tag": "route"})
+            )
         return fc

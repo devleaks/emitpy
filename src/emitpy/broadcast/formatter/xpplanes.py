@@ -14,7 +14,6 @@ logger = logging.getLogger("XPPlanesFormatter")
 
 
 class XPPlanesFormatter(Formatter):
-
     NAME = "xpplanes"
 
     def __init__(self, feature: "FeatureWithProps"):
@@ -105,8 +104,8 @@ class XPPlanesFormatter(Formatter):
         f = self.feature
 
         icao24x = f.getProp(FEATPROP.ICAO24.value)
-        coords   = f.coords()
-        alt      = f.altitude(0) / FT  # m -> ft
+        coords = f.coords()
+        alt = f.altitude(0) / FT  # m -> ft
 
         airline = f.getPropPath("$.flight.airline.name")  # IATA name, QR
         label = f.getPropPath("$.flight.identifier")
@@ -120,38 +119,38 @@ class XPPlanesFormatter(Formatter):
         if emit_type == "flight":
             callsign = f.getPropPath("$.flight.callsign")
             if callsign is not None:
-                callsign = callsign.replace(" ","").replace("-","")
+                callsign = callsign.replace(" ", "").replace("-", "")
             tailnumber = f.getPropPath("$.flight.aircraft.acreg")
         else:  # not a flight
             callsign = f.getPropPath("$.vehicle.callsign")
             if callsign is not None:
-                callsign = callsign.replace(" ","").replace("-","")
+                callsign = callsign.replace(" ", "").replace("-", "")
             tailnumber = f.getPropPath("$.vehicle.registration")
 
         ret = {
-            "id" : icao24x,
-            "ident" : {
-                "airline" : airline,
-                "reg" : tailnumber,
-                "call" : callsign,
-                "label" : tailnumber
+            "id": icao24x,
+            "ident": {
+                "airline": airline,
+                "reg": tailnumber,
+                "call": callsign,
+                "label": tailnumber,
             },
-            "type" : {
+            "type": {
                 # "wingSpan" : 11.1,
                 # "wingArea" : 16.2,
-                "icao" : actype
+                "icao": actype
             },
-            "position" : {
-                "lat" : f.lat(),
-                "lon" : f.lon(),
-                "alt_geo" : alt,
-            #    "timestamp" : ts,
-                "gnd" : (alt == 0 and speed < 30)
+            "position": {
+                "lat": f.lat(),
+                "lon": f.lon(),
+                "alt_geo": alt,
+                #    "timestamp" : ts,
+                "gnd": (alt == 0 and speed < 30),
             },
-            "attitude" : {
-            #     "roll" : -0.2,
-                "heading" : f.heading(),
-            #     "pitch" : 0.1
+            "attitude": {
+                #     "roll" : -0.2,
+                "heading": f.heading(),
+                #     "pitch" : 0.1
             },
             # "config" : {
             #     "mass" : 1037.6,
@@ -161,16 +160,15 @@ class XPPlanesFormatter(Formatter):
             #     "flaps" : 0.5,
             #     "spoiler" : 0
             #     },
-            "light" : {
-            #     "taxi" : True,
-            #     "landing" : False,
-                "beacon" : True,
-            #     "nav" : True,
-                "strobe" : True
-            }
+            "light": {
+                #     "taxi" : True,
+                #     "landing" : False,
+                "beacon": True,
+                #     "nav" : True,
+                "strobe": True,
+            },
         }
         return json.dumps(ret)
-
 
     @staticmethod
     def getAbsoluteTime(f):
@@ -181,4 +179,3 @@ class XPPlanesFormatter(Formatter):
         :type       f:    { type_description }
         """
         return None
-

@@ -3,7 +3,6 @@ from emitpy.constants import FEATPROP
 
 
 class FormatterWire:
-
     NAME = "wire"
     FILE_EXTENSION = "json"
 

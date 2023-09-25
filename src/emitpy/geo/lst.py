@@ -45,7 +45,11 @@ def toLST(emit):
         logger.warning("no emit start time")
         return contents
     day_of_year = int(start_time.timetuple().tm_yday)
-    seconds_since_midnight = round((start_time - start_time.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds())
+    seconds_since_midnight = round(
+        (
+            start_time - start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        ).total_seconds()
+    )
 
     # First, we block until we are the good day of the year, and start when we should
     # There is an issue when day > simulation day, or time > simulation time
@@ -54,14 +58,20 @@ def toLST(emit):
     print(f"DREFOP,NULL,NULL,NULL,NULL,{DREF_DAYS},{day_of_year}", file=output)
     # block until good time to start movement
     # !!! Expect issues around midnight !!!
-    print(f"DREFOP,NULL,NULL,NULL,NULL,{DREF_TIME},{seconds_since_midnight}", file=output)
+    print(
+        f"DREFOP,NULL,NULL,NULL,NULL,{DREF_TIME},{seconds_since_midnight}", file=output
+    )
 
     print("# LOOP,<virtual lib path to object>", file=output)
     print(f"LOOP,{mesh_id}", file=output)
 
     # waypoints
     print("# WP,<lat>,<lon>,<speed(km/h)>", file=output)
-    for p in emit.move_points:  # we don't need a WP at each emit point, only movement points are ok
+    for (
+        p
+    ) in (
+        emit.move_points
+    ):  # we don't need a WP at each emit point, only movement points are ok
         speed = round(p.speed() * 3.6, 1)  # m/s to km/h
         comment = p.comment()
         if comment is not None:

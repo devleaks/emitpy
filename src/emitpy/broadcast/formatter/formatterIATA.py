@@ -68,8 +68,8 @@ logger = logging.getLogger("IATAFormatter")
 #
 XML_TEMPLATE = ""
 
-class IATAFormatter(Formatter):
 
+class IATAFormatter(Formatter):
     NAME = "iata"
 
     def __init__(self, feature: "FeatureWithProps"):
@@ -88,22 +88,21 @@ class IATAFormatter(Formatter):
         hexid = int(icao24x, 16)
 
         coords = f.coords()
-        lat= coords[1]
-        lon= coords[0]
+        lat = coords[1]
+        lon = coords[0]
 
         baro_alt = f.altitude(0) / FT  # m -> ft
         baro_rate = f.getProp("")
 
-
         track = f.getProp("course")
         gsp = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
-        cs_icao= f.getProp("")
-        ac_type= f.getProp("aircraft:actype:actype")  # ICAO
+        cs_icao = f.getProp("")
+        ac_type = f.getProp("aircraft:actype:actype")  # ICAO
         ac_tailno = f.getProp("aircraft:acreg")
         from_iata = f.getProp("departure:iata")
         to_iata = f.getProp("arrival:iata")
 
-        airborne = (baro_alt > 0 and gsp > 100)  # in ft, and in kn
+        airborne = baro_alt > 0 and gsp > 100  # in ft, and in kn
         gnd = not airborne  # :-)
 
         timestamp = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
@@ -122,14 +121,14 @@ class IATAFormatter(Formatter):
         true_course = f.getProp("")
         geom_rate = f.getProp("")
         emergency = f.getProp("")
-        category, = f.getProp("")
+        (category,) = f.getProp("")
         nav_qnh = f.getProp("")
         nav_altitude_mcp = f.getProp("")
         nav_altitude_fms = f.getProp("")
         nav_heading = f.getProp("")
         nav_modes = f.getProp("")
         seen = f.getProp("")
-        rssi, = f.getProp("")
+        (rssi,) = f.getProp("")
         winddir = f.getProp("")
         windspd = f.getProp("")
         oat = f.getProp("")
@@ -149,17 +148,29 @@ class IATAFormatter(Formatter):
 
         actype = f.getProp("aircraft:actype:actype")  # ICAO
         if f.getProp("service-type") is not None:  # service
-            callsign = f.getProp("vehicle:callsign").replace(" ","").replace("-","")
+            callsign = f.getProp("vehicle:callsign").replace(" ", "").replace("-", "")
         else:  # fight
-            callsign = f.getProp("aircraft:callsign").replace(" ","").replace("-","")
+            callsign = f.getProp("aircraft:callsign").replace(" ", "").replace("-", "")
         tailnumber = f.getProp("aircraft:acreg")
-        aptfrom = f.getProp("departure:icao")     # IATA
+        aptfrom = f.getProp("departure:icao")  # IATA
         aptto = f.getProp("arrival:icao")  # IATA
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
 
         rttfc = f"RTTFC,{hexid},{lat},{lon},{baro_alt},{baro_rate},{gnd},{track},{gsp},{cs_icao},{ac_type},{ac_tailno},"
-        rttfc = rttfc + f"{from_iata},{to_iata},{timestamp},{source},{cs_iata},{msg_type},{alt_geom},{ias},{tas},{mach},"
-        rttfc = rttfc + f"{track_rate},{roll},{mag_course},{true_course},{geom_rate},{emergency},{category},"
-        rttfc = rttfc + f"{nav_qnh},{nav_altitude_mcp},{nav_altitude_fms},{nav_course},{nav_modes},{seen},{rssi},"
-        rttfc = rttfc + f"{winddir},{windspd},{oat},{tat},{isicaohex},{augmentation_status},{authentication}"
+        rttfc = (
+            rttfc
+            + f"{from_iata},{to_iata},{timestamp},{source},{cs_iata},{msg_type},{alt_geom},{ias},{tas},{mach},"
+        )
+        rttfc = (
+            rttfc
+            + f"{track_rate},{roll},{mag_course},{true_course},{geom_rate},{emergency},{category},"
+        )
+        rttfc = (
+            rttfc
+            + f"{nav_qnh},{nav_altitude_mcp},{nav_altitude_fms},{nav_course},{nav_modes},{seen},{rssi},"
+        )
+        rttfc = (
+            rttfc
+            + f"{winddir},{windspd},{oat},{tat},{isicaohex},{augmentation_status},{authentication}"
+        )
         return rttfc.replace("None", "")

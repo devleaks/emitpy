@@ -3,13 +3,19 @@ import json
 import logging
 from datetime import datetime
 
-from emitpy.constants import INTERNAL_QUEUES, REDIS_DATABASE, ID_SEP, LIVETRAFFIC_QUEUE, QUEUE_DATA
+from emitpy.constants import (
+    INTERNAL_QUEUES,
+    REDIS_DATABASE,
+    ID_SEP,
+    LIVETRAFFIC_QUEUE,
+    QUEUE_DATA,
+)
 from emitpy.utils import key_path
 
 logger = logging.getLogger("Queue")
 
 QUIT = "quit"
-RUN  = "run"
+RUN = "run"
 STOP = "stop"
 RESET = "reset"
 CONTINUE = "continue"
@@ -33,7 +39,15 @@ class Queue:
     :type       redis:           { type_description }
     """
 
-    def __init__(self, name: str, formatter_name: str, starttime: str = None, speed: float = 1, start: bool=True, redis = None):
+    def __init__(
+        self,
+        name: str,
+        formatter_name: str,
+        starttime: str = None,
+        speed: float = 1,
+        start: bool = True,
+        redis=None,
+    ):
         self.name = name
         self.formatter_name = formatter_name
         self.speed = speed
@@ -41,7 +55,6 @@ class Queue:
         self.status = RUN if start else STOP
         self.mode = RESET
         self.redis = redis
-
 
     @staticmethod
     def getAllQueues(redis):
@@ -53,9 +66,13 @@ class Queue:
         """
         keys = redis.keys(key_path(REDIS_DATABASE.QUEUES.value, "*"))
         if keys is not None:
-            return list(filter(lambda x: not x.startswith(QUEUE_DATA), [k.decode("UTF-8") for k in keys]))
+            return list(
+                filter(
+                    lambda x: not x.startswith(QUEUE_DATA),
+                    [k.decode("UTF-8") for k in keys],
+                )
+            )
         return None
-
 
     @staticmethod
     def loadAllQueuesFromDB(redis):
@@ -71,12 +88,13 @@ class Queue:
                 if qn != QUIT:
                     queues[qn] = Queue.loadFromDB(redis, qn)
                 else:
-                    logger.warning(f"cannot create queue named '{QUIT}' (reserved queue name)")
+                    logger.warning(
+                        f"cannot create queue named '{QUIT}' (reserved queue name)"
+                    )
             logger.debug(f"loaded {queues.keys()}")
         else:
             logger.debug(f"no queues")
         return queues
-
 
     @staticmethod
     def loadFromDB(redis, name):
@@ -88,15 +106,23 @@ class Queue:
         if qstr is not None:
             q = json.loads(qstr.decode("UTF-8"))
             if name == LIVETRAFFIC_QUEUE:
-                logger.debug(f"loaded LiveTraffic queue with {q['formatter_name']} formatter")
+                logger.debug(
+                    f"loaded LiveTraffic queue with {q['formatter_name']} formatter"
+                )
             else:
                 logger.debug(f"loaded {name}")
             start = True
             if "status" in q and q["status"] == STOP:
                 start = False
-            return Queue(name=name, formatter_name=q["formatter_name"], starttime=q["starttime"], speed=q["speed"], start=start, redis=redis)
+            return Queue(
+                name=name,
+                formatter_name=q["formatter_name"],
+                starttime=q["starttime"],
+                speed=q["speed"],
+                start=start,
+                redis=redis,
+            )
         return None
-
 
     @staticmethod
     def delete(redis, name):
@@ -119,7 +145,6 @@ class Queue:
         logger.debug(f"deleted {name}")
         return (True, "Queue::delete: deleted")
 
-
     @staticmethod
     def getCombo(redis):
         """
@@ -133,7 +158,6 @@ class Queue:
         qns = [k.split(ID_SEP)[-1] for k in keys]
         return [(k, k) for k in sorted(qns)]
 
-
     @staticmethod
     def mkKey(name):
         """
@@ -143,7 +167,6 @@ class Queue:
         :type       name:  { type_description }
         """
         return key_path(REDIS_DATABASE.QUEUES.value, name)
-
 
     @staticmethod
     def mkDataKey(name):
@@ -155,20 +178,17 @@ class Queue:
         """
         return key_path(QUEUE_DATA, name)
 
-
     def getKey(self):
         """
         Returns a queue's Redis key.
         """
         return Queue.mkKey(self.name)
 
-
     def getDataKey(self):
         """
         Returns a queue's data Redis key.
         """
         return Queue.mkDataKey(self.name)
-
 
     def reset(self, speed: float = 1, starttime: str = None, start: bool = True):
         """
@@ -186,7 +206,6 @@ class Queue:
         self.status = RUN if start else STOP
         return self.save()
 
-
     def save(self, currtime: datetime = None):
         """
         Saves Queue characteristics in a structure for Broadcaster
@@ -194,14 +213,19 @@ class Queue:
         Optionnally a queue's current time.
         """
         ident = self.getKey()
-        self.redis.set(ident, json.dumps({
-            "name": self.name,
-            "formatter_name": self.formatter_name,
-            "speed": self.speed,
-            "starttime": self.starttime,
-            "currenttime": currtime,
-            "mode": self.mode,
-            "status": self.status
-        }))
+        self.redis.set(
+            ident,
+            json.dumps(
+                {
+                    "name": self.name,
+                    "formatter_name": self.formatter_name,
+                    "speed": self.speed,
+                    "starttime": self.starttime,
+                    "currenttime": currtime,
+                    "mode": self.mode,
+                    "status": self.status,
+                }
+            ),
+        )
         logger.debug(f"{ident} saved")
         return (True, "Queue::save: saved")

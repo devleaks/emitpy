@@ -17,6 +17,7 @@ class GroundSupportMovement(Movement):
     Movement build the detailed path of the aircraft, both on the ground (taxi) and in the air,
     from takeoff to landing and roll out.
     """
+
     def __init__(self, airport: ManagedAirportBase, reason):
         Movement.__init__(self, airport=airport, reason=reason)
 
@@ -40,7 +41,6 @@ class GroundSupportMovement(Movement):
 
         move_points = self.getMovePoints()
         if len(move_points) > 0:
-
             status = interpolate(move_points, "speed")
             if not status[0]:
                 logger.warning(status[1])
@@ -58,7 +58,11 @@ class GroundSupportMovement(Movement):
                 logger.warning(status[1])
                 return status
 
-            for f in self.getMovePoints():  # we save a copy of the movement timing for rescheduling
+            for (
+                f
+            ) in (
+                self.getMovePoints()
+            ):  # we save a copy of the movement timing for rescheduling
                 f.setProp(FEATPROP.SAVED_TIME.value, f.time())
 
         else:

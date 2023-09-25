@@ -5,6 +5,7 @@ from .formatterflat import FormatterFlat
 # from .formatterviewer import ViewerFormatter
 from .formatterwire import FormatterWire
 from .traffic import TrafficFormatter
+
 # For X-Plane:
 from .formatterAITFC import AITFCFormatter
 from .formatterRTTFC import RTTFCFormatter

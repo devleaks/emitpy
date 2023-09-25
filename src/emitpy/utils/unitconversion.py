@@ -5,12 +5,12 @@ There are only 3 countries in the world that are still officially using the impe
 """
 
 # Geology constants
-R = 6371000            # Approximate average radius of third rock from the sun, in metres
+R = 6371000  # Approximate average radius of third rock from the sun, in metres
 
 ########################################
 # Units, etc
 #
-FT = 12 * 0.0254       # 1 foot = 12 inches
+FT = 12 * 0.0254  # 1 foot = 12 inches
 NAUTICAL_MILE = 1.852  # Nautical mile in meters 6076.118ft=1nm. Easy.
 
 
@@ -113,7 +113,7 @@ def sign(x):
 
 
 def ConvertDMSToDD(degrees, minutes, seconds, direction):
-    dd = float(degrees) + float(minutes)/60 + float(seconds)/(60*60)
+    dd = float(degrees) + float(minutes) / 60 + float(seconds) / (60 * 60)
     return dd if direction in ("N", "E") else dd * -1
 
 

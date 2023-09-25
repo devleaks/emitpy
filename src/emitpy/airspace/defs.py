@@ -66,7 +66,7 @@ AIRSPACE_TYPES = {
     "TRAINING": "",
     "GLIDERPROHIBITED": "",
     "WAVEWINDOW": "Sailplane Area.",
-    "ONLINE_OBSERVER": "Online network observer"
+    "ONLINE_OBSERVER": "Online network observer",
 }
 
 APPROACH_FIX_TYPES = {
@@ -74,7 +74,7 @@ APPROACH_FIX_TYPES = {
     "FAF": "Final Approach Fix",
     "FACF": "Final Approach Course Fix",
     "MAP": "Missed Approach Point",
-    "FEP": "Final Endpoint Fix"
+    "FEP": "Final Endpoint Fix",
 }
 
 APPROACH_FIX = {
@@ -86,7 +86,7 @@ APPROACH_FIX = {
     "W": "Waypoint",
     "TW": "Terminal Waypoint",
     "R": "Runway",
-    "CST": "Custom Fix"
+    "CST": "Custom Fix",
 }
 
 APPROACH_TYPE = {
@@ -101,7 +101,6 @@ APPROACH_TYPE = {
     "NDBDME": "NDBDME",
     "RNAV": "RNAV",
     "LOCB": "Localizer Backcourse",
-
     # Additional types from X-Plane
     "FMS": "FMS",
     "IGS": "IGS",
@@ -109,48 +108,44 @@ APPROACH_TYPE = {
     "TCN": "TACAN",
     "CTL": "Circle to Land",
     "MLS": "MLS",
-
     # User defined approach procedure
     "CUSTOM": "Approach",
-    "CUSTOMDEPART": "Departure"
+    "CUSTOMDEPART": "Departure",
 }
 
 APPROACH_LEG_TYPE = {
-      "ARC_TO_FIX": "Arc to fix",
-      "COURSE_TO_ALTITUDE": "Course to altitude",
-      "COURSE_TO_DME_DISTANCE": "Course to DME distance",
-      "COURSE_TO_FIX": "Course to fix",
-      "COURSE_TO_INTERCEPT": "Course to intercept",
-      "COURSE_TO_RADIAL_TERMINATION": "Course to radial termination",
-      "DIRECT_TO_FIX": "Direct to fix",
-      "FIX_TO_ALTITUDE": "Fix to altitude",
-      "TRACK_FROM_FIX_FROM_DISTANCE": "Track from fix from distance",
-      "TRACK_FROM_FIX_TO_DME_DISTANCE": "Track from fix to DME distance",
-      "FROM_FIX_TO_MANUAL_TERMINATION": "From fix to manual termination",
-      "HOLD_TO_ALTITUDE": "Hold to altitude",
-      "HOLD_TO_FIX": "Hold to fix",
-      "HOLD_TO_MANUAL_TERMINATION": "Hold to manual termination",
-      "INITIAL_FIX": "Initial fix",
-      "PROCEDURE_TURN": "Procedure turn",
-      "CONSTANT_RADIUS_ARC": "Constant radius arc",
-      "TRACK_TO_FIX": "Track to fix",
-      "HEADING_TO_ALTITUDE_TERMINATION": "Heading to altitude termination",
-      "HEADING_TO_DME_DISTANCE_TERMINATION": "Heading to DME distance termination",
-      "HEADING_TO_INTERCEPT": "Heading to intercept",
-      "HEADING_TO_MANUAL_TERMINATION": "Heading to manual termination",
-      "HEADING_TO_RADIAL_TERMINATION": "Heading to radial termination",
-
-      "DIRECT_TO_RUNWAY": "Proceed to runway",
-      "CIRCLE_TO_LAND": "Circle to land",
-      "STRAIGHT_IN": "Straight in",
-      "START_OF_PROCEDURE": "Start of procedure",
-      "VECTORS": "Vectors",
-
-      "CUSTOM_APP_START": "Start of final",
-      "CUSTOM_APP_RUNWAY": "Final leg",
-
-      "CUSTOM_DEP_END": "Departure leg",
-      "CUSTOM_DEP_RUNWAY": "Proceed to runway",
+    "ARC_TO_FIX": "Arc to fix",
+    "COURSE_TO_ALTITUDE": "Course to altitude",
+    "COURSE_TO_DME_DISTANCE": "Course to DME distance",
+    "COURSE_TO_FIX": "Course to fix",
+    "COURSE_TO_INTERCEPT": "Course to intercept",
+    "COURSE_TO_RADIAL_TERMINATION": "Course to radial termination",
+    "DIRECT_TO_FIX": "Direct to fix",
+    "FIX_TO_ALTITUDE": "Fix to altitude",
+    "TRACK_FROM_FIX_FROM_DISTANCE": "Track from fix from distance",
+    "TRACK_FROM_FIX_TO_DME_DISTANCE": "Track from fix to DME distance",
+    "FROM_FIX_TO_MANUAL_TERMINATION": "From fix to manual termination",
+    "HOLD_TO_ALTITUDE": "Hold to altitude",
+    "HOLD_TO_FIX": "Hold to fix",
+    "HOLD_TO_MANUAL_TERMINATION": "Hold to manual termination",
+    "INITIAL_FIX": "Initial fix",
+    "PROCEDURE_TURN": "Procedure turn",
+    "CONSTANT_RADIUS_ARC": "Constant radius arc",
+    "TRACK_TO_FIX": "Track to fix",
+    "HEADING_TO_ALTITUDE_TERMINATION": "Heading to altitude termination",
+    "HEADING_TO_DME_DISTANCE_TERMINATION": "Heading to DME distance termination",
+    "HEADING_TO_INTERCEPT": "Heading to intercept",
+    "HEADING_TO_MANUAL_TERMINATION": "Heading to manual termination",
+    "HEADING_TO_RADIAL_TERMINATION": "Heading to radial termination",
+    "DIRECT_TO_RUNWAY": "Proceed to runway",
+    "CIRCLE_TO_LAND": "Circle to land",
+    "STRAIGHT_IN": "Straight in",
+    "START_OF_PROCEDURE": "Start of procedure",
+    "VECTORS": "Vectors",
+    "CUSTOM_APP_START": "Start of final",
+    "CUSTOM_APP_RUNWAY": "Final leg",
+    "CUSTOM_DEP_END": "Departure leg",
+    "CUSTOM_DEP_RUNWAY": "Proceed to runway",
 }
 
 APPROACH_LEG_TYPE_ABBREV = {
@@ -177,18 +172,15 @@ APPROACH_LEG_TYPE_ABBREV = {
     "VI": "HEADING_TO_INTERCEPT",
     "VM": "HEADING_TO_MANUAL_TERMINATION",
     "VR": "HEADING_TO_RADIAL_TERMINATION",
-
     "RX": "DIRECT_TO_RUNWAY",
     "CX": "CIRCLE_TO_LAND",
     "TX": "STRAIGHT_IN",
     "SX": "START_OF_PROCEDURE",
     "VX": "VECTORS",
-
     "CFX": "CUSTOM_APP_START",
     "CRX": "CUSTOM_APP_RUNWAY",
-
     "CDX": "CUSTOM_DEP_END",
-    "CDR": "CUSTOM_DEP_RUNWAY"
+    "CDR": "CUSTOM_DEP_RUNWAY",
 }
 
 
@@ -218,5 +210,3 @@ RNAV_LEG_TYPE = {
     "RF": "CONSTANT_RADIUS_ARC",
     "TF": "TRACK_TO_FIX",
 }
-
-

@@ -10,8 +10,13 @@ logger = logging.getLogger("Utils/Time")
 
 
 class EstimatedTime:
-
-    def __init__(self, estimated: datetime, timestamp: datetime, reason: str, estimator: str = None):
+    def __init__(
+        self,
+        estimated: datetime,
+        timestamp: datetime,
+        reason: str,
+        estimator: str = None,
+    ):
         self.estimated = estimated
         self.timestamp = timestamp
         self.reason = reason
@@ -37,7 +42,7 @@ def roundTime(dt: datetime, roundTo: int = 300, seconds: int = 0, minutes: int =
         dt = datetime.now()
     seconds = (dt.replace(tzinfo=None) - dt.min).seconds
     rounding = (seconds + rt / 2) // rt * rt
-    return dt + timedelta(0, rounding-seconds, -dt.microsecond)
+    return dt + timedelta(0, rounding - seconds, -dt.microsecond)
 
 
 def actual_time(scheduled_time: str, is_arrival: bool, delay: int, block: bool = True):
@@ -65,7 +70,6 @@ def actual_time(scheduled_time: str, is_arrival: bool, delay: int, block: bool =
     dt = datetime.now() + timedelta(minutes=delay)
 
     return f".schedule('{dt.isoformat()}', '{sync}')"
-
 
 
 # import re

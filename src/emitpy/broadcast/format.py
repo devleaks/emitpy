@@ -21,28 +21,27 @@ FORMATTERS = {
     "xpplanes": ("XPPlanes shim", XPPlanesFormatter),
     "traffic": ("Traffic.py Library", TrafficFormatter),
     "wire": ("Message formatter", FormatterWire),
-    "raw": ("Raw JSON", FormatterRaw)  # default, should always be available
+    "raw": ("Raw JSON", FormatterRaw),  # default, should always be available
 }
+
 
 class Format:
     """
     Format an Emission for broadcasting.
     """
 
-    def __init__(self, emit: "Emit", formatter = FormatterRaw):
+    def __init__(self, emit: "Emit", formatter=FormatterRaw):
         self.emit = emit
         self.formatter = formatter
         self.output = []
         self.version = 0
-
 
     @staticmethod
     def getCombo():
         """
         Returns a list of available formatters.
         """
-        return [(k, v[0]) for k,v in FORMATTERS.items()]
-
+        return [(k, v[0]) for k, v in FORMATTERS.items()]
 
     @staticmethod
     def getFormatter(name):
@@ -53,7 +52,6 @@ class Format:
         :type       name:  { type_description }
         """
         return FORMATTERS[name][1] if name in FORMATTERS.keys() else FormatterRaw
-
 
     def format(self):
         """
@@ -69,10 +67,11 @@ class Format:
         br = filter(lambda f: f.getProp(FEATPROP.BROADCAST.value), emit_points)
         bq = sorted(br, key=lambda f: f.getRelativeEmissionTime())
         self.output = list(map(self.formatter, bq))
-        logger.debug(f"formatted {len(self.output)} / {len(emit_points)}, version {self.version}")
+        logger.debug(
+            f"formatted {len(self.output)} / {len(emit_points)}, version {self.version}"
+        )
         self.version = self.version + 1
         return (True, "Format::format completed")
-
 
     def saveFile(self, overwrite: bool = False):
         """
@@ -81,7 +80,11 @@ class Format:
         :param      overwrite:  The overwrite
         :type       overwrite:  bool
         """
-        db = REDIS_DATABASES[self.emit.emit_type] if self.emit.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
+        db = (
+            REDIS_DATABASES[self.emit.emit_type]
+            if self.emit.emit_type in REDIS_DATABASES.keys()
+            else REDIS_DATABASE.UNKNOWN.value
+        )
         basename = os.path.join(MANAGED_AIRPORT_AODB, db)
         fileformat = self.formatter.FILE_EXTENSION
         ident = self.emit.getId()
@@ -93,15 +96,14 @@ class Format:
 
         with open(filename, "w") as fp:
             for l in self.output:
-                fp.write(str(l)+"\n")
+                fp.write(str(l) + "\n")
         logger.debug(f"saved {fn}")
 
         return (True, "Format::save saved")
 
 
 class FormatMessage(Format):
-
-    def __init__(self, emit: "Emit", formatter = FormatterWire):
+    def __init__(self, emit: "Emit", formatter=FormatterWire):
         Format.__init__(self, emit=emit, formatter=formatter)
 
     def format(self):
@@ -119,7 +121,9 @@ class FormatMessage(Format):
         br = filter(lambda f: f.getAbsoluteEmissionTime(), messages)
         bq = sorted(br, key=lambda f: f.getAbsoluteEmissionTime())
         self.output = list(map(self.formatter, bq))
-        logger.debug(f"formatted {len(self.output)} / {len(messages)} messages, version {self.version}")
+        logger.debug(
+            f"formatted {len(self.output)} / {len(messages)} messages, version {self.version}"
+        )
         self.version = self.version + 1
         return (True, "FormatMessage::format completed")
 
@@ -130,7 +134,11 @@ class FormatMessage(Format):
         :param      overwrite:  The overwrite
         :type       overwrite:  bool
         """
-        db = REDIS_DATABASES[self.emit.emit_type] if self.emit.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
+        db = (
+            REDIS_DATABASES[self.emit.emit_type]
+            if self.emit.emit_type in REDIS_DATABASES.keys()
+            else REDIS_DATABASE.UNKNOWN.value
+        )
         basename = os.path.join(MANAGED_AIRPORT_AODB, db)
         fileformat = self.formatter.FILE_EXTENSION
         ident = self.emit.getId()
@@ -142,9 +150,7 @@ class FormatMessage(Format):
 
         with open(filename, "w") as fp:
             for l in self.output:
-                fp.write(str(l)+"\n")
+                fp.write(str(l) + "\n")
         logger.debug(f"saved {fn}")
 
         return (True, "FormatMessage::save saved")
-
-

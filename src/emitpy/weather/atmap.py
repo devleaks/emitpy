@@ -5,7 +5,9 @@ from avwx.structs import MetarData, TafData, TafLineData, Units
 
 
 class Atmap:
-    def __init__(self, data: Union[MetarData, TafLineData], units: Units, min_temp: float = None):
+    def __init__(
+        self, data: Union[MetarData, TafLineData], units: Units, min_temp: float = None
+    ):
         self.data = data
         self.units = units
         self.min_temp = min_temp
@@ -36,20 +38,29 @@ class Atmap:
         report = report.strip()
         t = Taf.from_report(report)
         return cls._get_taf(t)
-    
+
     @classmethod
     def _get_taf(cls, taf: Taf):
         r = []
         min_temp = Atmap._parse_min_temp(taf.data)
         for data in taf.data.forecast:
             obj = cls(data=data, units=taf.units, min_temp=min_temp)
-            r.append({"start_time": data.start_time.dt, "end_time": data.end_time.dt, "probability": data.probability.value if data.probability is not None else None, "atmap": obj})
+            r.append(
+                {
+                    "start_time": data.start_time.dt,
+                    "end_time": data.end_time.dt,
+                    "probability": data.probability.value
+                    if data.probability is not None
+                    else None,
+                    "atmap": obj,
+                }
+            )
         return r
 
     @property
     def ceiling(self):
         return self._get_visibility_ceiling_coef()
-    
+
     @property
     def wind(self):
         return self._get_wind_coef()
@@ -57,11 +68,11 @@ class Atmap:
     @property
     def precip(self):
         return self._get_precipitation_coef()
-    
+
     @property
     def freezing(self):
         return self._get_freezing_coef()
-    
+
     @property
     def phenomena(self):
         return self._get_dangerous_phenomena_coef()
@@ -69,31 +80,34 @@ class Atmap:
     @staticmethod
     def _parse_min_temp(taf_data: TafData):
         temp = taf_data.min_temp if taf_data.min_temp is not None else taf_data.max_temp
-        if (temp is None):
+        if temp is None:
             return None
 
         tmp_search = re.search(r"^(?P<temp>(TN(M)?(\d{1,2})))", temp)
         _, min_temp = tmp_search.group(1, 4)
         min_temp = float(min_temp)
-        if (tmp_search.group(1, 3)[1] is not None):
+        if tmp_search.group(1, 3)[1] is not None:
             min_temp = min_temp * -1
-        
+
         return min_temp
 
     def _parse_wx(self):
         weather = []
-        pattern = re.compile(r"^(?P<int>(-|\+|VC)*)(?P<desc>(MI|PR|BC|DR|BL|SH|TS|FZ)+)?(?P<prec>(DZ|RA|SN|SG|IC|PL|GR|GS|UP|/)*)(?P<obsc>BR|FG|FU|VA|DU|SA|HZ|PY)?(?P<other>PO|SQ|FC|SS|DS|NSW|/+)?(?P<int2>[-+])?", re.VERBOSE)
+        pattern = re.compile(
+            r"^(?P<int>(-|\+|VC)*)(?P<desc>(MI|PR|BC|DR|BL|SH|TS|FZ)+)?(?P<prec>(DZ|RA|SN|SG|IC|PL|GR|GS|UP|/)*)(?P<obsc>BR|FG|FU|VA|DU|SA|HZ|PY)?(?P<other>PO|SQ|FC|SS|DS|NSW|/+)?(?P<int2>[-+])?",
+            re.VERBOSE,
+        )
         for code in self.data.wx_codes:
             match = pattern.search(code.repr).groupdict()
             intensity, desc, precip, obs, other, intensityt = match.values()
             if not intensity and intensityt:
                 intensity = intensityt
-            
+
             weather.append((intensity, desc, precip, obs, other))
         return weather
-    
+
     def _get_dangerous_phenomena_coef(self):
-        if (not self._assert_cloud_data()):
+        if not self._assert_cloud_data():
             return None
 
         phenomena, showers = self.__dangerous_weather()
@@ -115,7 +129,7 @@ class Atmap:
                 ts = 4 if showers == 1 else 6
 
         return max(i for i in [phenomena, cb, tcu, ts] if i is not None)
-    
+
     def _assert_cloud_data(self):
         return self.data.clouds is not None
 
@@ -125,7 +139,11 @@ class Atmap:
         for intensity, desc, precip, obs, other in self.wx:
             __phenomena = 0
             __showers = 0
-            if other in ["FC", "DS", "SS"] or obs in ["VA", "SA"] or precip in ["GR", "PL"]:
+            if (
+                other in ["FC", "DS", "SS"]
+                or obs in ["VA", "SA"]
+                or precip in ["GR", "PL"]
+            ):
                 __phenomena = 24
 
             if desc == "TS":
@@ -188,15 +206,15 @@ class Atmap:
         return (cb, tcu, None)
 
     def _get_wind_coef(self):
-        if (not self._assert_wind_data()):
+        if not self._assert_wind_data():
             return None
-            
+
         spd = self.data.wind_speed.value
         gusts = self.data.wind_gust.value if self.data.wind_gust is not None else None
-        if (self.units.wind_speed == "kmh"):
+        if self.units.wind_speed == "kmh":
             spd = self.__kmh_to_kt(spd)
             gusts = self.__kmh_to_kt(gusts)
-        if (self.units.wind_speed == "mps"):
+        if self.units.wind_speed == "mps":
             spd = self.__mps_to_kt(spd)
             gusts = self.__mps_to_kt(gusts)
 
@@ -214,14 +232,14 @@ class Atmap:
             coef += 1
 
         return coef
-    
+
     def _assert_wind_data(self):
         return self.data.wind_speed is not None
 
     def _get_precipitation_coef(self):
         coef = 0
         for intensity, desc, precip, obs, other in self.wx:
-            __coef = 0        
+            __coef = 0
             if desc == "FZ":
                 __coef = 3
 
@@ -240,10 +258,14 @@ class Atmap:
         return coef
 
     def _get_freezing_coef(self):
-        if (not self._assert_temperature_data()):
+        if not self._assert_temperature_data():
             return None
 
-        tt = self.data.temperature.value if type(self.data) == MetarData else self.min_temp
+        tt = (
+            self.data.temperature.value
+            if type(self.data) == MetarData
+            else self.min_temp
+        )
         dp = self.data.dewpoint.value if type(self.data) == MetarData else None
         moisture = None
         for intensity, desc, precip, obs, other in self.wx:
@@ -254,7 +276,11 @@ class Atmap:
             if precip == "SN":
                 __moisture = 4 if intensity == "-" else 5
 
-            if precip in ["SG", "RASN"] or (precip == "RA" and intensity == "+") or obs == "BR":
+            if (
+                precip in ["SG", "RASN"]
+                or (precip == "RA" and intensity == "+")
+                or obs == "BR"
+            ):
                 __moisture = 4
 
             if precip in ["DZ", "IC", "RA", "UP", "GR", "GS", "PL"] or obs == "FG":
@@ -285,15 +311,15 @@ class Atmap:
             return 0
 
         return 0
-    
+
     def _assert_temperature_data(self):
-        if (type(self.data) == MetarData):
+        if type(self.data) == MetarData:
             return self.data.temperature is not None
 
         return self.min_temp is not None
 
     def _get_visibility_ceiling_coef(self):
-        if (not self._assert_visibility_data()):
+        if not self._assert_visibility_data():
             return None
 
         vis = self.__get_visibility()
@@ -309,14 +335,18 @@ class Atmap:
             return 2
 
         return 0
-    
+
     def _assert_visibility_data(self):
         return self.data.visibility is not None and self.data.clouds is not None
 
     def __get_ceiling(self):
         cld_base = None
         for cloud in self.data.clouds:
-            if cloud.type in ["BKN", "OVC", "VV"] and cloud.base is not None and (cld_base is None or cld_base > cloud.base):
+            if (
+                cloud.type in ["BKN", "OVC", "VV"]
+                and cloud.base is not None
+                and (cld_base is None or cld_base > cloud.base)
+            ):
                 cld_base = cloud.base
             if cloud.type == "VV" and cloud.base is None:
                 cld_base = 0
@@ -326,16 +356,20 @@ class Atmap:
     def __get_visibility(self):
         vis = self.data.visibility.value
         rvr = None
-        if (type(self.data) == TafLineData):
+        if type(self.data) == TafLineData:
             return vis
-            
+
         for runway in self.data.runway_visibility:
-            if runway.visibility is not None and (rvr is None or rvr > runway.visibility.value):
+            if runway.visibility is not None and (
+                rvr is None or rvr > runway.visibility.value
+            ):
                 rvr = runway.visibility.value
-            elif len(runway.variable_visibility) > 0 and (rvr is None or rvr > runway.variable_visibility[0].value):
+            elif len(runway.variable_visibility) > 0 and (
+                rvr is None or rvr > runway.variable_visibility[0].value
+            ):
                 rvr = runway.variable_visibility[0].value
 
-        if (self.units.visibility == "sm"):
+        if self.units.visibility == "sm":
             vis = self.__sm_to_m(vis)
             rvr = self.__ft_to_m(rvr)
 
@@ -343,7 +377,7 @@ class Atmap:
             vis = rvr
 
         return vis
-    
+
     def __kmh_to_kt(self, value):
         return value * 0.539957 if value is not None else None
 

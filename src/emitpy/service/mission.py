@@ -13,7 +13,6 @@ logger = logging.getLogger("Mission")
 
 
 class Mission(GroundSupport):
-
     def __init__(self, operator: "Company", checkpoints: [str], name: str):
         GroundSupport.__init__(self, operator=operator)
         self.checkpoints = checkpoints
@@ -33,7 +32,6 @@ class Mission(GroundSupport):
         a.append(("police", "Police"))
         return a
 
-
     def getId(self):
         """
         Return a mission identifier built from a user-supplied string constant and date-based numbers,
@@ -41,28 +39,23 @@ class Mission(GroundSupport):
         """
         return self.mission
 
-
     def getInfo(self):
         return {
             "ground-support": super().getInfo(),  # contains PTS, etc.
             "mission-identifier": self.getId(),
             "operator": self.operator.getInfo(),
             "vehicle": self.vehicle.getInfo(),
-            "icao24": self.vehicle.icao24
+            "icao24": self.vehicle.icao24,
         }
-
 
     def getKey(self):
         return key_path(REDIS_DATABASE.MISSIONS.value, self.getId())
 
-
     def __str__(self):
         s = type(self).__name__
 
-
     def addCheckpoint(self, checkpoint: str):
         self.checkpoints.append(checkpoint)
-
 
     def duration(self, checkpoint: FeatureWithProps = None):
         """

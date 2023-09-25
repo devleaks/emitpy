@@ -4,12 +4,10 @@ from .formatter import Formatter
 
 
 class FormatterFlat(Formatter):
-
     NAME = "flat"
 
     def __init__(self, feature: "Feature"):
         Formatter.__init__(self, name=FormatterFlat.NAME, feature=feature)
-
 
     def __str__(self):
         # self.feature["properties"] = dict(flatdict.FlatDict(self.feature["properties"]))

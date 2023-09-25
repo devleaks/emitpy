@@ -14,7 +14,6 @@ logger = logging.getLogger("RTTFCFormatter")
 
 
 class RTTFCFormatter(Formatter):
-
     NAME = "rttfc"
 
     def __init__(self, feature: "FeatureWithProps"):
@@ -25,49 +24,49 @@ class RTTFCFormatter(Formatter):
         f = self.feature
 
         rttfcObj = {
-          "RTTFC": "RTTFC",
-          "hexid": "efface",
-          "lat": f.lat(),
-          "lon": f.lon(),
-          "baro_alt": f.altitude(0) / FT,
-          "baro_rate": 0,
-          "gnd": 1,  # default will be updated below
-          "track": f.course(),
-          "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,
-          "cs_icao": "CSICAO",
-          "ac_type": "ZZZC",
-          "ac_tailno": "TAILNUM",
-          "from_iata": "",
-          "to_iata": "",
-          "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
-          "source": "X2",
-          "cs_iata": "CSIATA",
-          "msg_type": "adsb_icao",
-          "alt_geom": -1,
-          "IAS": -1,
-          "TAS": -1,
-          "Mach": -1,
-          "track_rate": -1,
-          "roll": -1,
-          "mag_heading": -1,
-          "true_heading": f.heading(),
-          "geom_rate": -1,
-          "emergency": "",
-          "category": "A3",
-          "nav_qnh": -1,
-          "nav_altitude_mcp": -1,
-          "nav_altitude_fms": -1,
-          "nav_heading": -1,
-          "nav_modes": "",
-          "seen": 60,
-          "rssi": -1,
-          "winddir": -1,
-          "windspd": -1,
-          "OAT": -1,
-          "TAT": -1,
-          "isICAOhex": 0,
-          "augmentation_status": 262609,
-          "authentication": ""
+            "RTTFC": "RTTFC",
+            "hexid": "efface",
+            "lat": f.lat(),
+            "lon": f.lon(),
+            "baro_alt": f.altitude(0) / FT,
+            "baro_rate": 0,
+            "gnd": 1,  # default will be updated below
+            "track": f.course(),
+            "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,
+            "cs_icao": "CSICAO",
+            "ac_type": "ZZZC",
+            "ac_tailno": "TAILNUM",
+            "from_iata": "",
+            "to_iata": "",
+            "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
+            "source": "X2",
+            "cs_iata": "CSIATA",
+            "msg_type": "adsb_icao",
+            "alt_geom": -1,
+            "IAS": -1,
+            "TAS": -1,
+            "Mach": -1,
+            "track_rate": -1,
+            "roll": -1,
+            "mag_heading": -1,
+            "true_heading": f.heading(),
+            "geom_rate": -1,
+            "emergency": "",
+            "category": "A3",
+            "nav_qnh": -1,
+            "nav_altitude_mcp": -1,
+            "nav_altitude_fms": -1,
+            "nav_heading": -1,
+            "nav_modes": "",
+            "seen": 60,
+            "rssi": -1,
+            "winddir": -1,
+            "windspd": -1,
+            "OAT": -1,
+            "TAT": -1,
+            "isICAOhex": 0,
+            "augmentation_status": 262609,
+            "authentication": "",
         }
         # rttfcObj = {
         #     "RTTFC": "RTTFC",
@@ -115,20 +114,24 @@ class RTTFCFormatter(Formatter):
         #     "authentication": ""
         # }
 
-        airborne = (rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50)  # should be: speed < min(takeoff_speed, landing_speed)
+        airborne = (
+            rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50
+        )  # should be: speed < min(takeoff_speed, landing_speed)
         rttfcObj["gnd"] = 0 if not airborne else 1  # :-)
 
         emit_type = f.getPropPath("$.emit.emit-type")
         if emit_type == "flight":
-            rttfcObj["ac_type"] = f.getPropPath("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
+            rttfcObj["ac_type"] = f.getPropPath(
+                "$.flight.aircraft.actype.base-type.actype"
+            )  # ICAO A35K
             rttfcObj["hexid"] = int(f.getPropPath("flight.aircraft.icao24"), 16)
 
             callsign = f.getPropPath("$.flight.callsign")
             if callsign is not None:
-                rttfcObj["cs_icao"] = callsign.replace(" ","").replace("-","")
+                rttfcObj["cs_icao"] = callsign.replace(" ", "").replace("-", "")
             callsign = f.getPropPath("$.flight.flightnumber")
             if callsign is not None:
-                rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
+                rttfcObj["cs_iata"] = callsign.replace(" ", "").replace("-", "")
             rttfcObj["ac_tailno"] = f.getPropPath("$.flight.aircraft.acreg")
             rttfcObj["from_iata"] = f.getPropPath("$.flight.departure.airport.iata")
             rttfcObj["to_iata"] = f.getPropPath("$.flight.arrival.airport.iata")
@@ -139,8 +142,8 @@ class RTTFCFormatter(Formatter):
 
             callsign = f.getPropPath("$.service.vehicle.callsign")
             if callsign is not None:
-                rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
-                rttfcObj["cs_icao"] = callsign.replace(" ","").replace("-","")
+                rttfcObj["cs_iata"] = callsign.replace(" ", "").replace("-", "")
+                rttfcObj["cs_icao"] = callsign.replace(" ", "").replace("-", "")
             rttfcObj["ac_tailno"] = f.getPropPath("$.service.vehicle.registration")
             # ac_type blank for ground vehicle
 
@@ -150,8 +153,8 @@ class RTTFCFormatter(Formatter):
 
             callsign = f.getPropPath("$.mission.vehicle.callsign")
             if callsign is not None:
-                rttfcObj["cs_iata"] = callsign.replace(" ","").replace("-","")
-                rttfcObj["cs_icao"] = callsign.replace(" ","").replace("-","")
+                rttfcObj["cs_iata"] = callsign.replace(" ", "").replace("-", "")
+                rttfcObj["cs_icao"] = callsign.replace(" ", "").replace("-", "")
             rttfcObj["ac_tailno"] = f.getPropPath("$.mission.vehicle.registration")
             # ac_type blank for ground vehicle
 
@@ -160,7 +163,6 @@ class RTTFCFormatter(Formatter):
             return None
 
         return ",".join([str(f) for f in rttfcObj.values()]).replace("None", "")
-
 
     @staticmethod
     def getAbsoluteTime(f):
@@ -174,6 +176,7 @@ class RTTFCFormatter(Formatter):
         if len(a) == 43:  # len()>15?
             return a[14]
         return None
+
 
 # ###########################################
 #

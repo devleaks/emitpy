@@ -9,7 +9,13 @@ from math import inf
 import networkx as nx
 
 from emitpy.geo.turf import Point, LineString, Feature
-from emitpy.geo.turf import distance, destination, bearing, point_in_polygon, point_to_line_distance
+from emitpy.geo.turf import (
+    distance,
+    destination,
+    bearing,
+    point_in_polygon,
+    point_to_line_distance,
+)
 
 from emitpy.geo import FeatureWithProps, line_intersect, printFeatures
 
@@ -20,9 +26,10 @@ USAGE_TAG = "usage"
 
 
 class Vertex(FeatureWithProps):
-
     def __init__(self, node: str, point: Point, usage: [str] = [], name: str = None):
-        FeatureWithProps.__init__(self, id=node, geometry=point, properties={"name": name})
+        FeatureWithProps.__init__(
+            self, id=node, geometry=point, properties={"name": name}
+        )
         self.name = name
         self.usage = usage
         self.adjacent = {}
@@ -56,14 +63,26 @@ class Vertex(FeatureWithProps):
 
 
 class Edge(FeatureWithProps):
-
-    def __init__(self, src: Vertex, dst: Vertex, weight: float, directed: bool, usage: [str]=[], name=None, linestring: LineString = None):
-        ls = linestring if linestring is not None else LineString([src.geometry.coordinates, dst.geometry.coordinates])
+    def __init__(
+        self,
+        src: Vertex,
+        dst: Vertex,
+        weight: float,
+        directed: bool,
+        usage: [str] = [],
+        name=None,
+        linestring: LineString = None,
+    ):
+        ls = (
+            linestring
+            if linestring is not None
+            else LineString([src.geometry.coordinates, dst.geometry.coordinates])
+        )
         FeatureWithProps.__init__(self, geometry=ls)
         self.start = src
         self.end = dst
-        self.name = name        # segment name, not unique!
-        self.weight = weight    # weight = distance to next vertext
+        self.name = name  # segment name, not unique!
+        self.weight = weight  # weight = distance to next vertext
         self.directed = directed  # if edge is directed src to dst, False = twoway
 
         if type(usage) == str:
@@ -80,9 +99,8 @@ class Edge(FeatureWithProps):
             if s.lower().startswith("runway"):
                 self.setTag(USAGE_TAG, "runway")
 
-
     def getKey(self):
-        return self.start.getId()+"-"+self.end.getId()
+        return self.start.getId() + "-" + self.end.getId()
 
     def setColor(self, color: str):
         # geojson.io specific
@@ -110,12 +128,10 @@ class Edge(FeatureWithProps):
 
 
 class Graph:  # Graph(FeatureCollection)?
-
     def __init__(self):
         self.vert_dict = {}
         self.edges_arr = []
         self.nx = nx.Graph()
-
 
     def print(self, vertex: bool = True, edge: bool = True):
         all = []
@@ -128,7 +144,6 @@ class Graph:  # Graph(FeatureCollection)?
             txt = txt + ", edges"
         printFeatures(all, f"graph {txt}")
 
-
     def add_vertex(self, vertex: Vertex):
         if vertex.id in self.vert_dict.keys():
             logger.warning(f"duplicate {vertex.id}")
@@ -136,21 +151,32 @@ class Graph:  # Graph(FeatureCollection)?
         self.nx.add_node(vertex.id, v=vertex)
         return vertex
 
-
     def get_vertex(self, ident: str):
         if ident in self.vert_dict:
             return self.vert_dict[ident]
         return None
 
-
     def get_vertices(self, connected_only: bool = False, bbox: Feature = None):
-        varr = filter(lambda x: x.connected, self.vert_dict.values()) if connected_only else self.vert_dict.values()
+        varr = (
+            filter(lambda x: x.connected, self.vert_dict.values())
+            if connected_only
+            else self.vert_dict.values()
+        )
         if bbox is not None:
-            ret = list(map(lambda x: x.id, filter(lambda x: point_in_polygon(Feature(geometry=Point(x.geometry.coordinates)), bbox), varr)))
+            ret = list(
+                map(
+                    lambda x: x.id,
+                    filter(
+                        lambda x: point_in_polygon(
+                            Feature(geometry=Point(x.geometry.coordinates)), bbox
+                        ),
+                        varr,
+                    ),
+                )
+            )
             logger.debug("box bounded from %d to %d.", len(self.vert_dict), len(ret))
             return ret
         return list(map(lambda x: x.id, varr))
-
 
     def get_connections(self, src, options={}):
         """
@@ -166,12 +192,18 @@ class Graph:  # Graph(FeatureCollection)?
                 d = self.get_vertex(dst)
                 txyOk = True
                 if "taxiwayOnly" in options:
-                    txyOk = ("taxiwayOnly" in options and options["taxiwayOnly"] and not v.hasTag(USAGE_TAG, "runway")) or ("taxiwayOnly" not in options)
+                    txyOk = (
+                        "taxiwayOnly" in options
+                        and options["taxiwayOnly"]
+                        and not v.hasTag(USAGE_TAG, "runway")
+                    ) or ("taxiwayOnly" not in options)
                 if txyOk:
                     scdOk = True
                     if "minSizeCode" in options:
                         code = v.getWidthCode("F")
-                        scdOk = ("minSizeCode" in options and options["minSizeCode"] <= code) or ("minSizeCode" not in options)
+                        scdOk = (
+                            "minSizeCode" in options and options["minSizeCode"] <= code
+                        ) or ("minSizeCode" not in options)
                     if scdOk:
                         bbOk = True
                         if "bbox" in options:
@@ -187,32 +219,44 @@ class Graph:  # Graph(FeatureCollection)?
 
         return src.adjacent.keys()
 
-
     def add_edge(self, edge: Edge):
         if edge.start.id in self.vert_dict and edge.end.id in self.vert_dict:
             self.edges_arr.append(edge)
-            self.vert_dict[edge.start.id].add_neighbor(self.vert_dict[edge.end.id].id, edge.weight)
+            self.vert_dict[edge.start.id].add_neighbor(
+                self.vert_dict[edge.end.id].id, edge.weight
+            )
             self.vert_dict[edge.start.id].connected = True
             self.vert_dict[edge.end.id].connected = True
             self.nx.add_edge(edge.start.id, edge.end.id, weight=edge.weight)
             if not edge.directed:
-                self.vert_dict[edge.end.id].add_neighbor(self.vert_dict[edge.start.id].id, edge.weight)
+                self.vert_dict[edge.end.id].add_neighbor(
+                    self.vert_dict[edge.start.id].id, edge.weight
+                )
 
         else:
-            logger.critical(":add_edge: vertex not found when adding edges %s,%s", edge.start, edge.end)
-
+            logger.critical(
+                ":add_edge: vertex not found when adding edges %s,%s",
+                edge.start,
+                edge.end,
+            )
 
     def get_edge(self, src: str, dst: str):
-        arr = list(filter(lambda x: x.start.id == src and x.end.id == dst, self.edges_arr))  # src to dst, directed or not
+        arr = list(
+            filter(lambda x: x.start.id == src and x.end.id == dst, self.edges_arr)
+        )  # src to dst, directed or not
         if len(arr) > 0:
             return arr[0]
 
-        arr = list(filter(lambda x: x.start.id == dst and x.end.id == src and not x.directed, self.edges_arr)) # dst to src not directed
+        arr = list(
+            filter(
+                lambda x: x.start.id == dst and x.end.id == src and not x.directed,
+                self.edges_arr,
+            )
+        )  # dst to src not directed
         if len(arr) > 0:
             return arr[0]
 
         return None
-
 
     def purge(self):
         # Only keeps edge start/end vertices
@@ -225,21 +269,31 @@ class Graph:  # Graph(FeatureCollection)?
         self.vert_dict = nd
         logger.debug("purged %d vertices" % (n - len(self.vert_dict)))
 
-
-    def nearest_point_on_edge(self, point: Feature, with_connection: bool = False):  # @todo: construct array of lines on "add_edge"
-
+    def nearest_point_on_edge(
+        self, point: Feature, with_connection: bool = False
+    ):  # @todo: construct array of lines on "add_edge"
         def nearest_point_on_line(point, line, dist):
             LINE_LENGTH = 0.5  # km
             # extends original line, segments can sometimes be very short (openstreetmap)
-            brng = bearing(Feature(geometry=Point(line.geometry.coordinates[0])), Feature(geometry=Point(line.geometry.coordinates[1])))
+            brng = bearing(
+                Feature(geometry=Point(line.geometry.coordinates[0])),
+                Feature(geometry=Point(line.geometry.coordinates[1])),
+            )
             p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng)
             p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 180)
-            linext = Feature(geometry=LineString([p0.geometry.coordinates, p1.geometry.coordinates]))
+            linext = Feature(
+                geometry=LineString([p0.geometry.coordinates, p1.geometry.coordinates])
+            )
             # make perpendicular, long enough
-            brng = bearing(Feature(geometry=Point(line.geometry.coordinates[0])), Feature(geometry=Point(line.geometry.coordinates[1])))
+            brng = bearing(
+                Feature(geometry=Point(line.geometry.coordinates[0])),
+                Feature(geometry=Point(line.geometry.coordinates[1])),
+            )
             p0 = destination(point, 2 * max(dist, LINE_LENGTH), brng + 90)
             p1 = destination(point, 2 * max(dist, LINE_LENGTH), brng - 90)
-            perp = Feature(geometry=LineString([p0.geometry.coordinates, p1.geometry.coordinates]))
+            perp = Feature(
+                geometry=LineString([p0.geometry.coordinates, p1.geometry.coordinates])
+            )
             # printFeatures([linext, perp], "nearest_point_on_line")
             return line_intersect(linext, perp)
 
@@ -248,21 +302,26 @@ class Graph:  # Graph(FeatureCollection)?
         nconn = (0, 0)
         dist = inf
         for e in self.edges_arr:
-            if (not with_connection) or (with_connection and (len(e.start.adjacent) > 0 or len(e.end.adjacent) > 0)):
+            if (not with_connection) or (
+                with_connection
+                and (len(e.start.adjacent) > 0 or len(e.end.adjacent) > 0)
+            ):
                 d = point_to_line_distance(point, Feature(geometry=e.geometry))
                 if d < dist:
                     dist = d
                     edge = e
                     nconn = (len(e.start.adjacent), len(e.end.adjacent))
         if dist == 0:
-            d = distance(point, Feature(geometry=Point(edge.start.geometry.coordinates)))
+            d = distance(
+                point, Feature(geometry=Point(edge.start.geometry.coordinates))
+            )
             if d == 0:
                 logger.debug("nearest point is start of edge")
-                return(edge.start, 0, edge, nconn)
+                return (edge.start, 0, edge, nconn)
             d = distance(point, Feature(geometry=Point(edge.end.geometry.coordinates)))
             if d == 0:
                 logger.debug("nearest point is end of edge")
-                return(edge.end, 0, edge, nconn)
+                return (edge.end, 0, edge, nconn)
             logger.debug("nearest point is on edge")
             closest = point
         elif edge is not None:
@@ -272,7 +331,6 @@ class Graph:  # Graph(FeatureCollection)?
             closest = FeatureWithProps.new(closest)
 
         return [closest, dist, edge, nconn]
-
 
     def nearest_vertex(self, point: Feature, with_connection: bool = False):
         closest = None
@@ -292,11 +350,11 @@ class Graph:  # Graph(FeatureCollection)?
         # logger.debug("returning %s" % (closest.name if closest is not None else "None"))
         return [closest, dist, nconn]
 
-# #################
-#
-# DIJKSTRA ROUTING ALGORITHM
-#
-#
+    # #################
+    #
+    # DIJKSTRA ROUTING ALGORITHM
+    #
+    #
     def Dijkstra(self, source, target, opts=None):
         # This will store the Shortest path between source and target node
         ss = time.perf_counter()
@@ -342,7 +400,7 @@ class Graph:  # Graph(FeatureCollection)?
                     min_node = current_node
                 elif shortest_distance[min_node] > shortest_distance[current_node]:
                     # I the value of min_node is less than that of current_node, set
-                    #min_node as current_node
+                    # min_node as current_node
                     min_node = current_node
 
             # Iterating through the connected nodes of current_node (for
@@ -352,7 +410,7 @@ class Graph:  # Graph(FeatureCollection)?
             connected = self.get_connections(min_vertex, options)
             # logger.debug("connected %s: %f %d/%d", min_node, shortest_distance[min_node], len(min_vertex.adjacent), len(connected))
             for child_node in connected:
-                e = self.get_edge(min_node, child_node) # should always be found...
+                e = self.get_edge(min_node, child_node)  # should always be found...
                 cost = e.weight
 
                 # checking if the value of the current_node + value of the edge
@@ -390,17 +448,18 @@ class Graph:  # Graph(FeatureCollection)?
             # Including the source in the path
             route.insert(0, source)
             if len(route) > 2:
-                logger.debug(f"route: {'-'.join(route)} ({time.perf_counter() - ss:f} sec)")
+                logger.debug(
+                    f"route: {'-'.join(route)} ({time.perf_counter() - ss:f} sec)"
+                )
                 return route
             logger.debug("route not found")
             return None
 
-
-# #################
-#
-# A * STAR ROUTING ALGORITHM
-#
-#
+    # #################
+    #
+    # A * STAR ROUTING ALGORITHM
+    #
+    #
     def heuristic(self, a, b):  # On demand
         """
         Heuristic function is straight distance (to goal)
@@ -415,14 +474,11 @@ class Graph:  # Graph(FeatureCollection)?
             return inf
         return distance(va, vb)
 
-
-
     def get_neighbors(self, a):
         """
         Returns a vertex's neighbors with weight to reach.
         """
         return self.get_vertex(a).get_neighbors()
-
 
     def AStar(self, start_node, stop_node):
         # open_list is a list of nodes which have been visited, but who's neighbors
@@ -454,7 +510,9 @@ class Graph:  # Graph(FeatureCollection)?
 
             # find a node with the lowest value of f() - evaluation function
             for v in open_list:
-                if n == None or g[v] + self.heuristic(v, stop_node) < g[n] + self.heuristic(n, stop_node):
+                if n == None or g[v] + self.heuristic(v, stop_node) < g[
+                    n
+                ] + self.heuristic(n, stop_node):
                     n = v
 
             if n == None:
@@ -471,11 +529,13 @@ class Graph:  # Graph(FeatureCollection)?
                 reconst_path.append(start_node)
                 reconst_path.reverse()
 
-                logger.debug(f"route: {reconst_path} ({time.perf_counter() - ss:f} sec)")
+                logger.debug(
+                    f"route: {reconst_path} ({time.perf_counter() - ss:f} sec)"
+                )
                 return reconst_path
 
             # for all neighbors of the current node do
-            for (m, weight) in self.get_neighbors(n):
+            for m, weight in self.get_neighbors(n):
                 # if the current node isn't in both open_list and closed_list
                 # add it to open_list and note n as it's parent
                 if m not in open_list and m not in closed_list:

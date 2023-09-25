@@ -18,7 +18,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
     and enqueue data in the queue supplied at creation.
     """
 
-    def __init__(self, emit: "Emit", queue: Queue, redis = None):
+    def __init__(self, emit: "Emit", queue: Queue, redis=None):
         r = queue.redis if queue is not None else redis
         if r is None:
             logger.warning(f"no redis")
@@ -27,7 +27,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         Format.__init__(self, emit, formatter)
         self.queue = queue
         self.redis = r
-
 
     @staticmethod
     def dequeue(redis, ident: str, queue: str):
@@ -47,7 +46,7 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset = redis.pipeline()
         if oldvalues and len(oldvalues) > 0:
             oset.zrem(queue, *oldvalues)
-            logger.debug(f"deleted {len(oldvalues)} entries for {ident}")  #optimistic
+            logger.debug(f"deleted {len(oldvalues)} entries for {ident}")  # optimistic
         else:
             logger.debug(f"no enqueued entries for {ident}")
         # 2. Remove enqueued list
@@ -55,7 +54,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset.execute()
         logger.debug(f"deleted {ident}")
         return (True, f"EnqueueToRedis::dequeue dequeued {ident}")
-
 
     @staticmethod
     def delete(redis, ident: str, queue: str = None):
@@ -82,7 +80,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         redis.delete(ident)
         logger.debug(f"deleted {ident}")
         return (True, f"EnqueueToRedis::delete deleted {ident}")
-
 
     @staticmethod
     def pias(redis, ident: str, queue: str):
@@ -127,7 +124,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         logger.debug(f"..done")
         return (True, f"EnqueueToRedis::pias enqueued {ident}")
 
-
     def getKey(self, extension):
         """
         Build key of emission
@@ -137,7 +133,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         """
         # note: self.formatter is a class
         return key_path(self.emit.getKey(None), self.queue.name, extension)
-
 
     def save(self, overwrite: bool = False):
         """
@@ -149,7 +144,9 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             return (False, "EnqueueToRedis::save: no emission point")
 
         # note: self.formatter is a class
-        formatted_id = key_path(self.emit.getKey(None), self.formatter.NAME, REDIS_TYPE.FORMAT.value)
+        formatted_id = key_path(
+            self.emit.getKey(None), self.formatter.NAME, REDIS_TYPE.FORMAT.value
+        )
         n = self.redis.scard(formatted_id)
         if n > 0 and not overwrite:
             logger.warning(f"key {formatted_id} already exist, not saved")
@@ -165,7 +162,6 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         oset.execute()
         logger.debug(f"key {formatted_id} saved {len(tosave)} entries")
         return (True, "EnqueueToRedis::save completed")
-
 
     def enqueue(self):
         """
@@ -184,7 +180,9 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
             # dequeue old values
             oset.zrem(self.queue.getDataKey(), *oldvalues)  # #0
             oset.delete(enq_id)  # #1
-            logger.debug(f"removed old entries (count below, after execution of pipeline)")
+            logger.debug(
+                f"removed old entries (count below, after execution of pipeline)"
+            )
 
         emit = {}
         for f in self.output:
@@ -195,7 +193,9 @@ class EnqueueToRedis(Format):  # could/should inherit from Format
         mindt = datetime.fromtimestamp(minv).astimezone().isoformat()
         maxv = max(emit.values())
         maxdt = datetime.fromtimestamp(maxv).astimezone().isoformat()
-        logger.debug(f"saved {len(emit)} new entries to {enq_id}, from ts={minv}({mindt}) to ts={maxv} ({maxdt})")
+        logger.debug(
+            f"saved {len(emit)} new entries to {enq_id}, from ts={minv}({mindt}) to ts={maxv} ({maxdt})"
+        )
 
         # enqueue new values
         oset.zadd(self.queue.getDataKey(), emit)  # #3

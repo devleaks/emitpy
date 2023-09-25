@@ -23,8 +23,31 @@ class GeoJSONAirport(ManagedAirportBase):
     """
     Airport represetation
     """
-    def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
-        ManagedAirportBase.__init__(self, icao=icao, iata=iata, name=name, city=city, country=country, region=region, lat=lat, lon=lon, alt=alt)
+
+    def __init__(
+        self,
+        icao: str,
+        iata: str,
+        name: str,
+        city: str,
+        country: str,
+        region: str,
+        lat: float,
+        lon: float,
+        alt: float,
+    ):
+        ManagedAirportBase.__init__(
+            self,
+            icao=icao,
+            iata=iata,
+            name=name,
+            city=city,
+            country=country,
+            region=region,
+            lat=lat,
+            lon=lon,
+            alt=alt,
+        )
         self.airport_base = None
         self.taxiways_geo = None
         self.ramps_geo = None
@@ -41,7 +64,6 @@ class GeoJSONAirport(ManagedAirportBase):
 
         logger.debug("loaded")
         return [True, "GeoJSONAirport::loadFromFile: loaded"]
-
 
     def loadRamps(self):
         self.loadGeometries("parkings.geojson")
@@ -62,7 +84,11 @@ class GeoJSONAirport(ManagedAirportBase):
             self.data = None
             logger.info("added %d features.", len(self.taxiways_geo["features"]))
 
-        logger.info("added %d nodes, %d edges.", len(self.taxiways.vert_dict), len(self.taxiways.edges_arr))
+        logger.info(
+            "added %d nodes, %d edges.",
+            len(self.taxiways.vert_dict),
+            len(self.taxiways.edges_arr),
+        )
         return [True, "GeoJSONAirport::loadTaxiways loaded"]
 
     def loadServiceRoads(self):
@@ -73,9 +99,12 @@ class GeoJSONAirport(ManagedAirportBase):
             self.data = None
             logger.info("added %d features.", len(self.service_roads_geo["features"]))
 
-        logger.info("added %d nodes, %d edges.", len(self.service_roads.vert_dict), len(self.service_roads.edges_arr))
+        logger.info(
+            "added %d nodes, %d edges.",
+            len(self.service_roads.vert_dict),
+            len(self.service_roads.edges_arr),
+        )
         return [True, "GeoJSONAirport::loadServiceNetwork loaded"]
-
 
     def loadPOIS(self):
         status = self.loadServicePOIS()
@@ -86,7 +115,6 @@ class GeoJSONAirport(ManagedAirportBase):
         logger.debug("loaded")
         return [True, "GeoJSONAirport::loadPOIS loaded"]
 
-
     def loadServicePOIS(self):
         self.loadJSONOrYAMLFromFile("servicepois.geojson")
 
@@ -94,7 +122,6 @@ class GeoJSONAirport(ManagedAirportBase):
             self.service_stops_geo = self.data
             self.data = None
             logger.info("added %d features.", len(self.service_stops_geo["features"]))
-
 
         logger.debug("added %d service destinations", len(self.service_pois.keys()))
         return [True, "GeoJSONAirport::loadServicePOIS loaded"]

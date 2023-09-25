@@ -6,11 +6,22 @@ import socket
 import redis
 from termcolor import colored
 
-from emitpy.constants import ID_SEP, LIVETRAFFIC_QUEUE, PUBSUB_CHANNEL_PREFIX, LIVETRAFFIC_VERBOSE
-from emitpy.parameters import REDIS_CONNECT, BROADCASTER_HEARTBEAT, BROADCASTER_VERBOSE, BROADCASTER_TICK
+from emitpy.constants import (
+    ID_SEP,
+    LIVETRAFFIC_QUEUE,
+    PUBSUB_CHANNEL_PREFIX,
+    LIVETRAFFIC_VERBOSE,
+)
+from emitpy.parameters import (
+    REDIS_CONNECT,
+    BROADCASTER_HEARTBEAT,
+    BROADCASTER_VERBOSE,
+    BROADCASTER_TICK,
+)
 from emitpy.parameters import XPLANE_FEED, XPLANE_HOSTNAME, XPLANE_PORT
 
 from .queue import Queue, RUN, STOP, QUIT
+
 QUIT_KEY = Queue.mkDataKey(QUIT)
 
 logger = logging.getLogger("Broadcaster")
@@ -20,12 +31,12 @@ logger = logging.getLogger("Broadcaster")
 def df(ts, tz=None):
     return f"{datetime.fromtimestamp(ts).astimezone(tz=tz).isoformat(timespec='seconds')} (ts={round(ts, 1)})"
 
+
 def td(ts):
     return f"{timedelta(seconds=round(ts))} ({round(ts, 1)})"
 
-QUEUE_COLORS = {
-    "wire": "yellow"
-}
+
+QUEUE_COLORS = {"wire": "yellow"}
 
 
 # ##############################
@@ -81,7 +92,6 @@ class Broadcaster:
         self.oktoreset = None
         self.resetcompleted = None
 
-
     def setTimeshift(self):
         """
         Compute time difference (time shift) at time of call.
@@ -89,9 +99,10 @@ class Broadcaster:
         self.timeshift = datetime.now().astimezone() - self.starttime()  # timedelta
         if self.timeshift < timedelta(seconds=10):
             self.timeshift = timedelta(seconds=0)
-        logger.debug(f"{self.name}: timeshift: {self.timeshift}, now: {df(datetime.now().timestamp())}, queue time: {df(self.now())}")
+        logger.debug(
+            f"{self.name}: timeshift: {self.timeshift}, now: {df(datetime.now().timestamp())}, queue time: {df(self.now())}"
+        )
         return self.timeshift
-
 
     def starttime(self):
         """
@@ -100,7 +111,6 @@ class Broadcaster:
         if self._starttime is None:
             return datetime.now().astimezone()  # should never happen...
         return self._starttime
-
 
     def getInfo(self):
         """
@@ -116,9 +126,8 @@ class Broadcaster:
             "speed": self.speed,
             "timeshift": str(self.timeshift),
             "elapsed": str(elapsed),
-            "queue-time": self.now(format_output=True)
+            "queue-time": self.now(format_output=True),
         }
-
 
     def reset(self, speed: float = 1, starttime: datetime = None):
         """
@@ -152,7 +161,6 @@ class Broadcaster:
         self.resetcompleted.set()
         logger.debug(f"..cleaned, done")
 
-
     def now(self, format_output: bool = False, verbose: bool = False):
         """
         Returns the Broadcaster's "now" time, taking into account its start time and flow speed.
@@ -166,26 +174,41 @@ class Broadcaster:
         if self.speed == 1 and self.timeshift.total_seconds() == 0:
             newnow = realnow
             if verbose:
-                logger.debug(f"{self.name}: no time speed, no time shift: new now: {df(newnow.timestamp())}")
-            return newnow.timestamp() if not format_output else newnow.isoformat(timespec='seconds')
+                logger.debug(
+                    f"{self.name}: no time speed, no time shift: new now: {df(newnow.timestamp())}"
+                )
+            return (
+                newnow.timestamp()
+                if not format_output
+                else newnow.isoformat(timespec="seconds")
+            )
 
         if verbose:
             logger.debug(f"{self.name}: asked at {df(realnow.timestamp())})")
-        elapsed = realnow - (self.starttime() + self.timeshift)  # time elapsed since setTimeshift().
+        elapsed = realnow - (
+            self.starttime() + self.timeshift
+        )  # time elapsed since setTimeshift().
         if verbose:
             logger.debug(f"{self.name}: real elapsed since start of queue: {elapsed})")
         if self.speed == 1:
             newnow = self.starttime() + elapsed
             if verbose:
-                logger.debug(f"{self.name}: no time speed: new now: {df(newnow.timestamp())}")
+                logger.debug(
+                    f"{self.name}: no time speed: new now: {df(newnow.timestamp())}"
+                )
         else:
             newdeltasec = elapsed.total_seconds() * self.speed
             newdelta = timedelta(seconds=newdeltasec)
             newnow = self.starttime() + newdelta
             if verbose:
-                logger.debug(f"{self.name}: time speed {self.speed}: new elapsed: {newdelta}, new now={df(newnow.timestamp())}")
-        return newnow.timestamp() if not format_output else newnow.isoformat(timespec='seconds')
-
+                logger.debug(
+                    f"{self.name}: time speed {self.speed}: new elapsed: {newdelta}, new now={df(newnow.timestamp())}"
+                )
+        return (
+            newnow.timestamp()
+            if not format_output
+            else newnow.isoformat(timespec="seconds")
+        )
 
     def _do_trim(self, ident=None):
         """
@@ -209,21 +232,21 @@ class Broadcaster:
         they will be trimmed at the end of their insertion.
         """
         queue_key = Queue.mkDataKey(self.name)
-        pattern = "__keyspace@0__:"+queue_key
+        pattern = "__keyspace@0__:" + queue_key
         self.pubsub.subscribe(pattern)
 
         logger.info(f"{self.name}: trim starting..")
 
         while not self.shutdown_flag.is_set():
-
             if self.heartbeat:
-                logger.debug(f"{self.name}: queue time: {self.now(format_output=True)} listening..")
+                logger.debug(
+                    f"{self.name}: queue time: {self.now(format_output=True)} listening.."
+                )
 
             # logger.debug(f"{self.name}: waiting for message (with timeout {LISTEN_TIMEOUT} secs.)..")
             # "pmessage","__key*__:*","__keyspace@0__:test","zadd"
             message = self.pubsub.get_message(timeout=LISTEN_TIMEOUT)
             if message is not None and type(message) != str and "data" in message:
-
                 # logger.debug(f"analyzing {message}..")
 
                 ty = message["type"]
@@ -237,7 +260,9 @@ class Broadcaster:
                 if type(ty) == bytes:
                     ty = ty.decode("UTF-8")
                 if ty != None:
-                    logger.warning(f"pattern is not as expected ({ty} vs {pattern}), ignoring")
+                    logger.warning(
+                        f"pattern is not as expected ({ty} vs {pattern}), ignoring"
+                    )
                     continue
 
                 action = message["data"]
@@ -255,7 +280,6 @@ class Broadcaster:
 
                 logger.debug(f"processing {action} {qn}..")
 
-
                 if action == "zadd":
                     logger.debug(f"{self.name}: ask sender to stop..")
                     # ask run() to stop sending:
@@ -265,7 +289,9 @@ class Broadcaster:
                     self.oktotrim.wait()
                     self.oktotrim = None
                     self._do_trim(ident="zadd")
-                    logger.debug(f"{self.name}: tell sender to restart, provide new blocking event..")
+                    logger.debug(
+                        f"{self.name}: tell sender to restart, provide new blocking event.."
+                    )
                     self.rdv = threading.Event()
                     self.trimmingcompleted.set()
                     logger.info(f"{self.name}: listening again..")
@@ -275,7 +301,6 @@ class Broadcaster:
 
         self.pubsub.unsubscribe(pattern)
         logger.info(f"{self.name}: ..trim bye")
-
 
     def send_data(self, data: str) -> int:
         """
@@ -293,11 +318,11 @@ class Broadcaster:
         self.total_sent = self.total_sent + 1
         return 0
 
-
     def broadcast(self):
         """
         Pop elements from the sorted set at requested time and publish it on pub/sub queue.
         """
+
         def pushback(item):
             if item is not None:
                 # Trick to NOT zadd on self.name: We add one another key, then merge keys.
@@ -313,7 +338,7 @@ class Broadcaster:
 
         maxbocklog = MAXBACKLOGSECS
         if maxbocklog > 0:
-            maxbocklog = - maxbocklog  # MUST be <=0 I said
+            maxbocklog = -maxbocklog  # MUST be <=0 I said
 
         queue_key = Queue.mkDataKey(self.name)
 
@@ -357,8 +382,10 @@ class Broadcaster:
 
                 if currval is None:
                     # we may have some reset work to do
-                    if self.oktoreset is not None: # Is it a reset() request?
-                        logger.info(f"{self.name}: bzpop timed out, reset requested. resetting..")
+                    if self.oktoreset is not None:  # Is it a reset() request?
+                        logger.info(
+                            f"{self.name}: bzpop timed out, reset requested. resetting.."
+                        )
                         self.resetcompleted = threading.Event()
                         self.oktoreset.set()
                         logger.debug(f"{self.name}: ..waiting reset completes..")
@@ -366,8 +393,10 @@ class Broadcaster:
                         # self.rdv = threading.Event()  # done in reset()
                         logger.info(f"{self.name}: ..reset completed, restarting")
                     else:
-                        if self.heartbeat: # and last_sent < datetime.now()
-                            logger.debug(f"{self.name}: nothing to send, bzpopmin timed out..")
+                        if self.heartbeat:  # and last_sent < datetime.now()
+                            logger.debug(
+                                f"{self.name}: nothing to send, bzpopmin timed out.."
+                            )
                     continue
 
                 numval = self.redis.zcard(queue_key)
@@ -376,8 +405,10 @@ class Broadcaster:
                 now = self.now()
                 # logger.debug(f"{self.name}: it is now {df(now)}")
                 # logger.debug(f"{self.name}: at {df(now)}: {numval} in queue")
-                timetowait = currval[2] - now       # wait time independant of time warp
-                realtimetowait = timetowait / self.speed  # real wait time, taking warp time into account
+                timetowait = currval[2] - now  # wait time independant of time warp
+                realtimetowait = (
+                    timetowait / self.speed
+                )  # real wait time, taking warp time into account
 
                 if timetowait < 0:
                     # there is a thing on top that should have be sent earlier
@@ -385,14 +416,22 @@ class Broadcaster:
                     # Example: 2 events just a few millisecs apart
                     logger.debug(f"{self.name}: older event ({timetowait})")
 
-                if timetowait < maxbocklog:  # there are things on the queue that don't need to be sent, let's trim:
+                if (
+                    timetowait < maxbocklog
+                ):  # there are things on the queue that don't need to be sent, let's trim:
                     # the item we poped out is older than the queue time, we do not send it
-                    logger.debug(f"{self.name}: popped old event. Trim other old events..")
-                    logger.debug(f"{self.name}: {currval[2]} vs now={now} ({timetowait})..")
+                    logger.debug(
+                        f"{self.name}: popped old event. Trim other old events.."
+                    )
+                    logger.debug(
+                        f"{self.name}: {currval[2]} vs now={now} ({timetowait}).."
+                    )
                     # It's an old event, we don't need to push it back on the queue, we won't send it.
                     self._do_trim("older")
-                    self.rdv = threading.Event() # not really necessary?
-                    logger.debug(f"{self.name}: ..trim older events completed, restarted listening")
+                    self.rdv = threading.Event()  # not really necessary?
+                    logger.debug(
+                        f"{self.name}: ..trim older events completed, restarted listening"
+                    )
 
                 else:  # we need to send later, let's wait
                     if BROADCASTER_VERBOSE or self.total_sent % BROADCASTER_TICK == 0:
@@ -405,9 +444,11 @@ class Broadcaster:
                     if not self.rdv.wait(timeout=realtimetowait):
                         # we timed out, we need to send
                         # logger.debug(f"{self.name}: sending..")
-                        r = self.send_data(currval[1].decode('UTF-8'))
+                        r = self.send_data(currval[1].decode("UTF-8"))
                         if r != 0:
-                            logger.warning(f"did not complete successfully (errcode={r})")
+                            logger.warning(
+                                f"did not complete successfully (errcode={r})"
+                            )
                         currval = None  # currval was sent, we don't need to push it back or anything like that
                         # logger.debug(f"{self.name}: ..done")
 
@@ -416,7 +457,9 @@ class Broadcaster:
                     else:
                         # First, we were instructed to not send, so we put the popped event back in the queue
                         if currval is not None:
-                            logger.debug(f"{self.name}: awake, push current event back on queue..")
+                            logger.debug(
+                                f"{self.name}: awake, push current event back on queue.."
+                            )
                             pushback({currval[1]: currval[2]})
                             currval = None
                             logger.debug(f"{self.name}: ..done")
@@ -426,7 +469,7 @@ class Broadcaster:
                             logger.info(f"{self.name}: awake to quit, quitting..")
                             continue
 
-                        if self.oktoreset is not None: # Is it a reset() request?
+                        if self.oktoreset is not None:  # Is it a reset() request?
                             logger.info(f"{self.name}: awake to reset, resetting..")
                             self.resetcompleted = threading.Event()
                             self.oktoreset.set()
@@ -452,12 +495,16 @@ class Broadcaster:
         except KeyboardInterrupt:
             logger.warning(f"{self.name}: interrupted")
             if currval is not None:
-                logger.debug(f"{self.name}: keyboard interrupt, push current event back on queue..")
+                logger.debug(
+                    f"{self.name}: keyboard interrupt, push current event back on queue.."
+                )
                 pushback({currval[1]: currval[2]})
                 currval = None
                 logger.debug(f"{self.name}: ..done")
             else:
-                logger.debug(f"{self.name}: keyboard interrupt, nothing to push back on queue")
+                logger.debug(
+                    f"{self.name}: keyboard interrupt, nothing to push back on queue"
+                )
             logger.info(f"{self.name}: quitting..")
             self.shutdown_flag.set()
         finally:
@@ -465,8 +512,8 @@ class Broadcaster:
             logger.info(f"{self.name}: ..broadcast bye")
 
 
-
 LTlogger = logging.getLogger("LiveTrafficForwarder")
+
 
 class LiveTrafficForwarder(Broadcaster):
     """
@@ -477,7 +524,7 @@ class LiveTrafficForwarder(Broadcaster):
 
     def __init__(self, redis):
         Broadcaster.__init__(self, redis=redis, name=LIVETRAFFIC_QUEUE)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
         # self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # Multicast
         # self.sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 8)
         LTlogger.debug(f"LiveTrafficForwarder::__init__: inited")
@@ -494,17 +541,21 @@ class LiveTrafficForwarder(Broadcaster):
         :returns:   { description_of_the_return_value }
         :rtype:     int
         """
-        fields = data.split(',')
+        fields = data.split(",")
         if len(fields) != 15:
-            LTlogger.warning(f"LiveTrafficForwarder:send_data_lt: Found {len(fields)} fields, expected 15, in line {data}")
+            LTlogger.warning(
+                f"LiveTrafficForwarder:send_data_lt: Found {len(fields)} fields, expected 15, in line {data}"
+            )
             return 1
         # Update and wait for timestamp
         # fields[14] = compWaitTS(fields[14])  # this is done in our own broadcaster :-)
-        datagram = ','.join(fields)
-        self.sock.sendto(datagram.encode('ascii'), (XPLANE_HOSTNAME, XPLANE_PORT))
+        datagram = ",".join(fields)
+        self.sock.sendto(datagram.encode("ascii"), (XPLANE_HOSTNAME, XPLANE_PORT))
         fields[1] = f"{int(fields[1]):x}"
         LTlogger.debug(f"LiveTrafficForwarder::send_data_lt: {datagram}")
-        LTlogger.debug(f"LiveTrafficForwarder::send_data_lt: ac:{fields[1]}: alt={fields[4]} ft, hdg={fields[7]}, speed={fields[8]} kn, vspeed={fields[5]} ft/min")
+        LTlogger.debug(
+            f"LiveTrafficForwarder::send_data_lt: ac:{fields[1]}: alt={fields[4]} ft, hdg={fields[7]}, speed={fields[8]} kn, vspeed={fields[5]} ft/min"
+        )
         return 0
 
     def send_data(self, data: str) -> int:
@@ -519,9 +570,11 @@ class LiveTrafficForwarder(Broadcaster):
         :rtype:     int
         """
         datagram = data
-        self.sock.sendto(datagram.encode('ascii'), (XPLANE_HOSTNAME, XPLANE_PORT))
+        self.sock.sendto(datagram.encode("ascii"), (XPLANE_HOSTNAME, XPLANE_PORT))
         if LIVETRAFFIC_VERBOSE:
-            LTlogger.debug(f"LiveTrafficForwarder::send_data({XPLANE_HOSTNAME}:{XPLANE_PORT}):\n{datagram}")
+            LTlogger.debug(
+                f"LiveTrafficForwarder::send_data({XPLANE_HOSTNAME}:{XPLANE_PORT}):\n{datagram}"
+            )
         return 0
 
 
@@ -529,6 +582,7 @@ class LiveTrafficForwarder(Broadcaster):
 # H Y P E R C A S T E R
 #
 hyperlogger = logging.getLogger("Hypercaster")
+
 
 class Hypercaster:
     """
@@ -597,13 +651,20 @@ class Hypercaster:
             b = None
             if queue.name == LIVETRAFFIC_QUEUE:
                 if XPLANE_FEED:
-                    b = LiveTrafficForwarder(redis.Redis(connection_pool=self.redis_pool))
+                    b = LiveTrafficForwarder(
+                        redis.Redis(connection_pool=self.redis_pool)
+                    )
                     hyperlogger.debug(f"LiveTrafficForwarder started")
                 else:
                     hyperlogger.debug(f"{queue.name} not started")
                     return
             else:
-                b = Broadcaster(redis.Redis(connection_pool=self.redis_pool), queue.name, queue.speed, queue.starttime)
+                b = Broadcaster(
+                    redis.Redis(connection_pool=self.redis_pool),
+                    queue.name,
+                    queue.speed,
+                    queue.starttime,
+                )
             self.queues[queue.name].broadcaster = b
             self.queues[queue.name].thread = threading.Thread(target=b.broadcast)
             self.queues[queue.name].thread.start()
@@ -623,10 +684,16 @@ class Hypercaster:
                 hyperlogger.debug(f"{queue} has already been deleted, do nothing")
                 return
         if hasattr(self.queues[queue], "broadcaster"):
-            if hasattr(self.queues[queue].broadcaster, "shutdown_flag") and self.queues[queue].broadcaster.shutdown_flag is not None:
+            if (
+                hasattr(self.queues[queue].broadcaster, "shutdown_flag")
+                and self.queues[queue].broadcaster.shutdown_flag is not None
+            ):
                 self.queues[queue].broadcaster.shutdown_flag.set()
                 hyperlogger.debug(f"{queue} awakening wait() on send..")
-                if hasattr(self.queues[queue].broadcaster, "rdv") and self.queues[queue].broadcaster.rdv is not None:
+                if (
+                    hasattr(self.queues[queue].broadcaster, "rdv")
+                    and self.queues[queue].broadcaster.rdv is not None
+                ):
                     self.queues[queue].broadcaster.rdv.set()
                 else:
                     hyperlogger.warning(f"{queue} has no rdv")  # error?
@@ -671,13 +738,11 @@ class Hypercaster:
         hyperlogger.info("admin starting..")
 
         while not self.shutdown_flag.is_set():
-
-            if self.heartbeat: # and last_sent < datetime.now()
+            if self.heartbeat:  # and last_sent < datetime.now()
                 logger.debug(f"listening..")
 
             message = self.pubsub.get_message(timeout=LISTEN_TIMEOUT)
             if message is not None and type(message) != str and "data" in message:
-
                 # logger.debug(f"analyzing {message}..")
 
                 ty = message["type"]
@@ -710,7 +775,9 @@ class Hypercaster:
                 # logger.debug(f"processing {action} {qn}..")
 
                 # hyperlogger.debug(f"received {msg}")
-                if action == "set" and qn == QUIT:  # this was provoked by self.redis.set(QUIT_KEY, QUIT)
+                if (
+                    action == "set" and qn == QUIT
+                ):  # this was provoked by self.redis.set(QUIT_KEY, QUIT)
                     hyperlogger.warning("instructed to quit")
                     hyperlogger.info("quitting..")
                     self.redis.delete(QUIT_KEY)
@@ -723,15 +790,23 @@ class Hypercaster:
                     elif hasattr(self.queues[qn], "deleted"):
                         if self.queues[qn].deleted:
                             hyperlogger.info(f"queue {qn} was deleted, restarting..")
-                            self.queues[qn] = Queue.loadFromDB(name=qn, redis=self.redis)
+                            self.queues[qn] = Queue.loadFromDB(
+                                name=qn, redis=self.redis
+                            )
                             self.start_queue(self.queues[qn])
-                            self.queues[qn].broadcaster.rdv = threading.Event() # oulalaaaa!?
-                    else:   # queue already exists, parameter changed, stop it first
+                            self.queues[
+                                qn
+                            ].broadcaster.rdv = threading.Event()  # oulalaaaa!?
+                    else:  # queue already exists, parameter changed, stop it first
                         hyperlogger.debug(f"queue {qn} already running, reseting..")
                         oldsp = self.queues[qn].speed
                         oldst = self.queues[qn].starttime
                         # there is no broadcaster if queue was not started
-                        oldbr = self.queues[qn].broadcaster if hasattr(self.queues[qn], "broadcaster") else None
+                        oldbr = (
+                            self.queues[qn].broadcaster
+                            if hasattr(self.queues[qn], "broadcaster")
+                            else None
+                        )
                         # if oldbr is None:
                         #     hyperlogger.debug(f"..queue {qn} had no broadcaster..")
                         # else:
@@ -748,13 +823,20 @@ class Hypercaster:
                             hyperlogger.debug(f"..queue {qn} started")
                         elif oldbr is None and self.queues[qn].status == STOP:
                             # queue was not working before and does not need to be started
-                            hyperlogger.debug(f"..queue {qn} added/modified but not started")
+                            hyperlogger.debug(
+                                f"..queue {qn} added/modified but not started"
+                            )
                         else:
                             # queue was working before, will continue to work but some parameters are reset
                             self.queues[qn].broadcaster = oldbr
-                            oldbr.reset(speed=self.queues[qn].speed, starttime=self.queues[qn].starttime)
-                            hyperlogger.debug(f"..queue {qn} speed {self.queues[qn].speed} (was {oldsp}) " +
-                                         f"starttime {self.queues[qn].starttime} (was {oldst}) reset")
+                            oldbr.reset(
+                                speed=self.queues[qn].speed,
+                                starttime=self.queues[qn].starttime,
+                            )
+                            hyperlogger.debug(
+                                f"..queue {qn} speed {self.queues[qn].speed} (was {oldsp}) "
+                                + f"starttime {self.queues[qn].starttime} (was {oldst}) reset"
+                            )
                         hyperlogger.debug(f"..done")
 
                 elif action == "del":
@@ -766,7 +848,9 @@ class Hypercaster:
                     if not ":data:" in queuestr:
                         if qn in self.queues.keys():
                             # hyperlogger.info(f"queue {qn} vars: {vars(self.queues[qn])}")
-                            if not hasattr(self.queues[qn], "deleted"):  # queue already exists, parameter changed, stop it first
+                            if not hasattr(
+                                self.queues[qn], "deleted"
+                            ):  # queue already exists, parameter changed, stop it first
                                 self.terminate_queue(qn)
                                 self.queues[qn].deleted = True
                                 hyperlogger.info(f"queue {qn} terminated")

@@ -8,7 +8,7 @@ from shapely.geometry import GeometryCollection, MultiLineString, MultiPoint
 
 
 def shapeFlight(moves):
-    return LineString( [f.coords() for f in moves] )
+    return LineString([f.coords() for f in moves])
 
 
 def shapeAirspaces(airspaces):
@@ -21,7 +21,9 @@ def airspace_intersects(airspaces, flight: LineString):
 
 
 def intersections(polygon, segment):
-    a = polygon.intersections(segment) # -> linestring or multilinestring or geometrycollection
+    a = polygon.intersections(
+        segment
+    )  # -> linestring or multilinestring or geometrycollection
     if type(a) in [MultiLineString, MultiPoint, GeometryCollection]:
         return list(a.geoms)  # assume collection of points and linestrings
     return [a]

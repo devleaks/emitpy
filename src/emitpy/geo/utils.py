@@ -24,16 +24,22 @@ def mkPolygon(lat1, lon1, lat2, lon2, width):
     a1 = destination(p1, width / 2, brng)
     a3 = destination(p2, width / 2, brng)
     # join
-    return Polygon( [ list(list(map(lambda x: x.geometry.coordinates, [a0, a1, a3, a2, a0]))) ] )
+    return Polygon(
+        [list(list(map(lambda x: x.geometry.coordinates, [a0, a1, a3, a2, a0])))]
+    )
 
 
 def jitter(point: Point, r: float = 0):
     if r == 0:
         return point.geometry.coordinates
-    j = destination(Feature(geometry=point), random.random() * abs(r) / 1000, random.random() * 360)
+    j = destination(
+        Feature(geometry=point), random.random() * abs(r) / 1000, random.random() * 360
+    )
     # should add some vertical uncertainty as well...
     if len(j.geometry.coordinates) == 3:  # alt = alt ± jitter
-        j.geometry.coordinates[2] = j.geometry.coordinates[2] + ((random.random() * abs(r) / 1000) * (-1 if random.random() > 0.5 else 1))
+        j.geometry.coordinates[2] = j.geometry.coordinates[2] + (
+            (random.random() * abs(r) / 1000) * (-1 if random.random() > 0.5 else 1)
+        )
     return j.geometry.coordinates
 
 
@@ -46,14 +52,14 @@ def moveOn(arr, idx, currpos, dist):
     if idx == len(arr) - 2:
         logger.debug(f"last segment {idx}, {dist} left")
         # do we reach destination?
-        left = distance(currpos, arr[-1], 'm')
+        left = distance(currpos, arr[-1], "m")
         if left < dist:  # we reached destination
             logger.debug("destination reached")
             return (arr[-1], len(arr) - 1)
         # we do not reach destination, so we move towards it
         # we can continue with regular algorithm
     nextp = arr[idx + 1]
-    left = distance(currpos, nextp, 'm') # distance returns km
+    left = distance(currpos, nextp, "m")  # distance returns km
     if left < dist:  # we reach the next point at least. Move to it, then continue.
         # logger.debug("completed segment %d, move on segment %d, %f left to run" % (idx, idx + 1, dist - left))
         return moveOn(arr, idx + 1, nextp, dist - left)
@@ -115,7 +121,12 @@ def asFeatureLineStringWithTimestamps(features: [FeatureWithProps]):
     props["time"] = at
     props["reltime"] = rt
 
-    return json.dumps(FeatureCollection(features=[Feature(geometry=LineString(ls), properties=props)]), indent=4)
+    return json.dumps(
+        FeatureCollection(
+            features=[Feature(geometry=LineString(ls), properties=props)]
+        ),
+        indent=4,
+    )
 
 
 def asTrafficJSON(features: [FeatureWithProps]):
@@ -138,17 +149,19 @@ def asTrafficJSON(features: [FeatureWithProps]):
 
     for f in features:
         if f.geometry["type"] == "Point":
-            js.append({
-                "timestamp": f.getAbsoluteEmissionTime(),
-                "icao24": icao24,
-                "latitude": f.lat(),
-                "longitude": f.lon(),
-                "groundspeed": f.speed(),
-                "track": f.heading(),
-                "vertical_rate": f.vspeed(),
-                "callsign": callsign,
-                "altitude": f.altitude()
-            })
+            js.append(
+                {
+                    "timestamp": f.getAbsoluteEmissionTime(),
+                    "icao24": icao24,
+                    "latitude": f.lat(),
+                    "longitude": f.lon(),
+                    "groundspeed": f.speed(),
+                    "track": f.heading(),
+                    "vertical_rate": f.vspeed(),
+                    "callsign": callsign,
+                    "altitude": f.altitude(),
+                }
+            )
     return json.dumps(js)
 
 
@@ -210,7 +223,7 @@ def findFeatures(arr, criteria):
     for f in arr:
         ok = True
         for k in criteria:
-            ok = (ok and k in f.properties and f.properties[k] == criteria[k])
+            ok = ok and k in f.properties and f.properties[k] == criteria[k]
         if ok:
             res.append(f)
     return res
@@ -221,7 +234,13 @@ def findFeaturesCWL(arr, criteria):
     for f in arr:
         ok = True
         for k in criteria:
-            ok = (ok and k in f.properties and (criteria[k] in f.properties[k].split("|") or f.properties[k] == "*"))
+            ok = (
+                ok
+                and k in f.properties
+                and (
+                    criteria[k] in f.properties[k].split("|") or f.properties[k] == "*"
+                )
+            )
         if ok:
             res.append(f)
     return res
@@ -256,9 +275,9 @@ def ls_point_at(ls: LineString, dist: float):
     if total < dist:  # requested distance is longer than linestring
         return None
 
-    lastvertex = ls.coordinates[i-2]
+    lastvertex = ls.coordinates[i - 2]
     left = dist - prevtotal
-    brng = bearing(ffp(lastvertex), ffp(ls.coordinates[i-1]))
+    brng = bearing(ffp(lastvertex), ffp(ls.coordinates[i - 1]))
     dest = destination(ffp(lastvertex), left, brng, units="m")
     return dest
 
@@ -283,7 +302,9 @@ def get_bounding_box(points, rounding: float = None):
             west = lon
         if lon > east:
             east = lon
-    if rounding is not None:  # will later allow for finer rounding, but round to degrees for grib file resolution matching
+    if (
+        rounding is not None
+    ):  # will later allow for finer rounding, but round to degrees for grib file resolution matching
         north = math.ceil(north)
         south = math.floor(south)
         west = math.floor(west)
@@ -311,9 +332,12 @@ def mk360(a):
 def add_speed(r1, r2):
     # https://math.stackexchange.com/questions/1365622/adding-two-polar-vectors
     p21 = math.radians(r2[1]) - math.radians(r1[1])
-    r = math.sqrt( r1[0]*r1[0]  + r2[0]*r2[0] + 2 * r1[0] * r2[0] * math.cos(p21) )
-    phi = math.radians(r1[1]) + math.atan2(r2[0] * math.sin(p21), r1[0] + r2[0] * math.cos(p21) )
+    r = math.sqrt(r1[0] * r1[0] + r2[0] * r2[0] + 2 * r1[0] * r2[0] * math.cos(p21))
+    phi = math.radians(r1[1]) + math.atan2(
+        r2[0] * math.sin(p21), r1[0] + r2[0] * math.cos(p21)
+    )
     return (r, math.degrees(phi))
+
 
 def subtract_speed(r1, r2):
     # Add -r2, r2 going in opposite direction, direction supplied in degrees.
@@ -321,6 +345,7 @@ def subtract_speed(r1, r2):
     if opp > 360:
         opp = opp - 360
     return add_speed(r1, (r2[0], opp))
+
 
 def adjust_speed_vector(tas, ws):
     # Add gs and ws vector, and adjust gs angle (heading) so that final course remain original gs course.
@@ -333,7 +358,7 @@ def adjust_speed_vector(tas, ws):
     # print(f"in ==> tas={tas[0]}, req. heading={tas[1]}, ws={ws}")
 
     goal = tas[1]
-    newtas = tas                # initial value
+    newtas = tas  # initial value
     gs = add_speed(newtas, ws)  # first iteration
     delta = gs[1] - goal
     # print(f"iter0 {newtas}, ws={ws}, gs={gs}, diff angle={delta}")

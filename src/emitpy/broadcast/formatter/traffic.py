@@ -13,7 +13,6 @@ logger = logging.getLogger("TrafficFormatter")
 
 
 class TrafficFormatter(Formatter):
-
     NAME = "traffic-flight"
 
     def __init__(self, feature: "FeatureWithProps"):
@@ -46,38 +45,36 @@ class TrafficFormatter(Formatter):
 
         icao24x = f.getProp(FEATPROP.ICAO24.value)
 
+        coords = f.coords()
 
-        coords   = f.coords()
+        alt = f.altitude(0) / FT  # m -> ft
 
-        alt      = f.altitude(0) / FT  # m -> ft
-
-        vspeed   = f.vspeed(0) * FT * 60  # m/s -> ft/min
-        speed    = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
+        vspeed = f.vspeed(0) * FT * 60  # m/s -> ft/min
+        speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
 
         emit_type = getprop("$.emit.emit-type")
 
         if emit_type == "flight":
-            callsign = getprop("$.flight.callsign").replace(" ","").replace("-","")
+            callsign = getprop("$.flight.callsign").replace(" ", "").replace("-", "")
             tailnumber = getprop("$.flight.aircraft.acreg")
         else:  # not a flight
-            callsign = getprop("$.service.callsign").replace(" ","").replace("-","")
+            callsign = getprop("$.service.callsign").replace(" ", "").replace("-", "")
             tailnumber = getprop("$.vehicle.icao")
 
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
         #
         ret = {
-          "timestamp": ts,
-          "icao24": icao24x,
-          "latitude": coords[1],
-          "longitude": coords[0],
-          "groundspeed": speed,
-          "vertical_rate": vspeed,
-          "callsign": callsign,
-          "tailnumber": tailnumber,
-          "altitude": alt
+            "timestamp": ts,
+            "icao24": icao24x,
+            "latitude": coords[1],
+            "longitude": coords[0],
+            "groundspeed": speed,
+            "vertical_rate": vspeed,
+            "callsign": callsign,
+            "tailnumber": tailnumber,
+            "altitude": alt,
         }
         return json.dumps(ret)
-
 
     @staticmethod
     def getAbsoluteTime(f):
@@ -88,4 +85,3 @@ class TrafficFormatter(Formatter):
         :type       f:    { type_description }
         """
         return f["timestamp"]
-

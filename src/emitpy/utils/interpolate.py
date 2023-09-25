@@ -24,15 +24,15 @@ def interpolate_value(arr, value, istart, iend):
 
     ratios = {}
     cumul_dist = 0
-    for idx in range(istart+1, iend):
-        d = distance(arr[idx-1], arr[idx], "m")
+    for idx in range(istart + 1, iend):
+        d = distance(arr[idx - 1], arr[idx], "m")
         cumul_dist = cumul_dist + d
         ratios[idx] = cumul_dist
     # logger.debug("(%d)%f -> (%d)%f, %f" % (istart, startval, iend, endval, cumul_dist))
     if cumul_dist != 0:
         speed_a = (endval - startval) / cumul_dist
         speed_b = startval
-        for idx in range(istart+1, iend):
+        for idx in range(istart + 1, iend):
             # logger.debug("%d %f %f %f" % (idx, ratios[idx], ratios[idx]/cumul_dist, speed_b + speed_a * ratios[idx]))
             arr[idx].setProp(value, speed_b + speed_a * ratios[idx])
     else:
@@ -67,7 +67,6 @@ def interpolate(arr: list, value: str):
     return (True, f":interpolate: interpolated {value}")
 
 
-
 def compute_headings(wpts):
     """
     Compute heading "from" for each point.
@@ -85,7 +84,7 @@ def compute_headings(wpts):
     return (True, ":heading: computed")
 
 
-def compute_time(wpts, start: float=0):
+def compute_time(wpts, start: float = 0):
     """
     Time 0 is start of array.
     """
@@ -95,7 +94,7 @@ def compute_time(wpts, start: float=0):
 
     for idx in range(1, len(wpts)):
         nextpos = wpts[idx]
-        d = distance(currpos, nextpos) * 1000 # km
+        d = distance(currpos, nextpos) * 1000  # km
         # if nextpos.speed() is None or nextpos.speed() is None:
         #     logger.debug("positions: %d %s %s" % (idx, nextpos, currpos))
         s = (nextpos.speed() + currpos.speed()) / 2
@@ -109,6 +108,3 @@ def compute_time(wpts, start: float=0):
     # logger.debug("%3d: %10.3fm at %5.1fm/s = %6.1fs, total=%s" % (idx, d, currpos.speed(), t, timedelta(seconds=elapsed)))
 
     return (True, ":time: computed")
-
-
-

@@ -19,44 +19,46 @@ logger = logging.getLogger("FPDB")
 
 
 class FPDBMetar(WebFetch):
-	"""
-	Loads METAR for ICAO from FlightplanDataBase.
-	"""
-	def __init__(self, icao: str):
-		WebFetch.__init__(self, icao)
+    """
+    Loads METAR for ICAO from FlightplanDataBase.
+    """
 
-	def fetch(self):
-		remote = None
-		try:
-			remote = fpdb.weather.fetch(icao=self.icao, key=FLIGHT_PLAN_DATABASE_APIKEY)
-			if remote is not None and remote.METAR is not None:
-				self.raw = remote.METAR
-		except:
-			remote = None
-			logger.error("fetch: error fetching METAR, ignoring METAR", exc_info=True)
+    def __init__(self, icao: str):
+        WebFetch.__init__(self, icao)
 
-		if remote is not None and remote.METAR is not None:
-			return (True, "FPDBMetar::fetch: fetched")
-		return (False, "FPDBMetar::fetch: could not get metar")
+    def fetch(self):
+        remote = None
+        try:
+            remote = fpdb.weather.fetch(icao=self.icao, key=FLIGHT_PLAN_DATABASE_APIKEY)
+            if remote is not None and remote.METAR is not None:
+                self.raw = remote.METAR
+        except:
+            remote = None
+            logger.error("fetch: error fetching METAR, ignoring METAR", exc_info=True)
+
+        if remote is not None and remote.METAR is not None:
+            return (True, "FPDBMetar::fetch: fetched")
+        return (False, "FPDBMetar::fetch: could not get metar")
 
 
 class FPDBTaf(WebFetch):
-	"""
-	Loads METAR for ICAO from FlightplanDataBase.
-	"""
-	def __init__(self, icao: str):
-		WebFetch.__init__(self, icao)
+    """
+    Loads METAR for ICAO from FlightplanDataBase.
+    """
 
-	def fetch(self):
-		remote = None
-		try:
-			remote = fpdb.weather.fetch(icao=self.icao, key=FLIGHT_PLAN_DATABASE_APIKEY)
-			if remote is not None and remote.TAF is not None:
-				self.raw = remote.TAF
-		except:
-			remote = None
-			logger.error("fetch: error fetching TAF, ignoring TAF", exc_info=True)
+    def __init__(self, icao: str):
+        WebFetch.__init__(self, icao)
 
-		if remote is not None and remote.METAR is not None:
-			return (True, "FPDBTaf::fetch: fetched")
-		return (False, "FPDBTaf::fetch: could not get taf")
+    def fetch(self):
+        remote = None
+        try:
+            remote = fpdb.weather.fetch(icao=self.icao, key=FLIGHT_PLAN_DATABASE_APIKEY)
+            if remote is not None and remote.TAF is not None:
+                self.raw = remote.TAF
+        except:
+            remote = None
+            logger.error("fetch: error fetching TAF, ignoring TAF", exc_info=True)
+
+        if remote is not None and remote.METAR is not None:
+            return (True, "FPDBTaf::fetch: fetched")
+        return (False, "FPDBTaf::fetch: could not get taf")

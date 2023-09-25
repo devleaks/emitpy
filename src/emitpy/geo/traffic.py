@@ -1,5 +1,6 @@
 from .features import FeatureWithProps
 
+
 def asTrafficCSV(features: [FeatureWithProps], header: bool = True):
     # mandatory: timestamp, icao24, latitude, longitude, groundspeed, track, vertical_rate, callsign, altitude
     csv = ""
@@ -22,4 +23,6 @@ def asTrafficCSV(features: [FeatureWithProps], header: bool = True):
 
 
 def toTraffic(features: ["EmitPoint"]):
-    return asTrafficCSV(features) # asTrafficCSV, asTrafficJSON, asFeatureLineStringWithTimestamps,
+    return asTrafficCSV(
+        features
+    )  # asTrafficCSV, asTrafficJSON, asFeatureLineStringWithTimestamps,
