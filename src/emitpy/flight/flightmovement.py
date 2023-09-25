@@ -988,6 +988,9 @@ class FlightMovement(Movement):
         move_points.append(self._premoves[0])
 
         # Intermediate points
+        with open("test.geojson", "w") as fp:
+            json.dump(FeatureCollection(features=self._premoves).to_geojson(), fp)
+
         for i in range(1, len(self._premoves) - 1):
             if not should_do_st(self._premoves, i):
                 logger.debug("skipping %d (special mark)" % (i))
@@ -999,8 +1002,13 @@ class FlightMovement(Movement):
                 if s is None:
                     s = last_speed
                 arc = None
+
                 if self._premoves[i].flyOver():
-                    arc = standard_turn_flyover(li, lo, turnRadius(s))
+                    arc = standard_turn_flyover(li, lo, turnRadius(s))  # unsufficiently tested..
+                    # falls back on flyby (which works well)
+                    logger.debug(f"standard_turn_flyover failed, fall back on standard_turn_flyby ({i})")
+                    if arc is None:
+                        arc = standard_turn_flyby(li, lo, turnRadius(s))
                 else:
                     arc = standard_turn_flyby(li, lo, turnRadius(s))
                 last_speed = s

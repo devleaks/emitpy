@@ -422,8 +422,11 @@ class Flight(Messages):
         self.flightroute = FlightRoute(managedAirport=self.managedAirport, fromICAO=self.departure.icao, toICAO=self.arrival.icao)
 
         if not self.flightroute.has_route():
-            logger.warning("no flight route, cannot proceed.")
-            return
+            logger.warning("no flight route on airways")
+            self.flightroute.makeGreatCircleFlightRoute()
+            if not self.flightroute.has_route():
+                logger.warning("no flight route, cannot proceed.")
+                return
 
         fplen = len(self.flightroute.nodes())
         if fplen < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.

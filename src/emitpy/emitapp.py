@@ -418,7 +418,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(7, f"problem during move", ret[1])
 
         # 4.2 Save move
-        # move.save()
+        # move.saveFile()
 
         # 6. Create emit
         logger.debug("..emitting..")

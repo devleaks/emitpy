@@ -21,6 +21,7 @@ class Route:
         self.vertices = None
         self.edges = None
         self.smoothed = None
+        self._direct = False
 
         if auto:  # auto route
             self.find()
@@ -78,9 +79,14 @@ class Route:
 
         logger.warning("route not found")
 
+    def direct(self):
+        self.route = [self.src, self.dst]
+        self._direct = True
+        logger.warning("direct route created")
+        return self.route
 
     def found(self):
-        return self.route and len(self.route) > 2
+        return (self.route and len(self.route) > 2) or self._direct
 
 
     def get_edges(self):

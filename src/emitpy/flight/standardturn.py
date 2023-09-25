@@ -1,5 +1,6 @@
 # Utility functions to smooth turns in flight path
 import logging
+import io
 
 from math import pi
 
@@ -72,23 +73,15 @@ def line_intersect(line1, line2):
 
     return None
 
-def line_arc(center, radius, start, end, steps=8):
-    arc = []
-    if end < start:
-        end = end + 360
-    step = (end - start) / steps
-    a = start
-    while a < end:
-        p = destination(center, radius, a + 180)
-        arc.append(p)
-        a = a + step
-    return arc
-
-
+DEBUG_STANDARD_TURNS = False
 # FLY BY
 #
 #
-def standard_turn_flyby(l0, l1, radius, precision=8):
+def standard_turn_flyby(l0, l1, radius, precision: int = 8, soft: bool = False):
+    # Soft: Added 25-09-2023.
+    # Prevent hard fails, and return "soft" 3-point in-turn-out as output.
+    output = io.StringIO()
+
     def turn(bi, bo):
         t = bi - bo
         if t < 0:
@@ -97,26 +90,48 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
             t -= 360
         return t
 
-    local_debug = False
+    def line_arc(center, radius, start, end, steps=8):
+        arc = []
+        if end < start:
+            end = end + 360
+        step = (end - start) / steps
+        a = start
+        while a < end:
+            p = destination(center, radius, a + 180)
+            arc.append(p)
+            a = a + step
+        return arc
+
+    def report_log(out):
+        contents = out.getvalue()
+        out.close()
+        if DEBUG_STANDARD_TURNS:
+            logger.debug(contents)
+
+    print(f"\n{l0}, {l1}, r={radius}", file=output)
+
     b_in = bearing(l0.coordinates[1], l0.coordinates[0])
     b_out = bearing(l1.coordinates[1], l1.coordinates[0])
+    points = [Feature(geometry=Point(l0.coordinates[0]))]
+    points.append(Feature(geometry=Point(l0.coordinates[1])))
+    points.append(Feature(geometry=Point(l1.coordinates[1])))
     turnAngle = turn(b_in, b_out)
 
     # Eliminate almost straight turns
     if abs(turnAngle) < 10:
-        if local_debug:
-            logger.debug(f"standard_turn: small turn, skipping (turn={turnAngle:f}°)")
+        print(f"small turn, skipping (turn={turnAngle:f}°)", file=output)
+        if soft:
+            print(f"returning points", file=output)
+            return points
         return None
 
     # Eliminate half turns and almost half turns
     if abs(turnAngle) > 150:
-        if local_debug:
-            logger.debug(f"standard_turn: turn too large, skipping (turn={turnAngle:f}°)")
+        print(f"turn too large, skipping (turn={turnAngle:f}°)", file=output)
         return None
 
     if abs(turnAngle) > 120:
-        if local_debug:
-            logger.debug(f"standard_turn: large turn (turn={turnAngle:f}°)")
+        print(f"large turn (turn={turnAngle:f}°)", file=output)
 
     # Eliminate short segement turns (impossible)
     d_in = distance(l0.coordinates[1], l0.coordinates[0])
@@ -124,8 +139,11 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
 
     r = 1.5 * radius / 1000  # km
     if d_in < r or d_out < r:
-        if local_debug:
-            logger.debug(f"standard_turn: segment too small, skipping in={d_in:f} out={d_out:f} (r={r:f}, turn={turnAngle:f}°)")
+        print(f"segment too small, skipping in={d_in:f} out={d_out:f} (r={r:f}, turn={turnAngle:f}°)", file=output)
+        if soft:
+            print(f"returning points", file=output)
+            report_log(output)
+            return points
         return None
 
     # Here we go
@@ -135,16 +153,21 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
     l1e = extend_line(l1, 20)
     cross_ext = line_intersect(l0e, l1e)  # returns a FeatureCollection
     if cross_ext is None:
-        # logger.warning("standard_turn: lines do not cross close %s %s" % (l0e, l1e))
+        logger.warning("lines do not cross close %s %s" % (l0e, l1e))
+        report_log(output)
         return None
 
     l0b = line_offset(l0e, sign(oppositeTurnAngle) * radius / 1000)
     l1b = line_offset(l1e, sign(oppositeTurnAngle) * radius / 1000)
     center = line_intersect(l0b, l1b)
     if center is None:
-        logger.warning(f"standard_turn: no arc center (turn={turnAngle:f}°)")
-        if local_debug:
-            logger.debug(f"standard_turn: no arc center ({FeatureCollection(features=[l0b, l1b])})")
+        logger.warning(f"no arc center (turn={turnAngle:f}°)")
+        print(f"no arc center ({FeatureCollection(features=[l0b, l1b])})", file=output)
+        if soft:
+            print(f"returning points", file=output)
+            report_log(output)
+            return points
+        report_log(output)
         return None
 
     arc0 = b_out + 90 if turnAngle > 0 else b_in - 90
@@ -166,78 +189,111 @@ def standard_turn_flyby(l0, l1, radius, precision=8):
 # FLY OVER
 #
 #
-def new_turn(bi, bo):
-    # Return turn angle between [-180, 180] relative to bi,
-    # negative angle is counter-clockwise (left) turn
-    if bi == bo:
-        return 0
-    bi = mk360(bi)
-    bo = mk360(bo)
-    left_turn = None
-    angle = 0
-    if bo > bi:
-        left_turn = False
-        angle = bo - bi
-    else:
-        left_turn = True
-        angle = bi - bo
-    if angle > 180:
-        angle = 360 - angle
-        left_turn = not left_turn
-    ret = (angle * -1.0) if left_turn else angle
-    return ret
-
-
-def new_line_arc(center, radius, start, end, direction, steps=8):
-    start = mk360(start)
-    end = mk360(end)
-    left_turn = direction < 0
-    arc = []
-    if left_turn:
-        step = (start - end) / steps
-        a = start
-        while a > end:
-            p = destination(center, radius, a)
-            arc.append(p)
-            a = a - step
-    else:
-        if end < start:
-            end = end + 360
-        step = (end - start) / steps
-        a = start
-        while a < end:
-            p = destination(center, radius, a + 180)
-            arc.append(p)
-            a = a + step
-    return arc
-
-
-def standard_turn_flyover(l0, l1, r):
+def standard_turn_flyover(l0, l1, radius):
     #
     # Standard turns manipulates angle [0,360[.
     # pyturn manipulates angles [-180, 180]
     #
+    # Return None if fails
+    #
+    output = io.StringIO()
+
+    def new_turn(bi, bo):
+        # Return turn angle between [-180, 180] relative to bi,
+        # negative angle is counter-clockwise (left) turn
+        if bi == bo:
+            return 0
+        bi = mk360(bi)
+        bo = mk360(bo)
+        left_turn = None
+        angle = 0
+        if bo > bi:
+            left_turn = False
+            angle = bo - bi
+        else:
+            left_turn = True
+            angle = bi - bo
+        if angle > 180:
+            angle = 360 - angle
+            left_turn = not left_turn
+        ret = (angle * -1.0) if left_turn else angle
+        direct = "counter-clockwise/left" if left_turn else "clockwise/right"
+        print(f"turn {direct} {round(angle, 3)} degrees => {round(ret, 3)}", file=output)
+        return ret
+
+    def new_line_arc(center, radius, start, end, direction, steps=8):
+        print(f"line_arc from heading {start} to {end} ({direction})", file=output)
+        start = mk360(start)
+        end = mk360(end)
+        left_turn = direction < 0
+        print(f"line_arc from heading after mk360 {start} to {end} ({left_turn})", file=output)
+        arc = []
+        if left_turn:
+            if start < end:
+                start = start + 360
+            step = (start - end) / steps
+            a = start
+            print(f"line_arc left: {start}, {end}, (-) {step}", file=output)
+            while a > end:
+                p = destination(center, radius, a)
+                arc.append(p)
+                a = a - step
+        else:
+            if end < start:
+                end = end + 360
+            step = (end - start) / steps
+            a = start
+            print(f"line_arc right: {start}, {end}, (+) {step}", file=output)
+            while a < end:
+                p = destination(center, radius, a + 180)
+                arc.append(p)
+                a = a + step
+        return arc
+
+    def report_log(out):
+        contents = out.getvalue()
+        out.close()
+        if DEBUG_STANDARD_TURNS:
+            logger.debug(contents)
+
+    print(f"\n{l0}, {l1}, r={radius}", file=output)
+
     p_start = Feature(geometry=Point(l0.coordinates[0]))
     p_turn = Feature(geometry=Point(l0.coordinates[1]))
     p_end = Feature(geometry=Point(l1.coordinates[1]))
     b_in = bearing(p_start, p_turn)
     b_out = bearing(p_turn, p_end)
 
+    # Basic checks and exclusion of border cases
+    r = 1.5 * radius / 1000
+    d_in = distance(p_start, p_turn, units="km")
+    d_out = distance(p_turn, p_end, units="km")
+    if d_in < r or d_out < r:
+        print(f"segment too small l_in={round(d_in, 3)}, l_out={round(d_out, 3)}km (r={radius})", file=output)
+        report_log(output)
+        return None
+
     turnAngle = new_turn(b_in, b_out)
+    # Eliminate almost straight turns
+    if abs(turnAngle) < 10:
+        print(f"small turn, skipping (turn={turnAngle:f}°)", file=output)
+        report_log(output)
+        return None
+
     turnAngleExtra = min(turnAngle * 1.5, 180)
     b_out_old = b_out
     b_out = b_in + turnAngleExtra
-    logger.debug(f"b_in={b_in}, b_out: {b_out_old}, turn={turnAngle}, extra={turnAngleExtra}, new_b_out: {b_out}")
+    print(f"b_in={b_in}, b_out: {b_out_old}, turn={turnAngle}, extra={turnAngleExtra}, new_b_out: {b_out}", file=output)
 
     # angle vertex
-    radius = r / 1000
+    r = radius / 1000
     v = Feature(geometry=Point(l0.coordinates[1]))
-    c1 = destination(v, radius, b_in + sign(turnAngle) * 90)
-    arc1 = new_line_arc(c1, radius, b_in+90, b_out+90, sign(turnAngle), 8)
-    if arc1 is None or len(arc1) < 1:
+    c1 = destination(v, r, b_in + sign(turnAngle) * 90)
+    arc1 = new_line_arc(c1, r, b_in+90, b_out+90, sign(turnAngle), 8)
+    if arc1 is None or len(arc1) == 0:
         logger.warning(f"no arc 1")
-        arc1 = []
-        return [c1]
+        report_log(output)
+        return None
 
     # from the last point, we draw a line to intersect the outline:
     straight = destination(arc1[-1], 20*radius, b_out)
@@ -245,14 +301,15 @@ def standard_turn_flyover(l0, l1, r):
     intersect = line_intersect(Feature(geometry=l1), l2)
     if intersect is None:
         logger.warning("no intersect")
-        return [c1, l2] + arc1
+        report_log(output)
+        return None
     join = LineString([arc1[-1].geometry.coordinates, intersect.geometry.coordinates])
     left = LineString([intersect.geometry.coordinates, l1.coordinates[1]])
-    arc2 = standard_turn_flyby(join, left, r)
+    arc2 = standard_turn_flyby(join, left, radius, soft=True)
     if arc2 is None:
         logger.warning(f"no arc 2")
-        arc2 = []
+        report_log(output)
+        return None
 
-    ret = [c1, l2] + arc1 + arc2
-    print(">>>", ret)
+    ret = arc1 + arc2
     return ret

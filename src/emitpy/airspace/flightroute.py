@@ -109,8 +109,49 @@ class FlightRoute:
             if self.flight_plan is not None and self.flight_plan.found():
                 self._convertToGeoJSON()
             else:
-                logger.warning(f"!!!!! no route from {self.fromICAO} to {self.toICAO} !!!!!")
+                cnt = 10
+                logger.warning(f"{'>' * cnt} no route from {self.fromICAO} to {self.toICAO} {'<' * cnt}")
 
+        logger.debug(f"..done")
+
+
+    def makeGreatCircleFlightRoute(self):
+        """
+        Builds the flight route between fromICAO and toICAO airports.
+        """
+        a = self.getAirspace()
+
+        if a is None:  # force fetch from flightplandb
+            logger.warning("no airspace")
+            return None
+
+        # Resolving airports
+        origin = a.getAirportICAO(self.fromICAO)
+        if origin is None:
+            logger.warning(f"cannot get airport {self.fromICAO}")
+            return None
+        destination = a.getAirportICAO(self.toICAO)
+        if destination is None:
+            logger.warning(f"cannot get airport {self.toICAO}")
+            return None
+
+        # Resolving network
+        s = a.nearest_vertex(point=origin, with_connection=True)
+        if s is None or s[0] is None:
+            logger.warning(f"cannot get nearest point to {self.fromICAO}")
+            return None
+        e = a.nearest_vertex(point=destination, with_connection=True)
+        if e is None or e[0] is None:
+            logger.warning(f"cannot get nearest point to {self.toICAO}")
+            return None
+
+        # Routing
+        logger.debug(f"from {s[0].id} to {e[0].id}..")
+        if s[0] is not None and e[0] is not None:
+            self.flight_plan = Route(a, s[0].id, e[0].id, auto=False)
+            self.flight_plan.direct()
+            self._convertToGeoJSON()
+            logger.warning(f"direct route from {self.fromICAO} to {self.toICAO}")
         logger.debug(f"..done")
 
 
