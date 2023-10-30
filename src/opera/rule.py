@@ -2,9 +2,18 @@ import logging
 import csv
 import json
 import re
-from emitpy.geo.turf import point_in_polygon
+from enum import Enum
+
+from emitpy.geo.turf import point_in_polygon, line_intersect_polygon
 
 logger = logging.getLogger("rule")
+
+
+class Actions(Enum):
+    ENTER = "enter"
+    EXIT = "exit"
+    TRAVERSE = "traverse"
+    STOPPED = "stopped"
 
 
 class Event:
@@ -14,6 +23,8 @@ class Event:
     """
 
     def __init__(self, aois: [], action: str, vehicles: str = "*", notes: str = None):
+        self._rule = None
+        self._start = False
         self.aois = aois
         self.action = action
         self.vehicles = vehicles
@@ -22,15 +33,21 @@ class Event:
     def init(self):
         pass
 
-    def match(self, position, last_position) -> bool:
-        aircraft = position.getPropPath("$.flight.aircraft.identity")
-        if re.match(self.vehicles, aircraft):
-            m = filter(lambda x: point_in_polygon(position, x), self.aois)
-            r = len(list(m))
-            print(f"match: {r}")
-            return r > 0
-        print(f"not a valid vehicle")
-        return False
+    def set_rule(self, rule):
+        self._rule = rule
+
+    def set_start(self, start):
+        self._start = start
+
+    def is_start(self) -> bool:
+        return self._start
+
+    def inside(self, position) -> list:
+        return list(filter(lambda aoi: point_in_polygon(position, aoi), self.aois))
+
+    def crossed(self, line) -> list:
+        # Note: line_intersect_polygon returns the number of points of intersection
+        return list(filter(lambda aoi: line_intersect_polygon(line=line, polygon=aoi) > 0, self.aois))
 
 
 class Rule:
@@ -45,6 +62,9 @@ class Rule:
         self.timeout = timeout
         self.name = name
         self.notes = notes
+        self.start.set_rule(self)
+        self.start.set_start(True)
+        self.end.set_rule(self)
 
     def promise(self, position, last_position):
         if self.start.match(position, last_position):

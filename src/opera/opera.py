@@ -31,14 +31,13 @@ class Opera:
 
         self.aois = {}
         self.all_aois = []
-        self.rules = []
-        self.vehicle_events = {}
+        self.rules = {}
+        self.vehicle_events = {}  # simpler access for vehicles
 
         # Working variables
         self.airport_perimeter = None
         self.vehicles = {}
 
-        self._last_pos = {}  # { vehicle_identity : position }
         self._promises = []
 
         # Result variables
@@ -51,6 +50,7 @@ class Opera:
         self.airport_perimeter = mkFeature(list(filter(lambda f: f["id"] == "OTHH:aerodrome:aerodrome:perimeter", self.all_aois))[0])
         self.load_rules()
         self._inited = True
+        return self._inited
 
     def load_aois(self):
         # will get aois from airport later
@@ -72,18 +72,18 @@ class Opera:
 
                 timeout = float(row["timeout"]) if row["timeout"] != "" else 0
 
-                aois_start = filter(lambda f: re.match(row["area1"], f.get("id", "")), self.all_aois)
-                logger.debug(f"{len(list(aois_start))} aois_start")
+                aois_start = list(filter(lambda f: re.match(row["area1"], f.get("id", "")), self.all_aois))
+                logger.debug(f"{len(aois_start)} aois_start")
                 start_event = Event(vehicles=vehicles, action=row["action1"], aois=aois_start)
                 vevents.append(start_event)
 
-                aois_end = filter(lambda f: re.match(row["area2"], f.get("id", "")), self.all_aois)
-                logger.debug(f"{len(list(aois_end))} aois_end")
+                aois_end = list(filter(lambda f: re.match(row["area2"], f.get("id", "")), self.all_aois))
+                logger.debug(f"{len(aois_end)} aois_end")
                 end_event = Event(vehicles=vehicles, action=row["action2"], aois=aois_end)
                 vevents.append(end_event)
 
                 rule = Rule(name=row["name"], start=start_event, end=end_event, timeout=timeout, notes=row["note"])
-                self.rules.append(rule)
+                self.rules[rule.name] = rule
                 self.vehicle_events[vehicles] = vevents
 
         logger.debug(f"{len(self.rules)} rules loaded")
@@ -134,8 +134,9 @@ class Opera:
 
         # Ask vehicle to report events
         for f in positions_at_airport:
-            events = vehicle.at(f)
-            # From events, check is new promise or resolve
+            messages = vehicle.at(f)
+            # From messages, check is new promise or resolve
+        logger.debug(f"total: generated {len(vehicle.messages)} messages")
 
 
 if __name__ == "__main__":
