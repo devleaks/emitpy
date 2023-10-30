@@ -8,6 +8,8 @@ from emitpy.geo.turf import point_in_polygon, line_intersect_polygon
 
 logger = logging.getLogger("rule")
 
+TIME_PROPERTY = "emit-absolute-time"
+
 
 class Actions(Enum):
     ENTER = "enter"
@@ -23,10 +25,10 @@ class Event:
     """
 
     def __init__(self, aois: [], action: str, vehicles: str = "*", notes: str = None):
-        self._rule = None
+        self.rule = None
         self._start = False
         self.aois = aois
-        self.action = action
+        self.action = action  # class Actions
         self.vehicles = vehicles
         self.notes = notes
 
@@ -34,7 +36,7 @@ class Event:
         pass
 
     def set_rule(self, rule):
-        self._rule = rule
+        self.rule = rule
 
     def set_start(self, start):
         self._start = start
@@ -62,6 +64,7 @@ class Rule:
         self.timeout = timeout
         self.name = name
         self.notes = notes
+        self._resolved = False
         self.start.set_rule(self)
         self.start.set_start(True)
         self.end.set_rule(self)
@@ -78,16 +81,23 @@ class Promise:
     [description]
     """
 
-    def __init__(self, rule: Rule, position: dict):
+    def __init__(self, rule: Rule, position):
         self.rule = rule
         self.position = position
 
-        self.ts = position.getAbsoluteEmissionTime()
+        self.ts = position.getProp(TIME_PROPERTY)
 
-    def resolve(self, position):
-        if self.rule.end.match(position):
-            return Resolve(promise=self, position=position)
-        return None
+    def reset_timestamp(self, ts):
+        self.ts = ts
+
+    def is_expired(self, ts):
+        return (self.ts + self.rule.timeout) < ts
+
+    def resolved(self):
+        self._resolved = True
+
+    def is_resolved(self, position):
+        return self._resolved
 
 
 class Resolve:
@@ -96,10 +106,10 @@ class Resolve:
     [description]
     """
 
-    def __init__(self, promise: Promise, position: dict):
+    def __init__(self, promise: Promise, position):
         self.promise = promise
         self.position = position
-        self.ts = position.getAbsoluteEmissionTime()
+        self.ts = position.getProp(TIME_PROPERTY)
 
     def analyze(self) -> dict:
         # what gets saved for further analysis

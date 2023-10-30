@@ -4,13 +4,16 @@ import glob
 import csv
 import json
 import re
+import io
 import sys
 
 sys.path.append("../../src")
 
-from emitpy.geo import FeatureWithProps, point_in_polygon, line_intersect_polygon, mkFeature
+from tabulate import tabulate
 
-from rule import Rule, Event
+from emitpy.geo import FeatureWithProps, point_in_polygon, mkFeature
+
+from rule import Rule, Event, TIME_PROPERTY
 from aoi import AreasOfInterest
 from vehicle import Vehicle
 
@@ -121,11 +124,12 @@ class Opera:
             logger.debug("vehicle has no icao24")
             return
         vehicle = self.vehicles.get(vehicle_id, Vehicle(identifier=vehicle_id))
+        self.vehicles[vehicle.identifier] = vehicle
         logger.debug(f"vehicle is {vehicle.identifier}")
 
         # Filter only position at or around airport perimeter
         positions_at_airport = filter(lambda f: point_in_polygon(f, self.airport_perimeter), positions)
-        positions_at_airport = sorted(positions_at_airport, key=lambda x: x.getProp("emit-absolute-time"))
+        positions_at_airport = sorted(positions_at_airport, key=lambda x: x.getProp(TIME_PROPERTY))
         logger.debug(f"processing {len(list(positions_at_airport))}/{len(positions)}")
 
         # Sets what the vehicle has to report
@@ -135,8 +139,24 @@ class Opera:
         # Ask vehicle to report events
         for f in positions_at_airport:
             messages = vehicle.at(f)
-            # From messages, check is new promise or resolve
-        logger.debug(f"total: generated {len(vehicle.messages)} messages")
+
+        logger.debug(f"total: resolved {len(self.rules)} rules {len(vehicle.resolves)} times for {len(self.vehicles)} vehicles")
+        self.save()
+
+    def save(self):
+        """Saves all resolved rules to file for later processing with all details.
+
+        Would be a confortable pandan DataFrame
+        """
+        output = io.StringIO()
+        print("\n", file=output)
+        print(f"RESOLVED RULES", file=output)
+        headers = ["rule", "relative", "time"]
+        table = []
+        print(tabulate(table, headers=headers), file=output)
+        contents = output.getvalue()
+        output.close()
+        logger.debug(f"{contents}")
 
 
 if __name__ == "__main__":

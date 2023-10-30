@@ -3,7 +3,7 @@ import re
 
 from turf import Feature, LineString, Point, distance
 
-from rule import Event
+from rule import Event, Promise, Resolve, TIME_PROPERTY
 from aoi import AreasOfInterest
 
 logger = logging.getLogger("vehicle")
@@ -20,6 +20,8 @@ class Vehicle:
         self._ident = None
         self.identifier = identifier
 
+        self._opera = None
+
         # Data relative to positions
         self.last_position = None
         self.position = None
@@ -27,11 +29,13 @@ class Vehicle:
         self.inside = {}
         self.stopped = False
 
-        # Rules
+        # Events
         self.events = []  # Rules that apply to this vehicle
         self.messages = []
 
-        self._opera = None
+        # Rules
+        self.promises = {}
+        self.resolves = []
 
     def ident(self):
         return self._ident
@@ -57,6 +61,32 @@ class Vehicle:
         far = distance(self.last_position, self.position)
         print(">>", far)
         return far < STOPPED_DISTANCE_THRESHOLD
+
+    def promise(self, message):
+        key = message.event.rule.name
+        if key not in self.promises.keys():
+            self.promises[key] = Promise(message.event.rule, self.position)
+            logger.debug(f"created a promise for rule {message.event.rule.name} for vehicle {self.ident()}")
+        else:
+            self.promises[key].reset_timestamp(self.position.getProp(TIME_PROPERTY))
+
+    def resolve(self, message):
+        # we have an end-event for all these promises
+        promises = filter(lambda p: p.rule.name == message.event.rule.name, self.promises.values())
+        for p in promises:
+            if not p.is_expired(self.position.getProp(TIME_PROPERTY)):
+                resolve = Resolve(p, self.position)
+                p.resolved()
+                self.resolves.append(resolve)
+                logger.debug(f"resolved {p.rule.name} for vehicle {self.ident()}")
+            else:
+                logger.debug(f"promise {p.rule.name} is expired")
+
+    def process(self, message):
+        if message.event.is_start():
+            self.promise(message)
+        else:
+            self.resolve(message)
 
     def at(self, position):
         self.last_position = self.position
@@ -109,9 +139,12 @@ class Vehicle:
                                 messages.append(msg)
                             logger.debug(f"{len(self.inside)} stopped")
 
-        self.messages = self.messages + messages
         logger.debug(f"added {len(messages)} messages")
-        return messages
+        self.messages = self.messages + messages
+
+        # 2. Check for promise/resolve
+        for message in messages:
+            self.process(message)
 
 
 class Message:
