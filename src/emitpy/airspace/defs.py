@@ -71,7 +71,9 @@ AIRSPACE_TYPES = {
 
 APPROACH_FIX_TYPES = {
     "IAF": "Initial Approach Fix",
+    "IF": "Initial Approach Fix",
     "FAF": "Final Approach Fix",
+    "FF": "Final Approach Fix",
     "FACF": "Final Approach Course Fix",
     "MAP": "Missed Approach Point",
     "FEP": "Final Endpoint Fix",

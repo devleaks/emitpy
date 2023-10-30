@@ -98,12 +98,7 @@ def line_intersect(line1, line2):
 
 
 def asLineString(features):
-    # reduce(lambda num1, num2: num1 * num2, my_numbers, 0)
-    coords = []
-    for x in features:
-        coords.append(x.geometry.coordinates)
-    # coords = reduce(lambda x, coords: coords + x.geometry.coordinates, features, [])
-    return LineString(coords)
+    return LineString([f.geometry.coordinates for f in features])
 
 
 def asFeatureLineStringWithTimestamps(features: [FeatureWithProps]):
@@ -129,55 +124,9 @@ def asFeatureLineStringWithTimestamps(features: [FeatureWithProps]):
     )
 
 
-def asTrafficJSON(features: [FeatureWithProps]):
-    # {
-    #   "timestamp": 1527693698000,
-    #   "icao24": "484506",
-    #   "latitude": 52.3239704714,
-    #   "longitude": 4.7394234794,
-    #   "groundspeed": 155,
-    #   "track": 3,
-    #   "vertical_rate": 2240,
-    #   "callsign": "TRA051",
-    #   "altitude": 224
-    # }
-    js = []
-
-    c = features[0]  # constants
-    icao24 = c.getProp("icao24")
-    callsign = c.getProp("callsign")
-
-    for f in features:
-        if f.geometry["type"] == "Point":
-            js.append(
-                {
-                    "timestamp": f.getAbsoluteEmissionTime(),
-                    "icao24": icao24,
-                    "latitude": f.lat(),
-                    "longitude": f.lon(),
-                    "groundspeed": f.speed(),
-                    "track": f.heading(),
-                    "vertical_rate": f.vspeed(),
-                    "callsign": callsign,
-                    "altitude": f.altitude(),
-                }
-            )
-    return json.dumps(js)
-
-
-def ls_length(ls):
-    dist = 0
-    last = None
-    for coord in ls.geometry.coordinates:
-        if last is not None:
-            dist = dist + distance(Feature(Point(last)), Feature(Point(coord)))
-        last = coord
-    return dist
-
-
 def shortest_ls(lss):
     shortest = None
-    dist = inf
+    dist = math.inf
     for ls in lss:
         d = lsLength(ls)
         if d < dist:
@@ -187,16 +136,26 @@ def shortest_ls(lss):
 
 
 def cleanFeature(f):
-    """
-    Return a pure simple GeoJSON Feature (some libraries do not work if not fed with pure GeoJSON Feature)
+    """Return a pure simple GeoJSON Feature (some libraries do not work if not fed with pure GeoJSON Feature)
 
-    :param      f:    { parameter_description }
-    :type       f:    { type_description }
+    Args:
+        f ([type]): Feature to convert
+
+    Returns:
+        [type]: simpler Feature with just geomerty and propreties
     """
     return Feature(geometry=f.geometry, properties=f.properties)
 
 
 def cleanFeatures(fa):
+    """Return a list of pure simple GeoJSON Features
+
+    Args:
+        fa ([type]): Features to convert
+
+    Returns:
+        [Feature]: Converted features
+    """
     c = []
     for f in fa:
         c.append(cleanFeature(f))
@@ -247,14 +206,13 @@ def findFeaturesCWL(arr, criteria):
 
 
 def ls_length(ls: LineString):
-    # Compute length of a linestring
-    total = 0
-    start = ls.coordinates[0]
-    for i in range(1, len(ls.coordinates)):
-        d = distance(Point(start), Point(ls.coordinates[i]), units="m")
-        total = total + d
-        start = ls.coordinates[i]
-    return total
+    dist = 0
+    last = None
+    for coord in ls.geometry.coordinates:
+        if last is not None:
+            dist = dist + distance(Feature(Point(last)), Feature(Point(coord)))
+        last = coord
+    return dist
 
 
 def ls_point_at(ls: LineString, dist: float):

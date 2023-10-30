@@ -7,6 +7,7 @@ import os
 import io
 import json
 import logging
+from math import inf
 
 from datetime import datetime, timedelta, timezone
 
@@ -1451,3 +1452,76 @@ class Emit(Movement):
         logger.debug(f"resources not updated")
 
         return (True, "Emit::updateResources updated")
+
+    def synchronize(self, position, moment, do_print: bool = False):
+        """Synchronize emission with supplied 4D position
+
+        [description]
+
+        Args:
+            position ([Point]): Position point (lat, lon, alt)
+            moment ([datetime]): Moment of synchronization
+        """
+        # 1. Find closest point
+        emit_points = self.getEmitPoints()
+        closest = None
+        fpos = Feature(geometry=position)
+        dist = inf
+        for e in emit_points:
+            d = distance(fpos, e, units="meters")
+            if d < dist:
+                dist = d
+                closest = e
+        if closest is None:
+            return (False, "Emit::synchronize no close point")
+        # 2. Collect and adjust for distance to point
+        idx = emit_points.index(closest)
+        timefactor = 1
+        if idx < len(emit_points) - 2:
+            d1 = distance(fpos, emit_points[-1])
+            d2 = distance(emit_points[idx + 1], emit_points[-1])
+            if d2 < d1:
+                timefactor = -1
+                logger.debug(f"next point is closer, assuming we passed closest point")
+        offset = closest.getRelativeEmissionTime()
+        speed = closest.speed()
+        if speed > 0:
+            ttp = dist / speed
+            logger.warning(f"closest position at {round(dist)}m, {ttp}s at {speed}m/s")
+            offset = offset + (ttp * timefactor)
+        else:
+            logger.warning(f"closest position at {round(dist)}m, no speed")
+        # 3. Schedule
+        self.offset = offset
+        logger.debug(f"{self.offset_name} offset {self.offset} sec")
+        when = moment + timedelta(seconds=(-offset))
+        self.curr_starttime = when
+        logger.debug(f"emit_point starts at {when} ({when.timestamp()})")
+        self._scheduled_points = []  # brand new scheduling, reset previous one
+        for e in emit_points:
+            p = EmitPoint.new(e)
+            t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
+            if t is not None:
+                when = moment + timedelta(seconds=(t - offset))
+                p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
+                p.setProp(FEATPROP.EMIT_ABS_TIME_FMT.value, when.isoformat())
+                # logger.debug(f"done at {when.timestamp()}")
+            self._scheduled_points.append(p)
+        logger.debug(
+            f"emit_point finishes at {when} ({when.timestamp()}) ({len(self._scheduled_points)} positions)"
+        )
+        # now that we have "absolute time", we update the parent
+        ret = self.updateEstimatedTime(update_source=True)
+        if not ret[0]:
+            return ret
+        # May be should not do it here...
+        # ret = self.scheduleMessages(sync, moment)
+        # if not ret[0]:
+        #     return ret
+        # For debugging purpose only:
+        if do_print:
+            dummy = self.getTimedMarkList()
+        return (True, "Emit::synchronize completed")
+
+    def test(self):
+        pass

@@ -1,3 +1,27 @@
+"""Summary
+
+Attributes:
+    a0 (TYPE): Description
+    beta (float): Description
+    fpm (TYPE): Description
+    ft (float): Description
+    g0 (float): Description
+    gamma (float): Description
+    gamma1 (float): Description
+    gamma2 (float): Description
+    inch (float): Description
+    kts (float): Description
+    lbs (float): Description
+    nm (float): Description
+    Numeric (TYPE): Description
+    p0 (float): Description
+    R (float): Description
+    Rearth (float): Description
+    rho0 (float): Description
+    sqft (float): Description
+    T0 (float): Description
+    Tstrat (float): Description
+"""
 # flake8: noqa
 """
 This module implements functions for aeronautics, conversions between:

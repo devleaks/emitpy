@@ -14,6 +14,10 @@ FT = 12 * 0.0254  # 1 foot = 12 inches
 NAUTICAL_MILE = 1.852  # Nautical mile in meters 6076.118ft=1nm. Easy.
 
 
+def sign(x):
+    return -1 if x < 0 else (0 if abs(x) == 0 else 1)
+
+
 def toNm(m):
     """
     Convert meter to nautical miles
@@ -66,50 +70,19 @@ def toKn(kmh):
     return kmh / NAUTICAL_MILE
 
 
+def toMs(kmh):
+    """
+    Convert kilometer per hours into meters/second
+
+    float kmh: speed in kilometers per hour
+
+    float:    speed in meters per second
+    """
+    return kmh / 3.6
+
+
 def toKmh(kn):
     return kn * NAUTICAL_MILE
-
-
-def convertAngleTo360(alfa):
-    """
-    Convert degree angle value to 0-359° value.
-
-    :param      alfa:  The alfa
-    :type       alfa:  { type_description }
-
-    :returns:   { description_of_the_return_value }
-    :rtype:     { return_type_description }
-    """
-    beta = alfa % 360
-    if beta < 0:
-        beta = beta + 360
-    return beta
-
-
-def turnAngle(bi, bo):
-    t = bi - bo
-    if t < 0:
-        t += 360
-    if t > 180:
-        t -= 360
-    return t
-
-
-def sign(x):
-    """
-    there is no sign function in python...
-
-    :param      x:    { Value to find sign for }
-    :type       x:    { number }
-
-    :returns:   { -1, 0, 1 }
-    :rtype:     { int }
-    """
-    if x < 0:
-        return -1
-    elif x > 0:
-        return 1
-    return 0
 
 
 def ConvertDMSToDD(degrees, minutes, seconds, direction):

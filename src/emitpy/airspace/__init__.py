@@ -11,4 +11,4 @@ from .aerospace import (
 )
 from .xpaerospace import XPAerospace
 from .procedure import CIFP
-from .flightroute import FlightRoute
+from .flightroute import FlightRoute, FlightPlan

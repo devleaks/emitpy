@@ -1,18 +1,21 @@
-# CamelName to camel_name
+# Convert strings between different case patterns
+
+
 def CamelToSnake(s):
+    """CamelName to camel_name"""
     return "".join(["_" + i.lower() if i.isupper() else i for i in s]).lstrip("_")
 
 
-# camel_name to CamelName
 def SnakeToCamel(s):
+    """camel_name to CamelName"""
     return "".join(map(str.title, s.split("_")))
 
 
-# CamelName to camel-name
 def CamelToKebab(s):
+    """CamelName to camel-name"""
     return "".join(["-" + i.lower() if i.isupper() else i for i in s]).lstrip("-")
 
 
-# camel-name to CamelName
 def KebabToCamel(s):
+    """camel-name to CamelName"""
     return "".join(map(str.title, s.split("-")))

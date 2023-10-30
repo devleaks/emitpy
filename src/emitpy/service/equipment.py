@@ -9,6 +9,7 @@ import re
 
 from emitpy.business import Identity, Company
 from emitpy.constants import DEFAULT_VEHICLE, DEFAULT_VEHICLE_ICAO, EQUIPMENT
+from emitpy.utils import toMs
 
 logger = logging.getLogger("Equipment")
 
@@ -43,9 +44,9 @@ class Equipment(Identity):
         self.next_position = None
 
         self.speed = {
-            "slow": 5 / 3.6,  # km/h to m/s
-            "normal": 30 / 3.6,
-            "fast": 50 / 3.6,
+            "slow": toMs(kmh=5),  # km/h to m/s
+            "normal": toMs(kmh=30),
+            "fast": toMs(kmh=50),
         }
 
         # Good handling

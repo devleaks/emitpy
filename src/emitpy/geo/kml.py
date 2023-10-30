@@ -1,8 +1,17 @@
 # Creates KML 3D flight path for visualisation in Google Earth or alike
+from typing import List
 from emitpy.geo.turf import Feature
 
 
 def header(name: str, desc: str):
+    """Create XML header for KML
+    Args:
+        name (str): Title of KML file
+        desc (str): Optional description of file content
+
+    Returns:
+        str: KML formatted string (XML)
+    """
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
     <Document>
@@ -27,6 +36,10 @@ def header(name: str, desc: str):
 
 
 def footer():
+    """Create XML footer for KML
+    Returns:
+        str: KML formatted string (XML)
+    """
     return """                </coordinates>
             </LineString>
         </Placemark>
@@ -35,14 +48,19 @@ def footer():
 """
 
 
-def toKML(path: [Feature]):
-    kml = header("Flight Path", "Emitpy Flight Path")
+def toKML(path: List[Feature]):
+    """Convert list of features to KML for Google Earth
+    Args:
+        path (List[Feature]): List of Features to convert
 
+    Returns:
+        str: KML string
+    """
+    kml = header("Flight Path", "Emitpy Flight Path")
     for f in path:
         # -117.184650,34.627964,980
         if f.geometry.type == "Point" and len(f.geometry.coordinates) > 2:
             c = f.geometry.coordinates
             kml = kml + f"{c[0]},{c[1]},{round(c[2], 3)}\n"
-
     kml = kml + footer()
     return kml

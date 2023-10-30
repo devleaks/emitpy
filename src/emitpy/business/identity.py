@@ -1,3 +1,6 @@
+# See https://www.ibm.com/docs/en/mapms/1_cloud?topic=devices-about
+# for explanation on identifiers. Add a bit of history.
+# Note: The fourth element, <deviceId> has been renamed <name>.
 #
 import json
 from datetime import datetime, timezone
@@ -19,10 +22,10 @@ class IDENTIFIER(Enum):
     and all reolocalized objects.
     """
 
-    orgId = "orgId"
-    classId = "classId"
-    typeId = "typeId"
-    name = "name"
+    orgId = "orgId"  # orgId
+    classId = "classId"  # classId
+    typeId = "typeId"  # deviceType
+    name = "name"  # deviceId
 
 
 class Identity:
@@ -46,22 +49,11 @@ class Identity:
     @classmethod
     def new(cls, orgId: str, classId: str, typeId: str, name: str):
         thisone = Identity.mkId(orgId=orgId, classId=classId, typeId=typeId, name=name)
-        return (
-            ALL_IDENTITIES[thisone]
-            if thisone in ALL_IDENTITIES.keys()
-            else cls(orgId=orgId, classId=classId, typeId=typeId, name=name)
-        )
+        return ALL_IDENTITIES[thisone] if thisone in ALL_IDENTITIES.keys() else cls(orgId=orgId, classId=classId, typeId=typeId, name=name)
 
     @staticmethod
     def mkId(orgId: str, classId: str, typeId: str, name: str):
-        return ID_SEP.join(
-            [
-                orgId.replace(ID_SEP, ID_SEP_ALT),
-                classId.replace(ID_SEP, ID_SEP_ALT),
-                typeId.replace(ID_SEP, ID_SEP_ALT),
-                name,
-            ]
-        )
+        return ID_SEP.join([orgId.replace(ID_SEP, ID_SEP_ALT), classId.replace(ID_SEP, ID_SEP_ALT), typeId.replace(ID_SEP, ID_SEP_ALT), name])
 
     @staticmethod
     def split(ident: str):
@@ -78,24 +70,10 @@ class Identity:
             ALL_IDENTITIES[thisone] = self
 
     def getIdentity(self, asArray: bool = False):
-        return (
-            self.getInfo()
-            if asArray
-            else Identity.mkId(
-                orgId=self.orgId,
-                classId=self.classId,
-                typeId=self.typeId,
-                name=self.name,
-            )
-        )
+        return self.getInfo() if asArray else Identity.mkId(orgId=self.orgId, classId=self.classId, typeId=self.typeId, name=self.name)
 
     def getInfo(self):
-        return {
-            "orgId": self.orgId,
-            "classId": self.classId,
-            "typeId": self.typeId,
-            "name": self.name,
-        }
+        return {"orgId": self.orgId, "classId": self.classId, "typeId": self.typeId, "name": self.name}
 
     def getId(self):
         return self.getIdentity()
@@ -110,21 +88,12 @@ class Identity:
         :param      redis:  The redis
         :type       redis:  { type_description }
         """
-        redis.set(
-            key_path(REDIS_DATABASE.UNKNOWN.value, self.getKey()),
-            json.dumps(self.getInfo()),
-        )
+        redis.set(key_path(REDIS_DATABASE.UNKNOWN.value, self.getKey()), json.dumps(self.getInfo()))
         return (True, f"{type(self).__name__}::save: saved")
 
 
 class FlightId:
-    def __init__(
-        self,
-        airline: str,
-        flight_number: str,
-        scheduled: "datetime",
-        flight: str = None,
-    ):
+    def __init__(self, airline: str, flight_number: str, scheduled: "datetime", flight: str = None):
         self.airline = airline
         self.flight_number = flight_number
         self.scheduled = scheduled
@@ -132,27 +101,12 @@ class FlightId:
 
     def getId(self, use_localtime: bool = False):
         if use_localtime:
-            return (
-                self.airline
-                + self.flight_number
-                + "-S"
-                + self.scheduled.strftime(FLIGHT_TIME_FORMAT)
-            )
-        return (
-            self.airline
-            + self.flight_number
-            + "-S"
-            + self.scheduled.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
-        )
+            return self.airline + self.flight_number + "-S" + self.scheduled.strftime(FLIGHT_TIME_FORMAT)
+        return self.airline + self.flight_number + "-S" + self.scheduled.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
 
     @staticmethod
     def makeId(airline: str, flight_number: str, scheduled: "datetime"):
-        return (
-            airline
-            + flight_number
-            + "-S"
-            + scheduled.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
-        )
+        return airline + flight_number + "-S" + scheduled.astimezone(tz=timezone.utc).strftime(FLIGHT_TIME_FORMAT)
 
     @staticmethod
     def parseId(flight_id):
@@ -165,12 +119,7 @@ class FlightId:
         """
         a = flight_id.split("-")
         scheduled_utc = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT)
-        return {
-            "airline": a[0][0:2],
-            "flight_number": a[2:],
-            "scheduled": scheduled_utc,
-            "flight": a[0],
-        }
+        return {"airline": a[0][0:2], "flight_number": a[2:], "scheduled": scheduled_utc, "flight": a[0]}
 
     @classmethod
     def new(cls, flight_id: str):

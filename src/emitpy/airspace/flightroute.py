@@ -1,8 +1,10 @@
 #
 import logging
 import copy
+import typing
+from typing import List
 
-from emitpy.geo.turf import Feature, LineString, Point, FeatureCollection
+from emitpy.geo.turf import Feature, LineString, FeatureCollection
 
 from emitpy.graph import Route
 
@@ -10,9 +12,138 @@ from emitpy.graph import Route
 logger = logging.getLogger("FlightRoute")
 
 
+class FlightPlan:
+    """Flight plan data
+
+    A FlightPlan is a set of minimal data, mostly optional, that is supplied
+    to the FlightRouteFilnder to set a few choices.
+    It is used to build the lateral navigation.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        departure: str,
+        arrival: str,
+        departure_rwy: typing.Optional[str] = None,
+        sid: typing.Optional[str] = None,
+        cruise_alt: typing.Optional[str] = None,
+        waypoints: List[str] = [],
+        star: typing.Optional[str] = None,
+        appch: typing.Optional[str] = None,
+        final: typing.Optional[str] = None,
+        arrival_rwy: typing.Optional[str] = None,
+    ):
+        """Create a new flight plan
+
+        Minimal information is departure and arrival airport,
+        one of which is expected to be the Managed Airport.
+        Missing information will be more or less randomly seleccted,
+        or using external information (weather).
+
+        Args:
+            name (str): Flight number
+            departure (str): Departure airport
+            arrival (str): Arrival airport
+            waypoints (List[str] = []): List of waypoints in the flight plan
+            departure_rwy (typing.Optional[str]): Departure runway
+            sid (typing.Optional[str]): Departure SID procedure
+            cruise_alt (typing.Optional[str]): Cruising altitude
+            star (typing.Optional[str]): Arrival STAR procedure
+            appch (typing.Optional[str]): Arrival approach procedure
+            final (typing.Optional[str]): Arrival final procedure
+            arrival_rwy (typing.Optional[str]): Arrival runway
+        """
+        self.name = name
+        self.aerospace = None
+        self.managedAirport = None
+        self._departure = departure
+        self._arrival = arrival
+        self._departure_rwy = departure_rwy
+        self._sid = sid
+        self._cruise_alt = cruise_alt
+        self._waypoints = waypoints
+        self._star = star
+        self._appch = appch
+        self._final = final
+        self._arrival_rwy = arrival_rwy
+        self._randomized = False
+
+    def __str__(self):
+        """Return flight plan in one liner
+
+        Example output:
+
+        EBBR LIRSU UZ315 RIDAR UZ738 UNKEN UL603 LATLO 4700N01400E KFT VALLU PODET L603 ZAG P735 VBA M19 ETIDA Q27 ARTAT UP975 NOLDO P975 SIDAD UP975 LONOS UL438 MOGAS OTHH
+
+        Returns:
+            [type]: [description]
+        """
+        plan = ""
+        return plan
+
+    def is_arrival(self, managedAirport):
+        return managedAirport.icao == self._arrival
+
+    def make(self, aerospace, managedAirport, use_random: bool = False) -> bool:
+        """Replace each input string with its airspace class equivalent.
+
+        [description]
+
+        Args:
+            airspace ([type]): Airspace for airports, airways, procedures...
+        """
+        self.aerospace = aerospace
+        self.managedAirport = managedAirport
+        self._randomized = use_random
+        return False
+
+    def parse(self, flightplan: str) -> bool:
+        """Attempt to parse elements from flight plan string.
+
+        Populate this class' attributes.
+
+        Args:
+            flightplan (str): Flight plan as one string, token separated by space.
+        """
+        fparr = flightplan.split()
+        if len(fparr) < 2:
+            logger.warning(f"insuficient way points ({len(fparr)})")
+            return False
+        f0 = fparr[0]
+        if f0.upper().endswith("(D)"):  # departure airport
+            self._departure = f0.replace("(D)", "")
+            del fparr[0]
+            logger.debug(f"set departure airport {self._departure}")
+        elif f0[-3:] in ["(P)", "(S)"]:
+            self._sid = f0[:-3]
+            del fparr[0]
+            logger.debug(f"set departure procedure SID {self._sid}")
+        elif self.aerospace.getAirportICAO(f0) is not None:
+            self._departure = f0
+            del fparr[0]
+            logger.debug(f"set departure airport {self._departure}")
+        f0 = fparr[-1]
+        if f0.upper().endswith("(A)"):  # departure airport
+            self._arrival = f0.replace("(A)", "")
+            del fparr[-1]
+            logger.debug(f"set arrival airport {self._arrival}")
+        elif f0[-3:] in ["(P)", "(S)"]:
+            self._star = f0[:-3]
+            del fparr[-1]
+            logger.debug(f"set arrival procedure STAR {self._star}")
+        elif self.aerospace.getAirportICAO(f0) is not None:
+            self._arrival = f0
+            del fparr[0]
+            logger.debug(f"set arrival airport {self._departure}")
+        self._waypoints = fparr
+        logger.debug(f"waypoints: {self._waypoints}")
+        return True
+
+
 class FlightRoute:
     """
-    A FlightRoute is a flight plan built at from navaid, fixes, and airways.
+    A FlightRoute is a flight plan built from navaid, fixes, and airways.
     If we do not find a route from departure to arrival, has_plan() returns False.
     """
 
@@ -163,6 +294,17 @@ class FlightRoute:
             self._convertToGeoJSON()
             logger.warning(f"direct route from {self.fromICAO} to {self.toICAO}")
         logger.debug(f"..done")
+
+    def makeFlightRouteFromPlan(self, flightplan: FlightPlan):
+        """Build a flight route from the information available in the flight plan.
+
+        If some information is missing, it is either selected randomly
+        of set according to besic rules.
+
+        Args:
+            flightplan (FlightPlan): [description]
+        """
+        logger.debug(f"NOT IMPLEMENTED ({flightplan})")
 
     def _convertToGeoJSON(self):
         """

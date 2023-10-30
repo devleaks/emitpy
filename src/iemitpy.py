@@ -3,7 +3,6 @@ import fnmatch
 import json
 import re
 import requests
-import sys
 import urllib.parse
 import logging
 import coloredlogs
@@ -17,14 +16,23 @@ logger = logging.getLogger("iemitpy")
 logging.addLevelName(5, "spam")
 
 coloredlogs.DEFAULT_FIELD_STYLES["levelname"] = {"color": "blue"}
-coloredlogs.DEFAULT_FIELD_STYLES["name"] = {"color": "white", "bold": False, "bright": True}
+coloredlogs.DEFAULT_FIELD_STYLES["name"] = {
+    "color": "white",
+    "bold": False,
+    "bright": True,
+}
 
 coloredlogs.DEFAULT_LEVEL_STYLES["spam"] = {"color": "red"}
 coloredlogs.DEFAULT_LEVEL_STYLES["info"] = {"color": "cyan", "bright": True}
 coloredlogs.DEFAULT_LEVEL_STYLES["debug"] = {"color": "white"}
 
 # %(levelname)s
-coloredlogs.install(level=logging.INFO, logger=logger, fmt="%(asctime)s %(name)s:%(message)s", datefmt="%H:%M:%S")
+coloredlogs.install(
+    level=logging.INFO,
+    logger=logger,
+    fmt="%(asctime)s %(name)s:%(message)s",
+    datefmt="%H:%M:%S",
+)
 
 
 # #########################
@@ -46,7 +54,9 @@ cmd_help = sub_parsers.add_parser("help", help="help, print this help", aliases=
 
 #
 # CREATE commands
-cmd_create = sub_parsers.add_parser("create", help="create queue, flight, service, or mission", aliases=["cre"])
+cmd_create = sub_parsers.add_parser(
+    "create", help="create queue, flight, service, or mission", aliases=["cre"]
+)
 create_parsers = cmd_create.add_subparsers(dest="what")
 
 # QUEUE
@@ -59,7 +69,9 @@ create_queue.add_argument("speed", type=float, nargs="?", default=1.0)
 
 # FLIGHT
 create_flight = create_parsers.add_parser("flight", help="create flights")
-create_flight.add_argument("move", type=str, choices=["arr", "dep", "arrival", "departure"])
+create_flight.add_argument(
+    "move", type=str, choices=["arr", "dep", "arrival", "departure"]
+)
 create_flight.add_argument("airline", type=str)
 create_flight.add_argument("flightnumber", type=str)
 create_flight.add_argument("date", type=str)
@@ -73,7 +85,11 @@ create_flight.add_argument("runway", type=str)
 create_flight.add_argument("loadfactor", type=float)
 create_flight.add_argument("emit_rate", type=float)
 create_flight.add_argument("queue", type=str)
-create_flight.add_argument("--doservice", action='store_true', help="creates services associated with this flight")
+create_flight.add_argument(
+    "--doservice",
+    action="store_true",
+    help="creates services associated with this flight",
+)
 
 # SERVICE
 create_service = create_parsers.add_parser("service", help="create services")
@@ -93,13 +109,17 @@ create_service.add_argument("queue", type=str)
 
 # MISSION
 create_mission = create_parsers.add_parser("mission", help="create services")
-create_mission.add_argument("mission_type", type=str, choices=["security", "fire", "emergency"])
+create_mission.add_argument(
+    "mission_type", type=str, choices=["security", "fire", "emergency"]
+)
 create_mission.add_argument("operator", type=str)
 create_mission.add_argument("name", type=str)
 create_mission.add_argument("date", type=str)
 create_mission.add_argument("time", type=str)
 create_mission.add_argument("svmodel", type=str)
-create_mission.add_argument("checkpoints", type=str, help="comma separated list of checkpoint names, no space")
+create_mission.add_argument(
+    "checkpoints", type=str, help="comma separated list of checkpoint names, no space"
+)
 create_mission.add_argument("svreg", type=str)
 create_mission.add_argument("svicao", type=str)
 create_mission.add_argument("emit_rate", type=float)
@@ -107,14 +127,24 @@ create_mission.add_argument("queue", type=str)
 
 #
 # Special FLIGHT SERVICES commands
-create_fltsvc = create_parsers.add_parser("flight_services", help="create all services associated with a flight", aliases=["fs"])
+create_fltsvc = create_parsers.add_parser(
+    "flight_services",
+    help="create all services associated with a flight",
+    aliases=["fs"],
+)
 create_fltsvc.add_argument("queue", type=str)
 create_fltsvc.add_argument("flight", type=str, help="flight name, no wild card")
 
 #
 # RE-EMIT commands
-create_emit = create_parsers.add_parser("emit", help="create new emission of existing flight, service, or mission")
-create_emit.add_argument("frequency", type=int, help="new frequency of emission as number of seconds bytween messages")
+create_emit = create_parsers.add_parser(
+    "emit", help="create new emission of existing flight, service, or mission"
+)
+create_emit.add_argument(
+    "frequency",
+    type=int,
+    help="new frequency of emission as number of seconds bytween messages",
+)
 create_emit.add_argument("queue", type=str, help="name of queue where to push emission")
 create_emit.add_argument("mark", type=str, help="synchronization mark")
 create_emit.add_argument("date", type=str, help="synchronization date")
@@ -123,18 +153,30 @@ create_emit.add_argument("name", type=str, help="movement to re-emit")
 
 #
 # RESCHEDULE commands
-resched_cmd = sub_parsers.add_parser("resched", help="reschedule a flight, a service, or a mission; for flights, optionnally also reschedule all associated services", aliases=["rs"])
+resched_cmd = sub_parsers.add_parser(
+    "resched",
+    help="reschedule a flight, a service, or a mission; for flights, optionnally also reschedule all associated services",
+    aliases=["rs"],
+)
 resched_cmd.add_argument("queue", type=str)
-resched_cmd.add_argument("movement", type=str, help="flight, service or mission name, no wild card")
+resched_cmd.add_argument(
+    "movement", type=str, help="flight, service or mission name, no wild card"
+)
 resched_cmd.add_argument("mark", type=str, help="synchronization mark")
 resched_cmd.add_argument("date", type=str, help="synchronization date")
 resched_cmd.add_argument("time", type=str, help="synchronization time")
-resched_cmd.add_argument("--doservice", action='store_true', help="reschedule services associated with rescheduled flight (only for flights, has no effect on services or missions)")
+resched_cmd.add_argument(
+    "--doservice",
+    action="store_true",
+    help="reschedule services associated with rescheduled flight (only for flights, has no effect on services or missions)",
+)
 
 #
 # LIST commands
 # (should probably be redone with proper subparsers for each list entity...)
-list_cmd = sub_parsers.add_parser("list", help="list all entities of same type", aliases=["ls"])
+list_cmd = sub_parsers.add_parser(
+    "list", help="list all entities of same type", aliases=["ls"]
+)
 list_what = {
     "flights": "/airport/flights",
     "services": "/airport/services",
@@ -156,22 +198,34 @@ list_what = {
     "models": "/airport/service-vehicle-models",
     "airlines": "/airport/airlines",
     "airports": "/airport/airports",
-    "marks": "/airport/emit/syncmarks"
+    "marks": "/airport/emit/syncmarks",
 }
 list_cmd.add_argument("what", type=str, choices=list_what.keys())
 list_cmd.add_argument("wildcard", type=str, default=None, nargs="?")
 
 #
 # DELETE commands
-del_cmd = sub_parsers.add_parser("delete", help="show details of an entity", aliases=["del"])
-del_cmd.add_argument("what", type=str, choices=["flight", "service", "mission", "queue"])
-del_cmd.add_argument("name", type=str, help="name of fligth, service, or missionto delete")
-del_cmd.add_argument("queue", type=str, help="name of queue to de-queue flight, service, or mission, or queue to delete")
+del_cmd = sub_parsers.add_parser(
+    "delete", help="show details of an entity", aliases=["del"]
+)
+del_cmd.add_argument(
+    "what", type=str, choices=["flight", "service", "mission", "queue"]
+)
+del_cmd.add_argument(
+    "name", type=str, help="name of fligth, service, or missionto delete"
+)
+del_cmd.add_argument(
+    "queue",
+    type=str,
+    help="name of queue to de-queue flight, service, or mission, or queue to delete",
+)
 
 
 #
 # REPLAY commands
-pias_cmd = sub_parsers.add_parser("pias", help="replaces flight, service, or mission in queue")
+pias_cmd = sub_parsers.add_parser(
+    "pias", help="replaces flight, service, or mission in queue"
+)
 pias_cmd.add_argument("what", type=str, choices=["flight", "service", "mission"])
 pias_cmd.add_argument("name", type=str, help="identifier of the emission to enqueue")
 pias_cmd.add_argument("queue", type=str, help="name of queue for enqueue")
@@ -196,7 +250,6 @@ queue_stop.add_argument("what", type=str, choices=["queue"])
 queue_stop.add_argument("name", type=str)
 
 
-
 def fltr(data, fe):
     reObj = None
 
@@ -215,7 +268,9 @@ def fltr(data, fe):
         print(f"total {len(data)}")
         logger.debug("is list..")
         e = data[0]
-        if type(e).__name__ == "list":  # probably a pair of things, typically for combo boxes
+        if (
+            type(e).__name__ == "list"
+        ):  # probably a pair of things, typically for combo boxes
             logger.debug("..of list")
             for e in data:
                 r = e
@@ -239,7 +294,7 @@ def pprint(r, fe=None):
         t = r.json()
         if "status" in t:
             if t["status"] != 0:
-                print("!"*10, r.request.url, r.request.method, "Returned error:")
+                print("!" * 10, r.request.url, r.request.method, "Returned error:")
                 print(t)
             else:
                 if "message" in t and t["message"] is not None:
@@ -250,9 +305,9 @@ def pprint(r, fe=None):
             fltr(t, fe)
 
     elif r.status_code != 500:
-        print(">"*10, r.status_code, r.request.url, r.request.method, r.json())
+        print(">" * 10, r.status_code, r.request.url, r.request.method, r.json())
     else:
-        print("*"*10, r.status_code, r.request.url, r.request.method)
+        print("*" * 10, r.status_code, r.request.url, r.request.method)
 
 
 loop = True
@@ -299,23 +354,15 @@ while loop:
             if parsed.command == "start":
                 verb = requests.put
                 url = "/queue/"
-                data = {
-                  "name": parsed.name,
-                  "start": True
-                }
+                data = {"name": parsed.name, "start": True}
             elif parsed.command == "stop":
                 verb = requests.put
                 url = "/queue/"
-                data = {
-                  "name": parsed.name,
-                  "start": False
-                }
+                data = {"name": parsed.name, "start": False}
             elif parsed.command == "reset":
                 verb = requests.put
                 url = "/queue/"
-                data = {
-                  "name": parsed.name
-                }
+                data = {"name": parsed.name}
             elif parsed.command in ["delete", "del"]:
                 verb = requests.delete
                 url = f"/queue/?name={urllib.parse.quote(parsed.name)}"
@@ -324,22 +371,19 @@ while loop:
                 verb = requests.post
                 url = "/queue/"
                 data = {
-                  "name": parsed.name,
-                  "formatter": parsed.format,
-                  "queue_date": parsed.date,
-                  "queue_time": parsed.time,
-                  "speed": parsed.speed,
-                  "start": True
+                    "name": parsed.name,
+                    "formatter": parsed.format,
+                    "queue_date": parsed.date,
+                    "queue_time": parsed.time,
+                    "speed": parsed.speed,
+                    "start": True,
                 }
 
         elif parsed.command in ["delete", "del"]:
             verb = requests.delete
             url = f"/{parsed.what}"
             name = f"{parsed.what}_id"
-            data = {
-                name: parsed.name,
-                "queue": parsed.queue
-            }
+            data = {name: parsed.name, "queue": parsed.queue}
 
         elif parsed.command in ["create", "cre"]:
             verb = requests.post
@@ -356,14 +400,14 @@ while loop:
                     "airport": parsed.airport,
                     "ramp": parsed.ramp,
                     "aircraft_type": parsed.actype,
-                    "aircraft_reg":parsed.acreg,
+                    "aircraft_reg": parsed.acreg,
                     "call_sign": parsed.actype,
                     "icao24": parsed.acicao,
                     "runway": parsed.runway,
                     "load_factor": parsed.loadfactor,
                     "emit_rate": parsed.emitrate,
                     "queue": parsed.queue,
-                    "create_services": parsed.doservice
+                    "create_services": parsed.doservice,
                 }
             elif parsed.what == "service":
                 data = {
@@ -380,7 +424,7 @@ while loop:
                     "service_date": parsed.date,
                     "service_time": parsed.time,
                     "emit_rate": parsed.emitrate,
-                    "queue": parsed.queue
+                    "queue": parsed.queue,
                 }
             elif parsed.what == "mission":
                 data = {
@@ -396,7 +440,7 @@ while loop:
                     "mission_date": parsed.date,
                     "mission_time": parsed.time,
                     "emit_rate": parsed.emitrate,
-                    "queue": parsed.queue
+                    "queue": parsed.queue,
                 }
             elif parsed.what == "flight_services":
                 data = {}
@@ -409,11 +453,12 @@ while loop:
         # DO IT
         if url is not None and url != "":
             if data is not None:
-                response = verb(BASE_URL + url, headers = {'api-key': API_KEY}, data=json.dumps(data))
+                response = verb(
+                    BASE_URL + url, headers={"api-key": API_KEY}, data=json.dumps(data)
+                )
             else:
-                response = verb(BASE_URL + url, headers = {'api-key': API_KEY})
+                response = verb(BASE_URL + url, headers={"api-key": API_KEY})
             pprint(response, wc)
-
 
     except argparse.ArgumentError:
         logger.error(f"invalid command '{s}'")

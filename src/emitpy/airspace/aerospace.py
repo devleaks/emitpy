@@ -11,7 +11,7 @@ import json
 from abc import ABC, abstractmethod
 from enum import Enum
 
-from emitpy.geo.turf import Point, LineString, Polygon, Feature
+from emitpy.geo.turf import Point, LineString, Feature
 from emitpy.geo.turf import distance, destination
 
 from emitpy.graph import Vertex, Edge, Graph

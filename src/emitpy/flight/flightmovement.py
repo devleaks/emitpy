@@ -26,7 +26,12 @@ from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT, MOVE_TY
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.message import FlightMessage
 
-from emitpy.utils import interpolate as doInterpolation, compute_time as doTime
+from emitpy.utils import (
+    interpolate as doInterpolation,
+    compute_time as doTime,
+    toKmh,
+    toMs,
+)
 from .standardturn import standard_turn_flyby, standard_turn_flyover
 
 logger = logging.getLogger("FlightMovement")
@@ -1176,8 +1181,8 @@ class FlightMovement(Movement):
         def turnRadius(speed):  # speed in m/s, returns radius in m
             return 120 * speed / (2 * pi)
 
-        def should_do_st(path, idx):
-            mark = path[idx].getProp(FEATPROP.MARK.value)
+        def should_do_st(f):
+            mark = f.getProp(FEATPROP.MARK.value)
             return mark not in [
                 FLIGHT_PHASE.TAKE_OFF.value,
                 "end_initial_climb",
@@ -1187,17 +1192,18 @@ class FlightMovement(Movement):
 
         # Init, keep local pointer for convenience
         move_points = []
-        last_speed = 100  # @todo: should fetch another reasonable value from aircraft performance.
+
+        # @todo: should fetch another reasonable value from aircraft performance.
+        last_speed = toMs(toKmh(kn=200))  # kn to km/h; and km/h to m/s
 
         # Add first point
         move_points.append(self._premoves[0])
 
         # Intermediate points
-        with open("test.geojson", "w") as fp:
-            json.dump(FeatureCollection(features=self._premoves).to_geojson(), fp)
-
+        # with open("test.geojson", "w") as fp:
+        #     json.dump(FeatureCollection(features=self._premoves).to_geojson(), fp)
         for i in range(1, len(self._premoves) - 1):
-            if not should_do_st(self._premoves, i):
+            if not should_do_st(self._premoves[i]):
                 logger.debug("skipping %d (special mark)" % (i))
                 move_points.append(self._premoves[i])
             else:
@@ -1207,11 +1213,12 @@ class FlightMovement(Movement):
                 lo = LineString(
                     [self._premoves[i].coords(), self._premoves[i + 1].coords()]
                 )
-                s = last_speed  # arrin[i].speed()
+
+                s = self._premoves[i].speed()
                 if s is None:
                     s = last_speed
-                arc = None
 
+                arc = None
                 if self._premoves[i].flyOver():
                     arc = standard_turn_flyover(
                         li, lo, turnRadius(s)
@@ -1224,6 +1231,7 @@ class FlightMovement(Movement):
                         arc = standard_turn_flyby(li, lo, turnRadius(s))
                 else:
                     arc = standard_turn_flyby(li, lo, turnRadius(s))
+
                 last_speed = s
 
                 if arc is not None:
@@ -1234,6 +1242,9 @@ class FlightMovement(Movement):
                             MovePoint(geometry=p.geometry, properties=mid.properties)
                         )
                 else:
+                    logger.debug(
+                        f"standard_turn_flyby failed, skipping standard turn ({i})"
+                    )
                     move_points.append(self._premoves[i])
 
         # Add last point too
