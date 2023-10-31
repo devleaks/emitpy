@@ -47,7 +47,6 @@ LOAD_AIRWAYS = True
 
 
 def BOOTSTRAP_REDIS():
-    NUM_ATTEMPTS = 3
     not_connected = True
     attempts = 0
     logger.debug("BOOTSTRAP_REDIS: connecting to Redis..")

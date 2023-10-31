@@ -1,10 +1,10 @@
 import logging
 import re
 
-from turf import Feature, LineString, Point, distance
+from turf import Feature, LineString, distance
 
-from rule import Event, Promise, Resolve
-from aoi import AreasOfInterest
+from opera.rule import Event, Promise, Resolve
+from opera.aoi import AreasOfInterest
 
 logger = logging.getLogger("vehicle")
 
@@ -98,9 +98,12 @@ class Vehicle:
         self.position = position
         self.inside = set()
         messages = []
+
         if self.last_position is not None and self.is_stopped():
             msg = Message(event=None, vehicle=self, aoi=None, position=self.position, last_position=None)
             messages.append(msg)
+            logger.debug(f"{self.get_id()} stopped")
+
         for event in self.events:
             if event.action in ["enter", "exit", "traverse"]:
                 inside = event.inside(position)
@@ -128,7 +131,7 @@ class Vehicle:
                                 messages.append(msg)
 
                         case "exit":
-                            res = set(filter(lambda aoi: aoi not in inside, self.last_inside))
+                            res = set(filter(lambda aoi: (aoi in event.aois) and (aoi not in inside), self.last_inside))
                             # logger.debug(f"{len(res)} exits")
                             for aoi in res:
                                 msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)
@@ -140,10 +143,11 @@ class Vehicle:
                             # logger.debug(f"{len(res)} crossed")
 
                         case "stopped":
-                            for aoi in self.inside:
-                                msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)
-                                messages.append(msg)
-                            # logger.debug(f"{len(self.inside)} stopped")
+                            if self.is_stopped():
+                                for aoi in self.inside:
+                                    msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)
+                                    messages.append(msg)
+                                # logger.debug(f"{len(self.inside)} stopped inside aoi")
 
         logger.debug(f"added {len(messages)} messages")
         self.messages = self.messages + messages

@@ -6,16 +6,19 @@ import json
 import re
 import io
 import sys
+from datetime import datetime
 
 sys.path.append("../../src")
 
 from tabulate import tabulate
 
 from emitpy.geo import FeatureWithProps, point_in_polygon, mkFeature
+from emitpy.parameters import MANAGED_AIRPORT_AODB
 
-from rule import Rule, Event
-from aoi import AreasOfInterest
-from vehicle import Vehicle
+
+from opera.rule import Rule, Event
+from opera.aoi import AreasOfInterest
+from opera.vehicle import Vehicle
 
 FORMAT = "%(levelname)1.1s%(module)15s:%(funcName)-15s%(lineno)4s| %(message)s"
 logging.basicConfig(level=logging.DEBUG, format=FORMAT)
@@ -23,7 +26,7 @@ logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger("Opera")
 
 
-class Opera:
+class OperaApp:
     """Opera is a coordination class that loads necessary data (areas of interest, rules)
     and monitor vehicle movement.
 
@@ -35,7 +38,7 @@ class Opera:
         self.airport = airport
 
         self.aois = {}
-        self.all_aois = []
+        self.all_aois = set()
         self.rules = {}
         self.vehicle_events = {}  # simpler access for vehicles
 
@@ -64,25 +67,31 @@ class Opera:
         for filename in glob.glob(gfs_dir):
             name = filename.replace(".geojson", "")
             self.aois[name] = AreasOfInterest(filename=filename, name=name)
-            self.all_aois = self.all_aois + self.aois[name].features
+            self.all_aois = self.all_aois.union(self.aois[name].features)
         logger.debug(f"{len(self.aois)} aois files loaded, {len(self.all_aois)} aois")
+
+    def select_aoi(self, pattern):
+        ret = set(filter(lambda f: re.match(pattern, f.get("id", "")), self.all_aois))
+        # logger.debug(f"{pattern} => {[f.get_id() for f in ret]}")
+        return ret
 
     def load_rules(self):
         with open("data/rules.csv", "r") as file:
             for row in csv.DictReader(file):
                 vehicles = row["vehicles"]
+                logger.debug(f"rule {row['name']} {vehicles}")
                 if vehicles == "" or vehicles == "*":
                     vehicles = "(.*)"  # re
                 vevents = self.vehicle_events.get(vehicles, [])
 
                 timeout = float(row["timeout"]) * 60 if row["timeout"] != "" else 0
 
-                aois_start = list(filter(lambda f: re.match(row["area1"], f.get("id", "")), self.all_aois))
+                aois_start = self.select_aoi(row["area1"])
                 logger.debug(f"{len(aois_start)} aois_start")
                 start_event = Event(vehicles=vehicles, action=row["action1"], aois=aois_start, aoi_selector=row["area1"])
                 vevents.append(start_event)
 
-                aois_end = list(filter(lambda f: re.match(row["area2"], f.get("id", "")), self.all_aois))
+                aois_end = self.select_aoi(row["area2"])
                 logger.debug(f"{len(aois_end)} aois_end")
                 end_event = Event(vehicles=vehicles, action=row["action2"], aois=aois_end, aoi_selector=row["area2"])
                 vevents.append(end_event)
@@ -143,31 +152,87 @@ class Opera:
             messages = vehicle.at(f)
 
         logger.debug(f"total: resolved {len(self.rules)} rules {len(vehicle.resolves)} times for {len(self.vehicles)} vehicles")
+        self.print()
         self.save()
 
-    def save(self):
+    def print(self):
         """Saves all resolved rules to file for later processing with all details.
 
         Would be a confortable pandan DataFrame
         """
+        table = []
+        for v in self.vehicles.values():
+            for r in v.resolves:
+                line = []
+                rule = r.promise.rule
+                line.append(rule.name)
+                line.append(rule.notes)
+                line.append(r.promise.vehicle.get_id())
+                line.append(rule.start.action)
+                line.append(r.promise.data.aoi.get_id())
+                line.append(rule.end.action)
+                line.append(r.data.aoi.get_id())
+                dt = datetime.fromtimestamp(r.promise.get_timestamp()).replace(microsecond=0)
+                line.append(dt)
+                line.append(round(r.get_timestamp() - r.promise.get_timestamp()))
+                table.append(line)
+        table = sorted(table, key=lambda x: x[0])
+
         output = io.StringIO()
         print("\n", file=output)
         print(f"RESOLVED RULES", file=output)
-        headers = ["rule", "relative", "time"]
-        table = []
+        headers = ["rule", "purpose", "vehicle", "start", "aoi", "end", "aoi", "time", "duration"]
         print(tabulate(table, headers=headers), file=output)
         contents = output.getvalue()
         output.close()
         logger.debug(f"{contents}")
 
+    def save(self):
+        DATABASE = "events"
+        basename = os.path.join(MANAGED_AIRPORT_AODB, DATABASE)
+        if not os.path.isdir(basename):
+            os.mkdir(basename)
+            logger.info(f"{basename} created")
+
+        headers = ["rule", "purpose", "vehicle", "start", "aoi", "end", "aoi", "time", "duration"]
+        table = []
+        table.append(headers)
+        for v in self.vehicles.values():
+            for r in v.resolves:
+                line = []
+                rule = r.promise.rule
+                line.append(rule.name)
+                line.append(rule.notes)
+                line.append(r.promise.vehicle.get_id())
+                line.append(rule.start.action)
+                line.append(r.promise.data.aoi.get_id())
+                line.append(rule.end.action)
+                line.append(r.data.aoi.get_id())
+                dt = datetime.fromtimestamp(r.promise.get_timestamp()).replace(microsecond=0)
+                line.append(dt)
+                line.append(round(r.get_timestamp() - r.promise.get_timestamp()))
+                table.append(line)
+            fn = os.path.join(basename, v.get_id() + ".csv")
+            with open(fn, "w") as fp:
+                writer = csv.writer(fp)
+                writer.writerows(table)
+
 
 if __name__ == "__main__":
-    opera = Opera(airport=None)
-    data = {}
-    with open("data/test.txt", "r") as file:
-        arr = file.readlines()
-        data = []
-        for a in arr:
-            data.append(json.loads(a))
-    data = [FeatureWithProps.new(p) for p in data]
-    opera.bulk_process(data)
+    DATABASE = "flights"
+    FILE_EXTENSION = "txt"
+
+    opera = OperaApp(airport=None)
+
+    basename = os.path.join(MANAGED_AIRPORT_AODB, DATABASE)
+    data_dir = os.path.join(basename, "*." + FILE_EXTENSION)
+    for filename in glob.glob(data_dir):
+        data = {}
+        print(filename)
+        with open(filename, "r") as file:
+            arr = file.readlines()
+            data = []
+            for a in arr:
+                data.append(json.loads(a))
+        data = [FeatureWithProps.new(p) for p in data]
+        opera.bulk_process(data)
