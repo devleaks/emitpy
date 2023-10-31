@@ -8,8 +8,6 @@ from emitpy.geo.turf import point_in_polygon, line_intersect_polygon
 
 logger = logging.getLogger("rule")
 
-TIME_PROPERTY = "emit-absolute-time"
-
 
 class Actions(Enum):
     ENTER = "enter"
@@ -19,18 +17,20 @@ class Actions(Enum):
 
 
 class Event:
-    """An Event is something to look for
+    """An Event is something to look for."""
 
-    [description]
-    """
-
-    def __init__(self, aois: [], action: str, vehicles: str = "*", notes: str = None):
+    def __init__(self, aois: [], action: str, vehicles: str = "*", notes: str = None, aoi_selector: str = None):
         self.rule = None
         self._start = False
-        self.aois = aois
+        self.aoi_selector = aoi_selector  # for information/debug
+        self.aois = aois  # Just the aois to check for this rule
         self.action = action  # class Actions
         self.vehicles = vehicles
         self.notes = notes
+        self.init()
+
+    def __str__(self):
+        return f"rule {self.rule.name} {'start' if self._start else 'end'} {self.vehicles} {self.action} {self.aoi_selector} ({self.notes})"
 
     def init(self):
         pass
@@ -49,6 +49,7 @@ class Event:
 
     def crossed(self, line) -> list:
         # Note: line_intersect_polygon returns the number of points of intersection
+        # To intersect, there must be at least a point of intersection (tangent) or more points.
         return list(filter(lambda aoi: line_intersect_polygon(line=line, polygon=aoi) > 0, self.aois))
 
 
@@ -69,10 +70,15 @@ class Rule:
         self.start.set_start(True)
         self.end.set_rule(self)
 
-    def promise(self, position, last_position):
-        if self.start.match(position, last_position):
-            return Promise(rule=self, position=position)
-        return None
+    def __str__(self):
+        return " ".join(
+            [
+                f"Rule {self.name}",
+                f"{self.start.vehicles} {self.start.action} {self.start.aoi_selector}",
+                f"{self.start.vehicles} {self.start.action} {self.start.aoi_selector}",
+                f"({self.notes})",
+            ]
+        )
 
 
 class Promise:
@@ -81,19 +87,29 @@ class Promise:
     [description]
     """
 
-    def __init__(self, rule: Rule, position):
+    def __init__(self, rule: Rule, vehicle: "Vehicle", position, data):
         self.rule = rule
+        self.vehicle = vehicle
         self.position = position
+        self.data = data
 
-        self.ts = position.getProp(TIME_PROPERTY)
+        self.ts = position.get_timestamp()
+
+    def get_timestamp(self):
+        """Returns precise timestamp of message, i.e. when vehicle interacted with aoi and initiated this promise"""
+        return self.data.get_timestamp()
 
     def reset_timestamp(self, ts):
         self.ts = ts
 
     def is_expired(self, ts):
+        ret = (self.ts + self.rule.timeout) < ts
+        if ret:
+            logger.debug(f"promise {self.rule.name} is expired: {self.ts} + {self.rule.timeout} = {self.ts + self.rule.timeout} < {ts}")
         return (self.ts + self.rule.timeout) < ts
 
     def resolved(self):
+        """Set if resolved at least once"""
         self._resolved = True
 
     def is_resolved(self, position):
@@ -106,11 +122,39 @@ class Resolve:
     [description]
     """
 
-    def __init__(self, promise: Promise, position):
+    def __init__(self, promise: Promise, position, data):
         self.promise = promise
         self.position = position
-        self.ts = position.getProp(TIME_PROPERTY)
+        self.data = data
+        self.ts = position.get_timestamp()
+        logger.debug(self)
+
+    def __str__(self):
+        rule = self.promise.rule
+        # return " ".join(
+        #     [
+        #         f"Resolve rule {rule.name}",
+        #         f"{rule.start.vehicles} {rule.start.action} {rule.start.aoi_selector}",
+        #         f"with {self.promise.vehicle.get_id()} {self.promise.data.aoi.get_id()}",
+        #         f"{rule.end.vehicles} {rule.end.action} {rule.end.aoi_selector}",
+        #         f"with {self.data.aoi.get_id()}",
+        #         f"(reason {rule.notes})",
+        #     ]
+        # )
+        return " ".join(
+            [
+                f"Resolve rule {rule.name} with {self.promise.vehicle.get_id()}",
+                f"{rule.start.action} {self.promise.data.aoi.get_id()} at {round(self.promise.get_timestamp(), 1)}",
+                f"{rule.end.action} {self.data.aoi.get_id()}",  #  at {self.get_timestamp()}
+                f"duration {round(self.get_timestamp()-self.promise.get_timestamp())}s (reason {rule.notes})",
+            ]
+        )
+
+    def get_timestamp(self):
+        """Returns precise timestamp of message, i.e. when vehicle interacted with aoi and initiated this resolve"""
+        return self.data.get_timestamp()
 
     def analyze(self) -> dict:
         # what gets saved for further analysis
-        return {}
+        rule = self.promise.rule
+        return {"rule": rule.name, "note": rule.notes, "vehicle": self.promise.vehicle.get_id()}

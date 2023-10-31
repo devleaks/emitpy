@@ -3,15 +3,15 @@ import re
 
 from turf import Feature, LineString, Point, distance
 
-from rule import Event, Promise, Resolve, TIME_PROPERTY
+from rule import Event, Promise, Resolve
 from aoi import AreasOfInterest
 
 logger = logging.getLogger("vehicle")
 
 
-class Position(Feature):
-    def __init__(self, lat, lon, alt, ts):
-        Feature.__init__(self, geom=Point((lon, lat, alt)), properties={"ts": ts})
+# class TimedPosition(Feature):
+#     def __init__(self, lat, lon, alt, ts):
+#         Feature.__init__(self, geom=Point((lon, lat, alt)), properties={"ts": ts})
 
 
 class Vehicle:
@@ -37,21 +37,21 @@ class Vehicle:
         self.promises = {}
         self.resolves = []
 
-    def ident(self):
+    def get_id(self):
         return self._ident
 
-    def set_ident(self, ident):
+    def set_id(self, ident):
         self._ident = ident
 
     def init(self, opera):
         self._opera = opera
         self.events = []
-        vmatch = list(filter(lambda f: bool(re.match(f, self.ident())), opera.vehicle_events.keys()))
+        vmatch = list(filter(lambda f: bool(re.match(f, self.get_id())), opera.vehicle_events.keys()))
         logger.debug(f"vehicle has {len(vmatch)} matching rules")
         for r in vmatch:
             self.events = self.events + opera.vehicle_events[r]
         logger.debug(f"vehicle has {len(self.events)} events")
-        self._inited = self.ident is not None
+        self._inited = self._ident is not None
 
     def is_stopped(self):
         STOPPED_DISTANCE_THRESHOLD = 0.005  # 5 meters
@@ -59,26 +59,26 @@ class Vehicle:
         if self.last_position is None:
             return False
         far = distance(self.last_position, self.position)
-        print(">>", far)
+        # logger.debug(far)
         return far < STOPPED_DISTANCE_THRESHOLD
 
     def promise(self, message):
         key = message.event.rule.name
         if key not in self.promises.keys():
-            self.promises[key] = Promise(message.event.rule, self.position)
-            logger.debug(f"created a promise for rule {message.event.rule.name} for vehicle {self.ident()}")
+            self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, position=message.position, data=message)
+            logger.debug(f"created a promise for rule {message.event.rule.name} for vehicle {self.get_id()}")
         else:
-            self.promises[key].reset_timestamp(self.position.getProp(TIME_PROPERTY))
+            self.promises[key].reset_timestamp(self.position.get_timestamp())
 
     def resolve(self, message):
         # we have an end-event for all these promises
         promises = filter(lambda p: p.rule.name == message.event.rule.name, self.promises.values())
         for p in promises:
-            if not p.is_expired(self.position.getProp(TIME_PROPERTY)):
-                resolve = Resolve(p, self.position)
+            if not p.is_expired(self.position.get_timestamp()):
+                resolve = Resolve(p, message.position, data=message)
                 p.resolved()
                 self.resolves.append(resolve)
-                logger.debug(f"resolved {p.rule.name} for vehicle {self.ident()}")
+                # logger.debug(f"resolved {p.rule.name} for vehicle {self.get_id()}")
             else:
                 logger.debug(f"promise {p.rule.name} is expired")
 
@@ -100,7 +100,7 @@ class Vehicle:
         for event in self.events:
             if event.action in ["enter", "exit", "traverse"]:
                 inside = event.inside(position)
-                logger.debug(f"{len(inside)} insides")  # we consider it entered all areas it is inside
+                # logger.debug(f"{len(inside)} insides")  # we consider it entered all areas it is inside
                 self.inside = self.inside + inside
                 # first position
                 if self.last_position is None:
@@ -111,19 +111,19 @@ class Vehicle:
                                 event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position
                             )  # note self.last_position = None
                             messages.append(msg)
-                            logger.debug(f"added new enter {len(inside)} messages")
+                        # logger.debug(f"added new enter {len(inside)} messages")
                 else:
                     match event.action:
                         case "enter":
                             res = list(filter(lambda aoi: aoi not in self.last_inside, inside))
-                            logger.debug(f"{len(res)} enters")
+                            # logger.debug(f"{len(res)} enters")
                             for aoi in res:
                                 msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)
                                 messages.append(msg)
 
                         case "exit":
                             res = list(filter(lambda aoi: aoi not in inside, self.last_inside))
-                            logger.debug(f"{len(res)} exits")
+                            # logger.debug(f"{len(res)} exits")
                             for aoi in res:
                                 msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)
                                 messages.append(msg)
@@ -131,13 +131,13 @@ class Vehicle:
                         case "crossed":
                             line = LineString((self.last_position.geometry.coordinates, self.position.geometry.coordinates))
                             res = event.crossed(line)
-                            logger.debug(f"{len(res)} crossed")
+                            # logger.debug(f"{len(res)} crossed")
 
                         case "stopped":
                             for aoi in self.inside:
                                 msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)
                                 messages.append(msg)
-                            logger.debug(f"{len(self.inside)} stopped")
+                            # logger.debug(f"{len(self.inside)} stopped")
 
         logger.debug(f"added {len(messages)} messages")
         self.messages = self.messages + messages
@@ -156,3 +156,16 @@ class Message:
         self.aoi = aoi
         self.last_position = last_position
         self.position = position
+        logger.debug(self)
+
+    def __str__(self):
+        return f"{self.vehicle.identifier}({self.vehicle.get_id()}) rule {self.event.rule.name} {self.event.action} {self.aoi.get_id()}"
+
+    def get_timestamp(self):  # get_precise_timestamp()
+        """Compute the exact time of entry of the vehicle in the area."""
+        # To do later
+        # Make line
+        # Find intersection point with curve
+        # (if several points, keep first point, closest to last_position)
+        # Interpolate time between last_position and position (given speed, etc.)
+        return self.position.get_timestamp()

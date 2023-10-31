@@ -34,9 +34,7 @@ class Feature(_Feature):
     # Emitpy should never use the package Feature directly.
     #
     def __init__(self, geometry, properties: dict = {}, **extra):
-        _Feature.__init__(
-            self, geom=geometry, properties=properties
-        )  # Feature as defined in pyturf
+        _Feature.__init__(self, geom=geometry, properties=properties)  # Feature as defined in pyturf
         self.id = extra.get("id")
 
 
@@ -139,18 +137,16 @@ class EmitpyFeature(Feature):
 
     def setClass(self, c: str = None, force: bool = False):
         if force or self.getClass() is None:
-            self.setProp(
-                FEATPROP.CLASS.value, c if c is not None else type(self).__name__
-            )
+            self.setProp(FEATPROP.CLASS.value, c if c is not None else type(self).__name__)
 
     def getClass(self):
         return self.getProp(FEATPROP.CLASS.value)
 
-    def getProp(self, name: str):
+    def getProp(self, name: str, dflt=None):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
         if name == FEATPROP.ALTITUDE.value:
             return self.altitude()
-        return self.properties.get(name)
+        return self.properties.get(name, dflt)
 
     def setProp(self, name: str, value):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
@@ -167,6 +163,9 @@ class EmitpyFeature(Feature):
 
     def getId(self):
         return self.id if hasattr(self, "id") else self.getProp("id")
+
+    def get_id(self):
+        return self.getId()
 
     def getKey(self):
         # return type(self).__name__ + ID_SEP + self.getId()
@@ -217,16 +216,11 @@ class EmitpyFeature(Feature):
         self.setProp(tagname, sep.join(tags))
 
     def hasColor(self):
-        return (
-            self.getProp("marker-color") is not None
-            or self.getProp("stroke") is not None
-        )
+        return self.getProp("marker-color") is not None or self.getProp("stroke") is not None
 
     def setColor(self, color: str):
         # geojson.io specific
-        self.addProps(
-            {"marker-color": color, "marker-size": "medium", "marker-symbol": ""}
-        )
+        self.addProps({"marker-color": color, "marker-size": "medium", "marker-symbol": ""})
 
     def setStrokeColor(self, color: str):
         # geojson.io specific
@@ -340,6 +334,10 @@ class EmitpyFeature(Feature):
             return default
         return float(a)
 
+    def get_timestamp(self):
+        # Added for Opera
+        return self.getProp(FEATPROP.EMIT_ABS_TIME.value, 0.0)
+
     def setComment(self, comment: str):
         self.setProp(FEATPROP.COMMENT.value, comment)
 
@@ -354,9 +352,7 @@ class EmitpyFeature(Feature):
         if len(r) == 1:
             return r[0]
         if len(r) > 1:
-            print(
-                f"FeatureWithProps.getPropPath(): ambiguous return value for {path}, returning first element in list"
-            )
+            print(f"FeatureWithProps.getPropPath(): ambiguous return value for {path}, returning first element in list")
             return r[0]
         return None
 
@@ -365,9 +361,7 @@ class EmitpyFeature(Feature):
         if len(r) == 1:
             return r[0]
         if len(r) > 1:
-            print(
-                f"FeatureWithProps.getFeaturePath(): ambiguous return value for {path}, returning first element in list"
-            )
+            print(f"FeatureWithProps.getFeaturePath(): ambiguous return value for {path}, returning first element in list")
             return r[0]
         return None
 
@@ -413,9 +407,7 @@ def destination(start, length, course, units: str = "km"):
         units = "kilometers"
     if units == "m":
         units = "meters"
-    return mkFeature(
-        turf_destination(start, length, mkBearing(course), {"units": units})
-    )
+    return mkFeature(turf_destination(start, length, mkBearing(course), {"units": units}))
 
 
 # Checks

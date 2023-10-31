@@ -13,7 +13,7 @@ from tabulate import tabulate
 
 from emitpy.geo import FeatureWithProps, point_in_polygon, mkFeature
 
-from rule import Rule, Event, TIME_PROPERTY
+from rule import Rule, Event
 from aoi import AreasOfInterest
 from vehicle import Vehicle
 
@@ -50,7 +50,7 @@ class Opera:
 
     def init(self) -> bool:
         self.load_aois()
-        self.airport_perimeter = mkFeature(list(filter(lambda f: f["id"] == "OTHH:aerodrome:aerodrome:perimeter", self.all_aois))[0])
+        self.airport_perimeter = mkFeature(list(filter(lambda f: f.get_id() == "OTHH:aerodrome:aerodrome:perimeter", self.all_aois))[0])
         self.load_rules()
         self._inited = True
         return self._inited
@@ -63,7 +63,7 @@ class Opera:
             name = filename.replace(".geojson", "")
             self.aois[name] = AreasOfInterest(filename=filename, name=name)
             self.all_aois = self.all_aois + self.aois[name].features
-        logger.debug(f"{len(self.aois)} aois loaded")
+        logger.debug(f"{len(self.aois)} aois files loaded, {len(self.all_aois)} aois")
 
     def load_rules(self):
         with open("data/rules.csv", "r") as file:
@@ -73,16 +73,16 @@ class Opera:
                     vehicles = "(.*)"  # re
                 vevents = self.vehicle_events.get(vehicles, [])
 
-                timeout = float(row["timeout"]) if row["timeout"] != "" else 0
+                timeout = float(row["timeout"]) * 60 if row["timeout"] != "" else 0
 
                 aois_start = list(filter(lambda f: re.match(row["area1"], f.get("id", "")), self.all_aois))
                 logger.debug(f"{len(aois_start)} aois_start")
-                start_event = Event(vehicles=vehicles, action=row["action1"], aois=aois_start)
+                start_event = Event(vehicles=vehicles, action=row["action1"], aois=aois_start, aoi_selector=row["area1"])
                 vevents.append(start_event)
 
                 aois_end = list(filter(lambda f: re.match(row["area2"], f.get("id", "")), self.all_aois))
                 logger.debug(f"{len(aois_end)} aois_end")
-                end_event = Event(vehicles=vehicles, action=row["action2"], aois=aois_end)
+                end_event = Event(vehicles=vehicles, action=row["action2"], aois=aois_end, aoi_selector=row["area2"])
                 vevents.append(end_event)
 
                 rule = Rule(name=row["name"], start=start_event, end=end_event, timeout=timeout, notes=row["note"])
@@ -102,7 +102,7 @@ class Opera:
             position ([type]): [description]
         """
 
-    def get_identity(self, position):
+    def get_vehicle_identity(self, position):
         t = position.getPropPath("flight.aircraft.identity")
         logger.debug(f"identity {t}")
         return t
@@ -129,11 +129,11 @@ class Opera:
 
         # Filter only position at or around airport perimeter
         positions_at_airport = filter(lambda f: point_in_polygon(f, self.airport_perimeter), positions)
-        positions_at_airport = sorted(positions_at_airport, key=lambda x: x.getProp(TIME_PROPERTY))
+        positions_at_airport = sorted(positions_at_airport, key=lambda x: x.get_timestamp())
         logger.debug(f"processing {len(list(positions_at_airport))}/{len(positions)}")
 
         # Sets what the vehicle has to report
-        vehicle.set_ident(self.get_identity(first_pos))
+        vehicle.set_id(self.get_vehicle_identity(first_pos))
         vehicle.init(self)
 
         # Ask vehicle to report events

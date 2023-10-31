@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+from emitpy.geo import FeatureWithProps
 from turf import FeatureCollection
 
 logger = logging.getLogger("aoi")
@@ -17,4 +18,4 @@ class AreasOfInterest(FeatureCollection):
         filename = self.filename
         with open(filename, "r") as file:
             data = json.load(file)
-            self.features = data["features"]
+            self.features = [FeatureWithProps.new(f) for f in data["features"]]
