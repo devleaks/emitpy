@@ -25,8 +25,8 @@ class Vehicle:
         # Data relative to positions
         self.last_position = None
         self.position = None
-        self.last_inside = {}
-        self.inside = {}
+        self.last_inside = set()
+        self.inside = set()
         self.stopped = False
 
         # Events
@@ -66,9 +66,10 @@ class Vehicle:
         key = message.event.rule.name
         if key not in self.promises.keys():
             self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, position=message.position, data=message)
-            logger.debug(f"created a promise for rule {message.event.rule.name} for vehicle {self.get_id()}")
+            logger.debug(f"created a promise for rule {key} for vehicle {message.vehicle.get_id()}")
         else:
-            self.promises[key].reset_timestamp(self.position.get_timestamp())
+            self.promises[key].reset_timestamp(message.position.get_timestamp())
+            logger.debug(f"updated promise for rule {key} for vehicle {message.vehicle.get_id()}")
 
     def resolve(self, message):
         # we have an end-event for all these promises
@@ -89,10 +90,13 @@ class Vehicle:
             self.resolve(message)
 
     def at(self, position):
+        def list_aois(arr):
+            return [a.get_id() for a in arr]
+
         self.last_position = self.position
         self.last_inside = self.inside
         self.position = position
-        self.inside = []
+        self.inside = set()
         messages = []
         if self.last_position is not None and self.is_stopped():
             msg = Message(event=None, vehicle=self, aoi=None, position=self.position, last_position=None)
@@ -101,10 +105,12 @@ class Vehicle:
             if event.action in ["enter", "exit", "traverse"]:
                 inside = event.inside(position)
                 # logger.debug(f"{len(inside)} insides")  # we consider it entered all areas it is inside
-                self.inside = self.inside + inside
+                self.inside = self.inside.union(inside)
                 # first position
                 if self.last_position is None:
-                    logger.debug(f"first position")  # we consider it entered all areas it is inside
+                    logger.debug(
+                        f"first position (event {event.rule.name}, {'start' if event.is_start() else 'end'})"
+                    )  # we consider it entered all areas it is inside
                     if event.action == "enter":
                         for aoi in inside:
                             msg = Message(
@@ -115,14 +121,14 @@ class Vehicle:
                 else:
                     match event.action:
                         case "enter":
-                            res = list(filter(lambda aoi: aoi not in self.last_inside, inside))
-                            # logger.debug(f"{len(res)} enters")
+                            res = set(filter(lambda aoi: aoi not in self.last_inside, inside))
+                            # logger.debug(f"{len(res)} enters ({list_aois(self.last_inside)}/{list_aois(inside)})")
                             for aoi in res:
                                 msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)
                                 messages.append(msg)
 
                         case "exit":
-                            res = list(filter(lambda aoi: aoi not in inside, self.last_inside))
+                            res = set(filter(lambda aoi: aoi not in inside, self.last_inside))
                             # logger.debug(f"{len(res)} exits")
                             for aoi in res:
                                 msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)

@@ -17,8 +17,10 @@ from rule import Rule, Event
 from aoi import AreasOfInterest
 from vehicle import Vehicle
 
+FORMAT = "%(levelname)1.1s%(module)15s:%(funcName)-15s%(lineno)4s| %(message)s"
+logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+
 logger = logging.getLogger("Opera")
-logging.basicConfig(level=logging.DEBUG)
 
 
 class Opera:

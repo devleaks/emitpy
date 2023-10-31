@@ -44,13 +44,13 @@ class Event:
     def is_start(self) -> bool:
         return self._start
 
-    def inside(self, position) -> list:
-        return list(filter(lambda aoi: point_in_polygon(position, aoi), self.aois))
+    def inside(self, position) -> set:
+        return set(filter(lambda aoi: point_in_polygon(position, aoi), self.aois))
 
-    def crossed(self, line) -> list:
+    def crossed(self, line) -> set:
         # Note: line_intersect_polygon returns the number of points of intersection
         # To intersect, there must be at least a point of intersection (tangent) or more points.
-        return list(filter(lambda aoi: line_intersect_polygon(line=line, polygon=aoi) > 0, self.aois))
+        return set(filter(lambda aoi: line_intersect_polygon(line=line, polygon=aoi) > 0, self.aois))
 
 
 class Rule:

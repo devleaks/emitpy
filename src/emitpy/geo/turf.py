@@ -164,6 +164,9 @@ class EmitpyFeature(Feature):
     def getId(self):
         return self.id if hasattr(self, "id") else self.getProp("id")
 
+    def __hash__(self):
+        return hash(self.getId())
+
     def get_id(self):
         return self.getId()
 
