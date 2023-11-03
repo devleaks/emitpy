@@ -130,7 +130,7 @@ class EmitpyFeature(Feature):
         return geomtype == self.geomtype()
 
     def copy(self):
-        return copy.deepcopy(self)
+        return EmitpyFeature.new(self)  # copy.deepcopy(self)
 
     def setVersion(self, v: str = emitpy.__version__):
         self.setProp(FEATPROP.VERSION.value, v)

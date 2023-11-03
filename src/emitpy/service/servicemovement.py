@@ -34,12 +34,7 @@ class ServiceMovement(GroundSupportMovement):
         return self.service.getId()
 
     def getInfo(self):
-        return {
-            "type": MOVE_TYPE.SERVICE.value,
-            "ident": self.getId(),
-            "service": self.service.getInfo(),
-            "icao24": self.service.getInfo()["icao24"],
-        }
+        return {"type": MOVE_TYPE.SERVICE.value, "ident": self.getId(), "service": self.service.getInfo(), "icao24": self.service.getInfo()["icao24"]}
 
     def getSource(self):
         # Abstract class
@@ -55,21 +50,13 @@ class ServiceMovement(GroundSupportMovement):
         if duration == 0:
             self.addMessage(
                 ServiceMessage(
-                    subject=f"«{self.service.label}» {SERVICE_PHASE.OCCURRED.value}",
-                    service=self,
-                    sync=SERVICE_PHASE.START.value,
-                    info=self.getInfo(),
+                    subject=f"«{self.service.label}» {SERVICE_PHASE.OCCURRED.value}", service=self, sync=SERVICE_PHASE.START.value, info=self.getInfo()
                 )
             )
             logger.debug(f"{self.service.name} added 1 message")
         else:
             self.addMessage(
-                ServiceMessage(
-                    subject=f"«{self.service.label}» {SERVICE_PHASE.START.value}",
-                    service=self,
-                    sync=SERVICE_PHASE.START.value,
-                    info=self.getInfo(),
-                )
+                ServiceMessage(subject=f"«{self.service.label}» {SERVICE_PHASE.START.value}", service=self, sync=SERVICE_PHASE.START.value, info=self.getInfo())
             )
             # End time is start time + duration, we add duration as a delay relative to the start time
             self.addMessage(
@@ -86,23 +73,14 @@ class ServiceMovement(GroundSupportMovement):
     def drive(self):
         # Special case 1: Service "event reporting only", no move
         if self.service.vehicle is None:  # Service with no vehicle movement
-            logger.debug(
-                f"service {type(self.service).__name__} «{self.service.label}» has no vehicle, assuming event report only"
-            )
+            logger.debug(f"service {type(self.service).__name__} «{self.service.label}» has no vehicle, assuming event report only")
             self.no_drive()
             logger.debug(f"generated {len(self.getMovePoints())} points")
-            return (
-                True,
-                "ServiceMovement::drive: no moves, assuming event report only",
-            )
+            return (True, "ServiceMovement::drive: no moves, assuming event report only")
 
         # Special case 2: Service vehicle going back and forth between ramp and depot
         # if type(self.service).__name__ in MOVE_LOOP:
-        if (
-            self.service.using_quantity()
-            and self.service.vehicle is not None
-            and self.service.vehicle.has_capacity()
-        ):
+        if self.service.using_quantity() and self.service.vehicle is not None and self.service.vehicle.has_capacity():
             logger.debug(f"moving loop for {self.service.getId()}..")
             ret = self.drive_loop()
             if ret[0]:
@@ -126,10 +104,7 @@ class ServiceMovement(GroundSupportMovement):
         logger.debug(f"At start position.")
         self.addMessage(
             ServiceMessage(
-                subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.START.value}",
-                service=self,
-                sync=SERVICE_PHASE.START.value,
-                info=self.getInfo(),
+                subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.START.value}", service=self, sync=SERVICE_PHASE.START.value, info=self.getInfo()
             )
         )
 
@@ -153,9 +128,7 @@ class ServiceMovement(GroundSupportMovement):
         if gseprofile is not None:
             status = self.service.ramp.makeServicePOIs(self.service.actype)
             if not status[0]:
-                logger.warning(
-                    f"create ramp service points failed {self.service.actype.getInfo()}"
-                )
+                logger.warning(f"create ramp service points failed {self.service.actype.getInfo()}")
             # else:
             #     logger.debug(f'created ramp service points {list(gseprofile["services"].keys())}')
 
@@ -164,16 +137,12 @@ class ServiceMovement(GroundSupportMovement):
 
         wer = service_type
         if service_pos is None:
-            logger.warning(
-                f"failed to find ramp stop for { self.service.actype.typeId }, { service_type }, using ramp center"
-            )
+            logger.warning(f"failed to find ramp stop for { self.service.actype.typeId }, { service_type }, using ramp center")
             service_pos = self.service.ramp  # use center of ramp
             wer = "center"
 
         if service_pos is None:
-            logger.warning(
-                f"failed to find ramp stop and/or center for { service_type }"
-            )
+            logger.warning(f"failed to find ramp stop and/or center for { service_type }")
             return (False, ":move: failed to find ramp stop")
 
         # logger.debug("ramp %s" % (service_pos))
@@ -189,9 +158,7 @@ class ServiceMovement(GroundSupportMovement):
         # logger.debug("ramp vertex %s" % (ramp_nv[0]))
 
         # route from start to ramp
-        logger.debug(
-            f"..route from start {startnv[0].id} to ramp/{wer} {ramp_nv[0].id} (vertices).."
-        )
+        logger.debug(f"..route from start {startnv[0].id} to ramp/{wer} {ramp_nv[0].id} (vertices)..")
         rt1 = Route(self.airport.service_roads, startnv[0].id, ramp_nv[0].id)
         # rt1.find()  # auto route
         # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, ramp_nv[0].id)
@@ -213,10 +180,7 @@ class ServiceMovement(GroundSupportMovement):
             move_points.append(ramp_npe[0])
             self.addMessage(
                 ServiceMessage(
-                    subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}",
-                    service=self,
-                    sync=SERVICE_PHASE.ARRIVED.value,
-                    info=self.getInfo(),
+                    subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}", service=self, sync=SERVICE_PHASE.ARRIVED.value, info=self.getInfo()
                 )
             )
         else:
@@ -256,11 +220,7 @@ class ServiceMovement(GroundSupportMovement):
             reltime = self.service.vehicle.setup_time
         self.addMessage(
             ServiceMessage(
-                subject=f"Service {self.getId()} has started",
-                service=self,
-                sync=SERVICE_PHASE.SERVICE_START.value,
-                relative_time=reltime,
-                info=self.getInfo(),
+                subject=f"Service {self.getId()} has started", service=self, sync=SERVICE_PHASE.SERVICE_START.value, relative_time=reltime, info=self.getInfo()
             )
         )
 
@@ -277,11 +237,7 @@ class ServiceMovement(GroundSupportMovement):
             reltime = -self.service.vehicle.cleanup_time
         self.addMessage(
             ServiceMessage(
-                subject=f"Service {self.getId()} has ended",
-                service=self,
-                sync=SERVICE_PHASE.SERVICE_END.value,
-                relative_time=reltime,
-                info=self.getInfo(),
+                subject=f"Service {self.getId()} has ended", service=self, sync=SERVICE_PHASE.SERVICE_END.value, relative_time=reltime, info=self.getInfo()
             )
         )
         # ###
@@ -308,10 +264,7 @@ class ServiceMovement(GroundSupportMovement):
             move_points.append(ramp_leave)
             self.addMessage(
                 ServiceMessage(
-                    subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}",
-                    service=self,
-                    sync=SERVICE_PHASE.LEAVE.value,
-                    info=self.getInfo(),
+                    subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}", service=self, sync=SERVICE_PHASE.LEAVE.value, info=self.getInfo()
                 )
             )
         else:
@@ -326,9 +279,7 @@ class ServiceMovement(GroundSupportMovement):
             # logger.debug(f"end position { finalpos }")
 
             if finalpos is None:
-                logger.warning(
-                    f"no end rest area for { service_type }, using start position"
-                )
+                logger.warning(f"no end rest area for { service_type }, using start position")
                 finalpos = startpos
 
         # find end position on network
@@ -359,7 +310,7 @@ class ServiceMovement(GroundSupportMovement):
             logger.debug(f"..closing to next position..")
 
         if finalpos == startpos:
-            finalpos = finalpos.copy()  # in case same as start...
+            finalpos = MovePoint.new(finalpos)  # .copy()  # in case same as start...
 
         finalpos.setSpeed(0)
         finalpos.setMark(SERVICE_PHASE.END.value)
@@ -368,12 +319,7 @@ class ServiceMovement(GroundSupportMovement):
         logger.debug(f"..parked at next position")
 
         self.addMessage(
-            ServiceMessage(
-                subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.END.value}",
-                service=self,
-                sync=SERVICE_PHASE.END.value,
-                info=self.getInfo(),
-            )
+            ServiceMessage(subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.END.value}", service=self, sync=SERVICE_PHASE.END.value, info=self.getInfo())
         )
 
         # Sets unique index on service movement features
@@ -405,16 +351,10 @@ class ServiceMovement(GroundSupportMovement):
 
         # CHECK: Vehicle has "capacity"
         if vehicle.capacity is None:
-            return (
-                False,
-                "ServiceMovement::drive_loop: service vehicle has no capacity",
-            )
+            return (False, "ServiceMovement::drive_loop: service vehicle has no capacity")
 
         if vehicle.capacity == inf:
-            return (
-                False,
-                "ServiceMovement::drive_loop: service vehicle has infinite capacity, we travel once only",
-            )
+            return (False, "ServiceMovement::drive_loop: service vehicle has infinite capacity, we travel once only")
 
         # CHECK: Service has quantity
         if service.quantity is None or self.service.quantity == 0:
@@ -423,10 +363,7 @@ class ServiceMovement(GroundSupportMovement):
         # CHECK: Vehicle or service have "load/unload time" (direct value or computed from capacity + flow)
         # CHECK: Service has speed of service:
         if vehicle.flow is None:
-            return (
-                False,
-                "ServiceMovement::drive_loop: vehicle has no service speed (flow)",
-            )
+            return (False, "ServiceMovement::drive_loop: vehicle has no service speed (flow)")
 
         # # CHECK: Vehicle or service have "setup/unsetup time" (optional)
         # if service.setup_time is None:
@@ -468,21 +405,15 @@ class ServiceMovement(GroundSupportMovement):
             if not status[0]:
                 logger.warning(f"create ramp service points failed {gseprofile}")
             else:
-                logger.debug(
-                    f"created ramp service points {list(gseprofile['services'].keys())}"
-                )
+                logger.debug(f"created ramp service points {list(gseprofile['services'].keys())}")
 
         ramp_stop = self.service.ramp.getServicePOI(service_type, self.service.actype)
         if ramp_stop is None:
-            logger.warning(
-                f"failed to find ramp stop for { service_type }, using ramp center"
-            )
+            logger.warning(f"failed to find ramp stop for { service_type }, using ramp center")
             ramp_stop = self.service.ramp  # use center of ramp
 
         if ramp_stop is None:
-            logger.warning(
-                f"failed to find ramp stop and/or center for { service_type }"
-            )
+            logger.warning(f"failed to find ramp stop and/or center for { service_type }")
             return (False, "ServiceMovement:move: failed to find ramp stop")
 
         # logger.debug("ramp %s" % (ramp_stop))
@@ -498,9 +429,7 @@ class ServiceMovement(GroundSupportMovement):
         # logger.debug("ramp vertex %s" % (ramp_nv[0]))
 
         # route from start to ramp
-        logger.debug(
-            f"..route from start {startnv[0].id} to ramp {ramp_nv[0].id} (vertices).."
-        )
+        logger.debug(f"..route from start {startnv[0].id} to ramp {ramp_nv[0].id} (vertices)..")
         rt1 = Route(self.airport.service_roads, startnv[0].id, ramp_nv[0].id)
         # rt1.find()  # auto route
         # r1 = self.airport.service_roads.Dijkstra(startnv[0].id, ramp_nv[0].id)
@@ -521,10 +450,7 @@ class ServiceMovement(GroundSupportMovement):
             move_points.append(ramp_npe[0])
             self.addMessage(
                 ServiceMessage(
-                    subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}",
-                    service=self,
-                    sync=SERVICE_PHASE.ARRIVED.value,
-                    info=self.getInfo(),
+                    subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.ARRIVED.value}", service=self, sync=SERVICE_PHASE.ARRIVED.value, info=self.getInfo()
                 )
             )
         else:
@@ -558,11 +484,7 @@ class ServiceMovement(GroundSupportMovement):
             reltime = vehicle.setup_time
         self.addMessage(
             ServiceMessage(
-                subject=f"Service {self.getId()} has started",
-                service=self,
-                sync=SERVICE_PHASE.SERVICE_START.value,
-                relative_time=reltime,
-                info=self.getInfo(),
+                subject=f"Service {self.getId()} has started", service=self, sync=SERVICE_PHASE.SERVICE_START.value, relative_time=reltime, info=self.getInfo()
             )
         )
 
@@ -582,9 +504,7 @@ class ServiceMovement(GroundSupportMovement):
             logger.warning("no nearest_vertex for nearest_depot")
 
         # Prepare route ramp -> nearest depot
-        logger.debug(
-            f"route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id} (vertices)"
-        )
+        logger.debug(f"route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id} (vertices)")
         go_to_depot = Route(self.airport.service_roads, ramp_nv[0].id, nd_nv[0].id)
         if not go_to_depot.found():
             logger.warning("no route from ramp to nearest depot")
@@ -600,9 +520,7 @@ class ServiceMovement(GroundSupportMovement):
         loadstr = "load" if loading else "unload"
         opploadstr = "unload" if loading else "load"
         unit_left = abs(self.service.quantity)
-        logger.debug(
-            f"vehicle capacity {vehicle.capacity}, current load {vehicle.current_load}, quantity {unit_left}, loading={loading}"
-        )
+        logger.debug(f"vehicle capacity {vehicle.capacity}, current load {vehicle.current_load}, quantity {unit_left}, loading={loading}")
 
         num_roundtrips = 0
         while unit_left > 0 and num_roundtrips < MAX_ROUNDTRIPS:
@@ -617,9 +535,7 @@ class ServiceMovement(GroundSupportMovement):
             this_load = ramp_stop.copy()
             this_load.setPause(this_load_duration)
             this_load.setComment(f"{loadstr} at ramp")
-            logger.debug(
-                f"{loadstr}ed {done}, {unit_left} remaining, load duration={this_load_duration}"
-            )
+            logger.debug(f"{loadstr}ed {done}, {unit_left} remaining, load duration={this_load_duration}")
 
             if unit_left > 0:  # need to go to depot
                 logger.debug(f"Going to depot..")
@@ -651,9 +567,7 @@ class ServiceMovement(GroundSupportMovement):
                         move_points.append(pos)
                     logger.debug(f"..travelling to depot..")
                 else:
-                    logger.debug(
-                        f"no route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id}"
-                    )
+                    logger.debug(f"no route from ramp {ramp_nv[0].id} to nearest depot {nd_nv[0].id}")
                 # network vertex->network edge (close to depot)
                 pos = MovePoint.new(nd_npe[0])
                 pos.setMark(None)
@@ -707,9 +621,7 @@ class ServiceMovement(GroundSupportMovement):
                         move_points.append(pos)
                     logger.debug(f"..travelling to ramp..")
                 else:
-                    logger.debug(
-                        f"no route from nearest depot {nd_nv[0].id} to ramp {ramp_nv[0].id}"
-                    )
+                    logger.debug(f"no route from nearest depot {nd_nv[0].id} to ramp {ramp_nv[0].id}")
                 # ramp->network edge
                 pos = MovePoint.new(ramp_npe[0])
                 pos.setMark(None)
@@ -728,9 +640,7 @@ class ServiceMovement(GroundSupportMovement):
 
         logger.debug(f"..LOOP TERMINATED ({num_roundtrips} round trips)")
         if num_roundtrips > MAX_ROUNDTRIPS:
-            logger.warning(
-                f"SERVICE INTERRUMPTED TOO MANY ROUNDTRIPS ({num_roundtrips})"
-            )
+            logger.warning(f"SERVICE INTERRUMPTED TOO MANY ROUNDTRIPS ({num_roundtrips})")
 
         # END OF LOOP, go to next position
         #
@@ -741,9 +651,7 @@ class ServiceMovement(GroundSupportMovement):
             # logger.debug(f"end position { finalpos }")
 
             if finalpos is None:
-                logger.warning(
-                    f"no end rest area for { service_type }, using start position"
-                )
+                logger.warning(f"no end rest area for { service_type }, using start position")
                 finalpos = startpos
 
         # find end position on network
@@ -766,11 +674,7 @@ class ServiceMovement(GroundSupportMovement):
             reltime = -vehicle.cleanup_time
         self.addMessage(
             ServiceMessage(
-                subject=f"Service {self.getId()} has ended",
-                service=self,
-                sync=SERVICE_PHASE.SERVICE_END.value,
-                relative_time=reltime,
-                info=self.getInfo(),
+                subject=f"Service {self.getId()} has ended", service=self, sync=SERVICE_PHASE.SERVICE_END.value, relative_time=reltime, info=self.getInfo()
             )
         )
 
@@ -795,10 +699,7 @@ class ServiceMovement(GroundSupportMovement):
             move_points.append(ramp_leave)
             self.addMessage(
                 ServiceMessage(
-                    subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}",
-                    service=self,
-                    sync=SERVICE_PHASE.LEAVE.value,
-                    info=self.getInfo(),
+                    subject=f"{self.service.vehicle.icao24} {SERVICE_PHASE.LEAVE.value}", service=self, sync=SERVICE_PHASE.LEAVE.value, info=self.getInfo()
                 )
             )
             logger.debug(f"..leaving ramp..")

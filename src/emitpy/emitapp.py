@@ -677,11 +677,13 @@ class EmitApp(ManagedAirport):
         # 1. Collect data
         logger.debug("collecting data for service..")
         logger.debug("..aircraft type..")
-        acperf = AircraftTypeWithPerformance.find(aircraft, redis=self.use_redis())
+        ac = AircraftTypeWithPerformance.findAircraftByType(aircraft, None, self.use_redis())
+        if ac is None:
+            return StatusInfo(31, f"EmitApp:do_service: aircraft type {aircraft} not found", None)
+        acperf = AircraftTypeWithPerformance.find(icao=ac, redis=self.use_redis())
         if acperf is None:
-            return StatusInfo(31, f"EmitApp:do_service: aircraft performance {aircraft} not found", None)
+            return StatusInfo(31, f"EmitApp:do_service: aircraft performance {ac} not found", None)
         acperf.load()
-
         logger.debug("..service operator..")
         operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=self.operator)
 
@@ -758,6 +760,8 @@ class EmitApp(ManagedAirport):
 
         # 8. Schedule messages
         logger.debug("..scheduling messages..")
+        emit_time = datetime.fromisoformat(scheduled)
+        sync = SERVICE_PHASE.SERVICE_START.value
         ret = emit.scheduleMessages(sync, emit_time, do_print=True)
         if not ret[0]:
             return StatusInfo(42, f"problem during schedule of messages", ret[1])

@@ -13,7 +13,7 @@ sys.path.append("../../src")
 from tabulate import tabulate
 
 from emitpy.geo import FeatureWithProps, point_in_polygon, mkFeature
-from emitpy.parameters import MANAGED_AIRPORT_AODB
+from emitpy.parameters import MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_DIR
 
 
 from opera.rule import Rule, Event
@@ -63,7 +63,7 @@ class OperaApp:
     def load_aois(self):
         # will get aois from airport later
         #
-        gfs_dir = os.path.join("data", "*.geojson")
+        gfs_dir = os.path.join(MANAGED_AIRPORT_DIR, "geometries", "opera-*.geojson")
         for filename in glob.glob(gfs_dir):
             name = filename.replace(".geojson", "")
             self.aois[name] = AreasOfInterest(filename=filename, name=name)
@@ -76,7 +76,8 @@ class OperaApp:
         return ret
 
     def load_rules(self):
-        with open("data/rules.csv", "r") as file:
+        fn = os.path.join(MANAGED_AIRPORT_DIR, "rules.csv")
+        with open(fn, "r") as file:
             for row in csv.DictReader(file):
                 vehicles = row["vehicles"]
                 logger.debug(f"rule {row['name']} {vehicles}")
@@ -152,30 +153,28 @@ class OperaApp:
             messages = vehicle.at(f)
 
         logger.debug(f"total: resolved {len(self.rules)} rules {len(vehicle.resolves)} times for {len(self.vehicles)} vehicles")
-        self.print()
-        self.save()
+        self.print(vehicle)
 
-    def print(self):
+    def print(self, vehicle):
         """Saves all resolved rules to file for later processing with all details.
 
         Would be a confortable pandan DataFrame
         """
         table = []
-        for v in self.vehicles.values():
-            for r in v.resolves:
-                line = []
-                rule = r.promise.rule
-                line.append(rule.name)
-                line.append(rule.notes)
-                line.append(r.promise.vehicle.get_id())
-                line.append(rule.start.action)
-                line.append(r.promise.data.aoi.get_id())
-                line.append(rule.end.action)
-                line.append(r.data.aoi.get_id())
-                dt = datetime.fromtimestamp(r.promise.get_timestamp()).replace(microsecond=0)
-                line.append(dt)
-                line.append(round(r.get_timestamp() - r.promise.get_timestamp()))
-                table.append(line)
+        for r in vehicle.resolves:
+            line = []
+            rule = r.promise.rule
+            line.append(rule.name)
+            line.append(rule.notes)
+            line.append(r.promise.vehicle.get_id())
+            line.append(rule.start.action)
+            line.append(r.promise.data.aoi.get_id())
+            line.append(rule.end.action)
+            line.append(r.data.aoi.get_id())
+            dt = datetime.fromtimestamp(r.promise.get_timestamp()).replace(microsecond=0)
+            line.append(dt)
+            line.append(round(r.get_timestamp() - r.promise.get_timestamp()))
+            table.append(line)
         table = sorted(table, key=lambda x: x[0])
 
         output = io.StringIO()
@@ -220,19 +219,28 @@ class OperaApp:
 
 if __name__ == "__main__":
     DATABASE = "flights"
-    FILE_EXTENSION = "txt"
+    FILE_EXTENSION = "5-emit.json"
 
     opera = OperaApp(airport=None)
 
     basename = os.path.join(MANAGED_AIRPORT_AODB, DATABASE)
-    data_dir = os.path.join(basename, "*." + FILE_EXTENSION)
+    data_dir = os.path.join(basename, "*" + FILE_EXTENSION)
+    # for filename in glob.glob(data_dir):
+    #     data = {}
+    #     print(filename)
+    #     with open(filename, "r") as file:
+    #         arr = file.readlines()
+    #         data = []
+    #         for a in arr:
+    #             data.append(json.loads(a))
+    #     print(arr[0])
+    #     data = [FeatureWithProps.new(p) for p in data]
+    #     opera.bulk_process(data)
     for filename in glob.glob(data_dir):
         data = {}
-        print(filename)
+        logger.debug(f"{'>' * 20} {os.path.abspath(filename)}")
         with open(filename, "r") as file:
-            arr = file.readlines()
-            data = []
-            for a in arr:
-                data.append(json.loads(a))
+            data = json.load(file)
         data = [FeatureWithProps.new(p) for p in data]
         opera.bulk_process(data)
+    opera.save()

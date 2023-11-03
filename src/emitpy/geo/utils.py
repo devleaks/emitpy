@@ -5,13 +5,13 @@ import json
 import math
 
 from emitpy.geo.turf import Point, LineString, Polygon, Feature, FeatureCollection
-from emitpy.geo.turf import distance, destination, bearing, bbox
+from emitpy.geo.turf import distance, destination, bearing
 from emitpy.geo import FeatureWithProps
 
 logger = logging.getLogger("geoutils")
 
 
-def mkPolygon(lat1, lon1, lat2, lon2, width):
+def mkPolygon(lat1, lon1, lat2, lon2, width, as_feature: bool = False):
     p1 = Feature(geometry=Point((lon1, lat1)))
     p2 = Feature(geometry=Point((lon2, lat2)))
     brng = bearing(p1, p2)
@@ -24,22 +24,35 @@ def mkPolygon(lat1, lon1, lat2, lon2, width):
     a1 = destination(p1, width / 2, brng)
     a3 = destination(p2, width / 2, brng)
     # join
-    return Polygon(
-        [list(list(map(lambda x: x.geometry.coordinates, [a0, a1, a3, a2, a0])))]
-    )
+    ret = Polygon([list(list(map(lambda x: x.geometry.coordinates, [a0, a1, a3, a2, a0])))])
+    if as_feature:
+        ret = Feature(geometry=ret)
+    return ret
+
+
+def mkCircle(lat1, lon1, radius, steps: int = 9, as_feature: bool = False):
+    center = Feature(geometry=Point((lon1, lat1)))
+    step = 360 / steps
+    angle = 0
+    polygon = []
+    for i in range(steps):
+        pt = destination(center, radius, angle)  # destination returns a Feature
+        polygon.append(pt.geometry.coordinates)
+        angle = angle + step
+    polygon.append(polygon[0])  # closing
+    ret = Polygon(polygon)
+    if as_feature:
+        ret = Feature(geometry=ret)
+    return ret
 
 
 def jitter(point: Point, r: float = 0):
     if r == 0:
         return point.geometry.coordinates
-    j = destination(
-        Feature(geometry=point), random.random() * abs(r) / 1000, random.random() * 360
-    )
+    j = destination(Feature(geometry=point), random.random() * abs(r) / 1000, random.random() * 360)
     # should add some vertical uncertainty as well...
     if len(j.geometry.coordinates) == 3:  # alt = alt ± jitter
-        j.geometry.coordinates[2] = j.geometry.coordinates[2] + (
-            (random.random() * abs(r) / 1000) * (-1 if random.random() > 0.5 else 1)
-        )
+        j.geometry.coordinates[2] = j.geometry.coordinates[2] + ((random.random() * abs(r) / 1000) * (-1 if random.random() > 0.5 else 1))
     return j.geometry.coordinates
 
 
@@ -116,12 +129,7 @@ def asFeatureLineStringWithTimestamps(features: [FeatureWithProps]):
     props["time"] = at
     props["reltime"] = rt
 
-    return json.dumps(
-        FeatureCollection(
-            features=[Feature(geometry=LineString(ls), properties=props)]
-        ),
-        indent=4,
-    )
+    return json.dumps(FeatureCollection(features=[Feature(geometry=LineString(ls), properties=props)]), indent=4)
 
 
 def shortest_ls(lss):
@@ -193,13 +201,7 @@ def findFeaturesCWL(arr, criteria):
     for f in arr:
         ok = True
         for k in criteria:
-            ok = (
-                ok
-                and k in f.properties
-                and (
-                    criteria[k] in f.properties[k].split("|") or f.properties[k] == "*"
-                )
-            )
+            ok = ok and k in f.properties and (criteria[k] in f.properties[k].split("|") or f.properties[k] == "*")
         if ok:
             res.append(f)
     return res
@@ -260,9 +262,7 @@ def get_bounding_box(points, rounding: float = None):
             west = lon
         if lon > east:
             east = lon
-    if (
-        rounding is not None
-    ):  # will later allow for finer rounding, but round to degrees for grib file resolution matching
+    if rounding is not None:  # will later allow for finer rounding, but round to degrees for grib file resolution matching
         north = math.ceil(north)
         south = math.floor(south)
         west = math.floor(west)
@@ -291,9 +291,7 @@ def add_speed(r1, r2):
     # https://math.stackexchange.com/questions/1365622/adding-two-polar-vectors
     p21 = math.radians(r2[1]) - math.radians(r1[1])
     r = math.sqrt(r1[0] * r1[0] + r2[0] * r2[0] + 2 * r1[0] * r2[0] * math.cos(p21))
-    phi = math.radians(r1[1]) + math.atan2(
-        r2[0] * math.sin(p21), r1[0] + r2[0] * math.cos(p21)
-    )
+    phi = math.radians(r1[1]) + math.atan2(r2[0] * math.sin(p21), r1[0] + r2[0] * math.cos(p21))
     return (r, math.degrees(phi))
 
 
