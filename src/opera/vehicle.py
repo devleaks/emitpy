@@ -66,7 +66,7 @@ class Vehicle:
         key = message.event.rule.name
         if key not in self.promises.keys():
             self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, position=message.position, data=message)
-            logger.debug(f"created a promise for rule {key} for vehicle {message.vehicle.get_id()}")
+            # logger.debug(f"created a promise for rule {key} for vehicle {message.vehicle.get_id()}")
         else:
             self.promises[key].reset_timestamp(message.position.get_timestamp())
             logger.debug(f"updated promise for rule {key} for vehicle {message.vehicle.get_id()}")
@@ -84,6 +84,9 @@ class Vehicle:
                 logger.debug(f"promise {p.rule.name} is expired")
 
     def process(self, message):
+        if type(message) == StoppedMessage:
+            logger.debug(f"stopped message does not need resolution")
+            return
         if message.event.is_start():
             self.promise(message)
         else:
@@ -100,7 +103,7 @@ class Vehicle:
         messages = []
 
         if self.last_position is not None and self.is_stopped():
-            msg = Message(event=None, vehicle=self, aoi=None, position=self.position, last_position=None)
+            msg = StoppedMessage(vehicle=self, position=self.position)
             messages.append(msg)
             logger.debug(f"{self.get_id()} stopped")
 
@@ -179,3 +182,11 @@ class Message:
         # (if several points, keep first point, closest to last_position)
         # Interpolate time between last_position and position (given speed, etc.)
         return self.position.get_timestamp()
+
+
+class StoppedMessage(Message):
+    def __init__(self, vehicle, position):
+        Message.__init__(self, event=None, vehicle=vehicle, aoi=None, position=position, last_position=None)
+
+    def __str__(self):
+        return f"{self.vehicle.identifier}({self.vehicle.get_id()}) is stopped"

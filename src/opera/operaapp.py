@@ -18,7 +18,7 @@ from emitpy.parameters import MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_DIR
 
 from opera.rule import Rule, Event
 from opera.aoi import AreasOfInterest
-from opera.vehicle import Vehicle
+from opera.vehicle import StoppedMessage, Vehicle
 
 FORMAT = "%(levelname)1.1s%(module)15s:%(funcName)-15s%(lineno)4s| %(message)s"
 logging.basicConfig(level=logging.DEBUG, format=FORMAT)
@@ -116,6 +116,7 @@ class OperaApp:
 
     def get_vehicle_identity(self, position):
         t = position.getPropPath("flight.aircraft.identity")
+        t = position.getPropPath("service.vehicle.identity")
         logger.debug(f"identity {t}")
         return t
 
@@ -149,8 +150,11 @@ class OperaApp:
         vehicle.init(self)
 
         # Ask vehicle to report events
+        i = 0
         for f in positions_at_airport:
+            logger.debug(f"processing line {i}, at {f.get_timestamp()}")
             messages = vehicle.at(f)
+            i = i + 1
 
         logger.debug(f"total: resolved {len(self.rules)} rules {len(vehicle.resolves)} times for {len(self.vehicles)} vehicles")
         self.print(vehicle)
@@ -187,7 +191,53 @@ class OperaApp:
         logger.debug(f"{contents}")
 
     def save(self):
+        self.saveMessages()
+        self.saveRules()
+
+    def saveMessages(self):
         DATABASE = "events"
+        basename = os.path.join(MANAGED_AIRPORT_AODB, DATABASE)
+        if not os.path.isdir(basename):
+            os.mkdir(basename)
+            logger.info(f"{basename} created")
+
+        headers = ["rule", "purpose", "e.start", "action", "vehicle", "aoi", "time"]
+        table = []
+        table.append(headers)
+        for v in self.vehicles.values():
+            for m in v.messages:
+                line = []
+                if type(m) == StoppedMessage:
+                    line.append("")
+                    line.append("")
+                    line.append("")
+                    line.append("stopped")
+                    line.append(v.get_id())
+                    if m.aoi is not None:
+                        line.append(m.aoi.get_id())
+                    else:
+                        line.append("")
+                    dt = datetime.fromtimestamp(m.get_timestamp()).replace(microsecond=0)
+                    line.append(dt)
+                else:
+                    event = m.event
+                    rule = event.rule
+                    line.append(rule.name)
+                    line.append(rule.notes)
+                    line.append("start" if event.is_start() else "end")
+                    line.append(event.action)
+                    line.append(m.vehicle.get_id())
+                    line.append(m.aoi.get_id())
+                    dt = datetime.fromtimestamp(m.get_timestamp()).replace(microsecond=0)
+                    line.append(dt)
+                table.append(line)
+            fn = os.path.join(basename, v.get_id() + ".csv")
+            with open(fn, "w") as fp:
+                writer = csv.writer(fp)
+                writer.writerows(table)
+
+    def saveRules(self):
+        DATABASE = "rules"
         basename = os.path.join(MANAGED_AIRPORT_AODB, DATABASE)
         if not os.path.isdir(basename):
             os.mkdir(basename)
@@ -218,29 +268,27 @@ class OperaApp:
 
 
 if __name__ == "__main__":
-    DATABASE = "flights"
-    FILE_EXTENSION = "5-emit.json"
+    DATABASE = "services"
+    FILE_EXTENSION = "6-broadcast.json"
 
     opera = OperaApp(airport=None)
 
     basename = os.path.join(MANAGED_AIRPORT_AODB, DATABASE)
     data_dir = os.path.join(basename, "*" + FILE_EXTENSION)
-    # for filename in glob.glob(data_dir):
-    #     data = {}
-    #     print(filename)
-    #     with open(filename, "r") as file:
-    #         arr = file.readlines()
-    #         data = []
-    #         for a in arr:
-    #             data.append(json.loads(a))
-    #     print(arr[0])
-    #     data = [FeatureWithProps.new(p) for p in data]
-    #     opera.bulk_process(data)
     for filename in glob.glob(data_dir):
         data = {}
-        logger.debug(f"{'>' * 20} {os.path.abspath(filename)}")
+        print(filename)
         with open(filename, "r") as file:
-            data = json.load(file)
+            arr = file.readlines()
+            data = []
+            for a in arr:
+                data.append(json.loads(a))
         data = [FeatureWithProps.new(p) for p in data]
+        # for filename in glob.glob(data_dir):
+        #     data = {}
+        #     logger.debug(f"{'>' * 20} {os.path.abspath(filename)}")
+        #     with open(filename, "r") as file:
+        #         data = json.load(file)
+        #     data = [FeatureWithProps.new(p) for p in data]
         opera.bulk_process(data)
     opera.save()

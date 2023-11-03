@@ -95,11 +95,20 @@ class Promise:
 
         self.ts = position.get_timestamp()
 
+        logger.debug(self)
+
+    def __str__(self):
+        rule = self.rule
+        return " ".join(
+            [f"Promise rule {rule.name} with {self.vehicle.get_id()}", f"{rule.start.action} {self.data.aoi.get_id()} at {round(self.get_timestamp(), 1)}"]
+        )
+
     def get_timestamp(self):
         """Returns precise timestamp of message, i.e. when vehicle interacted with aoi and initiated this promise"""
         return self.data.get_timestamp()
 
     def reset_timestamp(self, ts):
+        logger.debug(f"updated promise for rule {self.rule.name} for vehicle {self.vehicle.get_id()}")
         self.ts = ts
 
     def is_expired(self, ts):
@@ -126,7 +135,9 @@ class Resolve:
         self.promise = promise
         self.position = position
         self.data = data
+
         self.ts = position.get_timestamp()
+
         logger.debug(self)
 
     def __str__(self):
