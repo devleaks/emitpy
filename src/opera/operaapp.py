@@ -114,9 +114,21 @@ class OperaApp:
             position ([type]): [description]
         """
 
+    def guess_vehicle_type(self, position):
+        t = "aircraft" in position.properties
+        logger.debug(f"is_aircraft {t}")
+        return t
+
     def get_vehicle_identity(self, position):
-        t = position.getPropPath("flight.aircraft.identity")
-        t = position.getPropPath("service.vehicle.identity")
+        t = None
+        if "flight" in position.properties:
+            t = position.getPropPath("flight.aircraft.identity")
+        elif "service" in position.properties:
+            t = position.getPropPath("service.vehicle.identity")
+        elif "mission" in position.properties:
+            t = position.getPropPath("mission.vehicle.identity")
+        else:
+            logger.warning(f"could not guess identity in {position}")
         logger.debug(f"identity {t}")
         return t
 
@@ -146,6 +158,7 @@ class OperaApp:
         logger.debug(f"processing {len(list(positions_at_airport))}/{len(positions)}")
 
         # Sets what the vehicle has to report
+        vehicle.set_aircraft(self.guess_vehicle_type(first_pos))
         vehicle.set_id(self.get_vehicle_identity(first_pos))
         vehicle.init(self)
 
@@ -157,10 +170,55 @@ class OperaApp:
             i = i + 1
 
         logger.debug(f"total: resolved {len(self.rules)} rules {len(vehicle.resolves)} times for {len(self.vehicles)} vehicles")
-        self.print(vehicle)
+        self.printMessages(vehicle)
+        self.printRules(vehicle)
 
-    def print(self, vehicle):
-        """Saves all resolved rules to file for later processing with all details.
+    def printMessages(self, vehicle):
+        """Print all resolved rules to file for later processing with all details.
+
+        Would be a confortable pandan DataFrame
+        """
+        table = []
+        messages = sorted(vehicle.messages, key=lambda m: m.get_timestamp())
+        for m in vehicle.messages:
+            line = []
+            if type(m) == StoppedMessage:
+                line.append("")
+                line.append("")
+                line.append("")
+                line.append("stopped")
+                line.append(vehicle.get_id())
+                if m.aoi is not None:
+                    line.append(m.aoi.get_id())
+                else:
+                    line.append("")
+                dt = datetime.fromtimestamp(m.get_timestamp()).replace(microsecond=0)
+                line.append(dt)
+            else:
+                event = m.event
+                rule = event.rule
+                line.append(rule.name)
+                line.append(rule.notes)
+                line.append("start" if event.is_start() else "end")
+                line.append(event.action)
+                line.append(m.vehicle.get_id())
+                line.append(m.aoi.get_id())
+                dt = datetime.fromtimestamp(m.get_timestamp()).replace(microsecond=0)
+                line.append(dt)
+            table.append(line)
+        table = sorted(table, key=lambda x: x[0])
+
+        output = io.StringIO()
+        print("\n", file=output)
+        print(f"MESSAGES for {vehicle.get_id()}", file=output)
+        headers = ["rule", "purpose", "e.start", "action", "vehicle", "aoi", "time"]
+        print(tabulate(table, headers=headers), file=output)
+        contents = output.getvalue()
+        output.close()
+        logger.debug(f"{contents}")
+
+    def printRules(self, vehicle):
+        """Print all resolved rules to file for later processing with all details.
 
         Would be a confortable pandan DataFrame
         """
@@ -268,7 +326,7 @@ class OperaApp:
 
 
 if __name__ == "__main__":
-    DATABASE = "services"
+    DATABASE = "missions"
     FILE_EXTENSION = "6-broadcast.json"
 
     opera = OperaApp(airport=None)

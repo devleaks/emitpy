@@ -18,6 +18,7 @@ class Vehicle:
     def __init__(self, identifier):
         self._inited = False
         self._ident = None
+        self._is_aircraft = False
         self.identifier = identifier
 
         self._opera = None
@@ -42,6 +43,12 @@ class Vehicle:
 
     def set_id(self, ident):
         self._ident = ident
+
+    def set_aircraft(self, is_aircraft: bool = True):
+        self._is_aircraft = is_aircraft
+
+    def is_aircraft(self):
+        return self._is_aircraft
 
     def init(self, opera):
         self._opera = opera
