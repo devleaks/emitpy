@@ -70,25 +70,23 @@ class Vehicle:
         return far < STOPPED_DISTANCE_THRESHOLD
 
     def promise(self, message):
-        key = message.event.rule.name
+        key = Promise.make_id(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi)
         if key not in self.promises.keys():
-            self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, position=message.position, data=message)
-            # logger.debug(f"created a promise for rule {key} for vehicle {message.vehicle.get_id()}")
+            self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi, position=message.position, data=message)
+            # logger.debug(f"created a promise for rule {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}")
         else:
             self.promises[key].reset_timestamp(message.position.get_timestamp())
-            logger.debug(f"updated promise for rule {key} for vehicle {message.vehicle.get_id()}")
+            logger.debug(f"updated promise timestamp for rule {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}")
 
     def resolve(self, message):
-        # we have an end-event for all these promises
-        promises = filter(lambda p: p.rule.name == message.event.rule.name, self.promises.values())
-        for p in promises:
-            if not p.is_expired(self.position.get_timestamp()):
-                resolve = Resolve(p, message.position, data=message)
-                p.resolved()
+        key = Promise.make_id(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi)
+        if key in self.promises.keys():
+            promise = self.promises[key]
+            if not promise.is_expired(self.position.get_timestamp()):  # and not promise.resolved()
+                resolve = Resolve(promise, message.position, data=message)
                 self.resolves.append(resolve)
-                # logger.debug(f"resolved {p.rule.name} for vehicle {self.get_id()}")
             else:
-                logger.debug(f"promise {p.rule.name} is expired")
+                logger.debug(f"promise {promise.rule.get_id()} is expired")
 
     def process(self, message):
         if type(message) == StoppedMessage:
@@ -122,7 +120,7 @@ class Vehicle:
                 # first position
                 if self.last_position is None:
                     logger.debug(
-                        f"first position (event {event.rule.name}, {'start' if event.is_start() else 'end'})"
+                        f"first position (event {event.rule.get_id()}, {'start' if event.is_start() else 'end'})"
                     )  # we consider it entered all areas it is inside
                     if event.action == "enter":
                         for aoi in inside:
@@ -179,7 +177,7 @@ class Message:
         logger.debug(self)
 
     def __str__(self):
-        return f"{self.vehicle.identifier}({self.vehicle.get_id()}) rule {self.event.rule.name} {self.event.action} {self.aoi.get_id()}"
+        return f"{self.vehicle.identifier}({self.vehicle.get_id()}) rule {self.event.rule.get_id()} {self.event.action} {self.aoi.get_id()}"
 
     def get_timestamp(self):  # get_precise_timestamp()
         """Compute the exact time of entry of the vehicle in the area."""

@@ -75,6 +75,27 @@ class OperaApp:
         # logger.debug(f"{pattern} => {[f.get_id() for f in ret]}")
         return ret
 
+    def add_rule(self, name: str, vehicles: str, start_action: str, start_aois: str, end_action: str, end_aois: str, timeout: float, notes: str = None):
+        logger.debug(f"adding rule {name} {vehicles}..")
+        vevents = self.vehicle_events.get(vehicles, [])
+        timeout = float(timeout) * 60 if timeout != "" else 0
+        aois_start = self.select_aoi(start_aois)
+        logger.debug(f"{len(aois_start)} aois_start")
+        start_event = Event(vehicles=vehicles, action=start_action, aois=aois_start, aoi_selector=start_aois)
+        vevents.append(start_event)
+        aois_end = self.select_aoi(end_aois)
+        logger.debug(f"{len(aois_end)} aois_end")
+        end_event = Event(vehicles=vehicles, action=end_action, aois=aois_end, aoi_selector=end_aois)
+        vevents.append(end_event)
+        rule = Rule(name=name, start=start_event, end=end_event, timeout=timeout, notes=notes)
+        self.rules[rule.get_id()] = rule
+        self.vehicle_events[vehicles] = vevents
+        logger.debug(f"..added")
+
+    def delete_rule(self, name):
+        # self.rules[name]._enabled = False
+        del self.rules[name]
+
     def load_rules(self):
         fn = os.path.join(MANAGED_AIRPORT_DIR, "rules.csv")
         with open(fn, "r") as file:
@@ -83,23 +104,16 @@ class OperaApp:
                 logger.debug(f"rule {row['name']} {vehicles}")
                 if vehicles == "" or vehicles == "*":
                     vehicles = "(.*)"  # re
-                vevents = self.vehicle_events.get(vehicles, [])
-
-                timeout = float(row["timeout"]) * 60 if row["timeout"] != "" else 0
-
-                aois_start = self.select_aoi(row["area1"])
-                logger.debug(f"{len(aois_start)} aois_start")
-                start_event = Event(vehicles=vehicles, action=row["action1"], aois=aois_start, aoi_selector=row["area1"])
-                vevents.append(start_event)
-
-                aois_end = self.select_aoi(row["area2"])
-                logger.debug(f"{len(aois_end)} aois_end")
-                end_event = Event(vehicles=vehicles, action=row["action2"], aois=aois_end, aoi_selector=row["area2"])
-                vevents.append(end_event)
-
-                rule = Rule(name=row["name"], start=start_event, end=end_event, timeout=timeout, notes=row["note"])
-                self.rules[rule.name] = rule
-                self.vehicle_events[vehicles] = vevents
+                self.add_rule(
+                    name=row["name"],
+                    vehicles=vehicles,
+                    start_action=row["action1"],
+                    start_aois=row["area1"],
+                    end_action=row["action2"],
+                    end_aois=row["area2"],
+                    timeout=row["timeout"],
+                    notes=row["note"],
+                )
 
         logger.debug(f"{len(self.rules)} rules loaded")
 
@@ -197,7 +211,7 @@ class OperaApp:
             else:
                 event = m.event
                 rule = event.rule
-                line.append(rule.name)
+                line.append(rule.get_id())
                 line.append(rule.notes)
                 line.append("start" if event.is_start() else "end")
                 line.append(event.action)
@@ -215,7 +229,7 @@ class OperaApp:
         print(tabulate(table, headers=headers), file=output)
         contents = output.getvalue()
         output.close()
-        logger.debug(f"{contents}")
+        logger.info(f"{contents}")
 
     def printRules(self, vehicle):
         """Print all resolved rules to file for later processing with all details.
@@ -226,7 +240,7 @@ class OperaApp:
         for r in vehicle.resolves:
             line = []
             rule = r.promise.rule
-            line.append(rule.name)
+            line.append(rule.get_id())
             line.append(rule.notes)
             line.append(r.promise.vehicle.get_id())
             line.append(rule.start.action)
@@ -236,17 +250,19 @@ class OperaApp:
             dt = datetime.fromtimestamp(r.promise.get_timestamp()).replace(microsecond=0)
             line.append(dt)
             line.append(round(r.get_timestamp() - r.promise.get_timestamp()))
+            # line.append(r.promise.get_id())
+            # line.append(r._ident)
             table.append(line)
         table = sorted(table, key=lambda x: x[0])
 
         output = io.StringIO()
         print("\n", file=output)
         print(f"RESOLVED RULES", file=output)
-        headers = ["rule", "purpose", "vehicle", "start", "aoi", "end", "aoi", "time", "duration"]
+        headers = ["rule", "purpose", "vehicle", "start", "aoi", "end", "aoi", "time", "duration"]  # , "promise id", "resolve id"]
         print(tabulate(table, headers=headers), file=output)
         contents = output.getvalue()
         output.close()
-        logger.debug(f"{contents}")
+        logger.info(f"{contents}")
 
     def save(self):
         self.saveMessages()
@@ -280,7 +296,7 @@ class OperaApp:
                 else:
                     event = m.event
                     rule = event.rule
-                    line.append(rule.name)
+                    line.append(rule.get_id())
                     line.append(rule.notes)
                     line.append("start" if event.is_start() else "end")
                     line.append(event.action)
@@ -308,7 +324,7 @@ class OperaApp:
             for r in v.resolves:
                 line = []
                 rule = r.promise.rule
-                line.append(rule.name)
+                line.append(rule.get_id())
                 line.append(rule.notes)
                 line.append(r.promise.vehicle.get_id())
                 line.append(rule.start.action)
