@@ -21,7 +21,7 @@ from opera.aoi import AreasOfInterest
 from opera.vehicle import StoppedMessage, Vehicle
 
 FORMAT = "%(levelname)1.1s%(module)15s:%(funcName)-15s%(lineno)4s| %(message)s"
-logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+logging.basicConfig(level=logging.INFO, format=FORMAT)
 
 logger = logging.getLogger("Opera")
 
@@ -127,24 +127,42 @@ class OperaApp:
         Args:
             position ([type]): [description]
         """
+        if not point_in_polygon(position, self.airport_perimeter):
+            return []
+
+        icao24 = position.getProp("icao24")
+        if icao24 is None:
+            logger.warning("vehicle has no icao24")
+            return []
+        vehicle = self.vehicles.get(icao24, Vehicle(identifier=icao24))
+        self.vehicles[vehicle.identifier] = vehicle
+        logger.debug(f"vehicle is {vehicle.identifier}")
+        vehicle.set_aircraft(self.guess_vehicle_type(position))
+        vehicle.set_id(self.get_vehicle_identity(position))
+        vehicle.init(self)
+        ret = vehicle.at(position)
+        logger.debug(f"generated {len(ret)} messages")
+        return ret
 
     def guess_vehicle_type(self, position):
-        t = "aircraft" in position.properties
-        logger.debug(f"is_aircraft {t}")
-        return t
+        ret = "aircraft" in position.properties
+        logger.debug(f"is_aircraft {ret}")
+        return ret
 
     def get_vehicle_identity(self, position):
-        t = None
+        ident = None
         if "flight" in position.properties:
-            t = position.getPropPath("flight.aircraft.identity")
-        elif "service" in position.properties:
-            t = position.getPropPath("service.vehicle.identity")
+            ident = position.getPropPath("flight.aircraft.identity")
         elif "mission" in position.properties:
-            t = position.getPropPath("mission.vehicle.identity")
+            ident = position.getPropPath("mission.vehicle.identity")
+        elif "service" in position.properties:
+            ident = position.getPropPath("service.vehicle.identity")
+
+        if ident is not None:
+            logger.debug(f"identity {ident}")
         else:
-            logger.warning(f"could not guess identity in {position}")
-        logger.debug(f"identity {t}")
-        return t
+            logger.warning(f"no identity in {position}")
+        return ident
 
     def bulk_process(self, positions):
         """Bulk processes a whole track for a single vehicle.
@@ -179,7 +197,7 @@ class OperaApp:
         # Ask vehicle to report events
         i = 0
         for f in positions_at_airport:
-            logger.debug(f"processing line {i}, at {f.get_timestamp()}")
+            logger.debug(f"vehicle {vehicle.identifier}: processing line {i}, at {f.get_timestamp()}")
             messages = vehicle.at(f)
             i = i + 1
 
@@ -229,7 +247,7 @@ class OperaApp:
         print(tabulate(table, headers=headers), file=output)
         contents = output.getvalue()
         output.close()
-        logger.info(f"{contents}")
+        logger.debug(f"{contents}")
 
     def printRules(self, vehicle):
         """Print all resolved rules to file for later processing with all details.
