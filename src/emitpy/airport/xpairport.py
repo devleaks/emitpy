@@ -498,7 +498,7 @@ class XPAirport(ManagedAirportBase):
                     logger.warning(f"feature with no poi type {f}, skipping")
                 else:
                     if poi_type in [POI_TYPE.DEPOT.value, POI_TYPE.REST_AREA.value]:
-                        poi_svc = f.getProp(FEATPROP.SERVICE.value)
+                        poi_svc = f.getProp(FEATPROP.POI_SERVICE.value)
                         if poi_svc is None:
                             logger.warning(f"poi {poi_type} has no service {f}, skipping")
                         else:
@@ -520,7 +520,7 @@ class XPAirport(ManagedAirportBase):
         """
         l = sorted(self.service_pois.values(), key=lambda x: x.getName())
         if service is not None:
-            l = list(filter(lambda f: f.getProp(FEATPROP.SERVICE.value) == service, l))
+            l = list(filter(lambda f: f.getProp(FEATPROP.POI_SERVICE.value) == service, l))
         a = [(a.getName(), a.getName()) for a in l]
         return a
 
@@ -733,7 +733,7 @@ class XPAirport(ManagedAirportBase):
         """
         sl = []
         for f in self.service_pois.values():
-            s = f.getProp(FEATPROP.SERVICE.value)
+            s = f.getProp(FEATPROP.POI_SERVICE.value)
             if s is not None:
                 if s == "*":
                     sl.append(f)

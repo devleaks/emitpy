@@ -184,10 +184,12 @@ class EmitpyFeature(Feature):
     def getMark(self):
         return self.getProp(FEATPROP.MARK.value)
 
-    def setMark(self, mark):
-        return self.setProp(FEATPROP.MARK.value, mark)
+    def setMark(self, mark, index: int = None):
+        self.setProp(FEATPROP.MARK.value, mark)
+        if index is not None:
+            self.setProp(FEATPROP.MARK_SEQUENCE.value, index)
 
-        # For historical reasons, tags are kept in |-separated strings like tag1|tag2.
+        # For historical reasons, tags are kept in |-separated strings like tag1|tag2, this comes from X-Plane...
 
     def setTag(self, tagname: str, tagvalue: str):
         tags = self.getTags(tagname)

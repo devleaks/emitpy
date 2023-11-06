@@ -484,6 +484,7 @@ class FEATPROP(Enum):
     ICAO24 = "icao24"
     LINE = "line"
     MARK = "_mark"
+    MARK_SEQUENCE = "_mark-seq"
     MESSAGE_ID = "message-id"
     MISSION = "mission"
     MOVE_INDEX = "move-index"  # after standard turns added
@@ -494,6 +495,7 @@ class FEATPROP(Enum):
     PLAN_SEGMENT_NAME = "_plan_segment_name"
     PLAN_SEGMENT_TYPE = "_plan_segment_type"
     POI_TYPE = "poi-type"
+    POI_SERVICE = "poi-service"
     PREMOVE_INDEX = "move-pre-index"
     REGION = "region"
     RUNWAY = "runway"
@@ -521,13 +523,8 @@ TAXI_SPEED = 10  # 10m/s = 36km/h = taxi speed
 SLOW_SPEED = 1.4  # 1.4m/s = 5km/h = slow speed
 
 # Point emission limit and control
-EMIT_RATES = [
-    (str(x), str(x))
-    for x in (list(range(31)) + [60, 120, 300, 600, 900, 1200, 1800, 3600])
-]  # possible values
-RATE_LIMIT = (
-    10  # Maximum frequency when range of emission is limited to managed airport
-)
+EMIT_RATES = [(str(x), str(x)) for x in (list(range(31)) + [60, 120, 300, 600, 900, 1200, 1800, 3600])]  # possible values
+RATE_LIMIT = 10  # Maximum frequency when range of emission is limited to managed airport
 EMIT_RANGE = 5  # Maximum range (in kilometers) of emission when rate under RATE_LIMIT
 
 # Miscellaneous
