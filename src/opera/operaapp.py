@@ -21,7 +21,7 @@ from opera.aoi import AreasOfInterest
 from opera.vehicle import StoppedMessage, Vehicle
 
 FORMAT = "%(levelname)1.1s%(module)15s:%(funcName)-15s%(lineno)4s| %(message)s"
-logging.basicConfig(level=logging.INFO, format=FORMAT)
+logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 
 logger = logging.getLogger("Opera")
 
@@ -97,9 +97,11 @@ class OperaApp:
         del self.rules[name]
 
     def load_rules(self):
-        fn = os.path.join(MANAGED_AIRPORT_DIR, "rules.csv")
+        fn = os.path.join(MANAGED_AIRPORT_DIR, "opera", "rules.csv")
         with open(fn, "r") as file:
             for row in csv.DictReader(file):
+                if row["name"].startswith("#"):  # comment
+                    continue
                 vehicles = row["vehicles"]
                 logger.debug(f"rule {row['name']} {vehicles}")
                 if vehicles == "" or vehicles == "*":
@@ -247,7 +249,7 @@ class OperaApp:
         print(tabulate(table, headers=headers), file=output)
         contents = output.getvalue()
         output.close()
-        logger.debug(f"{contents}")
+        logger.info(f"{contents}")
 
     def printRules(self, vehicle):
         """Print all resolved rules to file for later processing with all details.
@@ -283,10 +285,12 @@ class OperaApp:
         logger.info(f"{contents}")
 
     def save(self):
+        """Saves messages and resolutions into files"""
         self.saveMessages()
         self.saveRules()
 
     def saveMessages(self):
+        """Saves messages to file."""
         DATABASE = "events"
         basename = os.path.join(MANAGED_AIRPORT_AODB, DATABASE)
         if not os.path.isdir(basename):
@@ -329,6 +333,7 @@ class OperaApp:
                 writer.writerows(table)
 
     def saveRules(self):
+        """Saves resolutions to file."""
         DATABASE = "rules"
         basename = os.path.join(MANAGED_AIRPORT_AODB, DATABASE)
         if not os.path.isdir(basename):

@@ -91,6 +91,7 @@ class MissionMove(GroundSupportMovement):
             if cp is None:
                 logger.warning(f"cannot find checkpoint {cp_id}")
                 continue
+            logger.warning(f"going to checkpoint {cp_id}")
 
             # find closest vertex of next control point
             cp_nv = self.airport.service_roads.nearest_vertex(cp)

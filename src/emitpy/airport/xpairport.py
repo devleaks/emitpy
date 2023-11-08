@@ -568,7 +568,7 @@ class XPAirport(ManagedAirportBase):
             r = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             f = FeatureWithProps.new(r)
             return f
-        return self.check_pois[name] if name in self.check_pois.keys() else None
+        return self.check_pois.get(name)
 
     def getControlPoint(self, name):
         """
@@ -577,7 +577,7 @@ class XPAirport(ManagedAirportBase):
         :param      name:  The name
         :type       name:  { type_description }
         """
-        return self.check_pois[name] if name in self.check_pois.keys() else self.getPOIFromCombo(name)
+        return self.check_pois.get(name, self.getPOIFromCombo(name))
 
     def getAerowayPOI(self, name):
         """

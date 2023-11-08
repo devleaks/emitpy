@@ -2,8 +2,11 @@
 #
 import os
 import logging
+import json
 
 from emitpy.constants import FEATPROP, REDIS_DATABASES, REDIS_DATABASE
+from emitpy.geo import mkFeature
+from turf import FeatureCollection
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
 # Generic, yet another flavor of vanilla:
@@ -92,6 +95,21 @@ class Format:
             for l in self.output:
                 fp.write(str(l) + "\n")
         logger.debug(f"saved {fn}")
+
+        # ==============================
+        # ONLY WORKS FOR RAW FORMATTER
+        # ==============================
+        fn = f"{ident}-6-broadcast.geojson"
+        filename = os.path.join(basename, fn)
+        if os.path.exists(filename) and not overwrite:
+            logger.warning(f"file {filename} already exist, not saved")
+            return (False, "Format::save file already exist")
+
+        with open(filename, "w") as fp:
+            fc = FeatureCollection(features=[mkFeature(json.loads(str(f))) for f in self.output])
+            json.dump(fc.to_geojson(), fp)
+        logger.debug(f"saved {fn}")
+        # ==============================
 
         return (True, "Format::save saved")
 

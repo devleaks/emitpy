@@ -9,12 +9,9 @@ from opera.aoi import AreasOfInterest
 logger = logging.getLogger("vehicle")
 
 
-# class TimedPosition(Feature):
-#     def __init__(self, lat, lon, alt, ts):
-#         Feature.__init__(self, geom=Point((lon, lat, alt)), properties={"ts": ts})
-
-
 class Vehicle:
+    """A Vehicle is an object that reports its position at regular interval"""
+
     def __init__(self, identifier):
         self._inited = False
         self._ident = None
@@ -39,18 +36,29 @@ class Vehicle:
         self.resolves = []
 
     def get_id(self):
+        """Returns a vehicle identifier"""
         return self._ident
 
     def set_id(self, ident):
+        """Sets a vehicle identifier"""
         self._ident = ident
 
     def set_aircraft(self, is_aircraft: bool = True):
+        """Sets whether the vehicle is identified as an aircraft"""
         self._is_aircraft = is_aircraft
 
     def is_aircraft(self):
+        """Returns whether the vehicle is identified as an aircraft"""
         return self._is_aircraft
 
     def init(self, opera):
+        """Initialize a vehicle
+
+        Initialisation includes pre-selecting all events of interest that this vehicle may produce.
+
+        Args:
+            opera ([OperaApp]): Link to main OperaApp container to fetch data from.
+        """
         self._opera = opera
         self.events = []
         vmatch = list(filter(lambda f: bool(re.match(f, self.get_id())), opera.vehicle_events.keys()))
@@ -61,6 +69,7 @@ class Vehicle:
         self._inited = self._ident is not None
 
     def is_stopped(self):
+        """Determine whether a vehicle is stopped"""
         STOPPED_DISTANCE_THRESHOLD = 0.005  # 5 meters
         messages = []
         if self.last_position is None:
@@ -70,6 +79,12 @@ class Vehicle:
         return far < STOPPED_DISTANCE_THRESHOLD
 
     def promise(self, message):
+        """Creates or updates a promise for this vehicle based on the message data
+
+        Args:
+
+            message [[Message]] message emitted by the vehicle when satisfying an Event
+        """
         key = Promise.make_id(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi)
         if key not in self.promises.keys():
             self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi, position=message.position, data=message)
@@ -79,6 +94,12 @@ class Vehicle:
             logger.debug(f"updated promise timestamp for rule {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}")
 
     def resolve(self, message):
+        """Creates a resolve for this vehicle based on the message data
+
+        Args:
+
+            message [[Message]] message emitted by the vehicle when satisfying an Event
+        """
         key = Promise.make_id(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi)
         if key in self.promises.keys():
             promise = self.promises[key]
@@ -89,6 +110,7 @@ class Vehicle:
                 logger.debug(f"promise {promise.rule.get_id()} is expired")
 
     def process(self, message):
+        """Processes a message"""
         if type(message) == StoppedMessage:
             logger.debug(f"stopped message does not need resolution")
             return
@@ -98,6 +120,18 @@ class Vehicle:
             self.resolve(message)
 
     def at(self, position):
+        """Process a position and update the vehicle status
+
+        The procedure first creates a list of messages based on Event satisfied by the position.
+        Messages (if any) are then "processed", meaning corresponding promises or resolved are generated or updated.
+
+        Args:
+            position ([GeoJSON Feature<Point>]): Last position of vehicle
+
+        Returns:
+            list: [description]
+        """
+
         def list_aois(arr):
             return [a.get_id() for a in arr]
 
@@ -107,13 +141,17 @@ class Vehicle:
         self.inside = set()
         messages = []
 
-        if self.last_position is not None and self.is_stopped():
-            msg = StoppedMessage(vehicle=self, position=self.position)
-            messages.append(msg)
-            logger.debug(f"{self.get_id()} stopped")
+        if self.is_stopped():
+            if not self.stopped:
+                msg = StoppedMessage(vehicle=self, position=self.position)
+                messages.append(msg)
+                self.stopped = True  # we only send one message when there is a new stop
+            logger.debug(f"{self.get_id()} is stopped {position}")
+        else:
+            self.stopped = False
 
         for event in self.events:
-            if event.action in ["enter", "exit", "traverse"]:
+            if event.action in ["enter", "exit", "traverse", "stopped"]:
                 inside = event.inside(position)
                 # logger.debug(f"{len(inside)} insides")  # we consider it entered all areas it is inside
                 self.inside = self.inside.union(inside)
@@ -152,10 +190,11 @@ class Vehicle:
 
                         case "stopped":
                             if self.is_stopped():
+                                print(">" * 20, inside, self.inside)
                                 for aoi in self.inside:
                                     msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)
                                     messages.append(msg)
-                                # logger.debug(f"{len(self.inside)} stopped inside aoi")
+                                logger.debug(f"{len(self.inside)} stopped inside aoi")
 
         logger.debug(f"added {len(messages)} messages")
         self.messages = self.messages + messages
@@ -190,6 +229,8 @@ class Message:
 
 
 class StoppedMessage(Message):
+    """A StopMessage is a special message when a vehicle comes to an halt."""
+
     def __init__(self, vehicle, position):
         Message.__init__(self, event=None, vehicle=vehicle, aoi=None, position=position, last_position=None)
 
