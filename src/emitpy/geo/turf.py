@@ -412,7 +412,7 @@ def destination(start, length, course, units: str = "km"):
         units = "kilometers"
     if units == "m":
         units = "meters"
-    return mkFeature(turf_destination(start, length, mkBearing(course), {"units": units}))
+    return asFeature(turf_destination(start, length, mkBearing(course), {"units": units}))
 
 
 # Checks
@@ -431,7 +431,7 @@ def line_intersect_polygon(line, polygon) -> int:
 
 
 # Miscellaneous
-def mkFeature(f):
+def asFeature(f):
     # some functions return dict or str
     if isinstance(f, Feature):
         return f
@@ -448,5 +448,5 @@ def loadGeoJSON(filename):
     with open(filename, "r") as fp:
         data = json.load(fp)
     if data is not None:
-        return FeatureCollection(features=[mkFeature(f) for f in data["features"]])
+        return FeatureCollection(features=[asFeature(f) for f in data["features"]])
     return None

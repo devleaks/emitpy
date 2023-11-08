@@ -33,6 +33,7 @@ class Vehicle:
 
         # Rules
         self.promises = {}
+        self.archived_promises = []
         self.resolves = []
 
     def get_id(self):
@@ -90,8 +91,17 @@ class Vehicle:
             self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi, position=message.position, data=message)
             # logger.debug(f"created a promise for rule {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}")
         else:
-            self.promises[key].reset_timestamp(message.position.get_timestamp())
-            logger.debug(f"updated promise timestamp for rule {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}")
+            if self.promises[key].is_expired(message.get_timestamp()):
+                self.archive_promise(message=message)
+                self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi, position=message.position, data=message)
+                logger.debug(
+                    f"archived expired promise, created new promise {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}"
+                )
+            else:
+                self.promises[key].reset_timestamp(message.position.get_timestamp())
+                logger.debug(
+                    f"updated promise timestamp for rule {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}"
+                )
 
     def resolve(self, message):
         """Creates a resolve for this vehicle based on the message data
@@ -108,6 +118,12 @@ class Vehicle:
                 self.resolves.append(resolve)
             else:
                 logger.debug(f"promise {promise.rule.get_id()} is expired")
+
+    def archive_promise(self, message):
+        key = Promise.make_id(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi)
+        if key in self.promises.keys():
+            self.archived_promises.append(self.promises[key])
+            del self.promises[key]
 
     def process(self, message):
         """Processes a message"""
@@ -190,11 +206,10 @@ class Vehicle:
 
                         case "stopped":
                             if self.is_stopped():
-                                print(">" * 20, inside, self.inside)
                                 for aoi in self.inside:
                                     msg = Message(event=event, vehicle=self, aoi=aoi, position=self.position, last_position=self.last_position)
                                     messages.append(msg)
-                                logger.debug(f"{len(self.inside)} stopped inside aoi")
+                                # logger.debug(f"{len(self.inside)} stopped inside aoi")
 
         logger.debug(f"added {len(messages)} messages")
         self.messages = self.messages + messages

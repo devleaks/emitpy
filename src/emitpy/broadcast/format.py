@@ -5,7 +5,7 @@ import logging
 import json
 
 from emitpy.constants import FEATPROP, REDIS_DATABASES, REDIS_DATABASE
-from emitpy.geo import mkFeature
+from emitpy.geo import asFeature
 from turf import FeatureCollection
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
@@ -106,7 +106,7 @@ class Format:
             return (False, "Format::save file already exist")
 
         with open(filename, "w") as fp:
-            fc = FeatureCollection(features=[mkFeature(json.loads(str(f))) for f in self.output])
+            fc = FeatureCollection(features=[asFeature(json.loads(str(f))) for f in self.output])
             json.dump(fc.to_geojson(), fp)
         logger.debug(f"saved {fn}")
         # ==============================

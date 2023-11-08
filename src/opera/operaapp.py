@@ -12,7 +12,7 @@ sys.path.append("../../src")
 
 from tabulate import tabulate
 
-from emitpy.geo import FeatureWithProps, point_in_polygon, mkFeature
+from emitpy.geo import FeatureWithProps, point_in_polygon, asFeature
 from emitpy.parameters import MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_DIR
 
 
@@ -21,7 +21,7 @@ from opera.aoi import AreasOfInterest
 from opera.vehicle import StoppedMessage, Vehicle
 
 FORMAT = "%(levelname)1.1s%(module)15s:%(funcName)-15s%(lineno)4s| %(message)s"
-logging.basicConfig(level=logging.DEBUG, format=FORMAT)
+logging.basicConfig(level=logging.INFO, format=FORMAT)
 
 logger = logging.getLogger("Opera")
 
@@ -46,16 +46,11 @@ class OperaApp:
         self.airport_perimeter = None
         self.vehicles = {}
 
-        self._promises = []
-
-        # Result variables
-        self._resolves = []
-
         self.init()
 
     def init(self) -> bool:
         self.load_aois()
-        self.airport_perimeter = mkFeature(list(filter(lambda f: f.get_id() == "OTHH:aerodrome:aerodrome:perimeter", self.all_aois))[0])
+        self.airport_perimeter = asFeature(list(filter(lambda f: f.get_id() == "OTHH:aerodrome:aerodrome:perimeter", self.all_aois))[0])
         self.load_rules()
         self._inited = True
         return self._inited
@@ -203,7 +198,9 @@ class OperaApp:
             messages = vehicle.at(f)
             i = i + 1
 
-        logger.debug(f"total: resolved {len(self.rules)} rules {len(vehicle.resolves)} times for {len(self.vehicles)} vehicles")
+        logger.info(
+            f"total: resolved {len(self.rules)} rules {len(vehicle.resolves)} times for {len(self.vehicles)} vehicles (got {len(vehicle.messages)} messages)"
+        )
         self.printMessages(vehicle)
         self.printRules(vehicle)
 
@@ -278,7 +275,7 @@ class OperaApp:
         output = io.StringIO()
         print("\n", file=output)
         print(f"RESOLVED RULES", file=output)
-        headers = ["rule", "purpose", "vehicle", "start", "aoi", "end", "aoi", "time", "duration"]  # , "promise id", "resolve id"]
+        headers = ["rule", "purpose", "vehicle", "start", "s aoi", "end", "e aoi", "time", "duration"]  # , "promise id", "resolve id"]
         print(tabulate(table, headers=headers), file=output)
         contents = output.getvalue()
         output.close()
@@ -299,12 +296,11 @@ class OperaApp:
 
         headers = ["rule", "purpose", "e.start", "action", "vehicle", "aoi", "time"]
         table = []
-        table.append(headers)
         for v in self.vehicles.values():
             for m in v.messages:
                 line = []
                 if type(m) == StoppedMessage:
-                    line.append("")
+                    line.append("")  # 0
                     line.append("")
                     line.append("")
                     line.append("stopped")
@@ -314,19 +310,21 @@ class OperaApp:
                     else:
                         line.append("")
                     dt = datetime.fromtimestamp(m.get_timestamp()).replace(microsecond=0)
-                    line.append(dt)
+                    line.append(dt)  # 6
                 else:
                     event = m.event
                     rule = event.rule
-                    line.append(rule.get_id())
+                    line.append(rule.get_id())  # 0
                     line.append(rule.notes)
                     line.append("start" if event.is_start() else "end")
                     line.append(event.action)
                     line.append(m.vehicle.get_id())
                     line.append(m.aoi.get_id())
                     dt = datetime.fromtimestamp(m.get_timestamp()).replace(microsecond=0)
-                    line.append(dt)
+                    line.append(dt)  # 6
                 table.append(line)
+            table = sorted(table, key=lambda x: x[6])
+            table.insert(0, headers)
             fn = os.path.join(basename, v.get_id() + ".csv")
             with open(fn, "w") as fp:
                 writer = csv.writer(fp)
@@ -340,14 +338,13 @@ class OperaApp:
             os.mkdir(basename)
             logger.info(f"{basename} created")
 
-        headers = ["rule", "purpose", "vehicle", "start", "aoi", "end", "aoi", "time", "duration"]
+        headers = ["rule", "purpose", "vehicle", "start", "start_aoi", "end", "end_aoi", "time", "duration"]
         table = []
-        table.append(headers)
         for v in self.vehicles.values():
             for r in v.resolves:
                 line = []
                 rule = r.promise.rule
-                line.append(rule.get_id())
+                line.append(rule.get_id())  # 0
                 line.append(rule.notes)
                 line.append(r.promise.vehicle.get_id())
                 line.append(rule.start.action)
@@ -355,9 +352,11 @@ class OperaApp:
                 line.append(rule.end.action)
                 line.append(r.data.aoi.get_id())
                 dt = datetime.fromtimestamp(r.promise.get_timestamp()).replace(microsecond=0)
-                line.append(dt)
+                line.append(dt)  # 7
                 line.append(round(r.get_timestamp() - r.promise.get_timestamp()))
                 table.append(line)
+            table = sorted(table, key=lambda x: x[7])
+            table.insert(0, headers)
             fn = os.path.join(basename, v.get_id() + ".csv")
             with open(fn, "w") as fp:
                 writer = csv.writer(fp)
