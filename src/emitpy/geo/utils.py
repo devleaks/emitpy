@@ -189,8 +189,8 @@ def findFeatures(arr, criteria):
     res = []
     for f in arr:
         ok = True
-        for k in criteria:
-            ok = ok and k in f.properties and f.properties[k] == criteria[k]
+        for k, v in criteria.items():  # AND all criteria
+            ok = ok and (f.properties.get(k) == v)
         if ok:
             res.append(f)
     return res

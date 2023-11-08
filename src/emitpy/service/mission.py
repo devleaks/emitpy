@@ -67,7 +67,4 @@ class Mission(GroundSupport):
         """
         if checkpoint is None:
             return self.checkpoint_control_time
-        control_time = checkpoint.getProp(FEATPROP.CONTROL_TIME.value)
-        if control_time is None:
-            return self.checkpoint_control_time  # default
-        return control_time
+        return checkpoint.getProp(FEATPROP.CONTROL_TIME.value, dflt=self.checkpoint_control_time)

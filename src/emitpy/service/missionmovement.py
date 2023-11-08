@@ -85,6 +85,7 @@ class MissionMove(GroundSupportMovement):
         ## Mission loop:
         prev_cp = start_nv
         prev_vtx = start_nv[0]
+        chkpt_cnt = 0
         for cp_id in self.mission.checkpoints:
             # We enter at the last service_road network vertex.
             cp = self.airport.getControlPoint(cp_id)  # list of checkpoints extended to all POI and stops.
@@ -135,6 +136,7 @@ class MissionMove(GroundSupportMovement):
             pos = MovePoint.new(cp)
             pos.setSpeed(0)  # starts moving
             pos.setMark(MISSION_PHASE.CHECKPOINT.value)
+            pos.setProp(FEATPROP.MARK_SEQUENCE.value, chkpt_cnt)
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
             pos.setPause(self.mission.duration(cp))
             move_points.append(pos)
@@ -142,7 +144,7 @@ class MissionMove(GroundSupportMovement):
 
             self.addMessage(
                 MissionMessage(
-                    subject=f"Mission {self.getId()} reached control point",
+                    subject=f"Mission {self.getId()} reached control point {cp_id}",
                     mission=self,
                     sync=MISSION_PHASE.CHECKPOINT.value,
                     info=self.getInfo(),
@@ -166,6 +168,7 @@ class MissionMove(GroundSupportMovement):
                 prev_vtx = last_vtx
 
             prev_cp = cp
+            chkpt_cnt = chkpt_cnt + 1
 
         # Goes to next position, or back to start position if no next position.
         final_pos = self.mission.vehicle.next_position

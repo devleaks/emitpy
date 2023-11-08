@@ -767,7 +767,7 @@ class XPAirport(ManagedAirportBase):
         if name == POI_TYPE.DEPOT.value:  # keyword for any depot for service
             logger.debug(f"trying generic depot")
             return self.selectRandomServiceDepot(service, redis)
-        if name in [POI_TYPE.REST_AREA.value, "rest", "parking"]:  # keyword for any rest area/parking for service
+        if name in [POI_TYPE.REST_AREA.value, POI_TYPE.PARKING.value, POI_TYPE.DESTINATION.value, "rest"]:  # keyword for any rest area/parking for service
             logger.debug(f"trying generic rest area")
             return self.selectRandomServiceRestArea(service, redis)
 

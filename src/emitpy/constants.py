@@ -426,6 +426,9 @@ class POI_TYPE(Enum):
     REST_AREA = "rest-area"
     RAMP_SERVICE_POINT = "ramp-service-point"
     QUEUE_POSITION = "toq-pos"
+    # Added for compatibility with X-Plane (special vocabulary)
+    DESTINATION = "destination"
+    PARKING = "parking"
 
 
 QUEUE_GAP = 200  # meters

@@ -26,7 +26,6 @@ logger = logging.getLogger("Hypercaster")
 coloredlogs.install(level=logging.DEBUG, logger=logger, fmt="%(asctime)s %(name)s:%(message)s", datefmt="%H:%M:%S")
 
 
-
 logger.info(f"{emitpy.__NAME__} {emitpy.__COPYRIGHT__}")
 logger.info(f"Release {emitpy.__version__} «{emitpy.__version_name__}»")
 logger.info(f"Usable under Licence {emitpy.__LICENSE__} {emitpy.__LICENSEURL__}")

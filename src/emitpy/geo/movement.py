@@ -220,44 +220,44 @@ class Movement(Messages):
         logger.debug(f"bounding box: {bb}")
         return bb
 
-    def getSyncCount(self, sync: str):
+    def getMarkCount(self, mark: str):
         """Returns number of times a sync mark occurs
 
         Returns:
             number: Number of times a sync mark occurs in Movement
         """
-        f = findFeatures(self.getPoints(), {FEATPROP.MARK.value: sync})
-        return 0 if f is None else len(f)
+        f = findFeatures(self.getPoints(), {FEATPROP.MARK.value: mark})
+        ret = 0 if f is None else len(f)
+        logger.debug(f"mark {mark} has {ret} occurences")
+        return ret
 
-    def getAllRelativeEmissionTimes(self, sync: str):
-        """If a sync mark occurs more than once, returns all relative emission times.
-        Returns:
-            List(float): Relative emission time of each mark
-        """
-        ff = findFeatures(self.getPoints(), {FEATPROP.MARK.value: sync})
-        times = []
-        if ff is not None and len(ff) > 0:
-            for f in ff:
-                times.append(f.getProp(FEATPROP.EMIT_REL_TIME.value))
-        return times
-
-    def getRelativeEmissionTime(self, sync: str, instance: int = 0):
+    def getMarkRelativeEmissionTime(self, sync: str, instance: int = -1):
         if self.is_event_service():
             label = self.getSource().label
             logger.debug(f"event service {label} relative time is relative to on/off block (was {sync}).")
             return 0  # sync info in message at creation
 
-        f = findFeatures(self.getPoints(), {FEATPROP.MARK.value: sync})
-        if f is not None and len(f) > instance:
-            r = f[instance]
-            logger.debug(f"found {sync}")
+        criteria = {FEATPROP.MARK.value: sync}
+        if instance > -1:
+            criteria[FEATPROP.MARK_SEQUENCE.value] = instance
+            logger.debug(f"{FEATPROP.MARK.value} fetching instance {instance}")
+        f = findFeatures(self.getPoints(), criteria)
+        if f is not None and len(f) > 0:
+            r = f[0]
+            if instance > -1:
+                logger.debug(f"found {sync}, instance {instance}")
+            else:
+                logger.debug(f"found {sync}")
             offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
             if offset is not None:
                 return offset
             else:
                 logger.warning(f"{FEATPROP.MARK.value} {sync} has no time offset, using 0")
                 return 0
-        logger.warning(f"{self.getId()}: {sync} not found in ({self.getMarkList()})")
+        if instance > -1:
+            logger.warning(f"{self.getId()}: {sync} instance {instance} not found in ({self.getMarkList()})")
+        else:
+            logger.warning(f"{self.getId()}: {sync} not found in ({self.getMarkList()})")
         return None
 
     def schedule(self, sync, moment: datetime, do_print: bool = False):
@@ -266,7 +266,7 @@ class Movement(Messages):
             return (True, "Movement::schedule: no need to save event service")
 
         # logger.debug(f"mark list: {self.getMarkList()}")
-        offset = self.getRelativeEmissionTime(sync)
+        offset = self.getMarkRelativeEmissionTime(sync)
         if offset is not None:
             offset = int(offset)  # pylint E1130
             self.offset_name = sync

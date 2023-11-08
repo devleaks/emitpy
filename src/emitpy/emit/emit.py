@@ -911,45 +911,6 @@ class Emit(Movement):
 
         return (True, "Emit::interpolated speed and altitude")
 
-    def getTimedMarkList(self):
-        l = dict()
-
-        if self._scheduled_points is None or len(self._scheduled_points) == 0:
-            return l
-
-        output = io.StringIO()
-        print("\n", file=output)
-        print(f"TIMED MARK LIST", file=output)
-        MARK_LIST = ["mark", "relative", "time"]
-        table = []
-
-        for f in self._scheduled_points:
-            m = f.getMark()
-            if m is not None:
-                if m in l:
-                    l[m]["count"] = l[m]["count"] + 1 if "count" in l[m] else 2
-                else:
-                    l[m] = {
-                        "rel": f.getProp(FEATPROP.EMIT_REL_TIME.value),
-                        "ts": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
-                        "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value),
-                    }
-                line = []
-                line.append(m)
-                line.append(f.getProp(FEATPROP.EMIT_REL_TIME.value))
-                line.append(datetime.fromtimestamp(f.getProp(FEATPROP.EMIT_ABS_TIME.value)).astimezone().replace(microsecond=0))
-                table.append(line)
-                # logger.debug(f"{m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)}")
-
-        table = sorted(table, key=lambda x: x[2])  # absolute emission time
-        print(tabulate(table, headers=MARK_LIST), file=output)
-
-        contents = output.getvalue()
-        output.close()
-        logger.debug(f"{contents}")
-
-        return l
-
     def addToPause(self, sync, duration: float, add: bool = True):
         f = findFeatures(self.move_points, {FEATPROP.MARK.value: sync})
         if f is not None and len(f) > 0:
@@ -987,7 +948,7 @@ class Emit(Movement):
         self.curr_schedule = moment
         self.curr_syncmark = sync
 
-        offset = self.getRelativeEmissionTime(sync)
+        offset = self.getMarkRelativeEmissionTime(sync)
         if offset is not None:
             offset = int(offset)  # pylint E1130
             self.offset_name = sync
@@ -1041,19 +1002,25 @@ class Emit(Movement):
 
         logger.debug(f"{self.getId()}: {sync} at {moment}, scheduling..")
         t0 = moment
-        offset = self.getRelativeEmissionTime(sync)
+        offset = self.getMarkRelativeEmissionTime(sync)
         if offset is not None:
             t0 = moment + timedelta(seconds=(-offset))
             logger.debug(f"{self.getId()}: t=0 at {t0}..")
         else:
             logger.warning(f"{self.getId()}: {sync} mark not found, using moment with no offset")
         # t0 is ON/OFF BLOCK time
+        mark_count = 0
         for m in self.getMessages():
             when = t0
             offset = 0
             total = 0
             if m.relative_sync is not None:
-                offset = self.getRelativeEmissionTime(m.relative_sync)
+                offset = None
+                if self.getMarkCount(mark=m.relative_sync) > 1:
+                    offset = self.getMarkRelativeEmissionTime(m.relative_sync, mark_count)
+                    mark_count = mark_count + 1
+                else:
+                    offset = self.getMarkRelativeEmissionTime(m.relative_sync)
                 if offset is not None:
                     when = t0 + timedelta(seconds=offset)
                     total = offset + m.relative_time
