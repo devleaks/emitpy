@@ -11,6 +11,7 @@ import json
 from abc import ABC, abstractmethod
 from enum import Enum
 
+from emitpy.constants import ID_SEP
 from emitpy.geo.turf import Point, LineString, Feature
 from emitpy.geo.turf import distance, destination
 
@@ -59,40 +60,49 @@ class Restriction:
     """
 
     def __init__(self, altmin: int = None, altmax: int = None, speedmin: float = None, speedmax: float = None):
+        self._source = None
         # Altitude constrains
         self.altmin = altmin  # In ft
         self.altmax = altmax
         self.altmin_type = None  # MSL, AGL, UL
         self.altmax_type = None
+        self.alt_restriction_type = None
         # Speed constrains
         self.speedmin = speedmin  # In kn
         self.speedmax = speedmax
+        self.speed_restriction_type = None
         # Bank angle constrains
         self.angle = None  # Bank angle in °.
+        self.restrictions = []
 
     def getInfo(self):
         return {"type": type(self).__name__, "altmin": self.altmin, "altmax": self.altmax, "speedmin": self.speedmin, "speedmax": self.speedmax}
 
-    def __str__(self):
+    def print_restriction(self, verbose: bool = False):
+        if not self.hasAltitudeRestriction() and not self.hasSpeedRestriction() and verbose:
+            return "no restriction"
         # @todo: make sure speed in ft.
-        a = ""
+        a = "?" if self.alt_restriction_type is None else self.alt_restriction_type
         if self.altmin is not None:
-            a = a + f"A {self.altmin} "
+            a = a + f"{self.altmin}"
         if self.altmax is not None:
-            a = a + f"B {self.altmax} "
+            a = a + f",{self.altmax}"
 
         # @todo: make sure speed in kn.
-        a = a + "/ "
+        b = "?" if self.speed_restriction_type is None else self.speed_restriction_type
+        a = a + "/"
         if self.speedmin is not None:
-            a = a + f"A {self.speedmin} "
+            a = a + b + f"{self.speedmin}"
         if self.speedmax is not None:
-            a = a + f"B {self.speedmax} "
+            if self.speedmin is not None:
+                a = a + f",{self.speedmax}"
+            else:
+                a = a + b + f"{self.speedmax}"
 
-        # @todo: may also have bank angle constrains
-        # a = a + "/ "
-        # if self.angle is not None:
-        #     a = a + f"{self.angle}°"
-        return a.strip()
+        if self.angle is not None:
+            a = a + f"/{self.angle}°"
+
+        return a
 
     def setAltitudeRestriction(self, altmin: float, altmax: float):
         self.altmin = altmin
@@ -112,7 +122,7 @@ class Restriction:
             retok = retok and alt < self.altmax
         return retok
 
-    def setSpeedRestriction(self, speedmin: float, speedmax: float):
+    def setSpeedRestriction(self, speedmin: float, speedmax: float = None):
         """
         If there is no restriction, set speed to None.
         """
@@ -136,21 +146,37 @@ class Restriction:
                 retok = retok and speed < self.speedmax
         return retok
 
-    def hasAltitudeRestriction(self):
+    def hasAltitudeRestriction(self) -> bool:
         return self.altmin is not None or self.altmax is not None
 
-    def hasSpeedRestriction(self):
+    def hasSpeedRestriction(self) -> bool:
         return self.speedmin is not None or self.speedmax is not None
 
-    def combine(self, restriction: "Restriction"):
+    def hasRestriction(self) -> bool:
+        return self.hasAltitudeRestriction() or self.hasSpeedRestriction()
+
+    def combine(self, restriction):
         def nvl(a, b):
             return a if a is not None else b
 
+        self.restrictions.append(restriction)
+
         self.altmin = min(nvl(self.altmin, math.inf), nvl(restriction.altmin, math.inf))
+        if self.altmin == math.inf:
+            self.altmin = None
         self.altmax = max(nvl(self.altmax, 0), nvl(restriction.altmax, 0))
+        if self.altmax == 0:
+            self.altmax = None
 
         self.speedmin = max(nvl(self.speedmin, 0), nvl(restriction.speedmin, 0))
+        if self.speedmin == 0:
+            self.speedmin = None
         self.speedmax = min(nvl(self.speedmax, math.inf), nvl(restriction.speedmax, math.inf))
+        if self.speedmax == math.inf:
+            self.speedmax = None
+
+        self.alt_restriction_type = nvl(self.alt_restriction_type, restriction.alt_restriction_type)
+        self.speed_restriction_type = nvl(self.speed_restriction_type, restriction.speed_restriction_type)
 
 
 class ControlledAirspace(FeatureWithProps):
@@ -165,10 +191,8 @@ class ControlledAirspace(FeatureWithProps):
 
         self.airspace_class = airspace_class
         self.restriction = restriction
-        self.restrictions = [restriction]
 
     def add_restricton(self, restriction):
-        self.restrictions.append(restriction)
         self.restriction.combine(restriction)
 
 
@@ -177,15 +201,13 @@ class ControlledAirspace(FeatureWithProps):
 # CONTROLLED POINTS (ABSTRACT CLASSES)
 #
 #
-class SignificantPoint(Vertex):
-    identsep = ":"
-
+class NamedPoint(Vertex):
     """
-    A SignificantPoint is a named point in a controlled airspace region.
+    A NamedPoint is a named point in a controlled airspace region.
     """
 
     def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
-        name = SignificantPoint.mkId(region, airport, ident, pointtype)
+        name = NamedPoint.mkId(region, airport, ident, pointtype)
         Vertex.__init__(self, node=name, point=Point((lon, lat)))
         self.ident = ident
         self.region = region
@@ -194,7 +216,7 @@ class SignificantPoint(Vertex):
     @staticmethod
     def mkId(region: str, airport: str, ident: str, pointtype: str = None) -> str:
         """
-        Builds a SignificantPoint identifier from its region, airport (or enroute),
+        Builds a NamedPoint identifier from its region, airport (or enroute),
         identifier and point type (Fix, navaid, etc.)
 
         :param      region:     The region
@@ -209,15 +231,7 @@ class SignificantPoint(Vertex):
         :returns:   { description_of_the_return_value }
         :rtype:     str
         """
-        return (
-            region
-            + SignificantPoint.identsep
-            + ident
-            + SignificantPoint.identsep
-            + ("" if pointtype is None else pointtype)
-            + SignificantPoint.identsep
-            + airport
-        )
+        return ID_SEP.join([region, ident, ("" if pointtype is None else pointtype), airport])
 
     @staticmethod
     def parseId(ident: str):
@@ -227,18 +241,18 @@ class SignificantPoint(Vertex):
         :param      ident:  The identifier
         :type       ident:  str
         """
-        arr = ident.split(SignificantPoint.identsep)
+        arr = ident.split(ID_SEP)
         return {CPIDENT.REGION: arr[0], CPIDENT.IDENT: arr[1], CPIDENT.POINTTYPE: arr[2], CPIDENT.AIRPORT: arr[3]} if len(arr) == 4 else None
 
     def getInfo(self):
         """
-        Gets a SignificantPoint information dictionary.
+        Gets a NamedPoint information dictionary.
         """
         return {"class": type(self).__name__, "name": self.name, "ident": self.ident, "region": self.region, "airport": self.airport}  # from Vertex()
 
     def getFeature(self):
         """
-        Get a simple, clean GeoJSON feature from the SignificantPoint.
+        Get a simple, clean GeoJSON feature from the NamedPoint.
 
         Actually, test if serialisation would/will work, if not create a new Feature from it.
         """
@@ -251,13 +265,13 @@ class SignificantPoint(Vertex):
             return FeatureWithProps.new(self)
 
 
-class RestrictedSignificantPoint(SignificantPoint, Restriction):
+class RestrictedNamedPoint(NamedPoint, Restriction):
     """
-    A SignificantPoint with a Restriction attached to it.
+    A NamedPoint with a Restriction attached to it.
     """
 
     def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
-        SignificantPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
+        NamedPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
         Restriction.__init__(self)
 
 
@@ -266,7 +280,7 @@ class RestrictedSignificantPoint(SignificantPoint, Restriction):
 # N A V A I D S
 #
 #
-class NavAid(SignificantPoint):
+class NavAid(NamedPoint):
     """
     Base class for all navigational aids.
     """
@@ -274,7 +288,7 @@ class NavAid(SignificantPoint):
     # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
     def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
         # for marker beacons, we use their "name"/type (OM/MM/IM) rather than a generic MB (marker beacon)
-        SignificantPoint.__init__(self, ident, region, airport, type(self).__name__ if type(self).__name__ != "MB" else name, lat, lon)
+        NamedPoint.__init__(self, ident, region, airport, type(self).__name__ if type(self).__name__ != "MB" else name, lat, lon)
         self.elev = elev
         self.freq = freq
         self.ndb_class = ndb_class
@@ -374,7 +388,7 @@ class LTPFTP(NavAid):  # 16
 # F I X E S
 #
 #
-class Fix(SignificantPoint):
+class Fix(NamedPoint):
     """
     Non navigational aid fix.
     (we currently do not store how the fix is located, relative to surrounding navaids.)
@@ -383,7 +397,7 @@ class Fix(SignificantPoint):
     # 1150: 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
     # 1200: 46.646819444 -123.722388889  AAYRR KSEA K1 4530263 AAYRR
     def __init__(self, ident, region, airport, lat, lon, waypoint_type: str, spoken_name: str = None):
-        SignificantPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
+        NamedPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.waypoint_type = waypoint_type
         self.spoken_name = spoken_name
 
@@ -393,15 +407,15 @@ class Fix(SignificantPoint):
 # A I R P O R T S
 #
 #
-class Terminal(SignificantPoint):
+class Terminal(NamedPoint):
     """
-    This Terminaml is a SignificantPoint airport.
+    This Terminaml is a NamedPoint airport.
     """
 
     AS_WAYPOINTS = {}
 
     def __init__(self, name: str, lat: float, lon: float, alt: int, iata: str, longname: str, country: str, city: str):
-        SignificantPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)
+        NamedPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)
         self.iata = iata
         self.icao = name
         self.country = country
@@ -431,14 +445,14 @@ class Terminal(SignificantPoint):
 #
 # AND OTHER SPECIAL POINTS
 #
-class Waypoint(SignificantPoint):  # same as fix
+class Waypoint(NamedPoint):  # same as fix
     """
     A Waypoint is a fix materialised by a VHF beacon of type navtype.
     """
 
     def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float, navtype: str):
         # we may be should use navtype instead of "Waypoint" as point type
-        SignificantPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
+        NamedPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.navtype = navtype
 
 
@@ -452,7 +466,7 @@ class Hold(Restriction):
         Speed is the holding speed.
     """
 
-    def __init__(self, fix: SignificantPoint, altmin: float, altmax: float, course: float, turn: str, leg_time: float, leg_length: float, speed: float):
+    def __init__(self, fix: NamedPoint, altmin: float, altmax: float, course: float, turn: str, leg_time: float, leg_length: float, speed: float):
         Restriction.__init__(self)
         self.fix = fix
         self.course = course
@@ -460,7 +474,7 @@ class Hold(Restriction):
         self.leg_time = leg_time  # min
         self.leg_length = leg_length  # unit?
         self.setAltitudeRestriction(altmin, altmax)
-        self.setSpeedRestriction(speed, speed)
+        self.setSpeedRestriction(speed)
 
     def getInfo(self):
         return {
@@ -545,10 +559,10 @@ class Hold(Restriction):
 #
 class AirwaySegment(Edge):
     """
-    An AirwaySegment is a pair of SignificantPoints, directed, with optional altitude information.
+    An AirwaySegment is a pair of NamedPoints, directed, with optional altitude information.
     """
 
-    def __init__(self, names: str, start: SignificantPoint, end: SignificantPoint, direction: bool, lowhigh: int, fl_floor: int, fl_ceil: int):
+    def __init__(self, names: str, start: NamedPoint, end: NamedPoint, direction: bool, lowhigh: int, fl_floor: int, fl_ceil: int):
         dist = distance(start, end)
         Edge.__init__(self, src=start, dst=end, directed=direction, weight=dist)
         self.names = names.split("-")

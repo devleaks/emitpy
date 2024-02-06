@@ -3,16 +3,19 @@ CIFP is a collection of standard instrument arrival and departure procedures for
 It also contains runways, approches and final approaches.
 A couple of helper classes help deal with CIFP file parsing.
 """
+from abc import ABC, abstractmethod
 import os
 import logging
 import random
 from enum import Enum
 
+from emitpy.constants import ID_SEP
+
 from emitpy.geo.turf import distance, bearing
 
-from emitpy.utils import ConvertDMSToDD, FT
+from emitpy.utils import ConvertDMSToDD, FT, cifp_alt_in_ft, cifp_speed
 from emitpy.parameters import XPLANE_DIR
-from .aerospace import Aerospace, RestrictedSignificantPoint
+from .aerospace import Aerospace, Restriction, RestrictedNamedPoint
 
 DEFAULT_DATA_DIR = os.path.join(XPLANE_DIR, "Resources", "default data")
 CUSTOM_DATA_DIR = os.path.join(XPLANE_DIR, "Custom Data")
@@ -44,12 +47,12 @@ class PROC_DATA(Enum):
     RHO = 19
     OB_MAG_CRS = 20
     HOLD_DIST_TIME = 21
-    ALT_DESC = 22
-    _MIN_ALT1 = 23
-    _MIN_ALT2 = 24
+    ALT_DESC = 22  # ! Important
+    _MIN_ALT1 = 23  # ! Important
+    _MIN_ALT2 = 24  # ! Important
     TRANS_ALTITUDE_LEVEL = 25
-    _SPEED_LIM_DESC = 26
-    SPEED_LIMIT = 27
+    _SPEED_LIM_DESC = 26  # ! Important
+    SPEED_LIMIT = 27  # ! Important
     VERT_ANGLE = 28
     _5_293 = 29
     CENTER_FIX_PROC_TURN = 30
@@ -62,6 +65,33 @@ class PROC_DATA(Enum):
     RT_TYPE3 = 37
 
 
+class PROC_CONT_DATA(Enum):
+    LS_AUTH = 0
+    LSN = 1
+    RT_TYPE = 2
+
+
+class RWY_DATA(Enum):
+    RUNWAY_ID = 0
+    RWY_GRAD = 1
+    Ellipsoidal_Height = 2
+    LANDING_THRES_ELEV = 3
+    TCHVI = 4
+    LOC = 5
+    MLS = 5
+    GLS_IDENT = 5
+    CAT = 6
+    TCH = 7
+    LATITUDE = 8
+    LONGITUDE = 9
+    DSPLCD_THR = 10
+
+
+################################
+#
+# PROCEDURES
+#
+#
 class ProcedureData:
     """
     Represent one line of more of procedure data from CIFP file.
@@ -150,8 +180,19 @@ class ProcedureData:
             return "RW" + s[l:]
         return self.param(PROC_DATA.TRANS_IDENT)
 
+    def getRestriction(self):
+        """@todo"""
+        altmin = cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT1))
+        altmax = cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT2))
+        speedlim = cifp_speed(self.param(PROC_DATA.SPEED_LIMIT))
+        r = Restriction(altmin=altmin, altmax=altmax, speedmin=speedlim)
+        r._source = self
+        r.alt_restriction_type = self.param(PROC_DATA.ALT_DESC)
+        r.speed_restriction_type = self.param(PROC_DATA._SPEED_LIM_DESC)
+        return r
 
-class Procedure:
+
+class Procedure(ABC):
     """
     A Procedure is a named array of ProcedureData (lines or routes)
     Abstract class.
@@ -172,6 +213,25 @@ class Procedure:
         if len(self.route) == 0:  # First time, sets runway CIFP name
             self.runway = line.runway()
         self.route[line.seq()] = line
+
+    def getNamedPointWithRestriction(self, airspace, vertex, restriction: Restriction):
+        p = airspace.getNamedPoint(vertex)
+        if p is not None:
+            pointtype = p.id.split(ID_SEP)[-2]
+            u = RestrictedNamedPoint(ident=p.ident, region=p.region, airport=p.airport, pointtype=pointtype, lat=p.lat(), lon=p.lon())
+            u.combine(restriction)
+            logger.debug(f"getNamedPointWithRestriction: {type(self).__name__} {self.name}: {vertex} ({u.print_restriction(True)})")
+            return u
+        logger.warning(f"getNamedPointWithRestriction: no vertex named {vertex}")
+        return None
+
+    @abstractmethod
+    def getRoute(self):
+        pass
+
+    @abstractmethod
+    def prepareRestrictions(self):
+        pass
 
 
 class SID(Procedure):
@@ -194,28 +254,26 @@ class SID(Procedure):
         for v in self.route.values():
             fid = v.param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
-                vid = (
-                    v.param(PROC_DATA.ICAO_CODE)
-                    + ":"
-                    + v.param(PROC_DATA.FIX_IDENT)
-                    + ":"
-                )
-                logger.debug("SID:getRoute: %s" % vid)
-                vtxs = list(
-                    filter(lambda x: x.startswith(vid), airspace.vert_dict.keys())
-                )
-                if (
-                    len(vtxs) > 0 and len(vtxs) < 3
-                ):  # there often is both a VOR and a DME at same location, we keep either one
-                    a.append(airspace.getSignificantPoint(vtxs[0]))
+                vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
+                # logger.debug("SID:getRoute: %s" % vid)
+                vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
+                if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location, we keep either one
+                    a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
                 elif len(vtxs) > 2:
-                    logger.warning(
-                        "SID:getRoute: vertex ambiguous %s (%d, %s)"
-                        % (vid, len(vtxs), vtxs)
-                    )
+                    logger.warning(f"SID:getRoute: vertex ambiguous {vid} ({len(vtxs)}, {vtxs})")
                 else:
                     logger.warning("SID:getRoute: vertex not found %s", vid)
         return a
+
+    def prepareRestrictions(self):
+        route = self.getRoute()
+
+        # Speed
+        for v in route:
+            if v.hasSpeedRestriction():
+                v.setProp("_restricted_speed")
+
+        # Altitude
 
 
 class STAR(Procedure):
@@ -238,25 +296,13 @@ class STAR(Procedure):
         for v in self.route.values():
             fid = v.param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
-                vid = (
-                    v.param(PROC_DATA.ICAO_CODE)
-                    + ":"
-                    + v.param(PROC_DATA.FIX_IDENT)
-                    + ":"
-                )
-                logger.debug("STAR:getRoute: %s" % vid)
-                vtxs = list(
-                    filter(lambda x: x.startswith(vid), airspace.vert_dict.keys())
-                )
-                if (
-                    len(vtxs) > 0 and len(vtxs) < 3
-                ):  # there often is both a VOR and a DME at same location
-                    a.append(airspace.getSignificantPoint(vtxs[0]))
+                vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
+                # logger.debug("STAR:getRoute: %s" % vid)
+                vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
+                if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location
+                    a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
                 elif len(vtxs) > 2:
-                    logger.warning(
-                        "STAR:getRoute: vertex ambiguous %s (%d, %s)"
-                        % (vid, len(vtxs), vtxs)
-                    )
+                    logger.warning("STAR:getRoute: vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
                 else:
                     logger.warning("STAR:getRoute: vertex not found %s", vid)
         return a
@@ -286,34 +332,19 @@ class APPCH(Procedure):
         for v in self.route.values():
             code = v.param(PROC_DATA.DESC_CODE)[0]
             if code == "E" and not interrupted:
-                vid = (
-                    v.param(PROC_DATA.ICAO_CODE)
-                    + ":"
-                    + v.param(PROC_DATA.FIX_IDENT)
-                    + ":"
-                )
-                logger.debug("%s" % vid)
-                vtxs = list(
-                    filter(lambda x: x.startswith(vid), airspace.vert_dict.keys())
-                )
-                if (
-                    len(vtxs) > 0 and len(vtxs) < 3
-                ):  # there often is both a VOR and a DME at same location
-                    a.append(airspace.getSignificantPoint(vtxs[0]))
+                vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
+                # logger.debug("APPCH:getRoute: %s" % vid)
+                vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
+                if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location
+                    a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
                 elif len(vtxs) > 2:
-                    logger.warning(
-                        "APPCH:getRoute: vertex ambiguous %s (%d, %s)"
-                        % (vid, len(vtxs), vtxs)
-                    )
+                    logger.warning("APPCH:getRoute: vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
                 else:
                     logger.warning("APPCH:getRoute: vertex not found %s", vid)
             else:
                 if not interrupted:
                     logger.debug(
-                        "APPCH:getRoute: interrupted %s",
-                        ""
-                        if len(v.param(PROC_DATA.FIX_IDENT).strip()) == 0
-                        else (f" at {v.param(PROC_DATA.FIX_IDENT)} "),
+                        "APPCH:getRoute: interrupted %s", "" if len(v.param(PROC_DATA.FIX_IDENT).strip()) == 0 else (f" at {v.param(PROC_DATA.FIX_IDENT)} ")
                     )
                 interrupted = True
 
@@ -332,8 +363,8 @@ class APPCH(Procedure):
 class RWY(Procedure):
     """
     A runway for starting a SID or terminating a STAR.
-    We distinguish the "aeronautical" RWY (in Aerospace.Procedure) from the gegraphical/geometrical Runway (in Geo.Runway)
-
+    We distinguish the "aeronautical" Aerospace.Procedure.RWY (a threshold geolocalized Point)
+    from the geographical/geometrical Geo.Runway (a geo-localized polygon)
     """
 
     def __init__(self, name: str, airport: str):
@@ -354,13 +385,8 @@ class RWY(Procedure):
         # RWY:RW16L,     ,      ,00013, ,IDE ,3,   ;N25174597,E051363196,0000;
         self.route[0] = line
         if self.has_latlon():
-            self.point = RestrictedSignificantPoint(
-                ident=line.params[0],
-                region=self.airport[0:2],
-                airport=self.airport,
-                pointtype="RWY",
-                lat=self.getLatitude(),
-                lon=self.getLongitude(),
+            self.point = RestrictedNamedPoint(
+                ident=line.params[0], region=self.airport[0:2], airport=self.airport, pointtype="RWY", lat=self.getLatitude(), lon=self.getLongitude()
             )
             self.setAltitude(float(self.route[0].params[3]) * FT)
         else:
@@ -370,27 +396,21 @@ class RWY(Procedure):
         """
         Returns whether the RWY procedure has latitude and longitude of threshold point
         """
-        return (self.route[0].params[7].split(";")[1] != "") and (
-            self.route[0].params[8] != ""
-        )
+        return (self.route[0].params[7].split(";")[1] != "") and (self.route[0].params[8] != "")
 
     def getLatitude(self):
         """
         Returns latitude of threshold point
         """
         latstr = self.route[0].params[7].split(";")[1]
-        return ConvertDMSToDD(
-            latstr[1:3], latstr[3:5], int(latstr[5:9]) / 100, latstr[0]
-        )
+        return ConvertDMSToDD(latstr[1:3], latstr[3:5], int(latstr[5:9]) / 100, latstr[0])
 
     def getLongitude(self):
         """
         Returns longitude of threshold point
         """
         lonstr = self.route[0].params[8]
-        return ConvertDMSToDD(
-            lonstr[1:4], lonstr[4:6], int(lonstr[6:10]) / 100, lonstr[0]
-        )
+        return ConvertDMSToDD(lonstr[1:4], lonstr[4:6], int(lonstr[6:10]) / 100, lonstr[0])
 
     def setAltitude(self, alt):
         """
@@ -414,9 +434,7 @@ class RWY(Procedure):
         """
         Returns neutral representation of runway in case of multiple parallel runways
         """
-        if self.runway[-1] in list(
-            "LR"
-        ):  # "LRC"? NNL + NNR -> NNB, I don't know if there is a NNC?
+        if self.runway[-1] in list("LR"):  # "LRC"? NNL + NNR -> NNB, I don't know if there is a NNC?
             return self.runway[:-1] + "B"
         return "ALL"
 
@@ -484,9 +502,7 @@ class CIFP:
         while line:
             cifpline = ProcedureData(line.strip())
             procty = cifpline.proc()
-            procname = (
-                cifpline.name().strip()
-            )  # RWY NAME IS  ALWAYS RWNNL, L can be a space.
+            procname = cifpline.name().strip()  # RWY NAME IS  ALWAYS RWNNL, L can be a space.
             procrwy = cifpline.runway()
 
             if procty == "PRDAT":  # continuation of last line of current procedure
@@ -547,13 +563,8 @@ class CIFP:
         """
         if len(self.RWYS) == 2:
             rwk = list(self.RWYS.keys())
-            self.RWYS[rwk[0]].end, self.RWYS[rwk[1]].end = (
-                self.RWYS[rwk[1]],
-                self.RWYS[rwk[0]],
-            )
-            logger.debug(
-                f"{self.icao}: {self.RWYS[rwk[0]].name} and {self.RWYS[rwk[1]].name} paired"
-            )
+            self.RWYS[rwk[0]].end, self.RWYS[rwk[1]].end = (self.RWYS[rwk[1]], self.RWYS[rwk[0]])
+            logger.debug(f"{self.icao}: {self.RWYS[rwk[0]].name} and {self.RWYS[rwk[1]].name} paired")
         else:
             logger.debug(f"{self.icao}: pairing {self.RWYS.keys()}")
             for k, r in self.RWYS.items():
@@ -577,11 +588,7 @@ class CIFP:
                     if rw in self.RWYS.keys():
                         r.end = self.RWYS[rw]
                         self.RWYS[rw].end = r
-                        uuid = (
-                            k.replace("RW", "") + "-" + rw.replace("RW", "")
-                            if k < rw
-                            else rw.replace("RW", "") + "-" + k.replace("RW", "")
-                        )
+                        uuid = k.replace("RW", "") + "-" + rw.replace("RW", "") if k < rw else rw.replace("RW", "") + "-" + k.replace("RW", "")
                         r.uuid = uuid
                         r.end.uuid = uuid
                         logger.debug(f"{self.icao}: {r.name} and {rw} paired as {uuid}")
@@ -589,11 +596,7 @@ class CIFP:
                         logger.warning(f"{self.icao}: {rw} ont found to pair {r.name}")
         # bearing and length
         for k, r in self.RWYS.items():
-            if (
-                r.end is not None
-                and r.getPoint() is not None
-                and r.end.getPoint() is not None
-            ):
+            if r.end is not None and r.getPoint() is not None and r.end.getPoint() is not None:
                 r.bearing = bearing(r.getPoint(), r.end.getPoint())
                 r.length = distance(r.getPoint(), r.end.getPoint(), "m")
             else:
@@ -601,7 +604,7 @@ class CIFP:
             # else:
             #     apt = Airport.findICAO(self.icao)
             #     if apt is not None:
-            #         r.point = RestrictedSignificantPoint(
+            #         r.point = RestrictedNamedPoint(
             #             ident=line.params[0],
             #             region=self.icao[0:2],
             #             airport=self.icao,
@@ -683,7 +686,5 @@ class CIFP:
         if len(rops.keys()) == 0:
             logger.warning(f"{self.icao} could not find runway for operations")
 
-        logger.info(
-            f"{self.icao} wind direction is {wind_dir:f}, runway in use: {rops.keys()}"
-        )
+        logger.info(f"{self.icao} wind direction is {wind_dir:f}, runway in use: {rops.keys()}")
         return rops
