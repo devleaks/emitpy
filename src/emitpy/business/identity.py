@@ -1,6 +1,16 @@
 # See https://www.ibm.com/docs/en/mapms/1_cloud?topic=devices-about
-# for explanation on identifiers. Add a bit of history.
-# Note: The fourth element, <deviceId> has been renamed <name>.
+# for explanation on identifiers. Add a bit of history. And renaming.
+# <class> has been renamed <classId>.
+# <deviceType> has been renamed <typeId>.
+# <deviceId> has been renamed <name>.
+# However, semantics remains the same.
+#
+# Every adressable object in Emitpy should have an identity: Airports, aircraft types,
+# aircraft frames, areas of interest, all vehicles, vertices, segments, ramps, aprons,
+# terminals, parking and parking areas, all companies, airlines, ground handlers... everything!
+#
+# But also emitpy internal objects like flights, generated flight plan, movement, emission, broadcast.
+# Internal objects like queues.
 #
 import json
 from datetime import datetime, timezone
@@ -22,10 +32,10 @@ class IDENTIFIER(Enum):
     and all reolocalized objects.
     """
 
-    orgId = "orgId"  # orgId
-    classId = "classId"  # classId
+    orgId = "orgId"  # (owning) organisation
+    classId = "classId"  # class (of devices)
     typeId = "typeId"  # deviceType
-    name = "name"  # deviceId
+    name = "name"  # deviceId (serial number, or alike)
 
 
 class Identity:

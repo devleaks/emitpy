@@ -8,20 +8,20 @@ import io
 import sys
 from datetime import datetime
 
-sys.path.append("../../src")
-
 from tabulate import tabulate
 
-from emitpy.geo import FeatureWithProps, point_in_polygon, asFeature
-from emitpy.parameters import MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_DIR
+sys.path.append("../../src")
 
+from emitpy.geo import FeatureWithProps, point_in_polygon, asFeature
+from emitpy.parameters import MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_DIR, AERODROME_PERIMETER_INDENTITY
 
 from opera.rule import Rule, Event
 from opera.aoi import AreasOfInterest
 from opera.vehicle import StoppedMessage, Vehicle
 
+
 FORMAT = "%(levelname)1.1s%(module)15s:%(funcName)-15s%(lineno)4s| %(message)s"
-logging.basicConfig(level=logging.INFO, format=FORMAT)
+logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 
 logger = logging.getLogger("Opera")
 
@@ -50,7 +50,7 @@ class OperaApp:
 
     def init(self) -> bool:
         self.load_aois()
-        self.airport_perimeter = asFeature(list(filter(lambda f: f.get_id() == "OTHH:aerodrome:aerodrome:perimeter", self.all_aois))[0])
+        self.airport_perimeter = asFeature(list(filter(lambda f: f.get_id() == AERODROME_PERIMETER_INDENTITY, self.all_aois))[0])
         self.load_rules()
         self._inited = True
         return self._inited
@@ -70,7 +70,9 @@ class OperaApp:
         # logger.debug(f"{pattern} => {[f.get_id() for f in ret]}")
         return ret
 
-    def add_rule(self, name: str, vehicles: str, start_action: str, start_aois: str, end_action: str, end_aois: str, timeout: float, notes: str = None):
+    def add_rule(
+        self, name: str, vehicles: str, start_action: str, start_aois: str, end_action: str, end_aois: str, same_aoi: bool, timeout: float, notes: str = None
+    ):
         logger.debug(f"adding rule {name} {vehicles}..")
         vevents = self.vehicle_events.get(vehicles, [])
         timeout = float(timeout) * 60 if timeout != "" else 0
@@ -82,7 +84,7 @@ class OperaApp:
         logger.debug(f"{len(aois_end)} aois_end")
         end_event = Event(vehicles=vehicles, action=end_action, aois=aois_end, aoi_selector=end_aois)
         vevents.append(end_event)
-        rule = Rule(name=name, start=start_event, end=end_event, timeout=timeout, notes=notes)
+        rule = Rule(name=name, start=start_event, end=end_event, same_aoi=same_aoi, timeout=timeout, notes=notes)
         self.rules[rule.get_id()] = rule
         self.vehicle_events[vehicles] = vevents
         logger.debug(f"..added")
@@ -101,6 +103,8 @@ class OperaApp:
                 logger.debug(f"rule {row['name']} {vehicles}")
                 if vehicles == "" or vehicles == "*":
                     vehicles = "(.*)"  # re
+                same_aoi = (row["same_aoi"] == "") or (row["same_aoi"].lower() in ["true", "on", "yes"])
+
                 self.add_rule(
                     name=row["name"],
                     vehicles=vehicles,
@@ -108,6 +112,7 @@ class OperaApp:
                     start_aois=row["area1"],
                     end_action=row["action2"],
                     end_aois=row["area2"],
+                    same_aoi=same_aoi,
                     timeout=row["timeout"],
                     notes=row["note"],
                 )

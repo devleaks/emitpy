@@ -6,4 +6,4 @@ from .kml import toKML
 from .lst import toLST
 from .traffic import toTraffic
 from .movement import MovePoint, Movement
-from .turf import asFeature, point_to_line_distance, destination, point_in_polygon, line_intersect_polygon
+from .turf import asFeature, point_to_line_distance, destination, point_in_polygon, line_intersect_polygon_count

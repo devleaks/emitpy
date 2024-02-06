@@ -3,9 +3,8 @@ import csv
 import json
 import re
 from enum import Enum
-from emitpy.constants import ID_SEP
 
-from emitpy.geo.turf import EmitpyFeature, point_in_polygon, line_intersect_polygon
+from emitpy.geo import FeatureWithProps, point_in_polygon, line_intersect_polygon_count
 
 logger = logging.getLogger("rule")
 
@@ -70,9 +69,9 @@ class Event:
         Returns:
             set: set of areas of interest that the line touches or crosses
         """
-        # Note: line_intersect_polygon returns the number of points of intersection
+        # Note: line_intersect_polygon_count returns the number of points of intersection
         # To intersect, there must be at least a point of intersection (tangent) or more points.
-        return set(filter(lambda aoi: line_intersect_polygon(line=line, polygon=aoi) > 0, self.aois))
+        return set(filter(lambda aoi: line_intersect_polygon_count(line=line, polygon=aoi) > 0, self.aois))
 
 
 class Rule:
@@ -81,7 +80,7 @@ class Rule:
     [description]
     """
 
-    def __init__(self, start: Event, end: Event, timeout: float, name: str, notes: str = None):
+    def __init__(self, start: Event, end: Event, timeout: float, name: str, same_aoi: bool = True, notes: str = None):
         self._enabled = True
         self.start = start
         self.end = end
@@ -89,6 +88,7 @@ class Rule:
         self.name = name
         self.notes = notes
         self._resolved = False
+        self.same_aoi = same_aoi
         self.start.set_rule(self)
         self.start.set_start(True)
         self.end.set_rule(self)
@@ -118,7 +118,7 @@ class Promise:
     [description]
     """
 
-    def __init__(self, rule: Rule, vehicle: "Vehicle", aoi: EmitpyFeature, position, data):
+    def __init__(self, rule: Rule, vehicle: "Vehicle", aoi: FeatureWithProps, position, data):
         self.rule = rule
         self.vehicle = vehicle
         self.position = position
@@ -127,7 +127,7 @@ class Promise:
 
         self.ts = position.get_timestamp()
 
-        self._ident = ID_SEP.join([self.rule.get_id()] + vehicle.get_id().split(ID_SEP) + aoi.get_id().split(ID_SEP))
+        self._ident = data.get_promise_key()
 
         logger.debug(self)
 
@@ -137,20 +137,6 @@ class Promise:
         return " ".join(
             [f"Promise rule {rule.get_id()} with {self.vehicle.get_id()}", f"{rule.start.action} {self.data.aoi.get_id()} at {round(self.get_timestamp(), 1)}"]
         )
-
-    @staticmethod
-    def make_id(rule, vehicle, aoi):
-        """Creates a unique identifier for a Promise, based on a rule, a vehicle and an area of interest.
-
-        Args:
-            rule ([type]): [description]
-            vehicle ([type]): [description]
-            aoi ([type]): [description]
-
-        Returns:
-            [str]: unique identifier for a Promise
-        """
-        return ID_SEP.join([rule.get_id()] + vehicle.get_id().split(ID_SEP) + aoi.get_id().split(ID_SEP))
 
     def get_timestamp(self):
         """Returns precise timestamp of message, i.e. when vehicle interacted with aoi and initiated this promise"""
@@ -209,7 +195,7 @@ class Resolve:
 
         self.ts = position.get_timestamp()
 
-        self._ident = Promise.make_id(rule=data.event.rule, vehicle=data.vehicle, aoi=data.aoi)
+        self._ident = data.get_promise_key()
 
         self.promise.resolved()
 

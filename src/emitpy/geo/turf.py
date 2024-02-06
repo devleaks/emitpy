@@ -74,7 +74,6 @@ class EmitpyFeature(Feature):
         elif hasattr(f, "properties") and type(f.properties) == dict:
             i = f.properties.get("id")
         # print(f"FeatureWithProps::new: id={i}")  #, cls={cls}")
-
         if type(f) == dict:
             if hasattr(a, "id"):
                 return cls(id=i, geometry=f["geometry"], properties=f["properties"])
@@ -420,9 +419,14 @@ def point_in_polygon(point, polygon):
     return turf_boolean_point_in_polygon(point, polygon)
 
 
-def line_intersect_polygon(line, polygon) -> int:
+def line_intersect_polygon(line, polygon) -> FeatureCollection:
+    # Returns intersecting points
+    return turf_line_intersect(line, polygon)
+
+
+def line_intersect_polygon_count(line, polygon) -> int:
     # Returns number of intersecting points
-    res = turf_line_intersect(line, polygon)
+    res = line_intersect_polygon(line, polygon)
     if res is not None:
         fc = res.get("features")
         if fc is not None:

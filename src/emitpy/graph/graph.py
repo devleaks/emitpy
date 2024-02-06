@@ -126,9 +126,7 @@ class Graph:  # Graph(FeatureCollection)?
         return vertex
 
     def get_vertex(self, ident: str):
-        if ident in self.vert_dict:
-            return self.vert_dict[ident]
-        return None
+        return self.vert_dict.get(ident)
 
     def get_vertices(self, connected_only: bool = False, bbox: Feature = None):
         varr = filter(lambda x: x.connected, self.vert_dict.values()) if connected_only else self.vert_dict.values()

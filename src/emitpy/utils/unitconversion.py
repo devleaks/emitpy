@@ -14,6 +14,27 @@ FT = 12 * 0.0254  # 1 foot = 12 inches
 NAUTICAL_MILE = 1.852  # Nautical mile in meters 6076.118ft=1nm. Easy.
 
 
+def cifp_alt_in_ft(s: str) -> int | None:
+    """Convert altitude as specified in ARINC424 to int.
+    Altitude can be 12345 or FL250, or -1234 if below sea level.
+    Always 5 characters, unused char should be space. Can be "  123" or "123  ".
+    """
+    s = s.strip()
+    if s == "":
+        return None
+    if s.startswith("FL"):
+        return int(s[2:]) * 100
+    return int(s)
+
+
+def cifp_speed(s: str) -> int | None:
+    """Convert speed in ARINC424 to float."""
+    s = s.strip()
+    if s == "":
+        return None
+    return int(s)
+
+
 def sign(x):
     return -1 if x < 0 else (0 if abs(x) == 0 else 1)
 

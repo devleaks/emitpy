@@ -1,0 +1,10 @@
+site_name: Emitpy Reference
+
+theme:
+  name: material
+
+plugins:
+  - mkdocstrings:
+      handlers:
+        python:
+          path: ["src"]

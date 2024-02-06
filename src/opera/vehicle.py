@@ -1,8 +1,10 @@
 import logging
 import re
+from emitpy.geo.utils import line_intersect
 
-from turf import Feature, LineString, distance
+from turf import Feature, LineString, distance, line_intersect
 
+from emitpy.constants import ID_SEP
 from opera.rule import Event, Promise, Resolve
 from opera.aoi import AreasOfInterest
 
@@ -86,17 +88,17 @@ class Vehicle:
 
             message [[Message]] message emitted by the vehicle when satisfying an Event
         """
-        key = Promise.make_id(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi)
+        key = message.get_promise_key()
         if key not in self.promises.keys():
             self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi, position=message.position, data=message)
             # logger.debug(f"created a promise for rule {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}")
         else:
             if self.promises[key].is_expired(message.get_timestamp()):
+                logger.debug(f"promise exists but is expired")
                 self.archive_promise(message=message)
+                logger.debug(f"archived expired promise")
                 self.promises[key] = Promise(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi, position=message.position, data=message)
-                logger.debug(
-                    f"archived expired promise, created new promise {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}"
-                )
+                logger.debug(f"created new promise {message.event.rule.get_id()}, vehicle {message.vehicle.get_id()}, aoi {message.aoi.get_id()}")
             else:
                 self.promises[key].reset_timestamp(message.position.get_timestamp())
                 logger.debug(
@@ -110,17 +112,19 @@ class Vehicle:
 
             message [[Message]] message emitted by the vehicle when satisfying an Event
         """
-        key = Promise.make_id(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi)
+        key = message.get_promise_key()
         if key in self.promises.keys():
             promise = self.promises[key]
             if not promise.is_expired(self.position.get_timestamp()):  # and not promise.resolved()
                 resolve = Resolve(promise, message.position, data=message)
                 self.resolves.append(resolve)
             else:
-                logger.debug(f"promise {promise.rule.get_id()} is expired")
+                logger.debug(f"promise {promise.rule.get_id()} is expired, not resolved")
+        # else;
+        #     logger.debug(f"no promise {key}")
 
     def archive_promise(self, message):
-        key = Promise.make_id(rule=message.event.rule, vehicle=message.vehicle, aoi=message.aoi)
+        key = message.get_promise_key()
         if key in self.promises.keys():
             self.archived_promises.append(self.promises[key])
             del self.promises[key]
@@ -157,12 +161,13 @@ class Vehicle:
         self.inside = set()
         messages = []
 
+        # 1. Generate messages
         if self.is_stopped():
             if not self.stopped:
                 msg = StoppedMessage(vehicle=self, position=self.position)
                 messages.append(msg)
                 self.stopped = True  # we only send one message when there is a new stop
-            logger.debug(f"{self.get_id()} is stopped {position}")
+            logger.debug(f"{self.get_id()} is stopped")  # {position}")
         else:
             self.stopped = False
 
@@ -214,7 +219,7 @@ class Vehicle:
         logger.debug(f"added {len(messages)} messages")
         self.messages = self.messages + messages
 
-        # 2. Check for promise/resolve
+        # 2. Process messages (interpret them): Check for promise/resolve
         for message in messages:
             self.process(message)
 
@@ -240,7 +245,47 @@ class Message:
         # Find intersection point with curve
         # (if several points, keep first point, closest to last_position)
         # Interpolate time between last_position and position (given speed, etc.)
-        return self.position.get_timestamp()
+        ts = self.position.get_timestamp()
+        if self.last_position is None or self.event is None or self.event.action not in ["enter", "exit"]:
+            return ts
+
+        idx = 0 if self.event.action == "enter" else -1
+        ls = LineString((self.last_position.geometry.coordinates, self.position.geometry.coordinates))
+        line = Feature(geom=ls)
+        res = line_intersect(line, self.aoi)
+        all_inters = []
+        if res is not None:
+            all_inters = res.get("features")
+        if len(all_inters) > 0:
+            pnt_inter = all_inters[idx]
+            dtot = distance(self.last_position, self.position)
+            dinter = distance(self.last_position, pnt_inter)
+            if dtot < 0.0001:  # almost no move
+                return ts
+            if dinter > dtot:
+                dinter = dtot
+            v1 = self.last_position.speed()
+            v2 = self.position.speed()
+            if v1 == 0 and v2 == 0:
+                return ts
+            if abs(v2 - v1) < 0.001:  # no speed change
+                v2 = v1
+            vinter = v1 + (v2 - v1) * (dinter / dtot)  # dtot != 0
+            if abs(v1 + vinter) < 0.001:  # v is almost 0
+                return ts
+            tinter = 2 * dinter / (v1 + vinter)
+            # print(">" * 20, dtot, dinter, "rt=", dinter / dtot, v1, v2, "vd=", v2 - v1, vinter, tinter)
+            ts = self.last_position.get_timestamp() + tinter
+        else:
+            logger.warning(f"no crossing line vs aoi")
+        return ts
+
+    def get_promise_key(self):
+        if self.event is None or self.event.rule is None:
+            logger.warning(f"cannot create promise key")
+            return None
+        aoi = self.aoi.get_id() if self.event.rule.same_aoi else ""
+        return ID_SEP.join([self.event.rule.get_id()] + self.vehicle.get_id().split(ID_SEP) + aoi.split(ID_SEP))
 
 
 class StoppedMessage(Message):

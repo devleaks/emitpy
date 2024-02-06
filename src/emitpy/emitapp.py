@@ -416,7 +416,30 @@ class EmitApp(ManagedAirport):
             return StatusInfo(6, f"problem during flight planning", ret[1])
 
         logger.debug(f"route: {flight.printFlightRoute()}")
-        logger.debug(f"plan : {flight.printFlightPlan()}")
+        # logger.debug(f"plan : {flight.printFlightPlan()}")
+
+        # logger.debug(f"route: {flight.tabulateFlightRoute()}")
+        logger.debug(f"plan : {flight.tabulateFlightPlan()}")
+
+        # #############################################################################################################
+        #
+        # FMC
+        #
+        # #############################################################################################################
+        #
+        # Temporarily done here
+        #
+
+        logger.info("***** FLIGHT PLAN CREATED " + ("*" * 83))
+        logger.debug("..done")
+        return StatusInfo(0, "completed successfully", flight.getId())
+        #
+        #
+        # #############################################################################################################
+        #
+        # FMC
+        #
+        # #############################################################################################################
 
         # 4. Move
         # 4.1 Create move
@@ -428,6 +451,7 @@ class EmitApp(ManagedAirport):
 
         # 4.2 Save move
         # move.saveFile()
+        #
 
         # 6. Create emit
         logger.debug("..emitting..")

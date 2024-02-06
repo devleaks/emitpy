@@ -243,16 +243,12 @@ class FlightRoute:
         # Routing
         logger.debug(f"from {s[0].id} to {e[0].id}..")
         if s[0] is not None and e[0] is not None:
-            self.flight_plan = Route(
-                a, s[0].id, e[0].id
-            )  # self.flight_plan.find()  # auto route
+            self.flight_plan = Route(a, s[0].id, e[0].id)  # self.flight_plan.find()  # auto route
             if self.flight_plan is not None and self.flight_plan.found():
                 self._convertToGeoJSON()
             else:
                 cnt = 10
-                logger.warning(
-                    f"{'>' * cnt} no route from {self.fromICAO} to {self.toICAO} {'<' * cnt}"
-                )
+                logger.warning(f"{'>' * cnt} no route from {self.fromICAO} to {self.toICAO} {'<' * cnt}")
 
         logger.debug(f"..done")
 
@@ -338,15 +334,15 @@ class FlightRoute:
         """
         a = self.getAirspace()
         SEP = ","
-        fp = ""
+        fp = []
         for n in self.nodes():
             f = a.get_vertex(n)
             fi = f.getId()
             fa = fi.split(":")
             if len(fa) == 4:
                 fi = fa[1]
-            fp = fp + fi + SEP
-        return fp.strip(SEP)
+            fp.append(fi)
+        return SEP.join(fp)
 
     def getGeoJSON(self, include_ls: bool = False):
         """
@@ -357,7 +353,5 @@ class FlightRoute:
         """
         fc = copy.deepcopy(self._route)
         if include_ls:
-            fc.features.append(
-                Feature(geometry=self.routeLS, properties={"tag": "route"})
-            )
+            fc.features.append(Feature(geometry=self.routeLS, properties={"tag": "route"}))
         return fc
