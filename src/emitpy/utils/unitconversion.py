@@ -102,6 +102,10 @@ def toMs(kmh):
     return kmh / 3.6
 
 
+def toKmh2(ms):
+    return ms * 3.6
+
+
 def toKmh(kn):
     return kn * NAUTICAL_MILE
 

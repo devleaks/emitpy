@@ -491,15 +491,15 @@ class Flight(Messages):
             if self.is_departure():
                 self.setRWY(rwydep)
             waypoints = rwydep.getRoute()
-            waypoints[0].setProp("_plan_segment_type", "origin/rwy")
-            waypoints[0].setProp("_plan_segment_name", depapt.icao + "/" + rwydep.name)
+            waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, "origin/rwy")
+            waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao + "/" + rwydep.name)
             self.dep_procs = [rwydep]
             self.meta["departure"]["procedure"] = rwydep.name
         else:  # no runway, we leave from airport
             logger.warning(f"departure airport {depapt.icao} has no runway, first point is departure airport")
             dep = depapt.copy()  # depapt.getTerminal().copy() would be more correct
-            dep.setProp("_plan_segment_type", "origin")
-            dep.setProp("_plan_segment_name", depapt.icao)
+            dep.setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, "origin")
+            dep.setProp(FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao)
             waypoints.append(dep)
 
         # SID
@@ -509,8 +509,8 @@ class Flight(Messages):
             if sid is not None:  # inserts it
                 logger.debug(f"{depapt.icao} using SID {sid.name}")
                 ret = depapt.procedures.getRoute(sid, self.managedAirport.airport.airspace)
-                Flight.setProp(ret, "_plan_segment_type", "sid")
-                Flight.setProp(ret, "_plan_segment_name", sid.name)
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "sid")
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, sid.name)
                 waypoints = waypoints + ret
                 self.dep_procs = (rwydep, sid)
                 self.meta["departure"]["procedure"] = (rwydep.name, sid.name)
@@ -518,15 +518,15 @@ class Flight(Messages):
                 logger.warning(f"departure airport {depapt.icao} has no SID for {rwydep.name}")
 
             normplan = normplan[1:]
-            Flight.setProp(normplan, "_plan_segment_type", "cruise")
-            Flight.setProp(normplan, "_plan_segment_name", depapt.icao + "-" + self.arrival.icao)
+            Flight.setProp(normplan, FEATPROP.PLAN_SEGMENT_TYPE.value, "cruise")
+            Flight.setProp(normplan, FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao + "-" + self.arrival.icao)
             waypoints = waypoints + normplan
 
         else:  # no sid, we go straight
             logger.debug(f"departure airport {depapt.icao} has no procedure, flying straight")
             ret = normplan[1:]  # remove departure airport and leave cruise
-            Flight.setProp(ret, "_plan_segment_type", "cruise")
-            Flight.setProp(ret, "_plan_segment_name", depapt.icao + "-" + self.arrival.icao)
+            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "cruise")
+            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao + "-" + self.arrival.icao)
             waypoints = waypoints + ret
 
         # ###########################
@@ -543,8 +543,8 @@ class Flight(Messages):
             if self.is_arrival():
                 self.setRWY(rwyarr)
             ret = rwyarr.getRoute()
-            Flight.setProp(ret, "_plan_segment_type", "rwy")
-            Flight.setProp(ret, "_plan_segment_name", rwyarr.name)
+            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "rwy")
+            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, rwyarr.name)
             waypoints = waypoints[:-1] + ret  # no need to add last point which is arrival airport, we replace it with the precise runway end.
             self.arr_procs = [rwyarr]
             self.meta["arrival"]["procedure"] = rwyarr.name
@@ -559,8 +559,8 @@ class Flight(Messages):
             if star is not None:
                 logger.debug(f"{arrapt.icao} using STAR {star.name}")
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
-                Flight.setProp(ret, "_plan_segment_type", "star")
-                Flight.setProp(ret, "_plan_segment_name", star.name)
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "star")
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, star.name)
                 waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert STAR before airport
                 self.arr_procs = (rwyarr, star)
                 self.meta["arrival"]["procedure"] = (rwyarr.name, star.name)
@@ -575,8 +575,8 @@ class Flight(Messages):
             if appch is not None:
                 logger.debug(f"{arrapt.icao} using APPCH {appch.name}")
                 ret = arrapt.procedures.getRoute(appch, self.managedAirport.airport.airspace)
-                Flight.setProp(ret, "_plan_segment_type", "appch")
-                Flight.setProp(ret, "_plan_segment_name", appch.name)
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "appch")
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, appch.name)
                 if len(waypoints) > 2 and len(ret) > 0 and waypoints[-2].id == ret[0].id:
                     logger.debug(f"duplicate end STAR/begin APPCH {ret[0].id} removed")
                     waypoints = waypoints[:-2] + ret + [waypoints[-1]]  # remove last point of STAR
@@ -592,7 +592,7 @@ class Flight(Messages):
         idx = 0
         for f in waypoints:
             # logger.debug(f"flight plan: {f.getProp('_plan_segment_type')} {f.getProp('_plan_segment_name')}, {type(f).__name__}")
-            f.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, idx)
+            f.setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, idx)
             idx = idx + 1
 
         self.flightplan_wpts = waypoints
@@ -611,8 +611,8 @@ class Flight(Messages):
             wa = wi.split(":")
             if len(wa) == 4:
                 wi = wa[1]
-            if type(w).__name__ == "RestrictedNamedPoint" and w.hasRestriction():
-                wi = f"{wi} ({w.print_restriction()})"
+            if hasattr(w, "hasRestriction") and w.hasRestriction():
+                wi = f"{wi} ({w.getRestrictionDesc()})"
             rt.append(wi)
         return SEP.join(rt)
 
@@ -623,7 +623,20 @@ class Flight(Messages):
 
         output = io.StringIO()
         print("\nFLIGHT ROUTE", file=output)
-        HEADER = ["INDEX", "NODE", "SEGMENT TYPE", "SEGMENT NAME", "WAYPOINT", "RESTRICTIONS", "PLANNED SPEED", "PLANNED ALT"]
+        HEADER = [
+            "INDEX",
+            "NODE",
+            "SEGMENT TYPE",
+            "SEGMENT NAME",
+            "WAYPOINT",
+            "RESTRICTIONS",
+            "MIN ALT",
+            "MAX ALT",
+            "ALT TARGET",
+            "MIN SPEED",
+            "MAX SPEED",
+            "SPEED TARGET",
+        ]
         table = []
 
         idx = 0
@@ -634,14 +647,17 @@ class Flight(Messages):
                 fa = fa[1]
             r = ""
             if hasattr(w, "hasRestriction") and w.hasRestriction():
-                r = f"{w.print_restriction()}"
+                r = w.getRestrictionDesc()
+            st = w.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)
+            sn = w.getProp(FEATPROP.PLAN_SEGMENT_NAME.value)
+            alo = w.getProp("_alt_min")
+            ahi = w.getProp("_alt_max")
+            slo = w.getProp("_speed_min")
+            shi = w.getProp("_speed_max")
+            spd = w.getProp("_speed_target")
+            alt = w.getProp("_alt_target")
 
-            st = w.getProp("_plan_segment_type")
-            sn = w.getProp("_plan_segment_name")
-            spd = w.speed()
-            alt = w.altitude()
-
-            table.append([idx, fa, st, sn, fi, r, spd, alt])
+            table.append([idx, fa, st, sn, fi, r, alo, ahi, alt, slo, shi, spd])
             idx = idx + 1
 
         table = sorted(table, key=lambda x: x[0])  # absolute emission time

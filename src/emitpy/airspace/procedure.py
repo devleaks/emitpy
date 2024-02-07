@@ -7,15 +7,17 @@ from abc import ABC, abstractmethod
 import os
 import logging
 import random
+import math
 from enum import Enum
 
 from emitpy.constants import ID_SEP
 
-from emitpy.geo.turf import distance, bearing
+from emitpy.geo.turf import distance, bearing, destination, Point, Feature
+from emitpy.geo import FeatureWithProps
 
-from emitpy.utils import ConvertDMSToDD, FT, cifp_alt_in_ft, cifp_speed
+from emitpy.utils import ConvertDMSToDD, FT, cifp_alt_in_ft, cifp_speed, toKn, toKmh2
 from emitpy.parameters import XPLANE_DIR
-from .aerospace import Aerospace, Restriction, RestrictedNamedPoint
+from .aerospace import Aerospace, NamedPoint
 
 DEFAULT_DATA_DIR = os.path.join(XPLANE_DIR, "Resources", "default data")
 CUSTOM_DATA_DIR = os.path.join(XPLANE_DIR, "Custom Data")
@@ -85,6 +87,272 @@ class RWY_DATA(Enum):
     LATITUDE = 8
     LONGITUDE = 9
     DSPLCD_THR = 10
+
+
+################################
+#
+# RESTRICTIONS & CLASSES WITH RESTRICTION(S)
+#
+#
+class Restriction:
+    """
+    A Restriction is an altitude and/or speed restriction for a section of an airspace.
+    If a altitude restriction is set, an aircraft must fly above alt_min and/or below alt_max.
+    If a speed restriction is set, the aircraft must fly fater than speed_min and/or slower than speed_max.
+    If there is no restriction, use None for restriction.
+    Consider this as a mixin.
+    """
+
+    def __init__(self, altmin: int = None, altmax: int = None, speed: float = None):
+        self._source = None
+        # Altitude constrains
+        self.alt1 = altmin  # In ft
+        self.alt2 = altmax
+        self.alt1_type = None  # MSL, AGL, UL
+        self.alt2_type = None
+        self.alt_restriction_type = None
+        # Speed constrains
+        self.speed = speed  # In kn
+        self.speed_restriction_type = None
+        # Bank angle constrains
+        self.angle = None  # Bank angle in °.
+        self.restrictions = []
+
+    def getInfo(self):
+        return {
+            "type": type(self).__name__,
+            "alt1": self.alt1,
+            "alt2": self.alt2,
+            "alt_desc": self.alt_restriction_type,
+            "speed": self.speed,
+            "speed_desc": self.speed_restriction_type,
+        }
+
+    def hasRestriction(self) -> bool:
+        return self.hasAltitudeRestriction() or self.hasSpeedRestriction()
+
+    def getRestrictionDesc(self, verbose: bool = False):
+        if not self.hasAltitudeRestriction() and not self.hasSpeedRestriction() and verbose:
+            return "no restriction"
+
+        a = self.getAltitudeRestrictionDesc() + "/" + self.getSpeedRestrictionDesc()
+        if self.angle is not None:
+            a = a + f"/{self.angle}°"
+        a = a.strip()
+        return "" if a in ["/", "@/@"] else a
+
+    def setAltitudeRestriction(self, altmin: float, altmax: float):
+        self.alt1 = altmin
+        self.alt2 = altmax
+
+    def getAltitudeRestrictionDesc(self) -> str:
+        a = ""
+        if self.alt1 is not None:
+            a = "?" if self.alt_restriction_type is None else self.alt_restriction_type
+            if a == " ":
+                a = "@"  # more explicit on display
+            a = f"{a}{self.alt1}"
+            if self.alt2 is not None:
+                a = f"{a},{self.alt2}"
+        elif self.alt2 is not None:
+            a = "?" if self.alt_restriction_type is None else self.alt_restriction_type
+            if a == " ":
+                a = "@"  # more explicit on display
+            a = f"{a}{self.alt2}"
+        return a
+
+    def hasAltitudeRestriction(self) -> bool:
+        return self.alt1 is not None or self.alt2 is not None
+
+    def checkAltitude(self, point: Point):
+        if len(point.coordinates) < 3:  # no alt, must be ok ;-)
+            return True
+        alt = point.coordinates[2]
+        retok = True
+        if self.alt1 is not None:
+            retok = alt > self.alt1
+        if self.alt2 is not None:
+            retok = retok and alt < self.alt2
+        return retok
+
+    def setSpeedRestriction(self, speed: float):
+        """
+        If there is no restriction, set speed to None.
+        """
+        self.speed = speed
+
+    def getSpeedRestrictionDesc(self):
+        a = ""
+        if self.speed is not None:
+            a = "?" if self.speed_restriction_type is None else self.speed_restriction_type
+            if a == " ":
+                a = "@"  # more explicit on display
+            a = f"{a}{self.speed}"
+        return a
+
+    def hasSpeedRestriction(self) -> bool:
+        return self.speed_restriction_type is not None or self.speed is not None
+
+    def checkSpeed(self, feature: Feature, propname: str = "speed"):
+        """
+        Note: We assume same units for feature speed and constrains.
+        We also assume feature has properties dict set.
+        """
+        speed = toKn(toKmh2(ms=feature["properties"].get(propname)))
+        if speed is not None:
+            if self.speed_restriction_type in [" ", "@"]:
+                return (speed - self.speed) < 5
+            elif self.speed_restriction_type == "-":
+                return speed < self.speed
+            elif self.speed_restriction_type == "+":
+                return speed > self.speed
+            else:
+                logger.warning(f"invalid control speed type '{self.speed_restriction_type}'")
+        return False
+
+    def combine(self, restriction):
+        def nvl(a, b):
+            return a if a is not None else b
+
+        self.restrictions.append(restriction)
+
+        self.alt1 = min(nvl(self.alt1, math.inf), nvl(restriction.alt1, math.inf))
+        if self.alt1 == math.inf:
+            self.alt1 = None
+        self.alt2 = max(nvl(self.alt2, 0), nvl(restriction.alt2, 0))
+        if self.alt2 == 0:
+            self.alt2 = None
+
+        self.speed = max(nvl(self.speed, 0), nvl(restriction.speed, 0))
+        if self.speed == 0:
+            self.speed = None
+
+        self.alt_restriction_type = nvl(self.alt_restriction_type, restriction.alt_restriction_type)
+        self.speed_restriction_type = nvl(self.speed_restriction_type, restriction.speed_restriction_type)
+
+
+class RestrictedNamedPoint(NamedPoint, Restriction):
+    """
+    A NamedPoint with a Restriction attached to it.
+    """
+
+    def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
+        Restriction.__init__(self)
+        NamedPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
+
+
+class ControlledAirspace(FeatureWithProps, Restriction):
+    """
+    This class describes a restricted airspace.
+    @todo: we'll deal with the airspace restricted volumes later.
+    @see: Little Navmap for "inspiration".
+    """
+
+    def __init__(self, name, region, airspace_class, area, altmin, altmax, altmin_type, altmax_type):
+        FeatureWithProps.__init__(self, geometry=area, properties={})
+        Restriction.__init__(self)
+
+        self.airspace_class = airspace_class
+        self.setAltitudeRestriction(altmin, altmax)
+        self.alt1_type = altmin_type
+        self.alt2_type = altmax_type
+
+    def add_restricton(self, restriction):
+        self.combine(restriction)
+
+
+class Hold(Restriction):
+    """
+    A Holding position.
+        The course if the course (magnetic) of the inbound leg.
+        Turn is Left or Right.
+        Leg time is the duration of the leg or 0 for DME leg.
+        Leg length is the length of the leg for DME leg or 0 for timed leg.
+        Speed is the holding speed.
+    """
+
+    def __init__(self, fix: NamedPoint, altmin: float, altmax: float, course: float, turn: str, leg_time: float, leg_length: float, speed: float):
+        Restriction.__init__(self)
+        self.fix = fix
+        self.course = course
+        self.turn = turn
+        self.leg_time = leg_time  # min
+        self.leg_length = leg_length  # unit?
+        self.setAltitudeRestriction(altmin, altmax)
+        self.setSpeedRestriction(speed)
+
+    def getInfo(self):
+        return {
+            "class": type(self).__name__,
+            "restriction": super().getInfo(),
+            "fix": self.fix.getInfo(),
+            "course": self.course,
+            "leg_time": self.leg_time,
+            "leg_length": self.leg_length,
+        }
+
+    def getRoute(self, speed: float, finesse: int = 6):
+        """
+        Make path from Hold data and aircraft speed.
+        Returns an array of Feature<Point>
+
+        :param      speed:  The speed
+        :type       speed:  float
+        """
+
+        def line_arc(center, radius, start, end, steps=8):
+            arc = []
+            if end < start:
+                end = end + 360
+            step = (end - start) / steps
+            a = start
+            while a < end:
+                p = destination(center, radius, a + 180)
+                arc.append(p)
+                a = a + step
+            return arc
+
+        # leg length
+        length = speed * self.leg_time * 60 if self.leg_time > 0 else self.leg_length
+        length = length / 1000  # km
+        # circle radius:
+        radius = length / math.pi
+        # step = 180 / finesse
+
+        # logger.debug("spd=%f len=%f rad=%f turn=%s legt=%f legl=%f" % (speed, length, radius, self.turn, self.leg_time, self.leg_length))
+
+        # 4 corners and 2 arc centers p1 -> p2 -> p3 -> p4 -> p1
+        p1 = self.fix
+        p2 = destination(p1, length, self.course)
+
+        hold = [p1, p2]  # start from p1, to to p2, then 180 turn:
+
+        perpendicular = self.course + 90 * (1 if self.turn == "R" else -1)
+        c23 = destination(p2, radius, perpendicular)
+
+        logger.debug(f"fix:{self.fix.id} turn={self.turn} course={self.course:f} perp={perpendicular:f}")
+
+        start_angle = perpendicular
+        if self.turn == "L":
+            start_angle = start_angle - 180
+
+        arc = line_arc(c23, radius, start_angle, start_angle + 180, finesse)
+        if self.turn == "L":
+            arc.reverse()
+        hold = hold + arc
+
+        p3 = destination(p2, 2 * radius, perpendicular)
+        hold.append(p3)
+        p4 = destination(p1, 2 * radius, perpendicular)
+        hold.append(p4)
+
+        c41 = destination(p1, radius, perpendicular)
+        arc = line_arc(c41, radius, start_angle + 180, start_angle + 360, finesse)
+        if self.turn == "L":
+            arc.reverse()
+        hold = hold + arc
+
+        return hold
 
 
 ################################
@@ -185,7 +453,7 @@ class ProcedureData:
         altmin = cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT1))
         altmax = cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT2))
         speedlim = cifp_speed(self.param(PROC_DATA.SPEED_LIMIT))
-        r = Restriction(altmin=altmin, altmax=altmax, speedmin=speedlim)
+        r = Restriction(altmin=altmin, altmax=altmax, speed=speedlim)
         r._source = self
         r.alt_restriction_type = self.param(PROC_DATA.ALT_DESC)
         r.speed_restriction_type = self.param(PROC_DATA._SPEED_LIM_DESC)
@@ -220,17 +488,17 @@ class Procedure(ABC):
             pointtype = p.id.split(ID_SEP)[-2]
             u = RestrictedNamedPoint(ident=p.ident, region=p.region, airport=p.airport, pointtype=pointtype, lat=p.lat(), lon=p.lon())
             u.combine(restriction)
-            logger.debug(f"getNamedPointWithRestriction: {type(self).__name__} {self.name}: {vertex} ({u.print_restriction(True)})")
+            logger.debug(f"getNamedPointWithRestriction: {type(self).__name__} {self.name}: {vertex} ({u.getRestrictionDesc(True)})")
             return u
         logger.warning(f"getNamedPointWithRestriction: no vertex named {vertex}")
         return None
 
     @abstractmethod
-    def getRoute(self):
+    def getRoute(self, airspace: Aerospace):
         pass
 
     @abstractmethod
-    def prepareRestrictions(self):
+    def prepareRestrictions(self, route):
         pass
 
 
@@ -263,17 +531,66 @@ class SID(Procedure):
                     logger.warning(f"SID:getRoute: vertex ambiguous {vid} ({len(vtxs)}, {vtxs})")
                 else:
                     logger.warning("SID:getRoute: vertex not found %s", vid)
+
+        self.prepareRestrictions(a)
         return a
 
-    def prepareRestrictions(self):
-        route = self.getRoute()
+    def prepareRestrictions(self, route):
+        def apply_speed_restriction_before(r, idx):
+            curr = r[idx]
+            stop = False
+            j = idx
+            while j > 0 and not stop:
+                prec = r[j]
+                if prec.getProp("_restricted_speed") is not None:  # element has already a speed restriction
+                    stop = True
+                else:  # we copy/apply the restriction to preceeding wp
+                    spd_desc = curr.speed_restriction_type
+                    if spd_desc in [" ", "-"]:
+                        prec.setProp("_speed_max", curr.speed)
+                j = j - 1
 
         # Speed
-        for v in route:
+        for i in range(len(route)):
+            v = route[i]
             if v.hasSpeedRestriction():
-                v.setProp("_restricted_speed")
+                v.setProp("_restricted_speed", v.getSpeedRestrictionDesc())
+                spd_desc = v.speed_restriction_type
+                if spd_desc == " ":
+                    v.setProp("_speed_min", v.speed)
+                    v.setProp("_speed_max", v.speed)
+                    v.setProp("_speed_target", v.speed)  # mandatory to pass wp at that speed
+                elif spd_desc == "+":
+                    v.setProp("_speed_min", v.speed)
+                elif spd_desc == "-":
+                    v.setProp("_speed_max", v.speed)
+                apply_speed_restriction_before(route, i)
+        logger.debug("SID prepared for speed restrictions")
 
         # Altitude
+        for i in range(len(route)):
+            v = route[i]
+            if v.hasAltitudeRestriction():
+                v.setProp("_restricted_altitude", v.getAltitudeRestrictionDesc())
+                alt_desc = v.alt_restriction_type
+                if alt_desc == " ":
+                    v.setProp("_alt_min", v.alt1)
+                    v.setProp("_alt_max", v.alt1)
+                    v.setProp("_alt_target", v.alt1)  # mandatory to pass wp at that alt
+                elif alt_desc == "B":
+                    if v.alt1 > v.alt2:
+                        v.setProp("_alt_min", v.alt2)
+                        v.setProp("_alt_max", v.alt1)
+                    else:
+                        v.setProp("_alt_min", v.alt1)
+                        v.setProp("_alt_max", v.alt2)
+                elif alt_desc in ["+"]:
+                    v.setProp("_alt_min", v.alt1)
+                elif alt_desc in ["C", "D"]:
+                    v.setProp("_alt_min", v.alt2)
+                elif alt_desc == "-":
+                    v.setProp("_alt_max", v.alt1)
+        logger.debug("SID prepared for altitude restrictions")
 
 
 class STAR(Procedure):
@@ -305,7 +622,64 @@ class STAR(Procedure):
                     logger.warning("STAR:getRoute: vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
                 else:
                     logger.warning("STAR:getRoute: vertex not found %s", vid)
+
+        self.prepareRestrictions(a)
         return a
+
+    def prepareRestrictions(self, route):
+        # Speed
+        curr_limit = None
+        for i in range(len(route)):
+            v = route[i]
+            if v.hasSpeedRestriction():
+                v.setProp("_restricted_speed", v.getSpeedRestrictionDesc())
+                spd_desc = v.speed_restriction_type
+                if spd_desc == " ":
+                    v.setProp("_speed_min", v.speed)
+                    v.setProp("_speed_max", v.speed)
+                    v.setProp("_speed_target", v.speed)
+                elif spd_desc == "+":
+                    v.setProp("_speed_min", v.speed)
+                elif spd_desc == "-":
+                    v.setProp("_speed_max", v.speed)
+                curr_limit = v
+            elif curr_limit is not None:  # carry restriction forward
+                spd_desc = curr_limit.speed_restriction_type
+                if spd_desc == " ":
+                    v.setProp("_speed_min", curr_limit.speed)
+                    v.setProp("_speed_max", curr_limit.speed)
+                    v.setProp("_speed_target", curr_limit.speed)
+                elif spd_desc == "+":
+                    v.setProp("_speed_min", curr_limit.speed)
+                elif spd_desc == "-":
+                    v.setProp("_speed_max", curr_limit.speed)
+
+        logger.debug("STAR prepared for speed restrictions")
+
+        # Altitude
+        for i in range(len(route)):
+            v = route[i]
+            if v.hasAltitudeRestriction():
+                v.setProp("_restricted_altitude", v.getAltitudeRestrictionDesc())
+                alt_desc = v.alt_restriction_type
+                if alt_desc == " ":
+                    v.setProp("_alt_min", v.alt1)
+                    v.setProp("_alt_max", v.alt1)
+                    v.setProp("_alt_target", v.alt1)  # mandatory to pass wp at that alt
+                elif alt_desc == "B":
+                    if v.alt1 > v.alt2:
+                        v.setProp("_alt_min", v.alt2)
+                        v.setProp("_alt_max", v.alt1)
+                    else:
+                        v.setProp("_alt_min", v.alt1)
+                        v.setProp("_alt_max", v.alt2)
+                elif alt_desc in ["+"]:
+                    v.setProp("_alt_min", v.alt1)
+                elif alt_desc in ["C", "D"]:
+                    v.setProp("_alt_min", v.alt2)
+                elif alt_desc == "-":
+                    v.setProp("_alt_max", v.alt1)
+        logger.debug("STAR prepared for altitude restrictions")
 
 
 class APPCH(Procedure):
@@ -348,16 +722,63 @@ class APPCH(Procedure):
                     )
                 interrupted = True
 
-            # print("%s %s: %d: %s [%s], A: %s [%s,%s], S: %s %s " % (type(self).__name__, self.name, v,
-            #     self.route[v].param("FIX IDENT"),
-            #     self.route[v].param("DESC CODE"),
-            #     self.route[v].param("ALT DESC"),
-            #     self.route[v].param("_MIN ALT 1"),
-            #     self.route[v].param("_MIN ALT 2"),
-            #     self.route[v].param("_SPEED LIM DESC"),
-            #     self.route[v].param("SPEED LIMIT"),
-            #     ))
+        self.prepareRestrictions(a)
         return a
+
+    def prepareRestrictions(self, route):
+        # Speed
+        curr_limit = None
+        for i in range(len(route)):
+            v = route[i]
+            if v.hasSpeedRestriction():
+                v.setProp("_restricted_speed", v.getSpeedRestrictionDesc())
+                spd_desc = v.speed_restriction_type
+                if spd_desc == " ":
+                    v.setProp("_speed_min", v.speed)
+                    v.setProp("_speed_max", v.speed)
+                    v.setProp("_speed_target", v.speed)
+                elif spd_desc == "+":
+                    v.setProp("_speed_min", v.speed)
+                elif spd_desc == "-":
+                    v.setProp("_speed_max", v.speed)
+                curr_limit = v
+            elif curr_limit is not None:  # carry restriction forward
+                spd_desc = curr_limit.speed_restriction_type
+                if spd_desc == " ":
+                    v.setProp("_speed_min", curr_limit.speed)
+                    v.setProp("_speed_max", curr_limit.speed)
+                    v.setProp("_speed_target", curr_limit.speed)
+                elif spd_desc == "+":
+                    v.setProp("_speed_min", curr_limit.speed)
+                elif spd_desc == "-":
+                    v.setProp("_speed_max", curr_limit.speed)
+
+        logger.debug("APPCH prepared for speed restrictions")
+
+        # Altitude
+        for i in range(len(route)):
+            v = route[i]
+            if v.hasAltitudeRestriction():
+                v.setProp("_restricted_altitude", v.getAltitudeRestrictionDesc())
+                alt_desc = v.alt_restriction_type
+                if alt_desc == " ":
+                    v.setProp("_alt_min", v.alt1)
+                    v.setProp("_alt_max", v.alt1)
+                    v.setProp("_alt_target", v.alt1)  # mandatory to pass wp at that alt
+                elif alt_desc == "B":
+                    if v.alt1 > v.alt2:
+                        v.setProp("_alt_min", v.alt2)
+                        v.setProp("_alt_max", v.alt1)
+                    else:
+                        v.setProp("_alt_min", v.alt1)
+                        v.setProp("_alt_max", v.alt2)
+                elif alt_desc in ["+"]:
+                    v.setProp("_alt_min", v.alt1)
+                elif alt_desc in ["C", "D"]:
+                    v.setProp("_alt_min", v.alt2)
+                elif alt_desc == "-":
+                    v.setProp("_alt_max", v.alt1)
+        logger.debug("APPCH prepared for altitude restrictions")
 
 
 class RWY(Procedure):
@@ -437,6 +858,9 @@ class RWY(Procedure):
         if self.runway[-1] in list("LR"):  # "LRC"? NNL + NNR -> NNB, I don't know if there is a NNC?
             return self.runway[:-1] + "B"
         return "ALL"
+
+    def prepareRestrictions(self, route):
+        logger.debug(f"RWY has no route data to prepare for restrictions")
 
 
 class CIFP:

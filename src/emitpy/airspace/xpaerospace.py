@@ -16,8 +16,9 @@ from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
 from emitpy.parameters import XPLANE_DIR, DATA_DIR
 from emitpy.utils import FT
-from .aerospace import Aerospace, Terminal, Fix, NamedPoint, AirwaySegment, CPIDENT, ControlledAirspace, Restriction
-from .aerospace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP, Hold
+from .aerospace import Aerospace, Terminal, Fix, NamedPoint, AirwaySegment, CPIDENT
+from .aerospace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP
+from .procedure import Hold, ControlledAirspace
 
 logger = logging.getLogger("XPAerospace")
 
@@ -840,10 +841,16 @@ class XPAerospace(Aerospace):
         fc = json.loads(airspaces)
         for f in fc["features"]:
             props = f["properties"]
-            r = Restriction(altmin=props["min_altitude"], altmax=props["max_altitude"])
-            r.altmin_type = props["min_altitude_type"]
-            r.altmax_type = props["max_altitude_type"]
-            ca = ControlledAirspace(name=props["name"], region="", airspace_class="", restriction=r, area=f["geometry"])
+            ca = ControlledAirspace(
+                name=props["name"],
+                region="",
+                airspace_class="",
+                area=f["geometry"],
+                altmin=props["min_altitude"],
+                altmax=props["max_altitude"],
+                altmin_type=props["min_altitude_type"],
+                altmax_type=props["max_altitude_type"],
+            )
             for p in props:
                 ca.setProp(p, props[p])
             ca.setId(props["boundary_id"])
