@@ -97,6 +97,9 @@ class NamedPoint(Vertex):
             # else, tries a simpler version
             return FeatureWithProps.new(self)
 
+    def getIdent(self):
+        return self.ident
+
 
 ################################
 #

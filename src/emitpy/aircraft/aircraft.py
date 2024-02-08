@@ -17,6 +17,8 @@ import yaml
 
 from importlib_resources import files
 
+# from openap import WRAP
+
 from emitpy.parameters import HOME_DIR, DATA_DIR
 from emitpy.business import Identity, Company
 from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB, RAMP_TYPE
@@ -403,6 +405,10 @@ class AircraftTypeWithPerformance(AircraftType):
 
         self.perfdata = None  # computed
         self.available = False
+        # try:
+        #     self.wrap = WRAP(typeId, use_synonym=True)
+        # except:
+        #     logger.info(f"wrap not available for {typeId}")
 
     @staticmethod
     def loadAll():
