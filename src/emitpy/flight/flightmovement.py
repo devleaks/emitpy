@@ -383,7 +383,7 @@ class FlightMovement(Movement):
             currpos = addMovepoint(
                 arr=self._premoves,
                 src=initial_climb,
-                alt=alt,
+                alt=step[2],  # !! err corrected 7FEB24, was =alt=dept(alt)
                 speed=actype.getSI(ACPERF.initial_climb_speed),
                 vspeed=actype.getSI(ACPERF.initial_climb_vspeed),
                 color=POSITION_COLOR.INITIAL_CLIMB.value,
