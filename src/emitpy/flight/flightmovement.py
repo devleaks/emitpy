@@ -1296,7 +1296,18 @@ class FlightMovement(Movement):
         output = io.StringIO()
         print("\n", file=output)
         print(f"FLIGHT MOVEMENT", file=output)
-        HEADER = ["INDEX", "SEGMENT TYPE", "SEGMENT NAME", "WAYPOINT", "RESTRICTIONS", "DISTANCE", "TOTAL DISTANCE", "ALT", "SPEED", "V/S"]
+        HEADER = [
+            "INDEX",
+            "SEGMENT TYPE",
+            "SEGMENT NAME",
+            "WAYPOINT",
+            "RESTRICTIONS",
+            "DISTANCE",
+            "TOTAL DISTANCE",
+            "ALT",
+            "SPEED",
+            "V/S",
+        ]  # long comment to provoke wrap :-)
         table = []
 
         fid = self.flight.getId()
