@@ -704,7 +704,7 @@ class STAR(Procedure):
         for i in range(len(route)):
             v = route[i]
             if v.hasSpeedRestriction():
-                print(">>> has speed restriction", v.ident, v.getSpeedRestrictionDesc())
+                # print(">>> has speed restriction", v.ident, v.getSpeedRestrictionDesc())
                 v.setProp("_restricted_speed", v.getSpeedRestrictionDesc())
                 spd_desc = v.speed_restriction_type
                 if spd_desc in [" ", "@"]:
@@ -717,7 +717,7 @@ class STAR(Procedure):
                     v.setProp("_speed_max", v.speed)
                 curr_limit = v
             elif curr_limit is not None:  # carry restriction forward
-                print(">>> carry forward speed restriction", v.ident, curr_limit.getSpeedRestrictionDesc())
+                # print(">>> carry forward speed restriction", v.ident, curr_limit.getSpeedRestrictionDesc())
                 spd_desc = curr_limit.speed_restriction_type
                 if spd_desc in [" ", "@"]:
                     v.setProp("_speed_min", curr_limit.getProp("_speed_min"))
@@ -735,7 +735,7 @@ class STAR(Procedure):
         for i in range(len(route)):
             v = route[i]
             if v.hasAltitudeRestriction():
-                print(">>> has altitude restriction", v.ident, v.getAltitudeRestrictionDesc())
+                # print(">>> has altitude restriction", v.ident, v.getAltitudeRestrictionDesc())
                 v.setProp("_restricted_altitude", v.getAltitudeRestrictionDesc())
                 alt_desc = v.alt_restriction_type
                 if alt_desc in [" ", "@"]:
@@ -813,7 +813,7 @@ class APPCH(Procedure):
         for i in range(len(route)):
             v = route[i]
             if v.hasSpeedRestriction():
-                print(">>> has speed restriction", v.ident, v.getSpeedRestrictionDesc())
+                # print(">>> has speed restriction", v.ident, v.getSpeedRestrictionDesc())
                 v.setProp("_restricted_speed", v.getSpeedRestrictionDesc())
                 spd_desc = v.speed_restriction_type
                 if spd_desc in [" ", "@"]:
@@ -826,7 +826,7 @@ class APPCH(Procedure):
                     v.setProp("_speed_max", v.speed)
                 curr_limit = v
             elif curr_limit is not None:  # carry restriction forward
-                print(">>> carry forward speed restriction", v.ident, curr_limit.getSpeedRestrictionDesc())
+                # print(">>> carry forward speed restriction", v.ident, curr_limit.getSpeedRestrictionDesc())
                 spd_desc = curr_limit.speed_restriction_type
                 if spd_desc in [" ", "@"]:
                     v.setProp("_speed_min", curr_limit.getProp("_speed_min"))
@@ -844,7 +844,7 @@ class APPCH(Procedure):
         for i in range(len(route)):
             v = route[i]
             if v.hasAltitudeRestriction():
-                print(">>> has altitude restriction", v.ident, v.getAltitudeRestrictionDesc())
+                # print(">>> has altitude restriction", v.ident, v.getAltitudeRestrictionDesc())
                 v.setProp("_restricted_altitude", v.getAltitudeRestrictionDesc())
                 alt_desc = v.alt_restriction_type
                 if alt_desc in [" ", "@"]:

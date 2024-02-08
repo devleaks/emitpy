@@ -9,7 +9,7 @@ import copy
 
 from datetime import datetime, timedelta
 
-from emitpy.geo.turf import Point, FeatureCollection, Feature, saveGeoJSON
+from emitpy.geo.turf import Point, FeatureCollection, Feature, saveGeoJSON, distance
 
 from tabulate import tabulate
 
@@ -108,7 +108,7 @@ class Movement(Messages):
 
     def getMovePoints(self):
         # when movement is completed by additional movement, this will return ALL points
-        logger.debug(f"getting {len(self._points)} base positions ({type(self).__name__})")
+        # logger.debug(f"getting {len(self._points)} base positions ({type(self).__name__})")
         return self._points
 
     def setMovePoints(self, move_points):
@@ -155,6 +155,36 @@ class Movement(Messages):
         Last time is touch down at destination (Departure) or end of roll out (Arrival).
         """
         return (True, "Movement::time computed")
+
+    def tabulateMovement(self):
+        if self._points is None:
+            logger.warning("no move points")
+            return
+
+        output = io.StringIO()
+        print("\nFLIGHT PLAN", file=output)
+        HEADER = ["INDEX", "SEGMENT NAME", "DISTANCE", "TOTAL DISTANCE", "ALT", "SPEED", "V/S"]
+        table = []
+
+        idx = 0
+        total_dist = 0
+        last_point = None
+        for w in self._points:
+            d = 0
+            if last_point is not None:
+                d = distance(last_point, w)
+                total_dist = total_dist + d
+
+            # mvpt.setProp(FEATPROP.GROUNDED.value, is_grounded)
+            table.append([idx, w.getMark(), round(d, 1), round(total_dist), w.altitude(), w.speed(), w.vspeed()])
+            idx = idx + 1
+            last_point = w
+
+        table = sorted(table, key=lambda x: x[0])  # absolute emission time
+        print(tabulate(table, headers=HEADER), file=output)
+        contents = output.getvalue()
+        output.close()
+        return contents
 
     def resetDelays(self):
         """

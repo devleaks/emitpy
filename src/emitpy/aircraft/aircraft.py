@@ -33,6 +33,8 @@ sys.path.append(HOME_DIR)
 
 _STD_CLASS = "C"
 MAX_FL100_SPEED = 250  # kn
+INITIAL_CLIMB_SAFE_ALT = 1500 * FT
+FINAL_APPROACH_FIX_ALT = 3000 * FT
 
 
 class ACPERF:
@@ -935,7 +937,7 @@ class AircraftTypeWithPerformance(AircraftType):
         # logger.debug("%s from %f to %f at %f m/s during %f, move %f at %f m/s" % (self.name, altstart, altend, vspeed, t, d, speed))
         return (t, d, altend)
 
-    def initialClimb(self, altstart, safealt: int = 1500 * FT):
+    def initialClimb(self, altstart, safealt: float = INITIAL_CLIMB_SAFE_ALT):
         """
         Alias to climb function for initialClimb speed and vspeed.
 
@@ -1051,7 +1053,7 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         return self.climb(altstart, altend, -self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.approach_speed))
 
-    def descentFinal(self, altstart, altend, vspeed):
+    def descentFinal(self, altend, vspeed, safealt: float = FINAL_APPROACH_FIX_ALT):
         """
         Alias to climb function to descent from final to touch down.
 
@@ -1060,7 +1062,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :param      safealt:   The safealt
         :type       safealt:   int
         """
-        return self.climb(altstart, altend, -vspeed, self.getSI(ACPERF.landing_speed))
+        return self.climb(altend + safealt, altend, -vspeed, self.getSI(ACPERF.landing_speed))
 
     def getGSEProfile(self, redis=None):
         if self.gseprofile is None:

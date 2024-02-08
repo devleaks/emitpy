@@ -83,6 +83,8 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
+        logger.debug(self.tabulateMovement())
+
         status = self.standard_turns()
         if not status[0]:
             logger.warning(status[1])
@@ -596,7 +598,7 @@ class FlightMovement(Movement):
         #
         logger.debug(f"arrival to {self.flight.arrival.icao} " + "=" * 30)
         # Set a few default sensible values in case procedures do not give any
-        FINAL_ALT = 1000 * FT  # Altitude ABG at which we start final
+        FINAL_ALT = 2000 * FT  # Altitude ABG at which we start final, always straight line aligned with runway
         APPROACH_ALT = 3000 * FT  # Altitude ABG at which we perform approach path before final
         STAR_ALT = 6000 * FT  # Altitude ABG at which we perform STAR path before approach
         LAND_TOUCH_DOWN = 0.4  # km, distance of touch down from the runway threshold (given in CIFP)
@@ -679,7 +681,7 @@ class FlightMovement(Movement):
 
             # we move to the final fix at max FINAL_ALT ft, landing speed, FINAL_VSPEED (ft/min), from touchdown
             logger.debug("(rev) final")
-            step = actype.descentFinal(alt + FINAL_ALT, alt, final_speed_ms)  # (t, d, altend)
+            step = actype.descentFinal(alt, final_speed_ms, safealt=FINAL_ALT)  # (t, d, altend)
             final_distance = step[1] / 1000  # km
             # find final fix point
 
@@ -697,7 +699,7 @@ class FlightMovement(Movement):
                 speed=actype.getSI(ACPERF.landing_speed),
                 vspeed=final_speed_ms,
                 color=POSITION_COLOR.FINAL.value,
-                mark=FLIGHT_PHASE.FINAL.value,
+                mark=FLIGHT_PHASE.FINAL_FIX.value,
                 ix=newidx,
             )
             logger.debug("(rev) final fix at new=%d(old=%d), %f" % (newidx, fcidx, final_distance))
@@ -708,7 +710,7 @@ class FlightMovement(Movement):
 
             # we are at final fix
             groundmv = groundmv + step[1]
-            # from approach alt to final fix alt
+            # transition (direct) from approach alt (initial fix) to final fix alt
             currpos, fcidx = moveOnLS(
                 coll=revmoves,
                 reverse=True,
@@ -720,7 +722,7 @@ class FlightMovement(Movement):
                 speed=actype.getSI(ACPERF.landing_speed),
                 vspeed=actype.getSI(ACPERF.approach_vspeed),
                 color=POSITION_COLOR.FINAL.value,
-                mark="start_of_final",
+                mark="if_to_ff",
                 mark_tr=FLIGHT_PHASE.FINAL.value,
             )
         else:
@@ -754,7 +756,7 @@ class FlightMovement(Movement):
 
             # we move to the final fix at max 3000ft, approach speed from airport last point, vspeed=FINAL_VSPEED
             logger.debug("(rev) final")
-            step = actype.descentFinal(alt + FINAL_ALT, alt, final_speed_ms)  # (t, d, altend)
+            step = actype.descentFinal(alt, final_speed_ms, safealt=FINAL_ALT)  # (t, d, altend)
             groundmv = groundmv + step[1]
             # find final fix point
             currpos, fcidx = moveOnLS(
@@ -786,6 +788,7 @@ class FlightMovement(Movement):
             else:
                 logger.debug("(rev) flight level to final fix")
                 # add all approach points between start to approach to final fix
+                first = True  # we name last point of approach "initial fix"
                 for i in range(fcidx + 1, k):
                     wpt = fc[i]
                     # logger.debug("APPCH: flight level: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
@@ -796,9 +799,10 @@ class FlightMovement(Movement):
                         speed=actype.getSI(ACPERF.approach_speed),
                         vspeed=0,
                         color=POSITION_COLOR.APPROACH.value,
-                        mark=FLIGHT_PHASE.APPROACH.value,
+                        mark=FLIGHT_PHASE.INITIAL_FIX.value if first else FLIGHT_PHASE.APPROACH.value,
                         ix=len(fc) - i,
                     )
+                    first = False
                     # logger.debug("adding remarkable point: %d %s (%d)" % (i, p.getProp(FEATPROP.MARK), len(revmoves)))
 
                 # add start of approach
@@ -1002,8 +1006,8 @@ class FlightMovement(Movement):
             speed=cruise_speed,
             vspeed=0,
             color=POSITION_COLOR.DECELERATE.value,
-            mark=FLIGHT_PHASE.DECELERATE.value,
-            mark_tr="end_of_decelerate",
+            mark=FLIGHT_PHASE.LEAVE_CRUISE_SPEED.value,
+            mark_tr="end_of_leave_cruise_speed",
         )
 
         top_of_decent_idx = fcidx + 1  # we reach top of descent between idx and idx+1, so we cruise until idx+1
@@ -1046,6 +1050,8 @@ class FlightMovement(Movement):
         for f in self._premoves:
             f.setProp(FEATPROP.PREMOVE_INDEX.value, idx)
             idx = idx + 1
+
+        self._points = self._premoves  # for tabulate printing
 
         logger.debug(f"descent added (+{len(revmoves)} {len(self._premoves)})")
         # printFeatures(self._premoves, "holding")
@@ -1366,7 +1372,7 @@ class ArrivalMove(FlightMovement):
                     f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
             else:
                 logger.debug(f"{len(self.taxipos)} taxi points have no timing yet")
-        logger.debug(f"returning {len(base)} base positions and {len(self.taxipos)} taxi positions ({type(self).__name__})")
+        # logger.debug(f"returning {len(base)} base positions and {len(self.taxipos)} taxi positions ({type(self).__name__})")
         return base + self.taxipos
 
     def taxi(self):

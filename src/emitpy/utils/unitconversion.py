@@ -65,7 +65,7 @@ def toFeet(m):
     return round(m / FT)
 
 
-def toMeter(f):
+def toMeter(ft):
     """
     Convert feet to meters
 
@@ -108,6 +108,10 @@ def toKmh2(ms):
 
 def toKmh(kn):
     return kn * NAUTICAL_MILE
+
+
+def toFPM(ms):
+    return toFeet(ms * 60)
 
 
 def ConvertDMSToDD(degrees, minutes, seconds, direction):

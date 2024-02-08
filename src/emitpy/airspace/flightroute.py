@@ -16,7 +16,7 @@ class FlightPlan:
     """Flight plan data
 
     A FlightPlan is a set of minimal data, mostly optional, that is supplied
-    to the FlightRouteFilnder to set a few choices.
+    to the FlightRouteFinder to set a few choices.
     It is used to build the lateral navigation.
     """
 

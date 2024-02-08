@@ -299,7 +299,7 @@ class AirwaySegment(Edge):
         Edge.__init__(self, src=start, dst=end, directed=direction, weight=dist)
         self.names = names.split("-")
         self.lowhigh = lowhigh
-        self.fl_floor = fl_floor
+        self.fl_floor = fl_floor  # Should be implemented as a Restriction(altmin=fl_floor, altmax=fl_ceil)
         self.fl_ceil = fl_ceil
 
     def getKey(self):

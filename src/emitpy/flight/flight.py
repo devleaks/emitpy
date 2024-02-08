@@ -2,6 +2,7 @@
 import logging
 import traceback
 import io
+from enum import Enum
 from datetime import datetime, timedelta, timezone
 
 from tabulate import tabulate
@@ -16,6 +17,15 @@ from emitpy.utils import FT
 from emitpy.message import Messages, FlightboardMessage, EstimatedTimeMessage
 
 logger = logging.getLogger("Flight")
+
+
+class FLIGHT_SEGMENT(Enum):
+    RWYDEP = "rwydep"
+    RWYARR = "rwyarr"
+    SID = "sid"
+    STAR = "star"
+    APPCH = "appch"
+    CRUISE = "cruise"
 
 
 class Flight(Messages):
@@ -57,10 +67,9 @@ class Flight(Messages):
         self.codeshare = None
         self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
         self.flight_level = 0
-        self.flightroute = None
+        self.flightroute = None  # FlightRoute object
         self.flightplan_wpts = []
-        self.dep_procs = None
-        self.arr_procs = None
+        self.procedures = {}
         self.rwy = None  # RWY object
 
         self.meta = {"departure": {}, "arrival": {}}
@@ -95,38 +104,27 @@ class Flight(Messages):
                 return ""
             return ac.actype.typeId + "(" + ac.registration + ")"
 
-        def dproc(a):
-            if a is None:
-                logger.debug("no departure procedure")
-                return ""
+        def dproc():
             s = ""
-            if len(a) > 0:
-                e = a[0]
-                s = e.name if e is not None else "RW--"
-            if len(a) > 1:
-                e = a[1]
-                s = s + " SID " + (e.name if e is not None else "-")
+            e = self.procedures.get(FLIGHT_SEGMENT.RWYDEP.value)
+            s = e.name if e is not None else "RW--"
+            e = self.procedures.get(FLIGHT_SEGMENT.SID.value)
+            s = s + " SID " + e.name if e is not None else "-none-"
             return s
 
-        def aproc(a):
-            if a is None:
-                logger.debug("no arrival procedure")
-                return ""
+        def aproc():
             s = ""
-            if len(a) > 0:
-                e = a[0]
-                s = e.name if e is not None else "RW--"
-            if len(a) > 2:
-                e = a[2]
-                s = "APPCH " + (e.name if e is not None else "-") + " " + s
-            if len(a) > 1:
-                e = a[1]
-                s = "STAR " + (e.name if e is not None else "-") + " " + s
+            e = self.procedures.get(FLIGHT_SEGMENT.STAR.value)
+            s = s + "STAR " + e.name if e is not None else "-none-"
+            e = self.procedures.get(FLIGHT_SEGMENT.APPCH.value)
+            s = s + " APPCH " + e.name if e is not None else "-none-"
+            e = self.procedures.get(FLIGHT_SEGMENT.RWYARR.value)
+            s = s + " " + e.name if e is not None else "RW--"
             return s
 
         s = self.getName()
         s = s + f" {self.departure.iata}-{self.arrival.iata} {airc(self.aircraft)} FL{self.flight_level}"
-        s = s + f" //DEP {self.departure.icao} {dproc(self.dep_procs)} //ARR {self.arrival.icao} {aproc(self.arr_procs)}"
+        s = s + f" //DEP {self.departure.icao} {dproc()} //ARR {self.arrival.icao} {aproc()}"
         return s
 
     def getInfo(self):
@@ -490,7 +488,7 @@ class Flight(Messages):
             waypoints = rwydep.getRoute()
             waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, "origin/rwy")
             waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao + "/" + rwydep.name)
-            self.dep_procs = [rwydep]
+            self.procedures[FLIGHT_SEGMENT.RWYDEP.value] = rwydep
             self.meta["departure"]["procedure"] = rwydep.name
         else:  # no runway, we leave from airport
             logger.warning(f"departure airport {depapt.icao} has no runway, first point is departure airport")
@@ -506,10 +504,10 @@ class Flight(Messages):
             if sid is not None:  # inserts it
                 logger.debug(f"{depapt.icao} using SID {sid.name}")
                 ret = depapt.procedures.getRoute(sid, self.managedAirport.airport.airspace)
-                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "sid")
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.SID.value)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, sid.name)
                 waypoints = waypoints + ret
-                self.dep_procs = (rwydep, sid)
+                self.procedures[FLIGHT_SEGMENT.SID.value] = sid
                 self.meta["departure"]["procedure"] = (rwydep.name, sid.name)
             else:
                 logger.warning(f"departure airport {depapt.icao} has no SID for {rwydep.name}")
@@ -540,10 +538,10 @@ class Flight(Messages):
             if self.is_arrival():
                 self.setRWY(rwyarr)
             ret = rwyarr.getRoute()
-            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "rwy")
+            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "destination/rwy")
             Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, rwyarr.name)
             waypoints = waypoints[:-1] + ret  # no need to add last point which is arrival airport, we replace it with the precise runway end.
-            self.arr_procs = [rwyarr]
+            self.procedures[FLIGHT_SEGMENT.RWYARR.value] = rwyarr
             self.meta["arrival"]["procedure"] = rwyarr.name
         else:  # no star, we are done, we arrive in a straight line
             logger.warning(f"arrival airport {arrapt.icao} has no runway, last point is arrival airport")
@@ -557,10 +555,10 @@ class Flight(Messages):
             if star is not None:
                 logger.debug(f"{arrapt.icao} using STAR {star.name}")
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
-                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "star")
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.STAR.value)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, star.name)
                 waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert STAR before airport
-                self.arr_procs = (rwyarr, star)
+                self.procedures[FLIGHT_SEGMENT.STAR.value] = star
                 self.meta["arrival"]["procedure"] = (rwyarr.name, star.name)
                 star_route = ret
             else:
@@ -574,14 +572,14 @@ class Flight(Messages):
             if appch is not None:
                 logger.debug(f"{arrapt.icao} using APPCH {appch.name}")
                 ret = arrapt.procedures.getRoute(appch, self.managedAirport.airport.airspace)
-                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "appch")
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.APPCH.value)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, appch.name)
                 if len(waypoints) > 2 and len(ret) > 0 and waypoints[-2].id == ret[0].id:
                     logger.debug(f"duplicate end STAR/begin APPCH {ret[0].id} removed")
                     waypoints = waypoints[:-2] + ret + [waypoints[-1]]  # remove last point of STAR
                 else:
                     waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert APPCH before airport
-                self.arr_procs = (rwyarr, star, appch)
+                self.procedures[FLIGHT_SEGMENT.APPCH.value] = appch
                 self.meta["arrival"]["procedure"] = (rwyarr.name, star.name if star is not None else "no STAR", appch.name)
             else:
                 logger.warning(f"arrival airport {arrapt.icao} has no APPCH for {rwyarr.name} ")
@@ -618,7 +616,7 @@ class Flight(Messages):
             return
 
         output = io.StringIO()
-        print("\nFLIGHT ROUTE", file=output)
+        print("\nFLIGHT PLAN", file=output)
         HEADER = [
             "INDEX",
             "SEGMENT TYPE",
@@ -626,6 +624,8 @@ class Flight(Messages):
             "WAYPOINT",
             "NODE",
             "RESTRICTIONS",
+            "DISTANCE",
+            "TOTAL DISTANCE",
             "MIN ALT",
             "MAX ALT",
             "ALT TARGET",
@@ -669,7 +669,37 @@ class Flight(Messages):
         print(tabulate(table, headers=HEADER), file=output)
         contents = output.getvalue()
         output.close()
-        logger.debug(f"{contents}")
+        return contents
+
+    def distance(self, idx_start, idx_end):
+        """Returns total distance between waypoints following flight path"""
+        last_point = self.flightplan_wpts[idx_start]
+        idx = idx_start + 1
+        total_dist = 0.0
+        while idx <= idx_end and idx < len(self.flightplan_wpts):
+            w = self.flightplan_wpts[idx]
+            d = distance(last_point, w)
+            total_dist = total_dist + d
+            idx = idx + 1
+        return total_dist
+
+    def next_restriction(self, idx_start, backwards: bool = False):
+        """Returns waypoint with restriction following supplied index"""
+        if backwards:
+            idx = idx_start - 1
+            while idx >= 0:
+                w = self.flightplan_wpts[idx]
+                if w.hasRestriction():
+                    return w
+                idx = idx - 1
+        else:
+            idx = idx_start + 1
+            while idx < len(self.flightplan_wpts):
+                w = self.flightplan_wpts[idx]
+                if w.hasRestriction():
+                    return w
+                idx = idx + 1
+        return None
 
 
 class Arrival(Flight):
