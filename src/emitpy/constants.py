@@ -331,6 +331,7 @@ class FLIGHT_PHASE(Enum):
     OFFBLOCK = "OFFBLOCK"
     PUSHBACK = "PUSHBACK"
     TAXI = "TAXI"
+    TAXI_OUT = "TAXI-OUT"
     TAXIHOLD = "TAXIHOLD"  # just before entering the runway
     TAKE_OFF_HOLD = "TAKE_OFF_HOLD"  # on the runways
     TAKE_OFF = "TAKE_OFF"
@@ -359,6 +360,7 @@ class FLIGHT_PHASE(Enum):
     STOPPED_ON_RWY = "STOPPED_ON_RWY"
     RUNWAY_EXIT = "RUNWAY_EXIT"
     STOPPED_ON_TAXIWAY = "STOPPED_ON_TAXIWAY"
+    TAXI_IN = "TAXI-IN"
     PARKING = "PARKING"
     ONBLOCK = "ONBLOCK"
     SCHEDULED = "SCHEDULED"
@@ -482,8 +484,10 @@ class FEATPROP(Enum):
     EMIT_REASON = "emit-reason"
     EMIT_REL_TIME = "emit-relative-time"
     EMIT_RELATIVE_TIME = "emit-relative-time"
+    FLIGHT_MOVE_INDEX = "move-index"
     FLIGHT_PLAN_INDEX = "plan-index"
     FLIGHT_PLANDB_INDEX = "fpdb-index"
+    TAXI_INDEX = "taxi-index"
     JETWAY = "jetway"
     GROUNDED = "grounded"
     HEADING = "heading"  # direction in which point the aircraft
@@ -504,6 +508,7 @@ class FEATPROP(Enum):
     POI_SERVICE = "poi-service"
     PREMOVE_INDEX = "move-pre-index"
     REGION = "region"
+    RESTRICTION = "restriction"
     RUNWAY = "runway"
     SAVED_TIME = "saved-time"
     SERVICE = "service"

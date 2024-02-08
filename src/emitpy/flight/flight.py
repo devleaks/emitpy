@@ -590,6 +590,8 @@ class Flight(Messages):
         for f in waypoints:
             # logger.debug(f"flight plan: {f.getProp('_plan_segment_type')} {f.getProp('_plan_segment_name')}, {type(f).__name__}")
             f.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, idx)
+            if hasattr(f, "hasRestriction") and f.hasRestriction():
+                f.setProp(FEATPROP.RESTRICTION.value, f.getRestrictionDesc())
             idx = idx + 1
 
         self.flightplan_wpts = waypoints
@@ -635,7 +637,6 @@ class Flight(Messages):
         ]
         table = []
 
-        idx = 0
         total_dist = 0
         last_point = None
         for w in self.flightplan_wpts:
@@ -646,11 +647,11 @@ class Flight(Messages):
 
             table.append(
                 [
-                    idx,
+                    w.getProp(FEATPROP.FLIGHT_PLAN_INDEX.value),
                     w.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value),
                     w.getProp(FEATPROP.PLAN_SEGMENT_NAME.value),
                     w.getId(),
-                    w.ident,
+                    w.ident if hasattr(w, "ident") else "no ident",
                     w.getRestrictionDesc() if hasattr(w, "hasRestriction") and w.hasRestriction() else "",
                     round(d, 1),
                     round(total_dist),
@@ -662,7 +663,6 @@ class Flight(Messages):
                     w.getProp("_speed_target"),
                 ]
             )
-            idx = idx + 1
             last_point = w
 
         table = sorted(table, key=lambda x: x[0])  # absolute emission time
@@ -689,14 +689,14 @@ class Flight(Messages):
             idx = idx_start - 1
             while idx >= 0:
                 w = self.flightplan_wpts[idx]
-                if w.hasRestriction():
+                if hasattr(w, "hasRestriction") and w.hasRestriction():
                     return w
                 idx = idx - 1
         else:
             idx = idx_start + 1
             while idx < len(self.flightplan_wpts):
                 w = self.flightplan_wpts[idx]
-                if w.hasRestriction():
+                if hasattr(w, "hasRestriction") and w.hasRestriction():
                     return w
                 idx = idx + 1
         return None

@@ -9,6 +9,8 @@ import copy
 from math import pi
 from datetime import timedelta
 
+from networkx import HasACycle
+
 from emitpy.geo.turf import LineString, FeatureCollection, Feature, saveGeoJSON
 from emitpy.geo.turf import distance, destination, bearing
 
@@ -83,7 +85,7 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
-        logger.debug(self.tabulateMovement())
+        # logger.debug(self.tabulateMovement())
 
         status = self.standard_turns()
         if not status[0]:
@@ -156,6 +158,8 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
         # printFeatures(self.taxipos, "after taxi")
+
+        logger.debug(self.tabulateMovement2())
 
         logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
         return (True, "FlightMovement::move completed")
@@ -236,6 +240,13 @@ class FlightMovement(Movement):
         """
         is_grounded = True
 
+        def transfer_restriction(src, dst):
+            if src in self.flight.flightplan_wpts:
+                r = src.getProp(FEATPROP.RESTRICTION.value)
+                if r is not None and r.strip() != "":
+                    dst.setProp(FEATPROP.RESTRICTION.value, r)
+                    logger.debug(f"{src.getId()}: transferred restriction {r}")
+
         def addCurrentpoint(coll, pos, oi, ni, color, mark, reverse: bool = False):
             # catch up adding all points in flight plan between oi, ni
             # then add pos (which is between ni and ni+1)
@@ -246,8 +257,9 @@ class FlightMovement(Movement):
                     wpt = self.flight.flightplan_wpts[i]
                     p = MovePoint.new(wpt)
                     logger.debug(
-                        f"addCurrentpoint:{'(rev)' if reverse else ''} adding {p.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)} {p.getProp(FEATPROP.PLAN_SEGMENT_NAME.value)}"
+                        f"addCurrentpoint:{'(rev)' if reverse else ''} adding {p.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)} {p.getProp(FEATPROP.PLAN_SEGMENT_NAME.value)} ({p.getProp(FEATPROP.FLIGHT_PLAN_INDEX.value)})"
                     )
+                    transfer_restriction(wpt, p)
                     p.setColor(color)
                     p.setMark(mark)
                     p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
@@ -278,7 +290,7 @@ class FlightMovement(Movement):
             # logger.debug(f"{mark} {ix}, s={speed}")
             geom = None
             if type(src) == dict:
-                geom = src.geometry
+                geom = src["geometry"]
             else:
                 geom = src.geometry
             mvpt = MovePoint(geometry=geom, properties={})
@@ -289,6 +301,7 @@ class FlightMovement(Movement):
             mvpt.setMark(mark)
             mvpt.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, ix)
             mvpt.setProp(FEATPROP.GROUNDED.value, is_grounded)
+            transfer_restriction(src, mvpt)
             arr.append(mvpt)
             return mvpt
 
@@ -447,6 +460,10 @@ class FlightMovement(Movement):
                 mark_tr=FLIGHT_PHASE.INITIAL_CLIMB.value,
             )
 
+        r = self.flight.next_restriction(fcidx)
+        if r is not None:
+            logger.debug(f"at index {fcidx}, next restriction at {r.getProp(FEATPROP.FLIGHT_PLAN_INDEX.value)} {r.getRestrictionDesc()}")
+            # self.climbTo(currpos, r)
         # @todo: Transition to start of SID + follow SID
         # we have an issue if first point of SID is between TAKE_OFF and END_OF_INITIAL_CLIMB
         # but it is very unlikely (buy it may happen, in which case the solution is to remove the first point if SID)
@@ -1111,7 +1128,7 @@ class FlightMovement(Movement):
                     for p in arc:
                         move_points.append(MovePoint(geometry=p.geometry, properties=mid.properties))
                 else:
-                    logger.debug(f"standard_turn_flyby failed, skipping standard turn ({i})")
+                    # logger.debug(f"standard_turn_flyby failed, skipping standard turn ({i})")
                     move_points.append(self._premoves[i])
 
         # Add last point too
@@ -1275,6 +1292,49 @@ class FlightMovement(Movement):
 
         return (True, "Movement::time computed")
 
+    def tabulateMovement2(self):
+        output = io.StringIO()
+        print("\n", file=output)
+        print(f"FLIGHT MOVEMENT", file=output)
+        HEADER = ["INDEX", "SEGMENT TYPE", "SEGMENT NAME", "WAYPOINT", "RESTRICTIONS", "DISTANCE", "TOTAL DISTANCE", "ALT", "SPEED", "V/S"]
+        table = []
+
+        fid = self.flight.getId()
+        f0 = self.flight.getScheduledDepartureTime()
+        ft = f0
+        total_dist = 0
+        last_point = None
+        idx = 0
+        for w in self.getMovePoints():
+            d = 0
+            if last_point is not None:
+                d = distance(last_point, w)
+                total_dist = total_dist + d
+
+            table.append(
+                [
+                    idx,
+                    w.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value),
+                    w.getProp(FEATPROP.PLAN_SEGMENT_NAME.value),
+                    w.getId(),
+                    w.getProp("restriction"),
+                    round(d, 1),
+                    round(total_dist),
+                    w.altitude(),
+                    w.speed(),
+                    w.vspeed(),
+                ]
+            )
+            last_point = w
+            idx = idx + 1
+
+        table = sorted(table, key=lambda x: x[0])  # absolute emission time
+        print(tabulate(table, headers=HEADER), file=output)
+
+        contents = output.getvalue()
+        output.close()
+        return contents
+
     def taxi(self):
         return (False, "Movement::taxi done")
 
@@ -1313,7 +1373,7 @@ class FlightMovement(Movement):
         idx = len(move_points) - 1  # last is end of roll, before last is touch down.
         totald = 0
         prev = 0
-        # If necessary, use "bird flight distance" with
+        # If necessary, use "bird flight distance" (beeline? crow flight?) with
         # while ditance(move_points[idx], move_points[-2]) < TMO and idx > 1:  # last is end of roll, before last is touch down.)
         while totald < TMO and idx > 1:
             idx = idx - 1
@@ -1331,10 +1391,13 @@ class FlightMovement(Movement):
             tmomp = MovePoint(geometry=tmopt.geometry, properties={})
             tmomp.setMark(mark)
 
-            d = distance(tmomp, move_points[-2])  # last is end of roll, before last is touch down.
+            # throw stone distance, not path
+            d = distance(tmomp, move_points[-2])  # last is end of roll, before last is touch down
 
             move_points.insert(idx, tmomp)
-            logger.debug(f"added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down")
+            if prev == 0:
+                prev = d
+            logger.debug(f"added at ~{d:f} km, ~{d / NAUTICAL_MILE:f} nm from touch down (path is {prev:f} km, {prev/NAUTICAL_MILE:f} nm)")
 
             self.addMessage(FlightMessage(subject=f"{self.flight_id} {mark}", flight=self, sync=mark))
         else:
@@ -1475,6 +1538,12 @@ class ArrivalMove(FlightMovement):
             logger.debug(f"taxi in: taxi end: {parking}")
         else:
             logger.debug(f"taxi in: taxi end: parking {parking.getProp('name')}")
+
+        idx = 0
+        for f in self.taxipos:
+            f.setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_PHASE.TAXI_IN.value)
+            f.setProp(FEATPROP.TAXI_INDEX.value, idx)
+            idx = idx + 1
 
         self.taxipos = fc
         logger.debug(f"taxi in: taxi {len(self.taxipos)} moves")
@@ -1667,6 +1736,12 @@ class DepartureMove(FlightMovement):
 
         self.taxipos = fc
         logger.debug(f"taxi out: taxi {len(self.taxipos)} moves")
+
+        idx = 0
+        for f in self.taxipos:
+            f.setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_PHASE.TAXI_OUT.value)
+            f.setProp(FEATPROP.TAXI_INDEX.value, idx)
+            idx = idx + 1
 
         return (True, "DepartureMove::taxi completed")
 
