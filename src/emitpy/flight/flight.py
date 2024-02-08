@@ -11,6 +11,7 @@ from emitpy.airport import Airport
 from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
 from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE, RWY_ARRIVAL_SLOT, RWY_DEPARTURE_SLOT
+from emitpy.geo.turf import distance
 from emitpy.utils import FT
 from emitpy.message import Messages, FlightboardMessage, EstimatedTimeMessage
 
@@ -431,11 +432,7 @@ class Flight(Messages):
         idx = 0
         for n in self.flightroute.nodes():
             f = a.get_vertex(n)
-            fi = f.getId()
-            fa = fi.split(":")
-            if len(fa) == 4:
-                fi = fa[1]
-            table.append([idx, fi, f.getId()])
+            table.append([idx, f.ident, f.getId()])
             idx = idx + 1
 
         table = sorted(table, key=lambda x: x[0])  # absolute emission time
@@ -554,6 +551,7 @@ class Flight(Messages):
 
         # STAR
         star = None  # used in APPCH
+        star_route = None
         if arrapt.has_stars() and rwyarr is not None:
             star = arrapt.selectSTAR(rwyarr)
             if star is not None:
@@ -564,6 +562,7 @@ class Flight(Messages):
                 waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert STAR before airport
                 self.arr_procs = (rwyarr, star)
                 self.meta["arrival"]["procedure"] = (rwyarr.name, star.name)
+                star_route = ret
             else:
                 logger.warning(f"arrival airport {arrapt.icao} has no STAR for runway {rwyarr.name}")
         else:  # no star, we are done, we arrive in a straight line
@@ -592,7 +591,7 @@ class Flight(Messages):
         idx = 0
         for f in waypoints:
             # logger.debug(f"flight plan: {f.getProp('_plan_segment_type')} {f.getProp('_plan_segment_name')}, {type(f).__name__}")
-            f.setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, idx)
+            f.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, idx)
             idx = idx + 1
 
         self.flightplan_wpts = waypoints
@@ -607,12 +606,9 @@ class Flight(Messages):
         SEP = ","
         rt = []
         for w in self.flightplan_wpts:
-            wi = w.getId()
-            wa = wi.split(":")
-            if len(wa) == 4:
-                wi = wa[1]
+            wi = w.ident
             if hasattr(w, "hasRestriction") and w.hasRestriction():
-                wi = f"{wi} ({w.getRestrictionDesc()})"
+                wi = f"{w.ident} ({w.getRestrictionDesc()})"
             rt.append(wi)
         return SEP.join(rt)
 
@@ -625,10 +621,10 @@ class Flight(Messages):
         print("\nFLIGHT ROUTE", file=output)
         HEADER = [
             "INDEX",
-            "NODE",
             "SEGMENT TYPE",
             "SEGMENT NAME",
             "WAYPOINT",
+            "NODE",
             "RESTRICTIONS",
             "MIN ALT",
             "MAX ALT",
@@ -640,25 +636,34 @@ class Flight(Messages):
         table = []
 
         idx = 0
+        total_dist = 0
+        last_point = None
         for w in self.flightplan_wpts:
-            fi = w.getId()
-            fa = fi.split(":")
-            if len(fa) == 4:
-                fa = fa[1]
-            r = ""
-            if hasattr(w, "hasRestriction") and w.hasRestriction():
-                r = w.getRestrictionDesc()
-            st = w.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)
-            sn = w.getProp(FEATPROP.PLAN_SEGMENT_NAME.value)
-            alo = w.getProp("_alt_min")
-            ahi = w.getProp("_alt_max")
-            slo = w.getProp("_speed_min")
-            shi = w.getProp("_speed_max")
-            spd = w.getProp("_speed_target")
-            alt = w.getProp("_alt_target")
+            d = 0
+            if last_point is not None:
+                d = distance(last_point, w)
+                total_dist = total_dist + d
 
-            table.append([idx, fa, st, sn, fi, r, alo, ahi, alt, slo, shi, spd])
+            table.append(
+                [
+                    idx,
+                    w.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value),
+                    w.getProp(FEATPROP.PLAN_SEGMENT_NAME.value),
+                    w.getId(),
+                    w.ident,
+                    w.getRestrictionDesc() if hasattr(w, "hasRestriction") and w.hasRestriction() else "",
+                    round(d, 1),
+                    round(total_dist),
+                    w.getProp("_alt_min"),
+                    w.getProp("_alt_max"),
+                    w.getProp("_alt_target"),
+                    w.getProp("_speed_min"),
+                    w.getProp("_speed_max"),
+                    w.getProp("_speed_target"),
+                ]
+            )
             idx = idx + 1
+            last_point = w
 
         table = sorted(table, key=lambda x: x[0])  # absolute emission time
         print(tabulate(table, headers=HEADER), file=output)
