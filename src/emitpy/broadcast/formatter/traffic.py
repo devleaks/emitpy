@@ -61,7 +61,7 @@ class TrafficFormatter(Formatter):
             callsign = getprop("$.service.callsign").replace(" ", "").replace("-", "")
             tailnumber = getprop("$.vehicle.icao")
 
-        ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
+        ts = f.getProp(FEATPROP.EMIT_ABS_TIME)
         #
         ret = {
             "timestamp": ts,

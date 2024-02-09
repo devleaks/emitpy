@@ -242,9 +242,9 @@ class FlightMovement(Movement):
 
         def transfer_restriction(src, dst):
             if src in self.flight.flightplan_wpts:
-                r = src.getProp(FEATPROP.RESTRICTION.value)
+                r = src.getProp(FEATPROP.RESTRICTION)
                 if r is not None and r.strip() != "":
-                    dst.setProp(FEATPROP.RESTRICTION.value, r)
+                    dst.setProp(FEATPROP.RESTRICTION, r)
                     logger.debug(f"{src.getId()}: transferred restriction {r}")
 
         def addCurrentpoint(coll, pos, oi, ni, color, mark, reverse: bool = False):
@@ -257,12 +257,12 @@ class FlightMovement(Movement):
                     wpt = self.flight.flightplan_wpts[i]
                     p = MovePoint.new(wpt)
                     logger.debug(
-                        f"addCurrentpoint:{'(rev)' if reverse else ''} adding {p.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)} {p.getProp(FEATPROP.PLAN_SEGMENT_NAME.value)} ({p.getProp(FEATPROP.FLIGHT_PLAN_INDEX.value)})"
+                        f"addCurrentpoint:{'(rev)' if reverse else ''} adding {p.getProp(FEATPROP.PLAN_SEGMENT_TYPE)} {p.getProp(FEATPROP.PLAN_SEGMENT_NAME)} ({p.getProp(FEATPROP.FLIGHT_PLAN_INDEX)})"
                     )
                     transfer_restriction(wpt, p)
                     p.setColor(color)
                     p.setMark(mark)
-                    p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
+                    p.setProp(FEATPROP.FLIGHT_PLAN_INDEX, i)
                     p.setColor(POSITION_COLOR.FLIGHT_PLAN.value)  # remarkable point in GREEN
                     coll.append(p)
             coll.append(pos)
@@ -299,8 +299,8 @@ class FlightMovement(Movement):
             mvpt.setVSpeed(vspeed)
             mvpt.setColor(color)
             mvpt.setMark(mark)
-            mvpt.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, ix)
-            mvpt.setProp(FEATPROP.GROUNDED.value, is_grounded)
+            mvpt.setProp(FEATPROP.FLIGHT_PLAN_INDEX, ix)
+            mvpt.setProp(FEATPROP.GROUNDED, is_grounded)
             transfer_restriction(src, mvpt)
             arr.append(mvpt)
             return mvpt
@@ -316,7 +316,7 @@ class FlightMovement(Movement):
         logger.debug(f"{'*' * 30} {type(self).__name__}: {len(fc)} points in flight plan {'*' * 30}")
 
         # for f in self.flight.flightplan_wpts:
-        #     logger.debug("flight plan: %s" % (f.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
+        #     logger.debug("flight plan: %s" % (f.getProp(FEATPROP.PLAN_SEGMENT_TYPE)))
 
         # PART 1: FORWARD: From takeoff to top of ascent
         #
@@ -462,7 +462,7 @@ class FlightMovement(Movement):
 
         r = self.flight.next_restriction(fcidx)
         if r is not None:
-            logger.debug(f"at index {fcidx}, next restriction at {r.getProp(FEATPROP.FLIGHT_PLAN_INDEX.value)} {r.getRestrictionDesc()}")
+            logger.debug(f"at index {fcidx}, next restriction at {r.getProp(FEATPROP.FLIGHT_PLAN_INDEX)} {r.getRestrictionDesc()}")
             # self.climbTo(currpos, r)
         # @todo: Transition to start of SID + follow SID
         # we have an issue if first point of SID is between TAKE_OFF and END_OF_INITIAL_CLIMB
@@ -794,12 +794,12 @@ class FlightMovement(Movement):
         # if type(self).__name__ == "ArrivalMove":
         # find first point of approach:
         k = len(fc) - 1
-        while fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE.value) != "appch" and k > 0:
+        while fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE) != "appch" and k > 0:
             k = k - 1
         if k == 0:
             logger.warning("no approach found")
         else:
-            logger.debug("(rev) start of approach at index %d, %s" % (k, fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
+            logger.debug("(rev) start of approach at index %d, %s" % (k, fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE)))
             if k <= fcidx:
                 logger.debug("(rev) final fix seems further away than start of apprach")
             else:
@@ -808,7 +808,7 @@ class FlightMovement(Movement):
                 first = True  # we name last point of approach "initial fix"
                 for i in range(fcidx + 1, k):
                     wpt = fc[i]
-                    # logger.debug("APPCH: flight level: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
+                    # logger.debug("APPCH: flight level: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE)))
                     p = addMovepoint(
                         arr=revmoves,
                         src=wpt,
@@ -839,12 +839,12 @@ class FlightMovement(Movement):
 
         # find first point of star:
         k = len(fc) - 1
-        while fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE.value) != "star" and k > 0:
+        while fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE) != "star" and k > 0:
             k = k - 1
         if k == 0:
             logger.warning("(rev) no star found")
         else:
-            logger.debug("(rev) start of star at index %d, %s" % (k, fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
+            logger.debug("(rev) start of star at index %d, %s" % (k, fc[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE)))
             if k <= fcidx:
                 logger.debug("(rev) final fix seems further away than start of star")
             else:
@@ -852,7 +852,7 @@ class FlightMovement(Movement):
                 # add all approach points between start to approach to final fix
                 for i in range(fcidx + 1, k):
                     wpt = fc[i]
-                    # logger.debug("STAR: flight level: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
+                    # logger.debug("STAR: flight level: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE)))
                     p = addMovepoint(
                         arr=revmoves,
                         src=wpt,
@@ -899,7 +899,7 @@ class FlightMovement(Movement):
                 #         p.setVSpeed(0)
                 #         p.setColor(POSITION_COLOR.HOLDING.value)
                 #         p.setMark(FLIGHT_PHASE.HOLDING.value)
-                #         p.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, i)
+                #         p.setProp(FEATPROP.FLIGHT_PLAN_INDEX, i)
                 #         p.setProp("holding-pattern-idx", holdidx)
                 #         holdidx = holdidx - 1
                 #         revmoves.append(p)
@@ -1041,7 +1041,7 @@ class FlightMovement(Movement):
             # logger.debug("adding cruise: %d -> %d" % (top_of_ascent_idx, top_of_decent_idx))
             for i in range(top_of_ascent_idx, top_of_decent_idx):
                 wpt = self.flight.flightplan_wpts[i]
-                # logger.debug("adding cruise: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value)))
+                # logger.debug("adding cruise: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE)))
 
                 p = addMovepoint(
                     arr=self._premoves,
@@ -1065,7 +1065,7 @@ class FlightMovement(Movement):
 
         idx = 0
         for f in self._premoves:
-            f.setProp(FEATPROP.PREMOVE_INDEX.value, idx)
+            f.setProp(FEATPROP.PREMOVE_INDEX, idx)
             idx = idx + 1
 
         self._points = self._premoves  # for tabulate printing
@@ -1083,7 +1083,7 @@ class FlightMovement(Movement):
             return 120 * speed / (2 * pi)
 
         def should_do_st(f):
-            mark = f.getProp(FEATPROP.MARK.value)
+            mark = f.getProp(FEATPROP.MARK)
             return mark not in [FLIGHT_PHASE.TAKE_OFF.value, "end_initial_climb", FLIGHT_PHASE.TOUCH_DOWN.value, FLIGHT_PHASE.END_ROLLOUT.value]
 
         # Init, keep local pointer for convenience
@@ -1137,7 +1137,7 @@ class FlightMovement(Movement):
         # Sets unique index on flight movement features
         idx = 0
         for f in move_points:
-            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
+            f.setProp(FEATPROP.MOVE_INDEX, idx)
             idx = idx + 1
 
         self.setMovePoints(move_points)
@@ -1172,7 +1172,7 @@ class FlightMovement(Movement):
             #     if a is not None:
             #         f.geometry["coordinates"].append(float(a))
             #     else:
-            #         logger.warning(f"no altitude? {f.getProp(FEATPROP.MOVE_INDEX.value)}.")
+            #         logger.warning(f"no altitude? {f.getProp(FEATPROP.MOVE_INDEX)}.")
         logger.debug("..done.")
 
         # name = check
@@ -1212,7 +1212,7 @@ class FlightMovement(Movement):
         cnt3 = 0
         f0 = self.flight.getScheduledDepartureTime()
         for p in self.getMovePoints():
-            if not p.getProp(FEATPROP.GROUNDED.value):
+            if not p.getProp(FEATPROP.GROUNDED):
                 cnt1 = cnt1 + 1
                 ft = f0
                 time = p.time()
@@ -1220,7 +1220,7 @@ class FlightMovement(Movement):
                     ft = ft + timedelta(seconds=time)
                 wind = self.flight.managedAirport.weather_engine.get_enroute_wind(flight_id=fid, lat=p.lat(), lon=p.lon(), alt=p.alt(), moment=ft)
                 if wind is not None:
-                    p.setProp(FEATPROP.WIND.value, wind)
+                    p.setProp(FEATPROP.WIND, wind)
                     cnt2 = cnt2 + 1
                     ## need to property adjust heading here
                     if wind.speed is not None:
@@ -1233,7 +1233,7 @@ class FlightMovement(Movement):
                                 ws = (wind.speed, wind.direction)
                                 (newac, gs) = adjust_speed_vector(ac, ws)  # gs[1] ~ ac_course
                                 p.setSpeed(gs[0])
-                                p.setProp(FEATPROP.TASPEED.value, ac_speed)
+                                p.setProp(FEATPROP.TASPEED, ac_speed)
                                 p.setHeading(newac[1])
                                 # logger.debug(f"TAS={round(ac_speed)} COURSE={ac_course} + wind={[round(p) for p in ws]} => GS={newac[0]} COURSE={gs[1]}, HEADING={newac[1]}")
                                 table.append(
@@ -1286,7 +1286,7 @@ class FlightMovement(Movement):
             return status
 
         for f in self.getMovePoints():  # we save a copy of the movement timing for rescheduling
-            f.setProp(FEATPROP.SAVED_TIME.value, f.time())
+            f.setProp(FEATPROP.SAVED_TIME, f.time())
 
         logger.debug(f"movement timed")
 
@@ -1325,8 +1325,8 @@ class FlightMovement(Movement):
             table.append(
                 [
                     idx,
-                    w.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value),
-                    w.getProp(FEATPROP.PLAN_SEGMENT_NAME.value),
+                    w.getProp(FEATPROP.PLAN_SEGMENT_TYPE),
+                    w.getProp(FEATPROP.PLAN_SEGMENT_NAME),
                     w.getId(),
                     w.getProp("restriction"),
                     round(d, 1),
@@ -1370,8 +1370,8 @@ class FlightMovement(Movement):
             return status
 
         for f in self.taxipos:
-            f.setProp(FEATPROP.SAVED_TIME.value, f.time())
-            f.setProp(FEATPROP.GROUNDED.value, True)
+            f.setProp(FEATPROP.SAVED_TIME, f.time())
+            f.setProp(FEATPROP.GROUNDED, True)
 
         logger.debug("..done.")
 
@@ -1438,12 +1438,12 @@ class ArrivalMove(FlightMovement):
             logger.warning(f"({type(self).__name__}): no base points")
             return base  # len(base) == 0
         if len(self.taxipos) > 0:  # it's ok, they can be added later
-            test = self.taxipos[0].getProp(FEATPROP.SAVED_TIME.value)
+            test = self.taxipos[0].getProp(FEATPROP.SAVED_TIME)
             if test is not None:
                 logger.debug(f"adding {len(self.taxipos)} taxi points")
                 start = self.taxipos[-1].time()  # take time of last event of flight
                 for f in self.taxipos:
-                    f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
+                    f.setTime(start + f.getProp(FEATPROP.SAVED_TIME))
             else:
                 logger.debug(f"{len(self.taxipos)} taxi points have no timing yet")
         # logger.debug(f"returning {len(base)} base positions and {len(self.taxipos)} taxi positions ({type(self).__name__})")
@@ -1552,8 +1552,8 @@ class ArrivalMove(FlightMovement):
 
         idx = 0
         for f in self.taxipos:
-            f.setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_PHASE.TAXI_IN.value)
-            f.setProp(FEATPROP.TAXI_INDEX.value, idx)
+            f.setProp(FEATPROP.PLAN_SEGMENT_TYPE, FLIGHT_PHASE.TAXI_IN.value)
+            f.setProp(FEATPROP.TAXI_INDEX, idx)
             idx = idx + 1
 
         self.taxipos = fc
@@ -1579,10 +1579,10 @@ class DepartureMove(FlightMovement):
 
         base = super().getMovePoints()
         if len(base) > 0:
-            test = base[0].getProp(FEATPROP.SAVED_TIME.value)
+            test = base[0].getProp(FEATPROP.SAVED_TIME)
             if test is not None:
                 for f in base:
-                    f.setTime(start + f.getProp(FEATPROP.SAVED_TIME.value))
+                    f.setTime(start + f.getProp(FEATPROP.SAVED_TIME))
             else:
                 logger.debug(f"{len(self.taxipos)} base points have no timing yet")
         else:
@@ -1750,8 +1750,8 @@ class DepartureMove(FlightMovement):
 
         idx = 0
         for f in self.taxipos:
-            f.setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_PHASE.TAXI_OUT.value)
-            f.setProp(FEATPROP.TAXI_INDEX.value, idx)
+            f.setProp(FEATPROP.PLAN_SEGMENT_TYPE, FLIGHT_PHASE.TAXI_OUT.value)
+            f.setProp(FEATPROP.TAXI_INDEX, idx)
             idx = idx + 1
 
         return (True, "DepartureMove::taxi completed")
@@ -1882,7 +1882,7 @@ class TowMove(Movement):
             logger.debug(f"end: parking {newparking.getProp('name')}")
 
         for f in fc:
-            f.setProp(FEATPROP.GROUNDED.value, True)
+            f.setProp(FEATPROP.GROUNDED, True)
 
         tow = {"from": self.flight.ramp, "to": self.newramp, "move": fc}
         self.tows.append(tow)  ## self.tows is array of tows since there might be many tows.

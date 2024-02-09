@@ -67,7 +67,7 @@ class Format:
             return (False, "Format::format no emission point")
 
         self.output = []  # reset if called more than once
-        br = filter(lambda f: f.getProp(FEATPROP.BROADCAST.value), emit_points)
+        br = filter(lambda f: f.getProp(FEATPROP.BROADCAST), emit_points)
         bq = sorted(br, key=lambda f: f.getRelativeEmissionTime())
         self.output = list(map(self.formatter, bq))
         logger.debug(f"formatted {len(self.output)} / {len(emit_points)}, version {self.version}")

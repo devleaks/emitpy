@@ -110,7 +110,7 @@ class XPPlanesFormatter(Formatter):
         airline = f.getPropPath("$.flight.airline.name")  # IATA name, QR
         label = f.getPropPath("$.flight.identifier")
         actype = f.getPropPath("$.flight.aircraft.actype.base-type.actype")
-        ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
+        ts = f.getProp(FEATPROP.EMIT_ABS_TIME)
 
         emit_type = f.getPropPath("$.emit.emit-type")
 
@@ -129,12 +129,7 @@ class XPPlanesFormatter(Formatter):
 
         ret = {
             "id": icao24x,
-            "ident": {
-                "airline": airline,
-                "reg": tailnumber,
-                "call": callsign,
-                "label": tailnumber,
-            },
+            "ident": {"airline": airline, "reg": tailnumber, "call": callsign, "label": tailnumber},
             "type": {
                 # "wingSpan" : 11.1,
                 # "wingArea" : 16.2,

@@ -38,7 +38,7 @@ class RTTFCFormatter(Formatter):
             "ac_tailno": "TAILNUM",
             "from_iata": "",
             "to_iata": "",
-            "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
+            "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME),
             "source": "X2",
             "cs_iata": "CSIATA",
             "msg_type": "adsb_icao",
@@ -76,14 +76,14 @@ class RTTFCFormatter(Formatter):
         #     "baro_alt": f.altitude(0) / FT,  # m -> ft
         #     "baro_rate": "",
         #     "gnd": "",
-        #     "track": f.getProp(FEATPROP.COURSE.value),
+        #     "track": f.getProp(FEATPROP.COURSE),
         #     "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,  # m/s in kn"
         #     "cs_icao": "",
         #     "ac_type": "",
         #     "ac_tailno": "",
         #     "from_iata": "",
         #     "to_iata": "",
-        #     "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
+        #     "timestamp": f.getProp(FEATPROP.EMIT_ABS_TIME),
         #     "source": "EP",
         #     "cs_iata": "",
         #     "msg_type": "other",
@@ -94,7 +94,7 @@ class RTTFCFormatter(Formatter):
         #     "track_rate": -1.0,
         #     "roll": -1.0,
         #     "mag_heading": -1.0,
-        #     "true_heading": f.getProp(FEATPROP.HEADING.value),
+        #     "true_heading": f.getProp(FEATPROP.HEADING),
         #     "geom_rate": -1,
         #     "emergency": "",
         #     "category": "",
@@ -114,16 +114,12 @@ class RTTFCFormatter(Formatter):
         #     "authentication": ""
         # }
 
-        airborne = (
-            rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50
-        )  # should be: speed < min(takeoff_speed, landing_speed)
+        airborne = rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50  # should be: speed < min(takeoff_speed, landing_speed)
         rttfcObj["gnd"] = 0 if not airborne else 1  # :-)
 
         emit_type = f.getPropPath("$.emit.emit-type")
         if emit_type == "flight":
-            rttfcObj["ac_type"] = f.getPropPath(
-                "$.flight.aircraft.actype.base-type.actype"
-            )  # ICAO A35K
+            rttfcObj["ac_type"] = f.getPropPath("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
             rttfcObj["hexid"] = int(f.getPropPath("flight.aircraft.icao24"), 16)
 
             callsign = f.getPropPath("$.flight.callsign")

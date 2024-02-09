@@ -11,7 +11,7 @@ class Formatter:
         self.feature = feature
 
         self.ts = feature.getAbsoluteEmissionTime()
-        feature.setProp(FEATPROP.EMIT_FORMAT.value, self.name)
+        feature.setProp(FEATPROP.EMIT_FORMAT, self.name)
 
     def __str__(self):
         return json.dumps(self.feature.to_geojson())
@@ -24,7 +24,7 @@ class Formatter:
         :param      f:    { parameter_description }
         :type       f:    { type_description }
         """
-        return f.getProp(FEATPROP.EMIT_ABSOLUTE_TIME.value)
+        return f.getProp(FEATPROP.EMIT_ABSOLUTE_TIME)
 
 
 class FormatterRaw(Formatter):

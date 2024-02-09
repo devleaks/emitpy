@@ -209,7 +209,7 @@ class Flight(Messages):
         if self.ramp is not None:
             if hasattr(self.ramp, "has_jetway"):
                 return self.ramp.has_jetway()
-            return self.ramp.getProp(FEATPROP.JETWAY.value)
+            return self.ramp.getProp(FEATPROP.JETWAY)
         return False
 
     def getTurnaroundProfile(self, redis=None):
@@ -486,15 +486,15 @@ class Flight(Messages):
             if self.is_departure():
                 self.setRWY(rwydep)
             waypoints = rwydep.getRoute()
-            waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, "origin/rwy")
-            waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao + "/" + rwydep.name)
+            waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_TYPE, "origin/rwy")
+            waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_NAME, depapt.icao + "/" + rwydep.name)
             self.procedures[FLIGHT_SEGMENT.RWYDEP.value] = rwydep
             self.meta["departure"]["procedure"] = rwydep.name
         else:  # no runway, we leave from airport
             logger.warning(f"departure airport {depapt.icao} has no runway, first point is departure airport")
             dep = depapt.copy()  # depapt.getTerminal().copy() would be more correct
-            dep.setProp(FEATPROP.PLAN_SEGMENT_TYPE.value, "origin")
-            dep.setProp(FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao)
+            dep.setProp(FEATPROP.PLAN_SEGMENT_TYPE, "origin")
+            dep.setProp(FEATPROP.PLAN_SEGMENT_NAME, depapt.icao)
             waypoints.append(dep)
 
         # SID
@@ -589,9 +589,9 @@ class Flight(Messages):
         idx = 0
         for f in waypoints:
             # logger.debug(f"flight plan: {f.getProp('_plan_segment_type')} {f.getProp('_plan_segment_name')}, {type(f).__name__}")
-            f.setProp(FEATPROP.FLIGHT_PLAN_INDEX.value, idx)
+            f.setProp(FEATPROP.FLIGHT_PLAN_INDEX, idx)
             if hasattr(f, "hasRestriction") and f.hasRestriction():
-                f.setProp(FEATPROP.RESTRICTION.value, f.getRestrictionDesc())
+                f.setProp(FEATPROP.RESTRICTION, f.getRestrictionDesc())
             idx = idx + 1
 
         self.flightplan_wpts = waypoints
@@ -647,9 +647,9 @@ class Flight(Messages):
 
             table.append(
                 [
-                    w.getProp(FEATPROP.FLIGHT_PLAN_INDEX.value),
-                    w.getProp(FEATPROP.PLAN_SEGMENT_TYPE.value),
-                    w.getProp(FEATPROP.PLAN_SEGMENT_NAME.value),
+                    w.getProp(FEATPROP.FLIGHT_PLAN_INDEX),
+                    w.getProp(FEATPROP.PLAN_SEGMENT_TYPE),
+                    w.getProp(FEATPROP.PLAN_SEGMENT_NAME),
                     w.getId(),
                     w.ident if hasattr(w, "ident") else "no ident",
                     w.getRestrictionDesc() if hasattr(w, "hasRestriction") and w.hasRestriction() else "",

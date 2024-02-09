@@ -209,7 +209,7 @@ class Emit(Movement):
         # 1. Save emission points
         emit = {}
         for f in self.getEmitPoints():
-            emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME.value)
+            emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME)
         redis.delete(emit_id)
         redis.zadd(emit_id, emit)
         move_id = self.getKey("")
@@ -432,21 +432,21 @@ class Emit(Movement):
         def emit_point(idx, pos, time, reason, waypt=False):
             nonlocal must_spit_out
             if emit_details:
-                logger.debug(f"idx={idx}, current pos has mark {pos.getMark()}, move index={pos.getProp(FEATPROP.MOVE_INDEX.value)}")
+                logger.debug(f"idx={idx}, current pos has mark {pos.getMark()}, move index={pos.getProp(FEATPROP.MOVE_INDEX)}")
             e = EmitPoint.new(pos)
-            e.setProp(FEATPROP.EMIT_REL_TIME.value, time)
-            e.setProp(FEATPROP.EMIT_INDEX.value, len(self.getEmitPoints()))  # Sets unique index on emit features
-            e.setProp(FEATPROP.BROADCAST.value, not waypt)
+            e.setProp(FEATPROP.EMIT_REL_TIME, time)
+            e.setProp(FEATPROP.EMIT_INDEX, len(self.getEmitPoints()))  # Sets unique index on emit features
+            e.setProp(FEATPROP.BROADCAST, not waypt)
             if self.needs_to_preserve_all_marks() and e.getMark() is not None:  # and e.getMark() is not None:
-                logger.debug(f"added for mark={e.getMark()}, reason={reason}, emit={e.getProp(FEATPROP.BROADCAST.value)}")
+                logger.debug(f"added for mark={e.getMark()}, reason={reason}, emit={e.getProp(FEATPROP.BROADCAST)}")
             else:
                 if emit_details:
                     logger.debug(f"do not need to preserve all marks {self.emit_type} {e.getMark()}")
 
             # if GSE_EMIT_WHEN_STOPPED:
-            #     e.setProp(FEATPROP.BROADCAST.value, not waypt)
+            #     e.setProp(FEATPROP.BROADCAST, not waypt)
             # else:
-            #     e.setProp(FEATPROP.BROADCAST.value, not waypt and e.speed(0) > 0)
+            #     e.setProp(FEATPROP.BROADCAST, not waypt and e.speed(0) > 0)
             if not e.hasColor():
                 if waypt:
                     e.setColor("#eeeeee")
@@ -539,7 +539,7 @@ class Emit(Movement):
 
         # i = 0
         # for m in self.move_points:
-        #     print(">>", i, m.getMark(), m.getProp(FEATPROP.MOVE_INDEX.value))
+        #     print(">>", i, m.getMark(), m.getProp(FEATPROP.MOVE_INDEX))
         #     i = i + 1
 
         # This is to track a special bug...
@@ -585,7 +585,7 @@ class Emit(Movement):
 
             if emit_details:
                 logger.debug(f">>>>>>>>>> new current vertex: {curridx}, e={len(self.getEmitPoints())} s={self.move_points[curridx].speed()}")
-                logger.debug(f"current vertex move index={curr_vtx.getProp(FEATPROP.MOVE_INDEX.value)}, mark={currmark}")
+                logger.debug(f"current vertex move index={curr_vtx.getProp(FEATPROP.MOVE_INDEX)}, mark={currmark}")
 
             if emit_details and self.emit_type == "service":  # and next_vtx.getMark() is not None:
                 logger.debug(f"next vertex has mark={nextmark}")
@@ -618,7 +618,7 @@ class Emit(Movement):
                         logger.debug(f"time to next vertex {time_to_next_vtx} = 0, need to emit vertex..")
                 emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self.getEmitPoints())}", not BROADCAST_AT_VERTEX)
                 currpos = next_vtx
-                pause = currpos.getProp(FEATPROP.PAUSE.value)
+                pause = currpos.getProp(FEATPROP.PAUSE)
                 if pause is not None and pause > 0:
                     total_time, time_to_next_emit = pause_at_vertex(
                         total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }"
@@ -672,7 +672,7 @@ class Emit(Movement):
                             logger.debug(f"time to next vertex {time_to_next_vtx} = 0, need to emit vertex.. 2")
                     emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self.getEmitPoints())}", not BROADCAST_AT_VERTEX)
                     currpos = next_vtx
-                    pause = currpos.getProp(FEATPROP.PAUSE.value)
+                    pause = currpos.getProp(FEATPROP.PAUSE)
                     if pause is not None and pause > 0:
                         total_time, time_to_next_emit = pause_at_vertex(
                             total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }"
@@ -699,7 +699,7 @@ class Emit(Movement):
                 emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self.getEmitPoints())}", not BROADCAST_AT_VERTEX)
                 currpos = next_vtx
                 time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
-                pause = currpos.getProp(FEATPROP.PAUSE.value)
+                pause = currpos.getProp(FEATPROP.PAUSE)
                 if pause is not None and pause > 0:
                     total_time, time_to_next_emit = pause_at_vertex(
                         total_time, time_to_next_emit, pause, curridx, next_vtx, total_time, f"pause at vertex { curridx + 1 }"
@@ -745,7 +745,7 @@ class Emit(Movement):
                     emit_point(curridx, next_vtx, total_time, f"at vertex { curridx + 1 }, e={len(self.getEmitPoints())}", not BROADCAST_AT_VERTEX)
                     currpos = next_vtx
                     time_to_next_emit = time_to_next_emit - time_to_next_vtx  # time left before next emit
-                    pause = currpos.getProp(FEATPROP.PAUSE.value)
+                    pause = currpos.getProp(FEATPROP.PAUSE)
                     if pause is not None and pause > 0:
                         total_time, time_to_next_emit = pause_at_vertex(
                             total_time,
@@ -872,7 +872,7 @@ class Emit(Movement):
                 logger.warning(status[1])
         logger.debug(f"{self.getId()}: .. done.")
 
-        x = to_interp[0].getProp(FEATPROP.ALTITUDE.value)  # get the property, not the third coord.
+        x = to_interp[0].getProp(FEATPROP.ALTITUDE)  # get the property, not the third coord.
         if x is not None:
             logger.debug(f"{self.getId()}: checking and transposing altitudes to geojson coordinates..")
             for f in to_interp:
@@ -882,7 +882,7 @@ class Emit(Movement):
                 #     if a is not None:
                 #         f["geometry"]["coordinates"].append(float(a))
                 #     else:
-                #         logger.warning(f"no altitude? {f.getProp(FEATPROP.EMIT_INDEX.value)}.")
+                #         logger.warning(f"no altitude? {f.getProp(FEATPROP.EMIT_INDEX)}.")
             logger.debug(f"{self.getId()}: .. done.")
         else:
             # may be we should then set altitude to the airport
@@ -918,9 +918,9 @@ class Emit(Movement):
             s = r.speed()
             if s is not None and s > 0:
                 logger.warning(f"speed {s}m/sec at vertex is not 0")
-            before = r.getProp(FEATPROP.PAUSE.value) if (r.getProp(FEATPROP.PAUSE.value) is not None and add) else 0
+            before = r.getProp(FEATPROP.PAUSE) if (r.getProp(FEATPROP.PAUSE) is not None and add) else 0
             r.setPause(before + duration)
-            logger.debug(f"found {sync} mark, added {duration} sec. pause for a total of {r.getProp(FEATPROP.PAUSE.value)}")
+            logger.debug(f"found {sync} mark, added {duration} sec. pause for a total of {r.getProp(FEATPROP.PAUSE)}")
         # should recompute emit
         if self.getEmitPoints() is not None:  # if already computed before, we need to recompute it
             self.emit(self.frequency)
@@ -960,11 +960,11 @@ class Emit(Movement):
             self._scheduled_points = []  # brand new scheduling, reset previous one
             for e in self.getEmitPoints():
                 p = EmitPoint.new(e)
-                t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
+                t = e.getProp(FEATPROP.EMIT_REL_TIME)
                 if t is not None:
                     when = moment + timedelta(seconds=(t - offset))
-                    p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
-                    p.setProp(FEATPROP.EMIT_ABS_TIME_FMT.value, when.isoformat())
+                    p.setProp(FEATPROP.EMIT_ABS_TIME, when.timestamp())
+                    p.setProp(FEATPROP.EMIT_ABS_TIME_FMT, when.isoformat())
                     # logger.debug(f"done at {when.timestamp()}")
                 self._scheduled_points.append(p)
             logger.debug(f"emit_point finishes at {when} ({when.timestamp()}) ({len(self._scheduled_points)} positions)")
@@ -1223,11 +1223,11 @@ class Emit(Movement):
         self._scheduled_points = []  # brand new scheduling, reset previous one
         for e in emit_points:
             p = EmitPoint.new(e)
-            t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
+            t = e.getProp(FEATPROP.EMIT_REL_TIME)
             if t is not None:
                 when = moment + timedelta(seconds=(t - offset))
-                p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
-                p.setProp(FEATPROP.EMIT_ABS_TIME_FMT.value, when.isoformat())
+                p.setProp(FEATPROP.EMIT_ABS_TIME, when.timestamp())
+                p.setProp(FEATPROP.EMIT_ABS_TIME_FMT, when.isoformat())
                 # logger.debug(f"done at {when.timestamp()}")
             self._scheduled_points.append(p)
         logger.debug(f"emit_point finishes at {when} ({when.timestamp()}) ({len(self._scheduled_points)} positions)")

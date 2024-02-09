@@ -325,7 +325,7 @@ class ServiceMovement(GroundSupportMovement):
         # Sets unique index on service movement features
         idx = 0
         for f in self.getMovePoints():
-            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
+            f.setProp(FEATPROP.MOVE_INDEX, idx)
             idx = idx + 1
 
         # printFeatures(self.getMovePoints(), "route")
@@ -733,7 +733,7 @@ class ServiceMovement(GroundSupportMovement):
         # Sets unique index on service movement features
         idx = 0
         for f in self.getMovePoints():
-            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
+            f.setProp(FEATPROP.MOVE_INDEX, idx)
             idx = idx + 1
 
         # printFeatures(self.getMovePoints(), "route")

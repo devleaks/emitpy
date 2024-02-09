@@ -27,9 +27,7 @@ class AITFCFormatter(Formatter):
 
         icao24x = f.getProp(FEATPROP.ICAO24.value)
         if icao24x is not None:
-            icao24 = int(
-                str(icao24x), 16
-            )  # https://stackoverflow.com/questions/46341329/int-cant-convert-non-string-with-explicit-base-when-converting-to-gui
+            icao24 = int(str(icao24x), 16)  # https://stackoverflow.com/questions/46341329/int-cant-convert-non-string-with-explicit-base-when-converting-to-gui
         else:
             icao24 = None
 
@@ -46,31 +44,19 @@ class AITFCFormatter(Formatter):
         emit_type = f.getPropPath("$.emit.emit-type")
 
         if emit_type == "flight":
-            actype = f.getPropPath(
-                "$.flight.aircraft.actype.base-type.actype"
-            )  # ICAO A35K
-            callsign = (
-                f.getPropPath("$.flight.callsign").replace(" ", "").replace("-", "")
-            )
+            actype = f.getPropPath("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
+            callsign = f.getPropPath("$.flight.callsign").replace(" ", "").replace("-", "")
             tailnumber = f.getPropPath("$.flight.aircraft.acreg")
             aptfrom = f.getPropPath("$.flight.departure.icao")  # IATA
             aptto = f.getPropPath("$.flight.arrival.icao")  # IATA
         elif emit_type == "service":
-            callsign = (
-                f.getPropPath("$.service.vehicle.callsign")
-                .replace(" ", "")
-                .replace("-", "")
-            )
+            callsign = f.getPropPath("$.service.vehicle.callsign").replace(" ", "").replace("-", "")
             tailnumber = f.getPropPath("$.service.vehicle.registration")
             actype = f.getPropPath("$.service.vehicle.icao")
             aptfrom = ""
             aptto = ""
         elif emit_type == "mission":
-            callsign = (
-                f.getPropPath("$.mission.vehicle.callsign")
-                .replace(" ", "")
-                .replace("-", "")
-            )
+            callsign = f.getPropPath("$.mission.vehicle.callsign").replace(" ", "").replace("-", "")
             tailnumber = f.getPropPath("$.mission.vehicle.registration")
             actype = f.getPropPath("$.mission.vehicle.icao")
             aptfrom = ""
@@ -79,7 +65,7 @@ class AITFCFormatter(Formatter):
             logger.warning(f"invalid emission type {emit_type}")
             return None
 
-        ts = f.getProp(FEATPROP.EMIT_ABS_TIME.value)
+        ts = f.getProp(FEATPROP.EMIT_ABS_TIME)
         #         0    ,1       ,2          ,3          ,4    ,5       ,6                     ,7                 ,8
         #         AITFC,hexid   ,lat        ,lon        ,alt  ,vs      ,airborne              ,hdg               ,spd ### ,cs,type,tail,from,to,timestamp
         part1 = f"AITFC,{icao24},{coords[1]},{coords[0]},{alt},{vspeed},{1 if airborne else 0},{round(course,0)},{speed}"

@@ -25,9 +25,7 @@ class GroundSupportMovement(Movement):
         return self.reason.getId()
 
     def getInfo(self):
-        return {
-            "ident": self.getId(),
-        }
+        return {"ident": self.getId()}
 
     def getSource(self):
         # Abstract class
@@ -58,12 +56,8 @@ class GroundSupportMovement(Movement):
                 logger.warning(status[1])
                 return status
 
-            for (
-                f
-            ) in (
-                self.getMovePoints()
-            ):  # we save a copy of the movement timing for rescheduling
-                f.setProp(FEATPROP.SAVED_TIME.value, f.time())
+            for f in self.getMovePoints():  # we save a copy of the movement timing for rescheduling
+                f.setProp(FEATPROP.SAVED_TIME, f.time())
 
         else:
             logger.debug("no move points")

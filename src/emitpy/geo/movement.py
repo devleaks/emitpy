@@ -34,11 +34,11 @@ class MovePoint(FeatureWithProps):
         FeatureWithProps.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
 
     def getRelativeEmissionTime(self):
-        t = self.getProp(FEATPROP.EMIT_REL_TIME.value)
+        t = self.getProp(FEATPROP.EMIT_REL_TIME)
         return t if t is not None else 0
 
     def getAbsoluteEmissionTime(self):
-        t = self.getProp(FEATPROP.EMIT_ABS_TIME.value)
+        t = self.getProp(FEATPROP.EMIT_ABS_TIME)
         return t if t is not None else 0
 
 
@@ -175,8 +175,8 @@ class Movement(Messages):
                 d = distance(last_point, w)
                 total_dist = total_dist + d
 
-            # mvpt.setProp(FEATPROP.GROUNDED.value, is_grounded)
-            table.append([idx, w.getMark(), round(d, 1), round(total_dist), w.altitude(), w.speed(), w.vspeed(), w.getProp(FEATPROP.RESTRICTION.value)])
+            # mvpt.setProp(FEATPROP.GROUNDED, is_grounded)
+            table.append([idx, w.getMark(), round(d, 1), round(total_dist), w.altitude(), w.speed(), w.vspeed(), w.getProp(FEATPROP.RESTRICTION)])
             idx = idx + 1
             last_point = w
 
@@ -193,7 +193,7 @@ class Movement(Messages):
         for f in self.getMovePoints():
             before = f.pause(-1)
             if before > 0:
-                n = f.getProp(FEATPROP.MARK.value)
+                n = f.getProp(FEATPROP.MARK)
                 logger.debug(f"removed delay at {n} ({before} secs.)")
                 f.setPause(0)
 
@@ -215,14 +215,14 @@ class Movement(Messages):
             f.setAddToPause(duration)
 
     def getMarkList(self):
-        marks = [f.getProp(FEATPROP.MARK.value) for f in self.getPoints()]  # self.getMovePoints()
+        marks = [f.getProp(FEATPROP.MARK) for f in self.getPoints()]  # self.getMovePoints()
         marks = set(marks)
         if None in marks:
             marks.remove(None)
         return marks
 
     def getMoveMarkList(self):
-        marks = [f.getProp(FEATPROP.MARK.value) for f in self.getMovePoints()]  # self.getMovePoints()
+        marks = [f.getProp(FEATPROP.MARK) for f in self.getMovePoints()]  # self.getMovePoints()
         marks = set(marks)
         if None in marks:
             marks.remove(None)
@@ -238,7 +238,7 @@ class Movement(Messages):
         marks = []
         for f in self.getMovePoints():
             if f.pause(-1) > 0:
-                marks.append(f.getProp(FEATPROP.MARK.value))
+                marks.append(f.getProp(FEATPROP.MARK))
         return set(marks)
 
     def getBoundingBox(self, rounding: float = None):
@@ -278,7 +278,7 @@ class Movement(Messages):
                 logger.debug(f"found {sync}, instance {instance}")
             else:
                 logger.debug(f"found {sync}")
-            offset = r.getProp(FEATPROP.EMIT_REL_TIME.value)
+            offset = r.getProp(FEATPROP.EMIT_REL_TIME)
             if offset is not None:
                 return offset
             else:
@@ -307,11 +307,11 @@ class Movement(Messages):
             self._scheduled_points = []  # brand new scheduling, reset previous one
             for e in self.getPoints():
                 p = MovePoint.new(e)
-                t = e.getProp(FEATPROP.EMIT_REL_TIME.value)
+                t = e.getProp(FEATPROP.EMIT_REL_TIME)
                 if t is not None:
                     when = moment + timedelta(seconds=(t - offset))
-                    p.setProp(FEATPROP.EMIT_ABS_TIME.value, when.timestamp())
-                    p.setProp(FEATPROP.EMIT_ABS_TIME_FMT.value, when.isoformat())
+                    p.setProp(FEATPROP.EMIT_ABS_TIME, when.timestamp())
+                    p.setProp(FEATPROP.EMIT_ABS_TIME_FMT, when.isoformat())
                     # logger.debug(f"done at {when.timestamp()}")
                 self._scheduled_points.append(p)
             logger.debug(f"point finishes at {when} ({when.timestamp()}) ({len(self._scheduled_points)} positions)")
@@ -341,18 +341,14 @@ class Movement(Messages):
                 if m in l:
                     l[m]["count"] = l[m]["count"] + 1 if "count" in l[m] else 2
                 else:
-                    l[m] = {
-                        "rel": f.getProp(FEATPROP.EMIT_REL_TIME.value),
-                        "ts": f.getProp(FEATPROP.EMIT_ABS_TIME.value),
-                        "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value),
-                    }
-                    t = round(f.getProp(FEATPROP.EMIT_REL_TIME.value), 1)
+                    l[m] = {"rel": f.getProp(FEATPROP.EMIT_REL_TIME), "ts": f.getProp(FEATPROP.EMIT_ABS_TIME), "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT)}
+                    t = round(f.getProp(FEATPROP.EMIT_REL_TIME), 1)
                 line = []
                 line.append(m)
                 line.append(l[m]["rel"])
                 line.append(datetime.fromtimestamp(l[m]["ts"]).astimezone().replace(microsecond=0))
                 table.append(line)
-                # logger.debug(f"{m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT.value)}")
+                # logger.debug(f"{m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT)}")
 
         table = sorted(table, key=lambda x: x[2])  # absolute emission time
         print(tabulate(table, headers=MARK_LIST), file=output)

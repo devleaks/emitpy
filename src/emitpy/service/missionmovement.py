@@ -136,7 +136,7 @@ class MissionMove(GroundSupportMovement):
             pos = MovePoint.new(cp)
             pos.setSpeed(0)  # starts moving
             pos.setMark(MISSION_PHASE.CHECKPOINT.value)
-            pos.setProp(FEATPROP.MARK_SEQUENCE.value, chkpt_cnt)
+            pos.setProp(FEATPROP.MARK_SEQUENCE, chkpt_cnt)
             pos.setColor(MISSION_COLOR.CHECKPOINT.value)
             pos.setPause(self.mission.duration(cp))
             move_points.append(pos)
@@ -240,7 +240,7 @@ class MissionMove(GroundSupportMovement):
         # Sets unique index on mission movement features
         idx = 0
         for f in self.getMovePoints():
-            f.setProp(FEATPROP.MOVE_INDEX.value, idx)
+            f.setProp(FEATPROP.MOVE_INDEX, idx)
             idx = idx + 1
 
         return (True, "Mission::drive completed")

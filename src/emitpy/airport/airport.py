@@ -294,9 +294,9 @@ class Airport(Location):
         return {
             "icao": self.icao,
             "iata": self.iata,
-            "name": self.getProp(FEATPROP.NAME.value),
-            "city": self.getProp(FEATPROP.CITY.value),
-            "country": self.getProp(FEATPROP.COUNTRY.value),
+            "name": self.getProp(FEATPROP.NAME),
+            "city": self.getProp(FEATPROP.CITY),
+            "country": self.getProp(FEATPROP.COUNTRY),
             "iso_region": self.region,
             "lat": self.lat(),
             "lon": self.lon(),
@@ -1014,9 +1014,9 @@ class ManagedAirportBase(AirportWithProcedures):
                         uuid = k + "-" + rw if k < rw else rw + "-" + k
                         r.uuid = uuid
                         r.end.uuid = uuid
-                        logger.debug(f"{self.icao}: {r.getProp(FEATPROP.NAME.value)} and {rw} paired as {uuid}")
+                        logger.debug(f"{self.icao}: {r.getProp(FEATPROP.NAME)} and {rw} paired as {uuid}")
                     else:
-                        logger.warning(f"{self.icao}: {rw} ont found to pair {r.getProp(FEATPROP.NAME.value)}")
+                        logger.warning(f"{self.icao}: {rw} ont found to pair {r.getProp(FEATPROP.NAME)}")
 
     def findRunwayExits(self):
         fc = {}

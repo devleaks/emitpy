@@ -8,14 +8,7 @@ from .emit import EmitPoint, Emit
 
 # pylint: disable=C0411
 from emitpy.message import ReMessage
-from emitpy.constants import (
-    ID_SEP,
-    FEATPROP,
-    MOVE_TYPE,
-    FLIGHT_PHASE,
-    SERVICE_PHASE,
-    MISSION_PHASE,
-)
+from emitpy.constants import ID_SEP, FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASES, REDIS_TYPE, FLIGHT_DATABASE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
@@ -85,9 +78,7 @@ class ReEmit(Emit):
         self.frequency = int(arr[-2])
         self.emit_id = ID_SEP.join(arr[1:-2])
 
-        logger.debug(
-            f"{arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}"
-        )
+        logger.debug(f"{arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}")
         return (True, "ReEmit::parseKey parsed")
 
     def load(self):
@@ -185,14 +176,7 @@ class ReEmit(Emit):
         """
         Move points are saved in emission points.
         """
-        self.setMovePoints(
-            list(
-                filter(
-                    lambda f: not f.getProp(FEATPROP.BROADCAST.value),
-                    self.getEmitPoints(),
-                )
-            )
-        )
+        self.setMovePoints(list(filter(lambda f: not f.getProp(FEATPROP.BROADCAST), self.getEmitPoints())))
         logger.debug(f"extracted {len(self.move_points)} points")
         return (True, "ReEmit::extractMove loaded")
 
@@ -237,11 +221,7 @@ class ReEmit(Emit):
             is_arrival = self.getMeta("$.move.flight.is_arrival")
             if is_arrival is None:
                 logger.warning(f"cannot get move for {self.emit_id}")
-            mark = (
-                FLIGHT_PHASE.TOUCH_DOWN.value
-                if is_arrival
-                else FLIGHT_PHASE.TAKE_OFF.value
-            )
+            mark = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
         elif self.emit_type == MOVE_TYPE.SERVICE.value:
             mark = SERVICE_PHASE.SERVICE_START.value
         elif self.emit_type == MOVE_TYPE.MISSION.value:

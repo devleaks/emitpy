@@ -10,6 +10,8 @@
 import copy
 import inspect
 import json
+from enum import Enum
+
 from jsonpath import JSONPath
 
 from turf.helpers import Point, LineString, Polygon, FeatureCollection
@@ -100,7 +102,7 @@ class EmitpyFeature(Feature):
         return [EmitpyFeature.new(f) for f in arr]
 
     def version(self):
-        return self.getProp(FEATPROP.VERSION.value)
+        return self.getProp(FEATPROP.VERSION)
 
     # def geometry(self):
     #     return self["geometry"] if "geometry" in self else None
@@ -132,33 +134,37 @@ class EmitpyFeature(Feature):
         return EmitpyFeature.new(self)  # copy.deepcopy(self)
 
     def setVersion(self, v: str = emitpy.__version__):
-        self.setProp(FEATPROP.VERSION.value, v)
+        self.setProp(FEATPROP.VERSION, v)
 
     def setClass(self, c: str = None, force: bool = False):
         if force or self.getClass() is None:
-            self.setProp(FEATPROP.CLASS.value, c if c is not None else type(self).__name__)
+            self.setProp(FEATPROP.CLASS, c if c is not None else type(self).__name__)
 
     def getClass(self):
-        return self.getProp(FEATPROP.CLASS.value)
+        return self.getProp(FEATPROP.CLASS)
 
-    def getProp(self, name: str, dflt=None):
+    def getProp(self, name: str | FEATPROP, dflt=None):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
+        if isinstance(name, FEATPROP):
+            name = name.value
         if name == FEATPROP.ALTITUDE.value:
             return self.altitude()
         return self.properties.get(name, dflt)
 
-    def setProp(self, name: str, value):
+    def setProp(self, name: str | FEATPROP, value):
         # Wrapper around Feature properties (inexistant in GeoJSON Feature)
+        if isinstance(name, FEATPROP):
+            name = name.value
         if name == FEATPROP.ALTITUDE.value:
             self.setAltitude(value)
         else:
             self.properties[name] = value
 
     def getName(self):
-        return self.getProp(FEATPROP.NAME.value)
+        return self.getProp(FEATPROP.NAME)
 
     def setName(self, name: str):
-        self.setProp(FEATPROP.NAME.value, name)
+        self.setProp(FEATPROP.NAME, name)
 
     def getId(self):
         return self.id if hasattr(self, "id") else self.getProp("id")
@@ -181,12 +187,12 @@ class EmitpyFeature(Feature):
             self.setProp(name, value)
 
     def getMark(self):
-        return self.getProp(FEATPROP.MARK.value)
+        return self.getProp(FEATPROP.MARK)
 
     def setMark(self, mark, index: int = None):
-        self.setProp(FEATPROP.MARK.value, mark)
+        self.setProp(FEATPROP.MARK, mark)
         if index is not None:
-            self.setProp(FEATPROP.MARK_SEQUENCE.value, index)
+            self.setProp(FEATPROP.MARK_SEQUENCE, index)
 
         # For historical reasons, tags are kept in |-separated strings like tag1|tag2, this comes from X-Plane...
 
@@ -272,7 +278,7 @@ class EmitpyFeature(Feature):
         self.setProp(name=FEATPROP.SPEED.value, value=speed)
 
     def speed(self, default: float = None):
-        a = self.getProp(FEATPROP.SPEED.value)
+        a = self.getProp(FEATPROP.SPEED)
         if a is None or a == "None":
             return default
         return float(a)
@@ -282,71 +288,71 @@ class EmitpyFeature(Feature):
         self.setProp(name=FEATPROP.SPEED.value, value=speed)
 
     def groundSpeed(self, default: float = None):
-        a = self.getProp(FEATPROP.SPEED.value)
+        a = self.getProp(FEATPROP.SPEED)
         if a is None or a == "None":
             return default
         return float(a)
 
     def setVSpeed(self, vspeed: float):
         # Vertical speed should be in meters per second
-        self.setProp(FEATPROP.VERTICAL_SPEED.value, vspeed)
+        self.setProp(FEATPROP.VERTICAL_SPEED, vspeed)
 
     def vspeed(self, default: float = None):
-        a = self.getProp(FEATPROP.VERTICAL_SPEED.value)
+        a = self.getProp(FEATPROP.VERTICAL_SPEED)
         if a is None or a == "None":
             return default
         return float(a)
 
     def setCourse(self, course: float):
         # Course should be in decimal degrees, if possible confined to [0, 360[. (@todo)
-        self.setProp(FEATPROP.COURSE.value, course)
+        self.setProp(FEATPROP.COURSE, course)
 
     def course(self, default: float = None):
-        a = self.getProp(FEATPROP.COURSE.value)
+        a = self.getProp(FEATPROP.COURSE)
         if a is None or a == "None":
             return default
         return float(a)
 
     def setHeading(self, heading: float):
         # Heading should be in decimal degrees, if possible confined to [0, 360[. (@todo)
-        self.setProp(FEATPROP.HEADING.value, heading)
+        self.setProp(FEATPROP.HEADING, heading)
 
     def heading(self, default: float = None):
-        a = self.getProp(FEATPROP.HEADING.value)
+        a = self.getProp(FEATPROP.HEADING)
         if a is None or a == "None":
             return default
         return float(a)
 
     def setTime(self, time: float):
-        self.setProp(FEATPROP.TIME.value, time)
+        self.setProp(FEATPROP.TIME, time)
 
     def time(self, default: float = None):
-        a = self.getProp(FEATPROP.TIME.value)
+        a = self.getProp(FEATPROP.TIME)
         if a is None or a == "None":
             return default
         return float(a)
 
     def setPause(self, time: float):
-        self.setProp(FEATPROP.PAUSE.value, time)
+        self.setProp(FEATPROP.PAUSE, time)
 
     def addToPause(self, time: float):
-        self.setProp(FEATPROP.PAUSE.value, self.pause(0) + time)
+        self.setProp(FEATPROP.PAUSE, self.pause(0) + time)
 
     def pause(self, default: float = None):
-        a = self.getProp(FEATPROP.PAUSE.value)
+        a = self.getProp(FEATPROP.PAUSE)
         if a is None or a == "None":
             return default
         return float(a)
 
     def get_timestamp(self):
         # Added for Opera
-        return self.getProp(FEATPROP.EMIT_ABS_TIME.value, 0.0)
+        return self.getProp(FEATPROP.EMIT_ABS_TIME, 0.0)
 
     def setComment(self, comment: str):
-        self.setProp(FEATPROP.COMMENT.value, comment)
+        self.setProp(FEATPROP.COMMENT, comment)
 
     def comment(self, default: str = None):
-        a = self.getProp(FEATPROP.COMMENT.value)
+        a = self.getProp(FEATPROP.COMMENT)
         if a is None or a == "None":
             return default
         return a
