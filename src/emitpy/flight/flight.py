@@ -683,22 +683,41 @@ class Flight(Messages):
             idx = idx + 1
         return total_dist
 
-    def next_restriction(self, idx_start, backwards: bool = False):
-        """Returns waypoint with restriction following supplied index"""
+    def next_restriction(self, idx_start, backwards: bool = False, fun: str = "hasRestriction"):
+        """Returns waypoint with restriction following supplied index.
+        Also returns distance to that waypoint, i.e. distance to comply with the next restriction
+        """
+        if fun not in ["hasRestriction", "hasSpeedRestriction", "hasAltitudeRestriction"]:
+            logger.warning(f"invalid test function {fun}")
+            return None
+
+        last_point = self.flightplan_wpts[idx_start]
+        total_dist = 0.0
+
         if backwards:
             idx = idx_start - 1
             while idx >= 0:
                 w = self.flightplan_wpts[idx]
-                if hasattr(w, "hasRestriction") and w.hasRestriction():
-                    return w
+                d = distance(last_point, w)
+                total_dist = total_dist + d
+                if hasattr(w, fun):
+                    func = getattr(w, fun)
+                    if func():
+                        return w  # (w, d)
                 idx = idx - 1
+                last_point = w
         else:
             idx = idx_start + 1
             while idx < len(self.flightplan_wpts):
                 w = self.flightplan_wpts[idx]
-                if hasattr(w, "hasRestriction") and w.hasRestriction():
-                    return w
+                d = distance(last_point, w)
+                total_dist = total_dist + d
+                if hasattr(w, fun):
+                    func = getattr(w, fun)
+                    if func():
+                        return w  # (w, d)
                 idx = idx + 1
+                last_point = w
         return None
 
 

@@ -10,15 +10,16 @@ import random
 import math
 from enum import Enum
 
-from emitpy.constants import ID_SEP
+from emitpy.constants import FEATPROP, ID_SEP
 
 from emitpy.geo.turf import distance, bearing, destination, Point, Feature
 from emitpy.geo import FeatureWithProps
 
-from emitpy.utils import ConvertDMSToDD, FT, cifp_alt_in_ft, cifp_speed, toKn, toKmh2
+from emitpy.utils import ConvertDMSToDD, FT, cifp_alt_in_ft, cifp_speed, toKn, toKmh2, toKmh, toMs, toMeter
 from emitpy.parameters import XPLANE_DIR
 from .aerospace import Aerospace, NamedPoint
 
+# Where to find CIFP files
 DEFAULT_DATA_DIR = os.path.join(XPLANE_DIR, "Resources", "default data")
 CUSTOM_DATA_DIR = os.path.join(XPLANE_DIR, "Custom Data")
 
@@ -210,22 +211,34 @@ class Restriction:
     def hasAltitudeRestriction(self) -> bool:
         return self.alt1 is not None or self.alt2 is not None
 
-    def checkAltitude(self, point: Point):
+    def checkAltitude(self, point: Point, tolerance: int = 30):
+        # def checkAltitude(self, feature: Feature):
+        #     point = feature["geometry"]
+        if self.alt1 is None and self.alt2 is None:
+            logger.debug("no alt constraints")
+            return True
         if len(point.coordinates) < 3:  # no alt, must be ok ;-)
             return True
         alt = point.coordinates[2]
-        retok = True
-        if self.alt1 is not None:
-            retok = alt > self.alt1
-        if self.alt2 is not None:
-            retok = retok and alt < self.alt2
-        return retok
+        if self.alt_restriction_type in ["@", " "]:
+            return (alt - self.alt1) <= tolerance  # 30meters=100ft
+        elif self.alt_restriction_type == "B":
+            return self.alt1 <= alt <= self.alt2
+        elif self.alt_restriction_type == "B":
+            return alt >= self.alt2
+        return True  # no restriction?
 
     def setSpeedRestriction(self, speed: float):
         """
         If there is no restriction, set speed to None.
         """
         self.speed = speed
+
+    def getSISpeed(self):
+        return toMs(kmh=toKmh(kn=self.speed))
+
+    def getSIAltitudes(self):
+        return (toMeter(ft=self.alt1) if self.alt1 is not None else None, toMeter(ft=self.alt2) if self.alt2 is not None else None)
 
     def getSpeedRestrictionDesc(self):
         a = ""
@@ -239,22 +252,25 @@ class Restriction:
     def hasSpeedRestriction(self) -> bool:
         return self.speed is not None
 
-    def checkSpeed(self, feature: Feature, propname: str = "speed"):
+    def checkSpeed(self, feature: Feature, propname: str = FEATPROP.SPEED.value, tolerance: int = 5):
         """
         Note: We assume same units for feature speed and constrains.
         We also assume feature has properties dict set.
         """
-        speed = toKn(toKmh2(ms=feature["properties"].get(propname)))
+        if self.speed is None:
+            logger.debug("no speed constrains")
+            return True
+        speed = toKn(toKmh2(ms=feature.props().get(propname)))
         if speed is not None:
             if self.speed_restriction_type in [" ", "@"]:
-                return (speed - self.speed) < 5
+                return (speed - self.speed) <= tolerance  # 5 m/s=18km/h=10kn
             elif self.speed_restriction_type == "-":
-                return speed < self.speed
+                return speed <= self.speed
             elif self.speed_restriction_type == "+":
-                return speed > self.speed
+                return speed >= self.speed
             else:
                 logger.warning(f"invalid control speed type '{self.speed_restriction_type}'")
-        return False
+        return True
 
     def combine(self, restriction):
         def nvl(a, b):
@@ -1007,9 +1023,10 @@ class CIFP:
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "CIFP")
         if os.path.isdir(fn):
-            logger.debug(f"CIFP custom data directory exist, using it")
+            logger.debug(f"CIFP custom data directory {CUSTOM_DATA_DIR} exist, using it")
             self.basename = CUSTOM_DATA_DIR
-
+        else:
+            logger.debug(f"CIFP using {DEFAULT_DATA_DIR}")
         self.loadFromFile()
 
     def getKey(self):

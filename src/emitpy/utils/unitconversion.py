@@ -10,7 +10,7 @@ R = 6371000  # Approximate average radius of third rock from the sun, in metres
 ########################################
 # Units, etc
 #
-FT = 12 * 0.0254  # 1 foot = 12 inches
+FT = 12 * 0.0254  # 1 foot = 12 inches = 0.3048m
 NAUTICAL_MILE = 1.852  # Nautical mile in meters 6076.118ft=1nm. Easy.
 
 

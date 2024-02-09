@@ -9,7 +9,8 @@ import copy
 from math import pi
 from datetime import timedelta
 
-from networkx import HasACycle
+from networkx import HasACycle, non_neighbors
+from emitpy.airspace.procedure import Restriction
 
 from emitpy.geo.turf import LineString, FeatureCollection, Feature, saveGeoJSON
 from emitpy.geo.turf import distance, destination, bearing
@@ -1293,6 +1294,21 @@ class FlightMovement(Movement):
         return (True, "Movement::time computed")
 
     def tabulateMovement2(self):
+        def alt_ft(a):
+            if a is None:
+                return ""
+            return str(round(a * FT))
+
+        def speed_kn(a):
+            if a is None:
+                return ""
+            return str(round(3.6 * a / NAUTICAL_MILE))
+
+        def speed_fpm(a):
+            if a is None:
+                return ""
+            return str(round(60 * a * FT))
+
         output = io.StringIO()
         print("\n", file=output)
         print(f"FLIGHT MOVEMENT", file=output)
@@ -1305,8 +1321,11 @@ class FlightMovement(Movement):
             "DISTANCE",
             "TOTAL DISTANCE",
             "ALT",
+            "ALT (ft)",
             "SPEED",
+            "SPEED (kn)",
             "V/S",
+            "W/S (fp/m)",
         ]  # long comment to provoke wrap :-)
         table = []
 
@@ -1322,18 +1341,31 @@ class FlightMovement(Movement):
                 d = distance(last_point, w)
                 total_dist = total_dist + d
 
+            speed_ok = ""
+            alt_ok = ""
+            restriction = w.getProp("restriction")
+            if restriction is not None and restriction != "":  # has restriction...
+                r = Restriction.parse(restriction)
+                if not r.checkSpeed(w):
+                    speed_ok = " ***"
+                if not r.checkAltitude(w.geometry):
+                    alt_ok = " ***"
+
             table.append(
                 [
                     idx,
                     w.getProp(FEATPROP.PLAN_SEGMENT_TYPE),
                     w.getProp(FEATPROP.PLAN_SEGMENT_NAME),
                     w.getId(),
-                    w.getProp("restriction"),
+                    restriction,
                     round(d, 1),
                     round(total_dist),
                     w.altitude(),
+                    alt_ft(w.altitude()) + alt_ok,
                     w.speed(),
+                    speed_kn(w.speed()) + speed_ok,
                     w.vspeed(),
+                    speed_fpm(w.vspeed()),
                 ]
             )
             last_point = w
