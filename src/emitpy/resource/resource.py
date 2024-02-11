@@ -4,6 +4,7 @@ Resource and allocation management
 
 import logging
 from datetime import datetime, timedelta
+from typing import Dict
 
 from enum import Enum
 
@@ -41,14 +42,12 @@ class Reservation:
     A reservation is a occupied slot in an allocation table.
     """
 
-    def __init__(
-        self, resource: "Resource", date_from: datetime, date_to: datetime, label: str
-    ):
+    def __init__(self, resource: "Resource", date_from: datetime, date_to: datetime, label: str):
         self.resource = resource
         self.label = label  # refactor to name
-        self.scheduled = (date_from, date_to)
-        self.estimated = None
-        self.actual = None
+        self.scheduled: tuple[datetime, datetime] = (date_from, date_to)
+        self.estimated: tuple[datetime, datetime] | None = None
+        self.actual: tuple[datetime, datetime] | None = None
         self.status = RESERVATION_STATUS.PROVISIONED.value  # to normalize
 
         self.setEstimatedTime(date_from, date_to)
@@ -64,32 +63,25 @@ class Reservation:
         i = {
             "type": "reservation",
             "name": self.resource.getInfo(),
-            SCHEDULED: {
-                START: self.scheduled[0].isoformat(),
-                END: self.scheduled[1].isoformat(),
-            },
+            SCHEDULED: {START: self.scheduled[0].isoformat(), END: self.scheduled[1].isoformat()},
             "label": self.label,
             "status": self.status,
         }
         if self.estimated is not None:
-            i[ESTIMATED] = {
-                START: self.estimated[0].isoformat(),
-                END: self.estimated[1].isoformat(),
-            }
+            i[ESTIMATED] = {START: self.estimated[0].isoformat(), END: self.estimated[1].isoformat()}
         if self.actual is not None:
-            i[ACTUAL] = {
-                START: self.actual[0].isoformat(),
-                END: self.actual[1].isoformat(),
-            }
+            i[ACTUAL] = {START: self.actual[0].isoformat(), END: self.actual[1].isoformat()}
         return i
 
     def getKey(self):
         return self.getId()
 
-    def duration(self, actual: bool = False):
-        if actual:
+    def duration(self, actual: bool = False) -> timedelta | None:
+        if actual and self.actual is not None:
             return self.actual[1] - self.actual[0]
-        return self.estimated[1] - self.estimated[0]
+        if self.estimated is not None:
+            return self.estimated[1] - self.estimated[0]
+        return None
 
     def setEstimatedTime(self, date_from: datetime, date_to: datetime):
         self.estimated = (date_from, date_to)
@@ -98,9 +90,7 @@ class Reservation:
         self.actual = (date_from, date_to)
 
     def save(self, base: str, redis):
-        redis.json().set(
-            key_path(base, self.getKey()), Path.root_path(), self.getInfo()
-        )
+        redis.json().set(key_path(base, self.getKey()), Path.root_path(), self.getInfo())
         # logger.debug(f"{key_path(base, self.getKey())}")
 
 
@@ -114,10 +104,10 @@ class Resource:
     - Runways
     """
 
-    def __init__(self, name: str, table: str):
+    def __init__(self, name: str, table: "AllocationTable"):
         self.table = table
         self.name = name
-        self.reservations = {}
+        self.reservations: Dict[str, Reservation] = {}
         self._updated = True
 
     def getId(self):
@@ -170,38 +160,19 @@ class Resource:
                 lbl = rsc["label"]
             else:
                 lbl = r.decode("UTF-8").split(ID_SEP)[2]
-            res = Reservation(
-                self,
-                datetime.fromisoformat(rsc[SCHEDULED][START]),
-                datetime.fromisoformat(rsc[SCHEDULED][END]),
-                label=lbl,
-            )
+            res = Reservation(self, datetime.fromisoformat(rsc[SCHEDULED][START]), datetime.fromisoformat(rsc[SCHEDULED][END]), label=lbl)
             if ESTIMATED in rsc:
-                res.setEstimatedTime(
-                    datetime.fromisoformat(rsc[ESTIMATED][START]),
-                    datetime.fromisoformat(rsc[ESTIMATED][END]),
-                )
+                res.setEstimatedTime(datetime.fromisoformat(rsc[ESTIMATED][START]), datetime.fromisoformat(rsc[ESTIMATED][END]))
             if ACTUAL in rsc:
-                res.setEstimatedTime(
-                    datetime.fromisoformat(rsc[ACTUAL][START]),
-                    datetime.fromisoformat(rsc[ACTUAL][END]),
-                )
+                res.setEstimatedTime(datetime.fromisoformat(rsc[ACTUAL][START]), datetime.fromisoformat(rsc[ACTUAL][END]))
             self.add(res)
             # logger.debug(f"loaded {r.decode('UTF-8')}")
         # logger.debug(f"{self.getId()} loaded {len(self.reservations)} reservations")
 
     def allocations(self, actual: bool = False):
         if actual:
-            return [
-                r.actual
-                for r in sorted(
-                    self.reservations.values(), key=lambda x: x.estimated[0]
-                )
-            ]
-        return [
-            (r.getId(), list(map(dt, r.estimated)))
-            for r in sorted(self.reservations.values(), key=lambda x: x.estimated[0])
-        ]
+            return [r.actual for r in sorted(self.reservations.values(), key=lambda x: x.estimated[0])]
+        return [(r.getId(), list(map(dt, r.estimated))) for r in sorted(self.reservations.values(), key=lambda x: x.estimated[0])]
 
     def add(self, reservation: Reservation):
         if reservation.label in self.reservations.keys():
@@ -221,12 +192,10 @@ class Resource:
         :param      limit:  The limit
         :type       limit:  datetime
         """
-        for r in list(
-            filter(lambda x: x.estimated[1] < limit, self.reservations.values())
-        ):
+        for r in list(filter(lambda x: x.estimated[1] < limit, self.reservations.values())):
             self.remove(r)
 
-    def book(self, req_from: datetime, req_to: datetime, label: str = None):
+    def book(self, req_from: datetime, req_to: datetime, label: str | None = None):
         r = Reservation(self, req_from, req_to, label)
         self.add(r)
         logger.debug(f"booked {self.getId()} for {label}, {req_from} to {req_to}")
@@ -252,25 +221,14 @@ class Resource:
         # logger.debug(f"busy: {len(busy)-1}")
         while idx < len(busy) - 1:
             try:
-                if (
-                    idx == 0 and req_to < busy[idx].estimated[0]
-                ):  # ends before first one starts is OK
-                    logger.debug(
-                        f"before first one {dt(req_to)} < {dt(busy[idx].estimated[0])} "
-                    )
+                if idx == 0 and req_to < busy[idx].estimated[0]:  # ends before first one starts is OK
+                    logger.debug(f"before first one {dt(req_to)} < {dt(busy[idx].estimated[0])} ")
                     return True
-                if (
-                    req_from > busy[idx].estimated[1]
-                    and req_to < busy[idx + 1].estimated[0]
-                ):
-                    logger.debug(
-                        f"between {idx} and {idx+1}: {dt(req_from)} > {dt(busy[idx].estimated[1])} and {dt(req_to)} < {dt(busy[idx+1].estimated[0])}"
-                    )
+                if req_from > busy[idx].estimated[1] and req_to < busy[idx + 1].estimated[0]:
+                    logger.debug(f"between {idx} and {idx+1}: {dt(req_from)} > {dt(busy[idx].estimated[1])} and {dt(req_to)} < {dt(busy[idx+1].estimated[0])}")
                     return True
                 if (idx + 1 == len(busy) - 1) and req_from > busy[idx + 1].estimated[1]:
-                    logger.debug(
-                        f"after last one {dt(req_from)} > {dt(busy[idx+1].estimated[1])}"
-                    )
+                    logger.debug(f"after last one {dt(req_from)} > {dt(busy[idx+1].estimated[1])}")
                     return True
             except:
                 logger.warning(f"issue at {busy[idx].label}")
@@ -301,20 +259,14 @@ class Resource:
         if len(reservations) == 0:
             logger.debug("available as requested")
             return (req_from, req_to)
-        if (
-            len(reservations) == 1
-        ):  # only one reservation that starts after req_from, probably overlaps
+        if len(reservations) == 1:  # only one reservation that starts after req_from, probably overlaps
             soonest = reservations[0].estimated[1] + timedelta(milliseconds=1)
             logger.debug(f"added after last reservation {dt(soonest)}")
             return (soonest, soonest + duration)
         busy = sorted(reservations, key=lambda x: x.estimated[0])
         # Can we insert it between 2 usages?
         for idx in range(len(busy) - 1):
-            squeeze = (
-                busy[idx + 1].estimated[0]
-                - busy[idx].estimated[1]
-                + timedelta(milliseconds=2)
-            )
+            squeeze = busy[idx + 1].estimated[0] - busy[idx].estimated[1] + timedelta(milliseconds=2)
             if squeeze > duration:  # we can fit it
                 soonest = busy[idx].estimated[1] + timedelta(milliseconds=1)
                 logger.debug(f"squeezed at {idx}, added after {dt(soonest)}")
@@ -339,7 +291,7 @@ class AllocationTable:
 
     def __init__(self, resources, name: str):
         self.name = name
-        self.resources = {}
+        self.resources: Dict[str, Resource] = {}
         for r in resources:
             self.add(r)
 
@@ -413,15 +365,9 @@ class AllocationTable:
         for r, v in self.resources.items():
             if len(v.reservations) > 0:
                 if actual:
-                    ret[v.getId()] = [
-                        [t.isoformat() for t in rz.actual] + [rz.label]
-                        for rz in v.reservations.values()
-                    ]
+                    ret[v.getId()] = [[t.isoformat() for t in rz.actual] + [rz.label] for rz in v.reservations.values()]
                 else:
-                    ret[v.getId()] = [
-                        [t.isoformat() for t in rz.estimated] + [rz.label]
-                        for rz in v.reservations.values()
-                    ]
+                    ret[v.getId()] = [[t.isoformat() for t in rz.estimated] + [rz.label] for rz in v.reservations.values()]
         return ret
 
     def save(self, redis):
@@ -447,7 +393,7 @@ class AllocationTable:
         logger.debug(f"{self.getId()} loaded {len(rscs)} resources")
         return (True, "AllocationTable::load loaded")
 
-    def findReservation(self, resource: str, label: str, redis=None) -> Reservation:
+    def findReservation(self, resource: str, label: str, redis=None) -> Reservation | None:
         if resource in self.resources.keys():
             rsc = self.resources[resource]
             return rsc.findReservation(label)

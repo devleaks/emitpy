@@ -3,6 +3,7 @@ import logging
 import copy
 import typing
 from typing import List
+from emitpy.airspace.aerospace import Aerospace
 
 from emitpy.geo.turf import Feature, LineString, FeatureCollection
 
@@ -55,7 +56,7 @@ class FlightPlan:
             arrival_rwy (typing.Optional[str]): Arrival runway
         """
         self.name = name
-        self.aerospace = None
+        self.aerospace: Aerospace | None = None
         self.managedAirport = None
         self._departure = departure
         self._arrival = arrival
@@ -106,6 +107,9 @@ class FlightPlan:
         Args:
             flightplan (str): Flight plan as one string, token separated by space.
         """
+        if self.aerospace is None:
+            logger.warning("no aerospace")
+            return False
         fparr = flightplan.split()
         if len(fparr) < 2:
             logger.warning(f"insuficient way points ({len(fparr)})")
@@ -180,8 +184,8 @@ class FlightRoute:
         self.useAWYHI = useAWYHI
         self.force = force
         self.flight_plan = None
-        self._route = None
-        self.routeLS = None
+        self._route: FeatureCollection | None = None
+        self.routeLS: LineString | None = None
         self.waypoints = None
 
         self.filename = f"{fromICAO.lower()}-{toICAO.lower()}"
@@ -243,16 +247,12 @@ class FlightRoute:
         # Routing
         logger.debug(f"from {s[0].id} to {e[0].id}..")
         if s[0] is not None and e[0] is not None:
-            self.flight_plan = Route(
-                a, s[0].id, e[0].id
-            )  # self.flight_plan.find()  # auto route
+            self.flight_plan = Route(a, s[0].id, e[0].id)  # self.flight_plan.find()  # auto route
             if self.flight_plan is not None and self.flight_plan.found():
                 self._convertToGeoJSON()
             else:
                 cnt = 10
-                logger.warning(
-                    f"{'>' * cnt} no route from {self.fromICAO} to {self.toICAO} {'<' * cnt}"
-                )
+                logger.warning(f"{'>' * cnt} no route from {self.fromICAO} to {self.toICAO} {'<' * cnt}")
 
         logger.debug(f"..done")
 
@@ -356,8 +356,6 @@ class FlightRoute:
         :type       include_ls:  bool
         """
         fc = copy.deepcopy(self._route)
-        if include_ls:
-            fc.features.append(
-                Feature(geometry=self.routeLS, properties={"tag": "route"})
-            )
+        if include_ls and self.routeLS is not None:
+            fc.features.append(Feature(geometry=self.routeLS, properties={"tag": "route"}))  # type: ignore [union-attr]
         return fc

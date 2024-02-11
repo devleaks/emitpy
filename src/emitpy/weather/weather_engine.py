@@ -6,6 +6,7 @@ import importlib
 import json
 import os
 
+from typing import Dict, Any, List
 from abc import ABC, abstractmethod
 from datetime import datetime
 
@@ -26,19 +27,19 @@ class Wind:
     def __init__(self, direction: float, speed: float):
         self.direction = direction
         self.speed = speed
-        self.position = None  # tuple(float)
-        self.moment: None  # 4D!
+        self.position: List[float] | None = None
+        self.moment: datetime | None = None  # 4D!
 
     def getInfo(self) -> dict:
         """
         Returns weather information.
         """
-        return {
-            "speed": self.speed,  # m/s
-            "direction": self.direction,  # degrees
-            "at": self.position,
-            "on": self.moment.isoformat(),
-        }
+        a: Dict[str, Any] = {"speed": self.speed, "direction": self.direction}
+        if self.position is not None:
+            a["at"] = self.position
+        if self.moment is not None:
+            a["on"] = self.moment
+        return a
 
     def __str__(self):
         return json.dumps(self.getInfo())
@@ -47,14 +48,12 @@ class Wind:
 class AirportWeather(ABC):
     # Abstract class, used to get airport weather information for Emitpy
 
-    def __init__(self, icao: str, moment: datetime = None, engine=None):
+    def __init__(self, icao: str, moment: datetime | None = None, engine=None):
         self.engine = engine
 
-        self.type = None  # METAR, TAF, or other
+        self.type: str | None = None  # METAR, TAF, or other
         self.icao = icao
-        self.requested_dt = (
-            moment if moment is not None else datetime.now().astimezone()
-        )
+        self.requested_dt = moment if moment is not None else datetime.now().astimezone()
         self.requested_norm = normalize_dt(self.requested_dt)
 
         self.raw = None
@@ -64,12 +63,7 @@ class AirportWeather(ABC):
         """
         Returns weather information.
         """
-        return {
-            "icao": self.icao,
-            "date": self.requested_dt,
-            "type": self.type,
-            "raw": self.raw,
-        }
+        return {"icao": self.icao, "date": self.requested_dt, "type": self.type, "raw": self.raw}
 
     @abstractmethod
     def summary(self):
@@ -78,7 +72,7 @@ class AirportWeather(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_wind(self) -> Wind:
+    def get_wind(self) -> Wind | None:
         # Get overall wind at ground level
         # Returns None for wind direction if no wind or direction variable.
         # Returns wind speed, 0 if no wind.
@@ -107,9 +101,7 @@ class AirportWeather(ABC):
 
     def saveFileName(self):
         nowstr = self.cacheKeyName()
-        return os.path.join(
-            AIRPORT_WEATHER_DIR, self.icao + "-" + nowstr + "." + self.type.lower()
-        )
+        return os.path.join(AIRPORT_WEATHER_DIR, self.icao + "-" + nowstr + "." + self.type.lower())
 
     def saveFile(self):
         if self.raw is not None:
@@ -197,9 +189,7 @@ class WeatherEngine(ABC):
         # Weather sub-directories
         dirs = []
         dirs.append(os.path.join(WEATHER_DIR, "airports"))  # METAR and TAF
-        dirs.append(
-            os.path.join(WEATHER_DIR, "flights")
-        )  # En-route bounding boxed winds for flights
+        dirs.append(os.path.join(WEATHER_DIR, "flights"))  # En-route bounding boxed winds for flights
         dirs.append(os.path.join(WEATHER_DIR, "gfs"))  # GFS
         for d in dirs:
             if not os.path.exists(d):
@@ -230,7 +220,7 @@ class WeatherEngine(ABC):
         return self.flight_id == flight.getId()
 
     @abstractmethod
-    def get_enroute_wind(self, lat, lon, alt, moment: datetime) -> Wind:
+    def get_enroute_wind(self, flight_id: str, lat: float, lon: float, alt: float, moment: datetime) -> Wind | None:
         """
         Get En Route wind for flight. Flight movement points are passed here, with (lat, lon, alt)
         and an estimated time of passage at the point.

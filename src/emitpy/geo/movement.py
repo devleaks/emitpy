@@ -9,18 +9,13 @@ import logging
 import copy
 
 from datetime import datetime, timedelta
+from typing import List, Dict, Any
 
 from emitpy.geo.turf import Point, FeatureCollection, Feature, saveGeoJSON, distance
 
 from tabulate import tabulate
 
-from emitpy.geo import (
-    FeatureWithProps,
-    cleanFeatures,
-    findFeatures,
-    asLineString,
-    get_bounding_box,
-)
+from emitpy.geo import FeatureWithProps, cleanFeatures, findFeatures, asLineString, get_bounding_box
 from emitpy.constants import MOVES_DATABASE, FEATPROP
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.message import Messages
@@ -38,9 +33,7 @@ class MovePoint(FeatureWithProps):
     """
 
     def __init__(self, geometry: Point, properties: dict):
-        FeatureWithProps.__init__(
-            self, geometry=geometry, properties=copy.deepcopy(properties)
-        )
+        FeatureWithProps.__init__(self, geometry=geometry, properties=copy.deepcopy(properties))
 
     def getRelativeEmissionTime(self):
         t = self.getProp(FEATPROP.EMIT_REL_TIME)
@@ -57,10 +50,10 @@ class Movement(Messages):
 
         self.reason = reason  # Core entity of the movement: Flight or ground service.
         self.airport = airport
-        self._points = []  # Array of Features<Point>
+        self._points: List[MovePoint] = []
 
         # Movement scheduling
-        self._scheduled_points = []
+        self._scheduled_points: List[MovePoint] = []
         self.version = 0
         self.offset_name = None
         self.offset = None
@@ -141,9 +134,7 @@ class Movement(Messages):
 
     def is_event_service(self):
         svc = self.getSource()
-        if (
-            svc is not None and type(svc).__name__ == "EventService"
-        ):  # isinstance(svc, EventService)
+        if svc is not None and type(svc).__name__ == "EventService":  # isinstance(svc, EventService)
             return True
         return False
 
@@ -174,16 +165,7 @@ class Movement(Messages):
 
         output = io.StringIO()
         print("\nMOVEMENT", file=output)
-        HEADER = [
-            "INDEX",
-            "SEGMENT NAME",
-            "DISTANCE",
-            "TOTAL DISTANCE",
-            "ALT",
-            "SPEED",
-            "V/S",
-            "RESTRICTION",
-        ]
+        HEADER = ["INDEX", "SEGMENT NAME", "DISTANCE", "TOTAL DISTANCE", "ALT", "SPEED", "V/S", "RESTRICTION"]
         table = []
 
         idx = 0
@@ -196,18 +178,7 @@ class Movement(Messages):
                 total_dist = total_dist + d
 
             # mvpt.setProp(FEATPROP.GROUNDED, is_grounded)
-            table.append(
-                [
-                    idx,
-                    w.getMark(),
-                    round(d, 1),
-                    round(total_dist),
-                    w.altitude(),
-                    w.speed(),
-                    w.vspeed(),
-                    w.getProp(FEATPROP.RESTRICTION),
-                ]
-            )
+            table.append([idx, w.getMark(), round(d, 1), round(total_dist), w.altitude(), w.speed(), w.vspeed(), w.getProp(FEATPROP.RESTRICTION)])
             idx = idx + 1
             last_point = w
 
@@ -246,18 +217,14 @@ class Movement(Messages):
             f.setAddToPause(duration)
 
     def getMarkList(self):
-        marks = [
-            f.getProp(FEATPROP.MARK) for f in self.getPoints()
-        ]  # self.getMovePoints()
+        marks = [f.getProp(FEATPROP.MARK) for f in self.getPoints()]  # self.getMovePoints()
         marks = set(marks)
         if None in marks:
             marks.remove(None)
         return marks
 
     def getMoveMarkList(self):
-        marks = [
-            f.getProp(FEATPROP.MARK) for f in self.getMovePoints()
-        ]  # self.getMovePoints()
+        marks = [f.getProp(FEATPROP.MARK) for f in self.getMovePoints()]  # self.getMovePoints()
         marks = set(marks)
         if None in marks:
             marks.remove(None)
@@ -276,7 +243,7 @@ class Movement(Messages):
                 marks.append(f.getProp(FEATPROP.MARK))
         return set(marks)
 
-    def getBoundingBox(self, rounding: float = None):
+    def getBoundingBox(self, rounding: float | None = None):
         """
         get bounding box of whole movement.
         assumes  90 (north) <= lat <= -90 (south), and -180 (west) < lon < 180 (east)
@@ -299,12 +266,10 @@ class Movement(Messages):
     def getMarkRelativeEmissionTime(self, sync: str, instance: int = -1):
         if self.is_event_service():
             label = self.getSource().label
-            logger.debug(
-                f"event service {label} relative time is relative to on/off block (was {sync})."
-            )
+            logger.debug(f"event service {label} relative time is relative to on/off block (was {sync}).")
             return 0  # sync info in message at creation
 
-        criteria = {FEATPROP.MARK.value: sync}
+        criteria: Dict[str, Any] = {FEATPROP.MARK.value: sync}
         if instance > -1:
             criteria[FEATPROP.MARK_SEQUENCE.value] = instance
             logger.debug(f"{FEATPROP.MARK.value} fetching instance {instance}")
@@ -319,18 +284,12 @@ class Movement(Messages):
             if offset is not None:
                 return offset
             else:
-                logger.warning(
-                    f"{FEATPROP.MARK.value} {sync} has no time offset, using 0"
-                )
+                logger.warning(f"{FEATPROP.MARK.value} {sync} has no time offset, using 0")
                 return 0
         if instance > -1:
-            logger.warning(
-                f"{self.getId()}: {sync} instance {instance} not found in ({self.getMarkList()})"
-            )
+            logger.warning(f"{self.getId()}: {sync} instance {instance} not found in ({self.getMarkList()})")
         else:
-            logger.warning(
-                f"{self.getId()}: {sync} not found in ({self.getMarkList()})"
-            )
+            logger.warning(f"{self.getId()}: {sync} not found in ({self.getMarkList()})")
         return None
 
     def schedule(self, sync, moment: datetime, do_print: bool = False):
@@ -357,9 +316,7 @@ class Movement(Messages):
                     p.setProp(FEATPROP.EMIT_ABS_TIME_FMT, when.isoformat())
                     # logger.debug(f"done at {when.timestamp()}")
                 self._scheduled_points.append(p)
-            logger.debug(
-                f"point finishes at {when} ({when.timestamp()}) ({len(self._scheduled_points)} positions)"
-            )
+            logger.debug(f"point finishes at {when} ({when.timestamp()}) ({len(self._scheduled_points)} positions)")
             # now that we have "absolute time", we update the parent
             if do_print:
                 dummy = self.getTimedMarkList()
@@ -386,20 +343,12 @@ class Movement(Messages):
                 if m in l:
                     l[m]["count"] = l[m]["count"] + 1 if "count" in l[m] else 2
                 else:
-                    l[m] = {
-                        "rel": f.getProp(FEATPROP.EMIT_REL_TIME),
-                        "ts": f.getProp(FEATPROP.EMIT_ABS_TIME),
-                        "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT),
-                    }
+                    l[m] = {"rel": f.getProp(FEATPROP.EMIT_REL_TIME), "ts": f.getProp(FEATPROP.EMIT_ABS_TIME), "dt": f.getProp(FEATPROP.EMIT_ABS_TIME_FMT)}
                     t = round(f.getProp(FEATPROP.EMIT_REL_TIME), 1)
                 line = []
                 line.append(m)
                 line.append(l[m]["rel"])
-                line.append(
-                    datetime.fromtimestamp(l[m]["ts"])
-                    .astimezone()
-                    .replace(microsecond=0)
-                )
+                line.append(datetime.fromtimestamp(l[m]["ts"]).astimezone().replace(microsecond=0))
                 table.append(line)
                 # logger.debug(f"{m.rjust(25)}: t={t:>7.1f}: {f.getProp(FEATPROP.EMIT_ABS_TIME_FMT)}")
 

@@ -25,7 +25,7 @@ FLIGHT_WEATHER_DIR = os.path.join(WEATHER_DIR, "flights")
 class WebAirportWeather(AirportWeather):
     # Shell class, used to get airport weather information for Emitpy
 
-    def __init__(self, icao: str, moment: datetime = None, engine=None, source=None):
+    def __init__(self, icao: str, moment: datetime | None = None, engine=None, source=None):
         AirportWeather.__init__(self, icao=icao, moment=moment, engine=engine)
 
         self.type = "METAR"
@@ -46,12 +46,8 @@ class WebAirportWeather(AirportWeather):
         if not ret[0]:
             logger.debug(ret[1])
 
-            metarclasses = importlib.import_module(
-                name=".weather.aws", package="emitpy"
-            )
-            lclass = (
-                self.source.upper() + self.type[0].upper() + self.type[1:].lower()
-            )  # SOURCEMetar, SOURCETaf
+            metarclasses = importlib.import_module(name=".weather.aws", package="emitpy")
+            lclass = self.source.upper() + self.type[0].upper() + self.type[1:].lower()  # SOURCEMetar, SOURCETaf
             if hasattr(metarclasses, lclass):
                 awc = getattr(metarclasses, lclass)
                 if awc is not None:
@@ -75,19 +71,12 @@ class WebAirportWeather(AirportWeather):
                         self.parsed = Taf.from_report(self.raw)
                 else:
                     if self.type == "METAR":
-                        self.parsed = Metar.Metar(
-                            self.raw,
-                            month=self.source_date.month,
-                            year=self.source_date.year,
-                            strict=False,
-                        )
+                        self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year, strict=False)
                     elif self.type == "TAF":
                         self.parsed = Taf.from_report(self.raw)
             except:
                 self.parsed = None
-                logger.warning(
-                    f"could not parse Metar or TAF {self.raw}", exc_info=True
-                )
+                logger.warning(f"could not parse Metar or TAF {self.raw}", exc_info=True)
                 logger.warning(f"weather ignored")
 
             self.save()
@@ -104,24 +93,13 @@ class WebAirportWeather(AirportWeather):
         """
         Returns weather information.
         """
-        return {
-            "source": self.source,
-            "type": self.type,
-            "icao": self.icao,
-            "data": self.raw,
-        }
+        return {"source": self.source, "type": self.type, "icao": self.icao, "data": self.raw}
 
-    def get_wind(self) -> Wind:
+    def get_wind(self) -> Wind | None:
         if self.parsed is None:
             return None
-        wind_dir = (
-            self.parsed.wind_dir.value() if self.parsed.wind_dir is not None else None
-        )
-        wind_speed = (
-            self.parsed.wind_speed.value(units="MPS")
-            if self.parsed.wind_speed is not None
-            else None
-        )
+        wind_dir = self.parsed.wind_dir.value() if self.parsed.wind_dir is not None else None
+        wind_speed = self.parsed.wind_speed.value(units="MPS") if self.parsed.wind_speed is not None else None
         return Wind(direction=wind_dir, speed=wind_speed)
 
     def get_precipirations(self) -> float:
@@ -170,11 +148,7 @@ class WebWeatherEngine(WeatherEngine):
         fid = flight.getId()
         if fn is None:
             gfs_dir = os.path.join(GFS_WEATHER_DIR, "gfs.*")
-            filenames = [
-                filename
-                for filename in glob.glob(gfs_dir)
-                if not filename.endswith("idx")
-            ]
+            filenames = [filename for filename in glob.glob(gfs_dir) if not filename.endswith("idx")]
             if len(filenames) > 0:
                 filenames = sorted(filenames)
                 fn = filenames[-1]
@@ -189,24 +163,14 @@ class WebWeatherEngine(WeatherEngine):
 
         # 2. Preselect the file for the flight, save its name in self.bbox_source
         #   wgrib -small_grib LonW:LonE LatS:LatN file_name
-        bbox = flight.get_movement().getBoundingBox(
-            rounding=1
-        )  # (north, east, south, west)
+        bbox = flight.get_movement().getBoundingBox(rounding=1)  # (north, east, south, west)
         fbbfile = os.path.join(FLIGHT_WEATHER_DIR, fid + ".grib")
 
-        args = [
-            fn,
-            "-small_grib",
-            f"{bbox[3]}:{bbox[1]}",
-            f"{bbox[2]}:{bbox[0]}",
-            fbbfile,
-        ]
+        args = [fn, "-small_grib", f"{bbox[3]}:{bbox[1]}", f"{bbox[2]}:{bbox[0]}", fbbfile]
         kwargs = {"stdout": subprocess.PIPE}
         cmd = ["wgrib2"] + args
-        p = subprocess.Popen(["wgrib2"] + args, **kwargs)
-        logger.debug(
-            f"{' '.join(cmd)}: {''.join([a.decode('UTF-8') for a in p.stdout])}"
-        )
+        p = subprocess.Popen(["wgrib2"] + args, **kwargs)  # type: ignore [call-overload]
+        logger.debug(f"{' '.join(cmd)}: {''.join([a.decode('UTF-8') for a in p.stdout])}")
         logger.debug(f"bounded box {bbox} stored in {fbbfile}")
 
         if not os.path.exists(fbbfile):
@@ -246,9 +210,7 @@ class WebWeatherEngine(WeatherEngine):
                 plat = lat
                 plon = lon
             elif plat != lat or plon != lon:
-                logger.debug(
-                    "WARNING: not same latitude, longitude", plat, plon, "vs", lat, lon
-                )
+                logger.debug("WARNING: not same latitude, longitude", plat, plon, "vs", lat, lon)
             if len(level) > 1 and level[1] == "mb":
                 # wind levels
                 winds.setdefault(level[0], {})
@@ -275,7 +237,7 @@ class WebWeatherEngine(WeatherEngine):
         self.WIND_CACHE[(lat, lon, self.source)] = windlevels
         return (plat, plon, windlevels)
 
-    def get_enroute_wind(self, flight_id, lat, lon, alt, moment: datetime) -> Wind:
+    def get_enroute_wind(self, flight_id: str, lat: float, lon: float, alt: float, moment: datetime) -> Wind | None:
         # Main function: Request wind information at lat, lon, alt at moment.
         # Return wind direction and speed and closest lat, lon, alt, and closest moment (of forecast)
         if self.flight_id != flight_id:

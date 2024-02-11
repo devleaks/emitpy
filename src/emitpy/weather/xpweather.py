@@ -27,7 +27,7 @@ FLIGHT_WEATHER_DIR = os.path.join(WEATHER_DIR, "flights")
 class XPAirportWeather(AirportWeather):
     # Shell class, used to get airport weather information for Emitpy
 
-    def __init__(self, icao: str, moment: datetime = None, engine=None, source=None):
+    def __init__(self, icao: str, moment: datetime | None = None, engine=None, source=None):
         AirportWeather.__init__(self, icao=icao, moment=moment, engine=engine)
 
         self.type = "METAR"
@@ -65,16 +65,11 @@ class XPAirportWeather(AirportWeather):
             if self.source_date is None:
                 self.parsed = Metar.Metar(self.raw, strict=False)
             else:
-                self.parsed = Metar.Metar(
-                    self.raw,
-                    month=self.source_date.month,
-                    year=self.source_date.year,
-                    strict=False,
-                )
+                self.parsed = Metar.Metar(self.raw, month=self.source_date.month, year=self.source_date.year, strict=False)
         else:
             logger.warning(f"no metar for {self.icao} in file {fn}")
         # if self.parsed is not None:
-        # 	logger.debug(self.parsed.string())
+        #   logger.debug(self.parsed.string())
 
     def find_source_date(self):
         if self.source is None:
@@ -100,24 +95,13 @@ class XPAirportWeather(AirportWeather):
         """
         Returns weather information.
         """
-        return {
-            "source": self.source,
-            "type": self.type,
-            "icao": self.icao,
-            "data": self.raw,
-        }
+        return {"source": self.source, "type": self.type, "icao": self.icao, "data": self.raw}
 
-    def get_wind(self) -> Wind:
+    def get_wind(self) -> Wind | None:
         if self.parsed is None:
             return None
-        wind_dir = (
-            self.parsed.wind_dir.value() if self.parsed.wind_dir is not None else None
-        )
-        wind_speed = (
-            self.parsed.wind_speed.value(units="MPS")
-            if self.parsed.wind_speed is not None
-            else None
-        )
+        wind_dir = self.parsed.wind_dir.value() if self.parsed.wind_dir is not None else None
+        wind_speed = self.parsed.wind_speed.value(units="MPS") if self.parsed.wind_speed is not None else None
         return Wind(direction=wind_dir, speed=wind_speed)
 
     def get_precipirations(self) -> float:
@@ -147,9 +131,7 @@ class XPWeatherEngine(WeatherEngine):
             dfn = moment.strftime("metar-%Y-%m-%d-%H.%M.txt")
             fn = os.path.join(REAL_WEATHER_DIR, dfn)
             if not os.path.exists(fn):
-                logger.warning(
-                    f"no metar file for {moment.isoformat()}, trying alternate dates/times"
-                )
+                logger.warning(f"no metar file for {moment.isoformat()}, trying alternate dates/times")
                 fn = None
         # 2. Try any metar file
         if fn is None:
@@ -187,15 +169,11 @@ class XPWeatherEngine(WeatherEngine):
         # Get wind from X-Plane Real weather files
         #
         if use_gfs:
-            if not os.path.exists(GFS_WEATHER_DIR) or not os.path.isdir(
-                GFS_WEATHER_DIR
-            ):
+            if not os.path.exists(GFS_WEATHER_DIR) or not os.path.isdir(GFS_WEATHER_DIR):
                 logger.warning(f"no GFS weather directory")
                 return False
         else:
-            if not os.path.exists(REAL_WEATHER_DIR) or not os.path.isdir(
-                REAL_WEATHER_DIR
-            ):
+            if not os.path.exists(REAL_WEATHER_DIR) or not os.path.isdir(REAL_WEATHER_DIR):
                 logger.warning(f"no Real weather directory")
                 return False
 
@@ -205,11 +183,7 @@ class XPWeatherEngine(WeatherEngine):
             # 1.2. Try any grib file
             if fn is None:
                 gfs_dir = os.path.join(GFS_WEATHER_DIR, "gfs.*")
-                filenames = [
-                    filename
-                    for filename in glob.glob(gfs_dir)
-                    if not filename.endswith("idx")
-                ]
+                filenames = [filename for filename in glob.glob(gfs_dir) if not filename.endswith("idx")]
                 if len(filenames) > 0:
                     filenames = sorted(filenames)
                     fn = filenames[-1]
@@ -217,7 +191,7 @@ class XPWeatherEngine(WeatherEngine):
                     logger.warning(f"no GFS files in {gfs_dir}")
             if fn is None:
                 logger.warning("no GFS file")
-                return None
+                return False
             logger.debug(f"found {fn} GFS file")
         else:
             # 1.1. Try the exact date, if any
@@ -227,9 +201,7 @@ class XPWeatherEngine(WeatherEngine):
                 dfn = moment.strftime("GRIB-%Y-%m-%d-%H.%M-ZULU-wind-v2.grib")
                 fn = os.path.join(REAL_WEATHER_DIR, dfn)
                 if not os.path.exists(fn):
-                    logger.warning(
-                        f"no GRIB file for {moment.isoformat()}, trying alternate dates/times"
-                    )
+                    logger.warning(f"no GRIB file for {moment.isoformat()}, trying alternate dates/times")
                     fn = None
             # 1.2. Try any grib file
             if fn is None:
@@ -242,31 +214,21 @@ class XPWeatherEngine(WeatherEngine):
                     logger.warning(f"no GRIB files in {rw_dir}")
             if fn is None:
                 logger.warning("no GRIB file")
-                return None
+                return False
             logger.debug(f"found {fn} Real weather GRIB wind file")
 
         self.find_source_date()
 
         # 2. Preselect the file for the flight, save its name in self.bbox_source
-        # 	wgrib -small_grib LonW:LonE LatS:LatN file_name
-        bbox = flight.get_movement().getBoundingBox(
-            rounding=1
-        )  # (north, east, south, west)
+        #   wgrib -small_grib LonW:LonE LatS:LatN file_name
+        bbox = flight.get_movement().getBoundingBox(rounding=1)  # (north, east, south, west)
         fbbfile = os.path.join(FLIGHT_WEATHER_DIR, fid + ".grib")
 
-        args = [
-            fn,
-            "-small_grib",
-            f"{bbox[3]}:{bbox[1]}",
-            f"{bbox[2]}:{bbox[0]}",
-            fbbfile,
-        ]
+        args = [fn, "-small_grib", f"{bbox[3]}:{bbox[1]}", f"{bbox[2]}:{bbox[0]}", fbbfile]
         kwargs = {"stdout": subprocess.PIPE}
         cmd = ["wgrib2"] + args
-        p = subprocess.Popen(["wgrib2"] + args, **kwargs)
-        logger.debug(
-            f"{' '.join(cmd)}: {''.join([a.decode('UTF-8') for a in p.stdout])}"
-        )
+        p = subprocess.Popen(["wgrib2"] + args, **kwargs)  # type: ignore [call-overload]
+        logger.debug(f"{' '.join(cmd)}: {''.join([a.decode('UTF-8') for a in p.stdout])}")
         logger.debug(f"bounded box {bbox} stored in {fbbfile}")
 
         if not os.path.exists(fbbfile):
@@ -280,12 +242,12 @@ class XPWeatherEngine(WeatherEngine):
         # Parses GRIB data from file for WIND only
         args = ["-s", "-lon", f"{lon}", f"{lat}", self.source]
         kwargs = {"stdout": subprocess.PIPE}
-        p = subprocess.Popen(["wgrib2"] + args, **kwargs)
+        p = subprocess.Popen(["wgrib2"] + args, **kwargs)  # type: ignore [call-overload]
         winds = {}
         plat = None
         plon = None
         for line in iter(p.stdout):
-            # 0   1		 2			3   4			 5			 67
+            # 0   1      2          3   4            5           67
             # 638:132795878:d=2023072500:HGT:cloud ceiling:384 hour fcst::lon=51.000000,lat=4.500000,val=20000.2
             # 640:133298716:d=2023072500:PRES:low cloud bottom level:378-384 hour ave fcst::lon=51.000000,lat=4.500000,val=9.999e+20
             # 641:133658548:d=2023072500:PRES:middle cloud bottom level:378-384 hour ave fcst::lon=51.000000,lat=4.500000,val=9.999e+20
@@ -306,9 +268,7 @@ class XPWeatherEngine(WeatherEngine):
                 plat = lat
                 plon = lon
             elif plat != lat or plon != lon:
-                logger.debug(
-                    "WARNING: not same latitude, longitude", plat, plon, "vs", lat, lon
-                )
+                logger.debug("WARNING: not same latitude, longitude", plat, plon, "vs", lat, lon)
             if len(level) > 1 and level[1] == "mb":
                 # wind levels
                 winds.setdefault(level[0], {})
@@ -335,7 +295,7 @@ class XPWeatherEngine(WeatherEngine):
         self.WIND_CACHE[(lat, lon, self.source)] = windlevels
         return (plat, plon, windlevels)
 
-    def get_enroute_wind(self, flight_id, lat, lon, alt, moment: datetime) -> Wind:
+    def get_enroute_wind(self, flight_id, lat, lon, alt, moment: datetime) -> Wind | None:
         # Main function: Request wind information at lat, lon, alt at moment.
         # Return wind direction and speed and closest lat, lon, alt, and closest moment (of forecast)
         if self.flight_id != flight_id:
