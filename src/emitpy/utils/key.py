@@ -7,11 +7,11 @@ def key_path(*args):
     return ID_SEP.join(a)
 
 
-def rejson(redis, key: str, db: int = 0, path: str = None):
+def rejson(redis, key: str, db: int = 0, path: str = ""):
     if db != 0:
         prevdb = redis.client_info()["db"]
         redis.select(db)
-    if path is None:
+    if path == "":
         ret = redis.json().get(key)
     else:
         ret = redis.json().get(key, Path(path))

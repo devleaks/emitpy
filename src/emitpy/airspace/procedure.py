@@ -750,6 +750,7 @@ class STAR(Procedure):
 
     def prepareRestrictions(self, route):
         # Speed
+        # print("*><-" * 40)
         curr_limit = None
         for i in range(len(route)):
             v = route[i]

@@ -11,6 +11,7 @@ import copy
 import inspect
 import json
 from enum import Enum
+from types import NoneType
 
 from jsonpath import JSONPath
 
@@ -136,9 +137,9 @@ class EmitpyFeature(Feature):
     def setVersion(self, v: str = emitpy.__version__):
         self.setProp(FEATPROP.VERSION, v)
 
-    def setClass(self, c: str = None, force: bool = False):
+    def setClass(self, c: str = "", force: bool = False):
         if force or self.getClass() is None:
-            self.setProp(FEATPROP.CLASS, c if c is not None else type(self).__name__)
+            self.setProp(FEATPROP.CLASS, c if c == "" else type(self).__name__)
 
     def getClass(self):
         return self.getProp(FEATPROP.CLASS)
@@ -189,9 +190,9 @@ class EmitpyFeature(Feature):
     def getMark(self):
         return self.getProp(FEATPROP.MARK)
 
-    def setMark(self, mark, index: int = None):
+    def setMark(self, mark, index: int = -1):
         self.setProp(FEATPROP.MARK, mark)
-        if index is not None:
+        if index >= 0:
             self.setProp(FEATPROP.MARK_SEQUENCE, index)
 
         # For historical reasons, tags are kept in |-separated strings like tag1|tag2, this comes from X-Plane...
@@ -254,7 +255,7 @@ class EmitpyFeature(Feature):
         self.properties[FEATPROP.ALTITUDE.value] = alt
         self.properties[FEATPROP.ALTITUDE.value + "-reference"] = ref
 
-    def altitude(self, default: float = None):
+    def altitude(self, default: float | None = None) -> float | None:
         # Altitude can be stored at two places
         # Assumes Feature is <Point>
         if len(self.geometry.coordinates) > 2:
@@ -277,7 +278,7 @@ class EmitpyFeature(Feature):
         # Speed should be in meters per second
         self.setProp(name=FEATPROP.SPEED.value, value=speed)
 
-    def speed(self, default: float = None):
+    def speed(self, default: float | None = None) -> float | None:
         a = self.getProp(FEATPROP.SPEED)
         if a is None or a == "None":
             return default
@@ -287,7 +288,7 @@ class EmitpyFeature(Feature):
         # Speed should be in meters per second
         self.setProp(name=FEATPROP.SPEED.value, value=speed)
 
-    def groundSpeed(self, default: float = None):
+    def groundSpeed(self, default: float | None = None) -> float | None:
         a = self.getProp(FEATPROP.SPEED)
         if a is None or a == "None":
             return default
@@ -297,7 +298,7 @@ class EmitpyFeature(Feature):
         # Vertical speed should be in meters per second
         self.setProp(FEATPROP.VERTICAL_SPEED, vspeed)
 
-    def vspeed(self, default: float = None):
+    def vspeed(self, default: float | None = None) -> float | None:
         a = self.getProp(FEATPROP.VERTICAL_SPEED)
         if a is None or a == "None":
             return default
@@ -307,7 +308,7 @@ class EmitpyFeature(Feature):
         # Course should be in decimal degrees, if possible confined to [0, 360[. (@todo)
         self.setProp(FEATPROP.COURSE, course)
 
-    def course(self, default: float = None):
+    def course(self, default: float | None = None) -> float | None:
         a = self.getProp(FEATPROP.COURSE)
         if a is None or a == "None":
             return default
@@ -317,7 +318,7 @@ class EmitpyFeature(Feature):
         # Heading should be in decimal degrees, if possible confined to [0, 360[. (@todo)
         self.setProp(FEATPROP.HEADING, heading)
 
-    def heading(self, default: float = None):
+    def heading(self, default: float | None = None) -> float | None:
         a = self.getProp(FEATPROP.HEADING)
         if a is None or a == "None":
             return default
@@ -326,7 +327,7 @@ class EmitpyFeature(Feature):
     def setTime(self, time: float):
         self.setProp(FEATPROP.TIME, time)
 
-    def time(self, default: float = None):
+    def time(self, default: float | None = None) -> float | None:
         a = self.getProp(FEATPROP.TIME)
         if a is None or a == "None":
             return default
@@ -336,9 +337,9 @@ class EmitpyFeature(Feature):
         self.setProp(FEATPROP.PAUSE, time)
 
     def addToPause(self, time: float):
-        self.setProp(FEATPROP.PAUSE, self.pause(0) + time)
+        self.setProp(FEATPROP.PAUSE, self.pause(default=0) + time)  # type: ignore [operator]
 
-    def pause(self, default: float = None):
+    def pause(self, default: float | None = None) -> float | None:
         a = self.getProp(FEATPROP.PAUSE)
         if a is None or a == "None":
             return default
@@ -351,7 +352,7 @@ class EmitpyFeature(Feature):
     def setComment(self, comment: str):
         self.setProp(FEATPROP.COMMENT, comment)
 
-    def comment(self, default: str = None):
+    def comment(self, default: str | None = None) -> str | None:
         a = self.getProp(FEATPROP.COMMENT)
         if a is None or a == "None":
             return default

@@ -22,7 +22,7 @@ from importlib_resources import files
 from emitpy.parameters import HOME_DIR, DATA_DIR
 from emitpy.business import Identity, Company
 from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB, RAMP_TYPE
-from emitpy.utils import machToKmh, NAUTICAL_MILE, FT, toKmh, toMs, key_path, rejson
+from emitpy.utils import machToKmh, toMeter, NAUTICAL_MILE, FT, toKmh, toMs, key_path, rejson
 
 
 logger = logging.getLogger("Aircraft")
@@ -911,6 +911,15 @@ class AircraftTypeWithPerformance(AircraftType):
         if reqrange < 1000:
             return min(280, max_ceiling)
         return min(340, max_ceiling)
+
+    def rate_of_climb_per_distance(self, alt):
+        if alt <= toMeter(1500):
+            return self.getSI(ACPERF.initial_climb_vspeed) / self.getSI(ACPERF.initial_climb_speed)
+        elif alt < toMeter(15000):
+            return self.getSI(ACPERF.climbFL150_vspeed) / self.getSI(ACPERF.climbFL150_speed)
+        elif alt < toMeter(24000):
+            return self.getSI(ACPERF.climbFL240_speed) / self.getSI(ACPERF.climbFL240_speed)
+        return self.getSI(ACPERF.climbmach_vspeed) / self.getSI(ACPERF.climbmach_speed)
 
     def perfs(self):
         """

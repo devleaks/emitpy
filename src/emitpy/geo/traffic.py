@@ -5,8 +5,10 @@ import json
 
 from .features import FeatureWithProps
 
+# from emitpy.emit import EmitPoint
 
-def asTrafficCSV(features: [FeatureWithProps], header: bool = True):
+
+def asTrafficCSV(features: List[FeatureWithProps], header: bool = True) -> str:
     """Convert feature geometry and properties for Traffic package analysis.
 
     CSV traffic format:
@@ -41,7 +43,7 @@ def asTrafficCSV(features: [FeatureWithProps], header: bool = True):
     return csv
 
 
-def asTrafficJSON(features: [FeatureWithProps]):
+def asTrafficJSON(features: List[FeatureWithProps]):
     """Convert feature geometry and properties for Traffic package analysis (JSON format).
 
     JSON traffic format:
@@ -87,7 +89,7 @@ def asTrafficJSON(features: [FeatureWithProps]):
     )
 
 
-def toTraffic(features: List["EmitPoint"]):
+def toTraffic(features: List["EmitPoint"]) -> str:
     """Wrapper around EmitPoint special formatting for Traffic analysis package
 
     Args:

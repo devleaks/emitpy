@@ -14,23 +14,8 @@ import emitpy.service
 
 from emitpy.flight import Flight
 from emitpy.emit import Emit, ReEmit
-from emitpy.broadcast import (
-    Format,
-    FormatMessage,
-    EnqueueToRedis,
-    EnqueueMessagesToRedis,
-)
-from emitpy.constants import (
-    TAR_SERVICE,
-    SERVICE_PHASE,
-    ARRIVAL,
-    DEPARTURE,
-    REDIS_TYPE,
-    REDIS_DATABASE,
-    ID_SEP,
-    EVENT_ONLY_MESSAGE,
-    key_path,
-)
+from emitpy.broadcast import Format, FormatMessage, EnqueueToRedis, EnqueueMessagesToRedis
+from emitpy.constants import TAR_SERVICE, SERVICE_PHASE, ARRIVAL, DEPARTURE, REDIS_TYPE, REDIS_DATABASE, ID_SEP, EVENT_ONLY_MESSAGE, key_path
 
 logger = logging.getLogger("FlightServices")
 
@@ -40,18 +25,14 @@ class FlightServices:
         self.app = None
         self.flight = flight
         self.operator = operator
-        self.ramp = (
-            flight.ramp
-        )  # should check that aircraft was not towed to another ramp for departure.
+        self.ramp = flight.ramp  # should check that aircraft was not towed to another ramp for departure.
         self.actype = flight.aircraft.actype
         self.services = []
         self.airport = None
 
     @staticmethod
     def getFlightServicesKey(flight_id: str):
-        return key_path(
-            REDIS_DATABASE.FLIGHTS.value, flight_id, REDIS_DATABASE.SERVICES.value
-        )
+        return key_path(REDIS_DATABASE.FLIGHTS.value, flight_id, REDIS_DATABASE.SERVICES.value)
 
     def setManagedAirport(self, managedAirport):
         self.app = managedAirport
@@ -100,33 +81,23 @@ class FlightServices:
     #
     def service(self):
         # From dict, make append appropriate service to list
-        gseprofile = self.flight.aircraft.actype.getGSEProfile(
-            redis=self.app.use_redis()
-        )
+        gseprofile = self.flight.aircraft.actype.getGSEProfile(redis=self.app.use_redis())
         if gseprofile is None:
-            logger.warning(
-                f"service: no GSE ramp profile for {self.flight.aircraft.actype.typeId}"
-            )
+            logger.warning(f"service: no GSE ramp profile for {self.flight.aircraft.actype.typeId}")
 
         tarprofile = self.flight.getTurnaroundProfile(redis=self.app.use_redis())
         if tarprofile is None:
-            return (
-                False,
-                f"FlightServices::service: no turnaround profile for {self.flight.aircraft.actype.typeId}",
-            )
+            return (False, f"FlightServices::service: no turnaround profile for {self.flight.aircraft.actype.typeId}")
 
         if "services" not in tarprofile:
-            return (
-                False,
-                f"FlightServices::service: no service in turnaround profile for {self.flight.aircraft.actype}",
-            )
+            return (False, f"FlightServices::service: no service in turnaround profile for {self.flight.aircraft.actype}")
 
         svcs = tarprofile["services"]
 
         am = self.airport.manager
 
         # services:
-        #   type: baggage
+        #   atype: baggage
         #   model: train
         #   start: 10
         #   duration: 20
@@ -134,7 +105,7 @@ class FlightServices:
         #   warn: 0
         #
         # event:
-        #   type: event
+        #   atype: event
         #   event: First passenger exits aircraft
         #   start: 10
         #   warn: 0
@@ -152,23 +123,15 @@ class FlightServices:
             logger.debug(f"creating service {sname}..")
 
             # Create service
-            service_scheduled_dt = self.flight.scheduled_dt + timedelta(
-                minutes=scheduled
-            )
-            this_service = Service.getService(sname)(
-                scheduled=service_scheduled_dt,
-                ramp=self.flight.ramp,
-                operator=self.operator,
-            )
+            service_scheduled_dt = self.flight.scheduled_dt + timedelta(minutes=scheduled)
+            this_service = Service.getService(sname)(scheduled=service_scheduled_dt, ramp=self.flight.ramp, operator=self.operator)
 
             this_service.setFlight(self.flight)
             this_service.setAircraftType(self.flight.aircraft.actype)
             this_service.setRamp(self.ramp)
             if label is None:
                 label = this_service.getId()
-                logger.warning(
-                    f"..service {sname} has no label, added label «{label}».."
-                )
+                logger.warning(f"..service {sname} has no label, added label «{label}»..")
             this_service.setLabel(label)
 
             # 2 cases: Event or regular
@@ -181,19 +144,10 @@ class FlightServices:
                     logger.debug(f"..event only service forced missing duration to 0..")
                     duration = 0
                 if duration > 0 and self.flight.load_factor != 1.0:  # Wow
-                    logger.debug(
-                        f"service {sname}: reduced duration: load factor={self.flight.load_factor}"
-                    )
+                    logger.debug(f"service {sname}: reduced duration: load factor={self.flight.load_factor}")
                     duration = duration * self.flight.load_factor
-                this_service.setRSTSchedule(
-                    relstartime=scheduled,
-                    duration=duration,
-                    warn=warn_time,
-                    alert=alert_time,
-                )  # duration in minutes
-                logger.debug(
-                    f"..created event only service with label «{this_service.label}».."
-                )
+                this_service.setRSTSchedule(relstartime=scheduled, duration=duration, warn=warn_time, alert=alert_time)  # duration in minutes
+                logger.debug(f"..created event only service with label «{this_service.label}»..")
             else:
                 equipment_model = svc.get(TAR_SERVICE.MODEL.value)
                 # should book vehicle a few minutes before and after...
@@ -203,59 +157,31 @@ class FlightServices:
                 service_scheduled_end_dt = None
                 # Duration or quantity?
                 if duration is not None and quantity is not None:
-                    logger.warning(
-                        f"{sname} has both duration and quantity, using quantity"
-                    )
+                    logger.warning(f"{sname} has both duration and quantity, using quantity")
                     duration = None
 
                 if duration is None and quantity is None:
                     duration = this_service.duration()
-                    service_scheduled_end_dt = service_scheduled_dt + timedelta(
-                        seconds=duration
-                    )
-                    this_service.setRSTSchedule(
-                        relstartime=scheduled,
-                        duration=duration / 60,
-                        warn=warn_time,
-                        alert=alert_time,
-                    )
-                    logger.warning(
-                        f"{sname} has no duration and no quantity, using default duration {duration} min"
-                    )
+                    service_scheduled_end_dt = service_scheduled_dt + timedelta(seconds=duration)
+                    this_service.setRSTSchedule(relstartime=scheduled, duration=duration / 60, warn=warn_time, alert=alert_time)
+                    logger.warning(f"{sname} has no duration and no quantity, using default duration {duration} min")
 
                 if duration is None and quantity is not None:
                     this_service.setQuantity(quantity)
                     # This will be done in selectEquipment()
                     # duration = this_equipment.getDuration(quantity=quantity)
-                    logger.debug(
-                        f"{sname} uses quantity, duration estimated during vehicle assignment"
-                    )
+                    logger.debug(f"{sname} uses quantity, duration estimated during vehicle assignment")
 
                 if duration is not None and quantity is None:
-                    this_service.setRSTSchedule(
-                        relstartime=scheduled,
-                        duration=duration,
-                        warn=warn_time,
-                        alert=alert_time,
-                    )  # duration is in minutes
-                    logger.debug(
-                        f"{sname} has fixed duration {duration} min (without setup/cleanup)"
-                    )
+                    this_service.setRSTSchedule(relstartime=scheduled, duration=duration, warn=warn_time, alert=alert_time)  # duration is in minutes
+                    logger.debug(f"{sname} has fixed duration {duration} min (without setup/cleanup)")
 
                 this_equipment = am.selectEquipment(
-                    operator=self.operator,
-                    service=this_service,
-                    model=equipment_model,
-                    reqtime=service_scheduled_dt,
-                    reqend=service_scheduled_end_dt,
-                    use=True,
+                    operator=self.operator, service=this_service, model=equipment_model, reqtime=service_scheduled_dt, reqend=service_scheduled_end_dt, use=True
                 )  # this will attach this_equipment to this_service
 
                 if this_equipment is None:
-                    return (
-                        False,
-                        f"FlightServices::service: vehicle not found for {sname}",
-                    )
+                    return (False, f"FlightServices::service: vehicle not found for {sname}")
 
                 equipment_startpos = self.airport.selectRandomServiceDepot(sname)
                 this_equipment.setPosition(equipment_startpos)
@@ -264,27 +190,16 @@ class FlightServices:
                 this_equipment.setNextPosition(equipment_endpos)
 
                 if equipment_startpos is None or equipment_endpos is None:
-                    logger.warning(
-                        f"positions: {equipment_startpos} -> {equipment_endpos}"
-                    )
+                    logger.warning(f"positions: {equipment_startpos} -> {equipment_endpos}")
 
                 duration2 = this_service.duration()
                 if self.flight.load_factor != 1.0:  # Wow
-                    logger.debug(
-                        f"service {sname}: reduced duration: load factor={self.flight.load_factor}"
-                    )
+                    logger.debug(f"service {sname}: reduced duration: load factor={self.flight.load_factor}")
                     duration2 = duration2 * self.flight.load_factor
 
                 duration_str = round(duration2 / 60, 1)
-                this_service.setRSTSchedule(
-                    relstartime=scheduled,
-                    duration=duration_str,
-                    warn=warn_time,
-                    alert=alert_time,
-                )
-                logger.debug(
-                    f"service {sname}: added RSTS sched={scheduled}, duration={duration_str} min, w={warn_time}, a={alert_time} (with setup/cleanup)"
-                )
+                this_service.setRSTSchedule(relstartime=scheduled, duration=duration_str, warn=warn_time, alert=alert_time)
+                logger.debug(f"service {sname}: added RSTS sched={scheduled}, duration={duration_str} min, w={warn_time}, a={alert_time} (with setup/cleanup)")
 
             logger.debug(f"..adding..")
             s2 = svc.copy()
@@ -333,20 +248,14 @@ class FlightServices:
         for service in self.services:
             emit = service["emit"]
             if emit.is_event_service():
-                logger.debug(
-                    f"service {service[TAR_SERVICE.TYPE.value]} does not need scheduling of positions"
-                )
+                logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need scheduling of positions")
                 continue
             logger.debug(f"scheduling {service[TAR_SERVICE.TYPE.value]}..")
-            stime = scheduled + timedelta(
-                minutes=service[TAR_SERVICE.START.value]
-            )  # nb: service["scheduled"] can be negative
+            stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
             ret = emit.schedule(SERVICE_PHASE.SERVICE_START.value, stime, do_print)
             if not ret[0]:
                 return ret
-            logger.debug(
-                f"there are {len(emit.getScheduledPoints())} scheduled emit points"
-            )
+            logger.debug(f"there are {len(emit.getScheduledPoints())} scheduled emit points")
             logger.debug(f"..done")
         return (True, "FlightServices::schedule: completed")
 
@@ -354,12 +263,8 @@ class FlightServices:
         for service in self.services:
             emit = service["emit"]
             logger.debug(f"scheduling {service[TAR_SERVICE.TYPE.value]}..")
-            stime = scheduled + timedelta(
-                minutes=service[TAR_SERVICE.START.value]
-            )  # nb: service["scheduled"] can be negative
-            ret = emit.scheduleMessages(
-                SERVICE_PHASE.SERVICE_START.value, stime, do_print
-            )
+            stime = scheduled + timedelta(minutes=service[TAR_SERVICE.START.value])  # nb: service["scheduled"] can be negative
+            ret = emit.scheduleMessages(SERVICE_PHASE.SERVICE_START.value, stime, do_print)
             if not ret[0]:
                 return ret
             logger.debug(f"there are {len(emit.getMessages())} scheduled messages")
@@ -385,19 +290,7 @@ class FlightServices:
         print(f"block time: {scheduled.isoformat()}", file=output)
 
         print(f"RELATIVE SERVICE TIME SCHEDULE", file=output)
-        PTS_HEADERS = [
-            "event",
-            "start",
-            "duration",
-            "warn",
-            "alert",
-            "start time",
-            "warn time",
-            "alert time",
-            "end time",
-            "end warn time",
-            "end alert time",
-        ]
+        PTS_HEADERS = ["event", "start", "duration", "warn", "alert", "start time", "warn time", "alert time", "end time", "end warn time", "end alert time"]
         table = []
         scheduled = scheduled.replace(microsecond=0)
         for service in self.services:
@@ -413,43 +306,20 @@ class FlightServices:
             line.append(s.rst_schedule.alert)
             line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime))
             if s.rst_schedule.warn is not None:
-                line.append(
-                    scheduled
-                    + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.warn)
-                )
+                line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.warn))
             else:
                 line.append(None)
             if s.rst_schedule.alert is not None:
-                line.append(
-                    scheduled
-                    + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.alert)
-                )
+                line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.alert))
             else:
                 line.append(None)
-            line.append(
-                scheduled
-                + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.duration)
-            )
+            line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.duration))
             if s.rst_schedule.warn is not None:
-                line.append(
-                    scheduled
-                    + timedelta(
-                        minutes=s.rst_schedule.reltime
-                        + s.rst_schedule.duration
-                        + s.rst_schedule.warn
-                    )
-                )
+                line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.duration + s.rst_schedule.warn))
             else:
                 line.append(None)
             if s.rst_schedule.alert is not None:
-                line.append(
-                    scheduled
-                    + timedelta(
-                        minutes=s.rst_schedule.reltime
-                        + s.rst_schedule.duration
-                        + s.rst_schedule.alert
-                    )
-                )
+                line.append(scheduled + timedelta(minutes=s.rst_schedule.reltime + s.rst_schedule.duration + s.rst_schedule.alert))
             else:
                 line.append(None)
             for i in range(5, 11):
@@ -469,11 +339,7 @@ class FlightServices:
         #     line.append(m.subject)
         #     table.append(line)
 
-        for (
-            m
-        ) in (
-            self.flight.get_movement().getMessages()
-        ):  # move.getMessages() includes flight.getMessages()
+        for m in self.flight.get_movement().getMessages():  # move.getMessages() includes flight.getMessages()
             line = []
             line.append("move")
             line.append(type(m).__name__)
@@ -511,9 +377,7 @@ class FlightServices:
         for service in self.services:
             emit = service["emit"]
             if emit.is_event_service():
-                logger.debug(
-                    f"service {service[TAR_SERVICE.TYPE.value]} does not need formatting of positions"
-                )
+                logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need formatting of positions")
                 continue
             logger.debug(
                 f"formatting '{service['type']}' ({len(service['emit'].move_points)}, {len(service['emit']._emit_points)}, {len(service['emit'].getScheduledPoints())}).."
@@ -554,9 +418,7 @@ class FlightServices:
         for service in self.services:
             emit = service["emit"]
             if emit.is_event_service():
-                logger.debug(
-                    f"service {service[TAR_SERVICE.TYPE.value]} does not need enqueueing positions"
-                )
+                logger.debug(f"service {service[TAR_SERVICE.TYPE.value]} does not need enqueueing positions")
                 continue
             logger.debug(f"enqueuing '{service[TAR_SERVICE.TYPE.value]}'..")
             formatted = EnqueueToRedis(emit, queue)

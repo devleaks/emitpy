@@ -1,12 +1,15 @@
 """
 GeoJSON Features with special meaning or type (class).
 """
+from typing import List, Dict
 from datetime import datetime, timedelta
 
 from emitpy.constants import FEATPROP, POI_TYPE, SERVICE_COLOR
 from emitpy.geo.turf import Polygon, Point, LineString, Feature
 from emitpy.geo.turf import EmitpyFeature as FeatureWithProps
 from emitpy.geo.turf import bearing, destination
+
+# from emitpy.aircraft import AircraftType
 
 
 # ################################
@@ -29,7 +32,7 @@ class Location(FeatureWithProps):  # Location(Feature)
 #
 #
 class Ramp(FeatureWithProps):
-    def __init__(self, name: str, ramptype: str, position: [float], orientation: float, use: str):
+    def __init__(self, name: str, ramptype: str, position: List[float], orientation: float, use: str):
         FeatureWithProps.__init__(
             self,
             geometry=Point(position),
@@ -43,7 +46,7 @@ class Ramp(FeatureWithProps):
             },
         )
 
-        self.service_pois = {}
+        self.service_pois: Dict[str, FeatureWithProps] = {}
         self.ac_nose = None
 
     def getInfo(self):
@@ -214,7 +217,7 @@ class ServiceParking(FeatureWithProps):
     for equipment movements (row codes 1400, 1401).
     """
 
-    def __init__(self, name: str, parking_type: str, position: [float], orientation: float, use: str):
+    def __init__(self, name: str, parking_type: str, position: List[float], orientation: float, use: str):
         FeatureWithProps.__init__(
             self, geometry=Point(position), properties={"type": "service-parking", "sub-type": parking_type, "parking-use": use, "orientation": orientation}
         )
@@ -231,11 +234,11 @@ class WeatherPoint(FeatureWithProps):
 
     TROPOSPHERE = 20000  # m
 
-    def __init__(self, position: [float], weather):
+    def __init__(self, position: List[float], weather):
         FeatureWithProps.__init__(self, geometry=Point(position), properties={"weather": weather})
 
         self.dt_start = datetime(1970, 1, 1, 0, 0)
-        self.dt_end = datetime.now() + timedelta(years=100)  # won't be here to blame if it fails.
+        self.dt_end = datetime.now() + timedelta(weeks=52 * 100)  # won't be here to blame if it fails.
         self.bbox = [90, 180, -90, -180]
         self.alt_min = 0  # MSL
         self.alt_max = WeatherPoint.TOPOSPHERE

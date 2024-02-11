@@ -10,25 +10,14 @@ logger = logging.getLogger("Utils/Time")
 
 
 class EstimatedTime:
-    def __init__(
-        self,
-        estimated: datetime,
-        timestamp: datetime,
-        reason: str,
-        estimator: str = None,
-    ):
+    def __init__(self, estimated: datetime, timestamp: datetime, reason: str, estimator: str):
         self.estimated = estimated
         self.timestamp = timestamp
         self.reason = reason
         self.estimator = estimator
 
     def getInfo(self):
-        return {
-            "estimated": self.estimated,
-            "timestamp": self.timestamp,
-            "reason": self.reason,
-            "estimator": self.estimator,
-        }
+        return {"estimated": self.estimated, "timestamp": self.timestamp, "reason": self.reason, "estimator": self.estimator}
 
 
 def roundTime(dt: datetime, roundTo: int = 300, seconds: int = 0, minutes: int = 0):
