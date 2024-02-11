@@ -22,6 +22,7 @@ Attributes:
     T0 (float): Description
     Tstrat (float): Description
 """
+
 # flake8: noqa
 """
 This module implements functions for aeronautics, conversions between:

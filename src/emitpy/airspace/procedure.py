@@ -3,6 +3,7 @@ CIFP is a collection of standard instrument arrival and departure procedures for
 It also contains runways, approches and final approaches.
 A couple of helper classes help deal with CIFP file parsing.
 """
+
 from abc import ABC, abstractmethod
 import os
 import logging
@@ -15,7 +16,17 @@ from emitpy.constants import FEATPROP, ID_SEP
 from emitpy.geo.turf import distance, bearing, destination, Point, Feature
 from emitpy.geo import FeatureWithProps
 
-from emitpy.utils import ConvertDMSToDD, FT, cifp_alt_in_ft, cifp_speed, toKn, toKmh2, toKmh, toMs, toMeter
+from emitpy.utils import (
+    ConvertDMSToDD,
+    FT,
+    cifp_alt_in_ft,
+    cifp_speed,
+    toKn,
+    toKmh2,
+    toKmh,
+    toMs,
+    toMeter,
+)
 from emitpy.parameters import XPLANE_DIR
 from .aerospace import Aerospace, NamedPoint
 
@@ -152,7 +163,9 @@ class Restriction:
             else:
                 r.alt1 = cifp_alt_in_ft(ar[1:])
         if restriction != r.getRestrictionDesc():
-            logger.warning(f"parsed restriction '{restriction}' to '{r.getRestrictionDesc()}'")
+            logger.warning(
+                f"parsed restriction '{restriction}' to '{r.getRestrictionDesc()}'"
+            )
         assert restriction == r.getRestrictionDesc()
         return r
 
@@ -170,7 +183,11 @@ class Restriction:
         return self.hasAltitudeRestriction() or self.hasSpeedRestriction()
 
     def getRestrictionDesc(self, verbose: bool = False):
-        if not self.hasAltitudeRestriction() and not self.hasSpeedRestriction() and verbose:
+        if (
+            not self.hasAltitudeRestriction()
+            and not self.hasSpeedRestriction()
+            and verbose
+        ):
             return "no restriction"
 
         a = self.getAltitudeRestrictionDesc() + "/" + self.getSpeedRestrictionDesc()
@@ -238,12 +255,19 @@ class Restriction:
         return toMs(kmh=toKmh(kn=self.speed))
 
     def getSIAltitudes(self):
-        return (toMeter(ft=self.alt1) if self.alt1 is not None else None, toMeter(ft=self.alt2) if self.alt2 is not None else None)
+        return (
+            toMeter(ft=self.alt1) if self.alt1 is not None else None,
+            toMeter(ft=self.alt2) if self.alt2 is not None else None,
+        )
 
     def getSpeedRestrictionDesc(self):
         a = ""
         if self.speed is not None:
-            a = "?" if self.speed_restriction_type is None else self.speed_restriction_type
+            a = (
+                "?"
+                if self.speed_restriction_type is None
+                else self.speed_restriction_type
+            )
             if a == " ":
                 a = "@"  # more explicit on display
             a = f"{a}{self.speed}"
@@ -252,7 +276,9 @@ class Restriction:
     def hasSpeedRestriction(self) -> bool:
         return self.speed is not None
 
-    def checkSpeed(self, feature: Feature, propname: str = FEATPROP.SPEED.value, tolerance: int = 5):
+    def checkSpeed(
+        self, feature: Feature, propname: str = FEATPROP.SPEED.value, tolerance: int = 5
+    ):
         """
         Note: We assume same units for feature speed and constrains.
         We also assume feature has properties dict set.
@@ -269,7 +295,9 @@ class Restriction:
             elif self.speed_restriction_type == "+":
                 return speed >= self.speed
             else:
-                logger.warning(f"invalid control speed type '{self.speed_restriction_type}'")
+                logger.warning(
+                    f"invalid control speed type '{self.speed_restriction_type}'"
+                )
         return True
 
     def combine(self, restriction):
@@ -289,8 +317,12 @@ class Restriction:
         if self.speed == 0:
             self.speed = None
 
-        self.alt_restriction_type = nvl(self.alt_restriction_type, restriction.alt_restriction_type)
-        self.speed_restriction_type = nvl(self.speed_restriction_type, restriction.speed_restriction_type)
+        self.alt_restriction_type = nvl(
+            self.alt_restriction_type, restriction.alt_restriction_type
+        )
+        self.speed_restriction_type = nvl(
+            self.speed_restriction_type, restriction.speed_restriction_type
+        )
 
 
 class FeatureWithRestriction(FeatureWithProps):
@@ -299,7 +331,9 @@ class FeatureWithRestriction(FeatureWithProps):
     """
 
     def __init__(self, geometry, properties={}, **extra):
-        FeatureWithProps.__init__(self, geometry=geometry, properties=properties, extra=extra)
+        FeatureWithProps.__init__(
+            self, geometry=geometry, properties=properties, extra=extra
+        )
         self.restrictions = []
         self.restriction = None
 
@@ -320,8 +354,24 @@ class NamedPointWithRestriction(NamedPoint, Restriction):
     A NamedPointWithRestriction is a combination of a NamedPoint and a Restriction.
     """
 
-    def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
-        NamedPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
+    def __init__(
+        self,
+        ident: str,
+        region: str,
+        airport: str,
+        pointtype: str,
+        lat: float,
+        lon: float,
+    ):
+        NamedPoint.__init__(
+            self,
+            ident=ident,
+            region=region,
+            airport=airport,
+            pointtype=pointtype,
+            lat=lat,
+            lon=lon,
+        )
         Restriction.__init__(self)
 
 
@@ -333,7 +383,17 @@ class ControlledAirspace(FeatureWithProps, Restriction):
     @see: Little Navmap for "inspiration".
     """
 
-    def __init__(self, name, region, airspace_class, area, altmin, altmax, altmin_type, altmax_type):
+    def __init__(
+        self,
+        name,
+        region,
+        airspace_class,
+        area,
+        altmin,
+        altmax,
+        altmin_type,
+        altmax_type,
+    ):
         FeatureWithProps.__init__(self, geometry=area, properties={})
         Restriction.__init__(self)
 
@@ -356,7 +416,17 @@ class Hold(Restriction):
         Speed is the holding speed.
     """
 
-    def __init__(self, fix: NamedPoint, altmin: float, altmax: float, course: float, turn: str, leg_time: float, leg_length: float, speed: float):
+    def __init__(
+        self,
+        fix: NamedPoint,
+        altmin: float,
+        altmax: float,
+        course: float,
+        turn: str,
+        leg_time: float,
+        leg_length: float,
+        speed: float,
+    ):
         Restriction.__init__(self)
         self.fix = fix
         self.course = course
@@ -415,7 +485,9 @@ class Hold(Restriction):
         perpendicular = self.course + 90 * (1 if self.turn == "R" else -1)
         c23 = destination(p2, radius, perpendicular)
 
-        logger.debug(f"fix:{self.fix.id} turn={self.turn} course={self.course:f} perp={perpendicular:f}")
+        logger.debug(
+            f"fix:{self.fix.id} turn={self.turn} course={self.course:f} perp={perpendicular:f}"
+        )
 
         start_angle = perpendicular
         if self.turn == "L":
@@ -571,9 +643,18 @@ class Procedure(ABC):
         p = airspace.getNamedPoint(vertex)
         if p is not None:
             pointtype = p.id.split(ID_SEP)[-2]
-            u = NamedPointWithRestriction(ident=p.ident, region=p.region, airport=p.airport, pointtype=pointtype, lat=p.lat(), lon=p.lon())
+            u = NamedPointWithRestriction(
+                ident=p.ident,
+                region=p.region,
+                airport=p.airport,
+                pointtype=pointtype,
+                lat=p.lat(),
+                lon=p.lon(),
+            )
             u.combine(restriction)
-            logger.debug(f"{type(self).__name__} {self.name}: {vertex} ({u.getRestrictionDesc(True)})")
+            logger.debug(
+                f"{type(self).__name__} {self.name}: {vertex} ({u.getRestrictionDesc(True)})"
+            )
             return u
         logger.warning(f"no vertex named {vertex}")
         return None
@@ -607,11 +688,26 @@ class SID(Procedure):
         for v in self.route.values():
             fid = v.param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
-                vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
+                vid = (
+                    v.param(PROC_DATA.ICAO_CODE)
+                    + ":"
+                    + v.param(PROC_DATA.FIX_IDENT)
+                    + ":"
+                )
                 # logger.debug("SID:getRoute: %s" % vid)
-                vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
-                if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location, we keep either one
-                    a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
+                vtxs = list(
+                    filter(lambda x: x.startswith(vid), airspace.vert_dict.keys())
+                )
+                if (
+                    len(vtxs) > 0 and len(vtxs) < 3
+                ):  # there often is both a VOR and a DME at same location, we keep either one
+                    a.append(
+                        self.getNamedPointWithRestriction(
+                            airspace=airspace,
+                            vertex=vtxs[0],
+                            restriction=v.getRestriction(),
+                        )
+                    )
                 elif len(vtxs) > 2:
                     logger.warning(f"SID:vertex ambiguous {vid} ({len(vtxs)}, {vtxs})")
                 else:
@@ -631,7 +727,9 @@ class SID(Procedure):
             while j >= 0 and not stop:
                 prec = r[j]
                 # print(">>>", j, prec.getProp("_restricted_speed"))
-                if prec.hasSpeedRestriction():  # element has already a speed restriction
+                if (
+                    prec.hasSpeedRestriction()
+                ):  # element has already a speed restriction
                     # print("prec has restriction", j, ">" + prec.getSpeedRestrictionDesc() + "<")
                     stop = True
                 else:  # we copy/apply the restriction to preceeding wp
@@ -650,7 +748,9 @@ class SID(Procedure):
             while j >= 0 and not stop:
                 prec = r[j]
                 # print(">>>", j, prec.getProp("_restricted_altitude"))
-                if prec.hasAltitudeRestriction():  # element has already a speed restriction
+                if (
+                    prec.hasAltitudeRestriction()
+                ):  # element has already a speed restriction
                     # print("prec has restriction", j, ">" + prec.getAltitudeRestrictionDesc() + "<")
                     stop = True
                 else:  # we copy/apply the restriction to preceeding wp
@@ -674,7 +774,9 @@ class SID(Procedure):
                 if spd_desc in [" ", "@"]:
                     v.setProp("_speed_min", v.speed)
                     v.setProp("_speed_max", v.speed)
-                    v.setProp("_speed_target", v.speed)  # mandatory to pass wp at that speed
+                    v.setProp(
+                        "_speed_target", v.speed
+                    )  # mandatory to pass wp at that speed
                 elif spd_desc == "+":
                     v.setProp("_speed_min", v.speed)
                 elif spd_desc == "-":
@@ -735,13 +837,30 @@ class STAR(Procedure):
         for v in self.route.values():
             fid = v.param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
-                vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
+                vid = (
+                    v.param(PROC_DATA.ICAO_CODE)
+                    + ":"
+                    + v.param(PROC_DATA.FIX_IDENT)
+                    + ":"
+                )
                 # logger.debug("STAR:getRoute: %s" % vid)
-                vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
-                if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location
-                    a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
+                vtxs = list(
+                    filter(lambda x: x.startswith(vid), airspace.vert_dict.keys())
+                )
+                if (
+                    len(vtxs) > 0 and len(vtxs) < 3
+                ):  # there often is both a VOR and a DME at same location
+                    a.append(
+                        self.getNamedPointWithRestriction(
+                            airspace=airspace,
+                            vertex=vtxs[0],
+                            restriction=v.getRestriction(),
+                        )
+                    )
                 elif len(vtxs) > 2:
-                    logger.warning("STAR:vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
+                    logger.warning(
+                        "STAR:vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs)
+                    )
                 else:
                     logger.warning("STAR:vertex not found %s", vid)
 
@@ -807,7 +926,9 @@ class STAR(Procedure):
                 elif alt_desc == "-":
                     v.setProp("_alt_max", v.alt1)
                     if first:
-                        v.setProp("_alt_target", v.alt1)  # first "below" alt is target alt
+                        v.setProp(
+                            "_alt_target", v.alt1
+                        )  # first "below" alt is target alt
                         first = False
                 curr_limit = v
             # elif curr_limit is not None:
@@ -839,19 +960,41 @@ class APPCH(Procedure):
         for v in self.route.values():
             code = v.param(PROC_DATA.DESC_CODE)[0]
             if code == "E" and not interrupted:
-                vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
+                vid = (
+                    v.param(PROC_DATA.ICAO_CODE)
+                    + ":"
+                    + v.param(PROC_DATA.FIX_IDENT)
+                    + ":"
+                )
                 # logger.debug("APPCH:getRoute: %s" % vid)
-                vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
-                if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location
-                    a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
+                vtxs = list(
+                    filter(lambda x: x.startswith(vid), airspace.vert_dict.keys())
+                )
+                if (
+                    len(vtxs) > 0 and len(vtxs) < 3
+                ):  # there often is both a VOR and a DME at same location
+                    a.append(
+                        self.getNamedPointWithRestriction(
+                            airspace=airspace,
+                            vertex=vtxs[0],
+                            restriction=v.getRestriction(),
+                        )
+                    )
                 elif len(vtxs) > 2:
-                    logger.warning("APPCH:vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
+                    logger.warning(
+                        "APPCH:vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs)
+                    )
                 else:
                     logger.warning("APPCH:vertex not found %s", vid)
             else:
                 if not interrupted:
                     logger.debug(
-                        "APPCH:getRoute: interrupted %s", "" if len(v.param(PROC_DATA.FIX_IDENT).strip()) == 0 else (f" at {v.param(PROC_DATA.FIX_IDENT)} ")
+                        "APPCH:getRoute: interrupted %s",
+                        (
+                            ""
+                            if len(v.param(PROC_DATA.FIX_IDENT).strip()) == 0
+                            else (f" at {v.param(PROC_DATA.FIX_IDENT)} ")
+                        ),
                     )
                 interrupted = True
 
@@ -916,7 +1059,9 @@ class APPCH(Procedure):
                 elif alt_desc == "-":
                     v.setProp("_alt_max", v.alt1)
                     if first:
-                        v.setProp("_alt_target", v.alt1)  # first "below" alt is target alt
+                        v.setProp(
+                            "_alt_target", v.alt1
+                        )  # first "below" alt is target alt
                         first = False
                 curr_limit = v
             # elif curr_limit is not None:
@@ -950,7 +1095,12 @@ class RWY(Procedure):
         self.route[0] = line
         if self.has_latlon():
             self.point = NamedPointWithRestriction(
-                ident=line.params[0], region=self.airport[0:2], airport=self.airport, pointtype="RWY", lat=self.getLatitude(), lon=self.getLongitude()
+                ident=line.params[0],
+                region=self.airport[0:2],
+                airport=self.airport,
+                pointtype="RWY",
+                lat=self.getLatitude(),
+                lon=self.getLongitude(),
             )
             self.setAltitude(float(self.route[0].params[3]) * FT)
         else:
@@ -960,21 +1110,27 @@ class RWY(Procedure):
         """
         Returns whether the RWY procedure has latitude and longitude of threshold point
         """
-        return (self.route[0].params[7].split(";")[1] != "") and (self.route[0].params[8] != "")
+        return (self.route[0].params[7].split(";")[1] != "") and (
+            self.route[0].params[8] != ""
+        )
 
     def getLatitude(self):
         """
         Returns latitude of threshold point
         """
         latstr = self.route[0].params[7].split(";")[1]
-        return ConvertDMSToDD(latstr[1:3], latstr[3:5], int(latstr[5:9]) / 100, latstr[0])
+        return ConvertDMSToDD(
+            latstr[1:3], latstr[3:5], int(latstr[5:9]) / 100, latstr[0]
+        )
 
     def getLongitude(self):
         """
         Returns longitude of threshold point
         """
         lonstr = self.route[0].params[8]
-        return ConvertDMSToDD(lonstr[1:4], lonstr[4:6], int(lonstr[6:10]) / 100, lonstr[0])
+        return ConvertDMSToDD(
+            lonstr[1:4], lonstr[4:6], int(lonstr[6:10]) / 100, lonstr[0]
+        )
 
     def setAltitude(self, alt):
         """
@@ -998,7 +1154,9 @@ class RWY(Procedure):
         """
         Returns neutral representation of runway in case of multiple parallel runways
         """
-        if self.runway[-1] in list("LR"):  # "LRC"? NNL + NNR -> NNB, I don't know if there is a NNC?
+        if self.runway[-1] in list(
+            "LR"
+        ):  # "LRC"? NNL + NNR -> NNB, I don't know if there is a NNC?
             return self.runway[:-1] + "B"
         return "ALL"
 
@@ -1024,7 +1182,9 @@ class CIFP:
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "CIFP")
         if os.path.isdir(fn):
-            logger.debug(f"CIFP custom data directory {CUSTOM_DATA_DIR} exist, using it")
+            logger.debug(
+                f"CIFP custom data directory {CUSTOM_DATA_DIR} exist, using it"
+            )
             self.basename = CUSTOM_DATA_DIR
         else:
             logger.debug(f"CIFP using {DEFAULT_DATA_DIR}")
@@ -1071,7 +1231,9 @@ class CIFP:
         while line:
             cifpline = ProcedureData(line.strip())
             procty = cifpline.proc()
-            procname = cifpline.name().strip()  # RWY NAME IS  ALWAYS RWNNL, L can be a space.
+            procname = (
+                cifpline.name().strip()
+            )  # RWY NAME IS  ALWAYS RWNNL, L can be a space.
             procrwy = cifpline.runway()
 
             if procty == "PRDAT":  # continuation of last line of current procedure
@@ -1132,8 +1294,13 @@ class CIFP:
         """
         if len(self.RWYS) == 2:
             rwk = list(self.RWYS.keys())
-            self.RWYS[rwk[0]].end, self.RWYS[rwk[1]].end = (self.RWYS[rwk[1]], self.RWYS[rwk[0]])
-            logger.debug(f"{self.icao}: {self.RWYS[rwk[0]].name} and {self.RWYS[rwk[1]].name} paired")
+            self.RWYS[rwk[0]].end, self.RWYS[rwk[1]].end = (
+                self.RWYS[rwk[1]],
+                self.RWYS[rwk[0]],
+            )
+            logger.debug(
+                f"{self.icao}: {self.RWYS[rwk[0]].name} and {self.RWYS[rwk[1]].name} paired"
+            )
         else:
             logger.debug(f"{self.icao}: pairing {self.RWYS.keys()}")
             for k, r in self.RWYS.items():
@@ -1157,7 +1324,11 @@ class CIFP:
                     if rw in self.RWYS.keys():
                         r.end = self.RWYS[rw]
                         self.RWYS[rw].end = r
-                        uuid = k.replace("RW", "") + "-" + rw.replace("RW", "") if k < rw else rw.replace("RW", "") + "-" + k.replace("RW", "")
+                        uuid = (
+                            k.replace("RW", "") + "-" + rw.replace("RW", "")
+                            if k < rw
+                            else rw.replace("RW", "") + "-" + k.replace("RW", "")
+                        )
                         r.uuid = uuid
                         r.end.uuid = uuid
                         logger.debug(f"{self.icao}: {r.name} and {rw} paired as {uuid}")
@@ -1165,7 +1336,11 @@ class CIFP:
                         logger.warning(f"{self.icao}: {rw} ont found to pair {r.name}")
         # bearing and length
         for k, r in self.RWYS.items():
-            if r.end is not None and r.getPoint() is not None and r.end.getPoint() is not None:
+            if (
+                r.end is not None
+                and r.getPoint() is not None
+                and r.end.getPoint() is not None
+            ):
                 r.bearing = bearing(r.getPoint(), r.end.getPoint())
                 r.length = distance(r.getPoint(), r.end.getPoint(), "m")
             else:
@@ -1255,5 +1430,7 @@ class CIFP:
         if len(rops.keys()) == 0:
             logger.warning(f"{self.icao} could not find runway for operations")
 
-        logger.info(f"{self.icao} wind direction is {wind_dir:f}, runway in use: {rops.keys()}")
+        logger.info(
+            f"{self.icao} wind direction is {wind_dir:f}, runway in use: {rops.keys()}"
+        )
         return rops

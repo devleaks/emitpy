@@ -129,7 +129,12 @@ class XPPlanesFormatter(Formatter):
 
         ret = {
             "id": icao24x,
-            "ident": {"airline": airline, "reg": tailnumber, "call": callsign, "label": tailnumber},
+            "ident": {
+                "airline": airline,
+                "reg": tailnumber,
+                "call": callsign,
+                "label": tailnumber,
+            },
             "type": {
                 # "wingSpan" : 11.1,
                 # "wingArea" : 16.2,

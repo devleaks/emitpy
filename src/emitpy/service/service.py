@@ -2,6 +2,7 @@
 A Service  is a maintenance operation performed on an aircraft during a turn-around.
 
 """
+
 import sys
 import logging
 from datetime import datetime, timezone
@@ -101,13 +102,13 @@ class Service(GroundSupport):
             "service-identifier": self.getId(),
             "operator": self.operator.getInfo(),
             "ramp": self.ramp.getInfo(),
-            "vehicle": self.vehicle.getInfo()
-            if self.vehicle is not None
-            else "novehicle",
+            "vehicle": (
+                self.vehicle.getInfo() if self.vehicle is not None else "novehicle"
+            ),
             "icao24": self.vehicle.icao24 if self.vehicle is not None else "novehicle",
-            "registration": self.vehicle.registration
-            if self.vehicle is not None
-            else "novehicle",
+            "registration": (
+                self.vehicle.registration if self.vehicle is not None else "novehicle"
+            ),
             "scheduled": self.scheduled.isoformat(),
             "quantity": self.quantity,
             "flight": self.flight.getId() if self.flight is not None else None,

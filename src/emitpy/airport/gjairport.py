@@ -4,6 +4,7 @@ HISTORICAL. NOT MAINTAINED. AS USED IN JAVASCRIPT VERSION OF EMITJS (circa 2019)
 References where loaded from (mostly handcrafted) GeoJSON files.
 Could still be used, but needs adaptation.
 """
+
 import os.path
 import logging
 import json

@@ -1,6 +1,7 @@
 """
 ManagedAirport loaded from OpenStreetMap files
 """
+
 import os.path
 import json
 import yaml

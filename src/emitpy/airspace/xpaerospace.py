@@ -26,7 +26,21 @@ AIRWAYS = {"LOW": 1, "HIGH": 2}
 
 DIRECTION = {"NONE": "N", "FORWARD": "F", "BACKWARD": "B"}
 
-NAVAIDS = {"NDB": 2, "VOR": 3, "ILSLOC": 4, "LOCLOC": 5, "GS": 6, "OM": 7, "MM": 8, "IM": 9, "DME": 12, "DMESA": 13, "FPAP": 14, "GLS": 15, "LTPFTP": 16}
+NAVAIDS = {
+    "NDB": 2,
+    "VOR": 3,
+    "ILSLOC": 4,
+    "LOCLOC": 5,
+    "GS": 6,
+    "OM": 7,
+    "MM": 8,
+    "IM": 9,
+    "DME": 12,
+    "DMESA": 13,
+    "FPAP": 14,
+    "GLS": 15,
+    "LTPFTP": 16,
+}
 
 # For airways
 FIX_TYPE = {2: "NDB", 3: "VHF", 11: "Fix"}
@@ -91,7 +105,9 @@ class XPAerospace(Aerospace):
             self.airac_cycle = cycle
             logger.info(f"airac cycle {cycle} set")
         elif cycle != self.airac_cycle:
-            logger.warning(f"multiple data cycle airspace={self.airac_cycle}, found={cycle}")
+            logger.warning(
+                f"multiple data cycle airspace={self.airac_cycle}, found={cycle}"
+            )
         else:
             logger.debug(f"airac cycle {cycle} ok")
 
@@ -172,7 +188,14 @@ class XPAerospace(Aerospace):
             if lat != 0.0 or lon != 0.0:
                 alt = float(r["elevation_ft"]) * FT if r["elevation_ft"] != "" else None
                 apt = Terminal(
-                    name=r["ident"], lat=lat, lon=lon, alt=alt, iata=r["iata_code"], longname=r["name"], country=r["iso_country"], city=r["municipality"]
+                    name=r["ident"],
+                    lat=lat,
+                    lon=lon,
+                    alt=alt,
+                    iata=r["iata_code"],
+                    longname=r["name"],
+                    country=r["iso_country"],
+                    city=r["municipality"],
                 )
                 self.airports_iata[r["iata_code"]] = apt
                 self.airports_icao[r["ident"]] = apt
@@ -183,7 +206,9 @@ class XPAerospace(Aerospace):
 
         file.close()
 
-        logger.debug("%d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.debug(
+            "%d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count
+        )
         return [True, "XPAerospace::Airport loaded"]
 
     def getAirportIATA(self, iata):
@@ -219,7 +244,9 @@ class XPAerospace(Aerospace):
             # re = "^([\d]{4}) Version - data cycle ([\d]{4}), build ([\d]{8}), metadata NavXP1200.(.*)"
             m = re.match(KEY_HEADER, line)
             if m is not None:
-                logger.info(f"file {os.path.basename(filename)}: Version {m[1]}, AIRAC {m[2]}, {m[5].strip()}.")
+                logger.info(
+                    f"file {os.path.basename(filename)}: Version {m[1]}, AIRAC {m[2]}, {m[5].strip()}."
+                )
                 return [file, (m[1], m[2], m[3], m[4], m[5])]
 
             line = file.readline()
@@ -255,11 +282,17 @@ class XPAerospace(Aerospace):
                 elif re.match("^99", line, flags=0):
                     pass
                 else:
-                    args = line.split()  # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
-                    if len(args) >= 6:  # name, region, airport, lat, lon, waypoint-type (ARINC 424)
+                    args = (
+                        line.split()
+                    )  # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
+                    if (
+                        len(args) >= 6
+                    ):  # name, region, airport, lat, lon, waypoint-type (ARINC 424)
                         lat = float(args[0])
                         lon = float(args[1])
-                        self.add_vertex(Fix(args[2], args[4], args[3], lat, lon, " ".join(args[5:])))
+                        self.add_vertex(
+                            Fix(args[2], args[4], args[3], lat, lon, " ".join(args[5:]))
+                        )
                         count += 1
 
                     else:
@@ -283,11 +316,25 @@ class XPAerospace(Aerospace):
                 elif re.match("^99", line, flags=0):
                     pass
                 else:
-                    args = line.split()  # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
-                    if len(args) >= 6:  # name, region, airport, lat, lon, waypoint-type (ARINC 424)
+                    args = (
+                        line.split()
+                    )  # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
+                    if (
+                        len(args) >= 6
+                    ):  # name, region, airport, lat, lon, waypoint-type (ARINC 424)
                         lat = float(args[0])
                         lon = float(args[1])
-                        self.add_vertex(Fix(args[2], args[4], args[3], lat, lon, args[5], " ".join(args[6:])))
+                        self.add_vertex(
+                            Fix(
+                                args[2],
+                                args[4],
+                                args[3],
+                                lat,
+                                lon,
+                                args[5],
+                                " ".join(args[6:]),
+                            )
+                        )
                         count += 1
 
                     else:
@@ -302,7 +349,9 @@ class XPAerospace(Aerospace):
             logger.warning(f"Fixes: unknown format {v_format}")
             return [False, "XPAerospace::Fixes unknown format"]
 
-        logger.debug("%d/%d fixes loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.debug(
+            "%d/%d fixes loaded.", len(self.vert_dict.keys()) - startLen, count
+        )
         return [True, "XPAerospace::Fixes loaded"]
 
     def loadNavaids(self, prefix: str = "earth"):
@@ -414,7 +463,21 @@ class XPAerospace(Aerospace):
                             # ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name
                             inv_map = {v: k for k, v in NAVAIDS.items()}
                             name = inv_map[lineCode]
-                            self.add_vertex(MB(args[7], args[9], args[8], lat, lon, alt, args[4], args[5], args[6], args[10], name))  # " ".join(args[11:])))
+                            self.add_vertex(
+                                MB(
+                                    args[7],
+                                    args[9],
+                                    args[8],
+                                    lat,
+                                    lon,
+                                    alt,
+                                    args[4],
+                                    args[5],
+                                    args[6],
+                                    args[10],
+                                    name,
+                                )
+                            )  # " ".join(args[11:])))
                         elif lineCode in (NAVAIDS["DME"], NAVAIDS["DMESA"]):
                             # 47.434333333 -122.306300000 369    11030 25 0.000 ISNQ  KSEA K1 SEATTLE-TACOMA INTL DME-ILS
                             # ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name
@@ -501,7 +564,9 @@ class XPAerospace(Aerospace):
 
         file.close()
 
-        logger.debug("%d/%d navaids loaded.", len(self.vert_dict.keys()) - startLen, count)
+        logger.debug(
+            "%d/%d navaids loaded.", len(self.vert_dict.keys()) - startLen, count
+        )
         return [True, "XPAerospace::Navaids loaded"]
 
     def createIndex(self):
@@ -519,15 +584,26 @@ class XPAerospace(Aerospace):
                 a = NamedPoint.parseId(ident=v)
                 if not a[CPIDENT.REGION] in self._cached_vectex_ids.keys():
                     self._cached_vectex_ids[a[CPIDENT.REGION]] = {}
-                if not a[CPIDENT.IDENT] in self._cached_vectex_ids[a[CPIDENT.REGION]].keys():
+                if (
+                    not a[CPIDENT.IDENT]
+                    in self._cached_vectex_ids[a[CPIDENT.REGION]].keys()
+                ):
                     self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]] = {}
                 if a[CPIDENT.POINTTYPE] == "Fix":
-                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["Fix"] = []
-                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["Fix"].append(v)
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]][
+                        "Fix"
+                    ] = []
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]][
+                        "Fix"
+                    ].append(v)
                     self._cached_vectex_ids["Fix"] = self._cached_vectex_ids["Fix"] + 1
                 else:
-                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["VHF"] = []
-                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["VHF"].append(v)
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]][
+                        "VHF"
+                    ] = []
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]][
+                        "VHF"
+                    ].append(v)
                     self._cached_vectex_ids["VHF"] = self._cached_vectex_ids["VHF"] + 1
 
                 if not a[CPIDENT.IDENT] in self._cached_vectex_idents.keys():
@@ -543,7 +619,10 @@ class XPAerospace(Aerospace):
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        logger.debug("%d fixes, %d navaids" % (self._cached_vectex_ids["Fix"], self._cached_vectex_ids["VHF"]))
+        logger.debug(
+            "%d fixes, %d navaids"
+            % (self._cached_vectex_ids["Fix"], self._cached_vectex_ids["VHF"])
+        )
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
         logger.debug("done")
@@ -565,7 +644,11 @@ class XPAerospace(Aerospace):
         self.createIndex()
         if region in self._cached_vectex_ids:
             if ident in self._cached_vectex_ids[region]:
-                i = self._cached_vectex_ids[region][ident]["Fix"] if int(navtypeid) == 11 else self._cached_vectex_ids[region][ident]["VHF"]
+                i = (
+                    self._cached_vectex_ids[region][ident]["Fix"]
+                    if int(navtypeid) == 11
+                    else self._cached_vectex_ids[region][ident]["VHF"]
+                )
                 return self.get_vertex(i[0])
         return None
 
@@ -625,7 +708,9 @@ class XPAerospace(Aerospace):
             if self.redis is not None:
                 prevdb = self.redis.client_info()["db"]
                 self.redis.select(REDIS_DB.REF.value)
-                d = self.redis.geodist(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, reference, v)
+                d = self.redis.geodist(
+                    REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, reference, v
+                )
                 logger.debug(f"redis: {v}: {d}")
                 self.redis.select(prevdb)
             else:
@@ -645,7 +730,9 @@ class XPAerospace(Aerospace):
         if self.redis is not None:
             prevdb = self.redis.client_info()["db"]
             self.redis.select(REDIS_DB.REF.value)
-            d = self.redis.geodist(REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, reference, v)
+            d = self.redis.geodist(
+                REDIS_PREFIX.AIRSPACE_WAYPOINTS_GEO_INDEX.value, reference, v
+            )
             self.redis.select(prevdb)
         else:
             vtx = self.get_vertex(v)
@@ -685,24 +772,72 @@ class XPAerospace(Aerospace):
                     pass
                 else:
                     args = line.split()
-                    if len(args) == 11:  # names, start, end, direction, lowhigh, fl_floor, fl_ceil
-                        src = self.findNamedPoint(region=args[1], ident=args[0], navtypeid=args[2])
+                    if (
+                        len(args) == 11
+                    ):  # names, start, end, direction, lowhigh, fl_floor, fl_ceil
+                        src = self.findNamedPoint(
+                            region=args[1], ident=args[0], navtypeid=args[2]
+                        )
                         if src:
-                            dst = self.findNamedPoint(region=args[4], ident=args[3], navtypeid=args[5])
+                            dst = self.findNamedPoint(
+                                region=args[4], ident=args[3], navtypeid=args[5]
+                            )
                             if dst:
                                 if args[6] == DIRECTION["FORWARD"]:
-                                    self.add_edge(AirwaySegment(args[10], src, dst, True, args[7], args[8], args[9]))
+                                    self.add_edge(
+                                        AirwaySegment(
+                                            args[10],
+                                            src,
+                                            dst,
+                                            True,
+                                            args[7],
+                                            args[8],
+                                            args[9],
+                                        )
+                                    )
                                 elif args[6] == DIRECTION["BACKWARD"]:
-                                    self.add_edge(AirwaySegment(args[10], dst, src, True, args[7], args[8], args[9]))
+                                    self.add_edge(
+                                        AirwaySegment(
+                                            args[10],
+                                            dst,
+                                            src,
+                                            True,
+                                            args[7],
+                                            args[8],
+                                            args[9],
+                                        )
+                                    )
                                 else:
-                                    self.add_edge(AirwaySegment(args[10], src, dst, False, args[7], args[8], args[9]))
+                                    self.add_edge(
+                                        AirwaySegment(
+                                            args[10],
+                                            src,
+                                            dst,
+                                            False,
+                                            args[7],
+                                            args[8],
+                                            args[9],
+                                        )
+                                    )
                                 count += 1
                                 if count % 10000 == 0:
                                     logger.debug("%d segments loaded.", count)
                             else:
-                                logger.debug("could not find end of segment %s, %s, %s, %s", args[10], args[4], args[3], args[5])
+                                logger.debug(
+                                    "could not find end of segment %s, %s, %s, %s",
+                                    args[10],
+                                    args[4],
+                                    args[3],
+                                    args[5],
+                                )
                         else:
-                            logger.debug("could not find start of segment %s, %s, %s, %s", args[10], args[0], args[1], args[2])
+                            logger.debug(
+                                "could not find start of segment %s, %s, %s, %s",
+                                args[10],
+                                args[0],
+                                args[1],
+                                args[2],
+                            )
                     else:
                         if len(line) > 1:
                             logger.warning("invalid segment data %s (%d).", line, count)
@@ -732,7 +867,12 @@ class XPAerospace(Aerospace):
             if LOCAL_HOLDS_ONLY:
                 lat = p.lat()
                 lon = p.lon()
-                return (lat > latmin) and (lat < latmax) and (lon > lonmin) and (lon < lonmax)
+                return (
+                    (lat > latmin)
+                    and (lat < latmax)
+                    and (lon > lonmin)
+                    and (lon < lonmax)
+                )
             return True
 
         filename = os.path.join(self.basename, prefix + "_hold.dat")
@@ -763,12 +903,19 @@ class XPAerospace(Aerospace):
                     # 0      1       2        3        4         5         6           7        8       9       10
                     args = line.split()
                     if len(args) >= 6:
-                        fix = self.findNamedPoint(region=args[1], ident=args[0], navtypeid=args[3])
+                        fix = self.findNamedPoint(
+                            region=args[1], ident=args[0], navtypeid=args[3]
+                        )
                         if fix is None:
                             logger.warning("fix not found %s.", line)
                         else:
                             if inBbox(fix):
-                                hid = NamedPoint.mkId(region=args[1], airport=args[2], ident=args[0], pointtype="HLD")
+                                hid = NamedPoint.mkId(
+                                    region=args[1],
+                                    airport=args[2],
+                                    ident=args[0],
+                                    pointtype="HLD",
+                                )
                                 self.holds[hid] = Hold(
                                     fix=fix,
                                     altmin=float(args[8]),

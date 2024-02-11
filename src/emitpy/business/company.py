@@ -1,6 +1,7 @@
 """
 A Company is a generic entity, almost abstract, for operators in the simulator.
 """
+
 from .identity import Identity
 
 

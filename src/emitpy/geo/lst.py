@@ -1,6 +1,7 @@
 """
 Export movement to be played by Living Scenery Technology
 """
+
 import io
 import logging
 from emitpy.constants import EMIT_TYPE

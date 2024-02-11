@@ -157,8 +157,20 @@ class IATAFormatter(Formatter):
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME)
 
         rttfc = f"RTTFC,{hexid},{lat},{lon},{baro_alt},{baro_rate},{gnd},{track},{gsp},{cs_icao},{ac_type},{ac_tailno},"
-        rttfc = rttfc + f"{from_iata},{to_iata},{timestamp},{source},{cs_iata},{msg_type},{alt_geom},{ias},{tas},{mach},"
-        rttfc = rttfc + f"{track_rate},{roll},{mag_course},{true_course},{geom_rate},{emergency},{category},"
-        rttfc = rttfc + f"{nav_qnh},{nav_altitude_mcp},{nav_altitude_fms},{nav_course},{nav_modes},{seen},{rssi},"
-        rttfc = rttfc + f"{winddir},{windspd},{oat},{tat},{isicaohex},{augmentation_status},{authentication}"
+        rttfc = (
+            rttfc
+            + f"{from_iata},{to_iata},{timestamp},{source},{cs_iata},{msg_type},{alt_geom},{ias},{tas},{mach},"
+        )
+        rttfc = (
+            rttfc
+            + f"{track_rate},{roll},{mag_course},{true_course},{geom_rate},{emergency},{category},"
+        )
+        rttfc = (
+            rttfc
+            + f"{nav_qnh},{nav_altitude_mcp},{nav_altitude_fms},{nav_course},{nav_modes},{seen},{rssi},"
+        )
+        rttfc = (
+            rttfc
+            + f"{winddir},{windspd},{oat},{tat},{isicaohex},{augmentation_status},{authentication}"
+        )
         return rttfc.replace("None", "")

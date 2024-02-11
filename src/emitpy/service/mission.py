@@ -1,6 +1,7 @@
 """
 A Mission is a trip of a vehicle around the airport through a list of checkpoints.
 """
+
 import logging
 from datetime import datetime
 
@@ -67,4 +68,6 @@ class Mission(GroundSupport):
         """
         if checkpoint is None:
             return self.checkpoint_control_time
-        return checkpoint.getProp(FEATPROP.CONTROL_TIME, dflt=self.checkpoint_control_time)
+        return checkpoint.getProp(
+            FEATPROP.CONTROL_TIME, dflt=self.checkpoint_control_time
+        )

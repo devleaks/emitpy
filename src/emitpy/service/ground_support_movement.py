@@ -1,6 +1,7 @@
 """
 Ground Support Movement abstract clas for Mission Movement and Service Movement
 """
+
 import logging
 
 from emitpy.constants import FEATPROP
@@ -56,7 +57,11 @@ class GroundSupportMovement(Movement):
                 logger.warning(status[1])
                 return status
 
-            for f in self.getMovePoints():  # we save a copy of the movement timing for rescheduling
+            for (
+                f
+            ) in (
+                self.getMovePoints()
+            ):  # we save a copy of the movement timing for rescheduling
                 f.setProp(FEATPROP.SAVED_TIME, f.time())
 
         else:

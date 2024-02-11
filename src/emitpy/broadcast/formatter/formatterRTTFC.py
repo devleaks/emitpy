@@ -114,12 +114,16 @@ class RTTFCFormatter(Formatter):
         #     "authentication": ""
         # }
 
-        airborne = rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50  # should be: speed < min(takeoff_speed, landing_speed)
+        airborne = (
+            rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50
+        )  # should be: speed < min(takeoff_speed, landing_speed)
         rttfcObj["gnd"] = 0 if not airborne else 1  # :-)
 
         emit_type = f.getPropPath("$.emit.emit-type")
         if emit_type == "flight":
-            rttfcObj["ac_type"] = f.getPropPath("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
+            rttfcObj["ac_type"] = f.getPropPath(
+                "$.flight.aircraft.actype.base-type.actype"
+            )  # ICAO A35K
             rttfcObj["hexid"] = int(f.getPropPath("flight.aircraft.icao24"), 16)
 
             callsign = f.getPropPath("$.flight.callsign")

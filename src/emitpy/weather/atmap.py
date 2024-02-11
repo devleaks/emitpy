@@ -49,9 +49,9 @@ class Atmap:
                 {
                     "start_time": data.start_time.dt,
                     "end_time": data.end_time.dt,
-                    "probability": data.probability.value
-                    if data.probability is not None
-                    else None,
+                    "probability": (
+                        data.probability.value if data.probability is not None else None
+                    ),
                     "atmap": obj,
                 }
             )

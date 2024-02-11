@@ -70,7 +70,9 @@ class Format:
         br = filter(lambda f: f.getProp(FEATPROP.BROADCAST), emit_points)
         bq = sorted(br, key=lambda f: f.getRelativeEmissionTime())
         self.output = list(map(self.formatter, bq))
-        logger.debug(f"formatted {len(self.output)} / {len(emit_points)}, version {self.version}")
+        logger.debug(
+            f"formatted {len(self.output)} / {len(emit_points)}, version {self.version}"
+        )
         self.version = self.version + 1
         return (True, "Format::format completed")
 
@@ -81,7 +83,11 @@ class Format:
         :param      overwrite:  The overwrite
         :type       overwrite:  bool
         """
-        db = REDIS_DATABASES[self.emit.emit_type] if self.emit.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
+        db = (
+            REDIS_DATABASES[self.emit.emit_type]
+            if self.emit.emit_type in REDIS_DATABASES.keys()
+            else REDIS_DATABASE.UNKNOWN.value
+        )
         basename = os.path.join(MANAGED_AIRPORT_AODB, db)
         # fileformat = self.formatter.FILE_EXTENSION
         ident = self.emit.getId()
@@ -106,7 +112,9 @@ class Format:
             return (False, "Format::save file already exist")
 
         with open(filename, "w") as fp:
-            fc = FeatureCollection(features=[asFeature(json.loads(str(f))) for f in self.output])
+            fc = FeatureCollection(
+                features=[asFeature(json.loads(str(f))) for f in self.output]
+            )
             json.dump(fc.to_geojson(), fp)
         logger.debug(f"saved {fn}")
         # ==============================
@@ -133,7 +141,9 @@ class FormatMessage(Format):
         br = filter(lambda f: f.getAbsoluteEmissionTime(), messages)
         bq = sorted(br, key=lambda f: f.getAbsoluteEmissionTime())
         self.output = list(map(self.formatter, bq))
-        logger.debug(f"formatted {len(self.output)} / {len(messages)} messages, version {self.version}")
+        logger.debug(
+            f"formatted {len(self.output)} / {len(messages)} messages, version {self.version}"
+        )
         self.version = self.version + 1
         return (True, "FormatMessage::format completed")
 
@@ -144,7 +154,11 @@ class FormatMessage(Format):
         :param      overwrite:  The overwrite
         :type       overwrite:  bool
         """
-        db = REDIS_DATABASES[self.emit.emit_type] if self.emit.emit_type in REDIS_DATABASES.keys() else REDIS_DATABASE.UNKNOWN.value
+        db = (
+            REDIS_DATABASES[self.emit.emit_type]
+            if self.emit.emit_type in REDIS_DATABASES.keys()
+            else REDIS_DATABASE.UNKNOWN.value
+        )
         basename = os.path.join(MANAGED_AIRPORT_AODB, db)
         fileformat = self.formatter.FILE_EXTENSION
         ident = self.emit.getId()

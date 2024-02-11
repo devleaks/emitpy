@@ -3,6 +3,7 @@ Isolated shapely function calls from other geo based functions.
 To make things easier we using shape as dict key, so need to be immutable (& hashable).
 So we need shapely > 2.
 """
+
 from shapely.geometry import LineString, Polygon
 from shapely.geometry import GeometryCollection, MultiLineString, MultiPoint
 

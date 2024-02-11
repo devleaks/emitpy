@@ -1,6 +1,7 @@
 """
 Build movement of a equipment
 """
+
 import logging
 
 from emitpy.airport import ManagedAirportBase
@@ -29,7 +30,12 @@ class MissionMove(GroundSupportMovement):
         return self.mission.getId()
 
     def getInfo(self):
-        return {"type": MOVE_TYPE.MISSION.value, "ident": self.getId(), "mission": self.mission.getInfo(), "icao24": self.mission.getInfo()["icao24"]}
+        return {
+            "type": MOVE_TYPE.MISSION.value,
+            "ident": self.getId(),
+            "mission": self.mission.getInfo(),
+            "icao24": self.mission.getInfo()["icao24"],
+        }
 
     def getSource(self):
         return self.mission
@@ -50,7 +56,10 @@ class MissionMove(GroundSupportMovement):
 
         self.addMessage(
             MissionMessage(
-                subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.START.value}", mission=self, sync=MISSION_PHASE.START.value, info=self.getInfo()
+                subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.START.value}",
+                mission=self,
+                sync=MISSION_PHASE.START.value,
+                info=self.getInfo(),
             )
         )
 
@@ -88,7 +97,9 @@ class MissionMove(GroundSupportMovement):
         chkpt_cnt = 0
         for cp_id in self.mission.checkpoints:
             # We enter at the last service_road network vertex.
-            cp = self.airport.getControlPoint(cp_id)  # list of checkpoints extended to all POI and stops.
+            cp = self.airport.getControlPoint(
+                cp_id
+            )  # list of checkpoints extended to all POI and stops.
             if cp is None:
                 logger.warning(f"cannot find checkpoint {cp_id}")
                 continue
@@ -97,7 +108,9 @@ class MissionMove(GroundSupportMovement):
             # find closest vertex of next control point
             cp_nv = self.airport.service_roads.nearest_vertex(cp)
             if cp_nv[0] is None:
-                logger.warning(f"no nearest_vertex for checkpoint {cp.getPprop('name')}")
+                logger.warning(
+                    f"no nearest_vertex for checkpoint {cp.getPprop('name')}"
+                )
             # logger.debug("cp vertex %s" % (cp_nv[0]))
 
             # route from previous vtx to this one
@@ -124,7 +137,9 @@ class MissionMove(GroundSupportMovement):
             # logger.debug(f"route to checkpoint {cp}")
             cp_npe = self.airport.service_roads.nearest_point_on_edge(cp)
             if cp_npe[0] is None:
-                logger.warning(f"no nearest_point_on_edge for checkpoint {cp.getPprop('name')}")
+                logger.warning(
+                    f"no nearest_point_on_edge for checkpoint {cp.getPprop('name')}"
+                )
             else:  # move to it
                 pos = MovePoint.new(cp_npe[0])
                 pos.setSpeed(speeds["slow"])  # starts moving
@@ -154,7 +169,9 @@ class MissionMove(GroundSupportMovement):
 
             # goes back on service road network (edge)
             if cp_npe[0] is None:
-                logger.warning(f"no nearest_point_on_edge for checkpoint {cp.getPprop('name')}")
+                logger.warning(
+                    f"no nearest_point_on_edge for checkpoint {cp.getPprop('name')}"
+                )
             else:  # move to it
                 pos = MovePoint.new(cp_npe[0])
                 pos.setSpeed(speeds["slow"])  # starts moving
@@ -188,7 +205,9 @@ class MissionMove(GroundSupportMovement):
 
         if last_vtx is None:
             # Issue here: Why is last_vtx sometimes null?
-            logger.warning("no last vertex because no route to last checkpoint, using previous point")
+            logger.warning(
+                "no last vertex because no route to last checkpoint, using previous point"
+            )
             last_vtx = prev_vtx  # ?
 
         # Route from last checkpoint to closest vertex to final_pos
@@ -203,7 +222,9 @@ class MissionMove(GroundSupportMovement):
                 pos.setSpeed(speeds["normal"])
                 move_points.append(pos)
         else:
-            logger.debug(f"no route from last checkpoint vtx {prev_vtx.id} to final destination vtx {cp_nv[0].id}")
+            logger.debug(
+                f"no route from last checkpoint vtx {prev_vtx.id} to final destination vtx {cp_nv[0].id}"
+            )
 
         # from vertex to closest point on service road network to final_pos
         pos = final_npe[0]
@@ -221,12 +242,21 @@ class MissionMove(GroundSupportMovement):
 
         self.addMessage(
             MissionMessage(
-                subject=f"Mission {self.getId()} has ended", mission=self, sync=MISSION_PHASE.END.value, info=self.getInfo(), service=MISSION_PHASE.END.value
+                subject=f"Mission {self.getId()} has ended",
+                mission=self,
+                sync=MISSION_PHASE.END.value,
+                info=self.getInfo(),
+                service=MISSION_PHASE.END.value,
             )
         )
 
         self.addMessage(
-            MissionMessage(subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.END.value}", mission=self, sync=MISSION_PHASE.END.value, info=self.getInfo())
+            MissionMessage(
+                subject=f"{self.mission.vehicle.icao24} {MISSION_PHASE.END.value}",
+                mission=self,
+                sync=MISSION_PHASE.END.value,
+                info=self.getInfo(),
+            )
         )
 
         logger.debug(f"end added")

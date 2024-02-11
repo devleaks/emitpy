@@ -794,9 +794,9 @@ class Hypercaster:
                                 name=qn, redis=self.redis
                             )
                             self.start_queue(self.queues[qn])
-                            self.queues[
-                                qn
-                            ].broadcaster.rdv = threading.Event()  # oulalaaaa!?
+                            self.queues[qn].broadcaster.rdv = (
+                                threading.Event()
+                            )  # oulalaaaa!?
                     else:  # queue already exists, parameter changed, stop it first
                         hyperlogger.debug(f"queue {qn} already running, reseting..")
                         oldsp = self.queues[qn].speed

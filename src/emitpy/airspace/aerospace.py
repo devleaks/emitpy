@@ -39,7 +39,15 @@ class NamedPoint(Vertex):
     A NamedPoint is a named point in a controlled airspace region.
     """
 
-    def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
+    def __init__(
+        self,
+        ident: str,
+        region: str,
+        airport: str,
+        pointtype: str,
+        lat: float,
+        lon: float,
+    ):
         name = NamedPoint.mkId(region, airport, ident, pointtype)
         Vertex.__init__(self, node=name, point=Point((lon, lat)))
         self.ident = ident
@@ -64,7 +72,9 @@ class NamedPoint(Vertex):
         :returns:   { description_of_the_return_value }
         :rtype:     str
         """
-        return ID_SEP.join([region, ident, ("" if pointtype is None else pointtype), airport])
+        return ID_SEP.join(
+            [region, ident, ("" if pointtype is None else pointtype), airport]
+        )
 
     @staticmethod
     def parseId(ident: str):
@@ -75,13 +85,28 @@ class NamedPoint(Vertex):
         :type       ident:  str
         """
         arr = ident.split(ID_SEP)
-        return {CPIDENT.REGION: arr[0], CPIDENT.IDENT: arr[1], CPIDENT.POINTTYPE: arr[2], CPIDENT.AIRPORT: arr[3]} if len(arr) == 4 else None
+        return (
+            {
+                CPIDENT.REGION: arr[0],
+                CPIDENT.IDENT: arr[1],
+                CPIDENT.POINTTYPE: arr[2],
+                CPIDENT.AIRPORT: arr[3],
+            }
+            if len(arr) == 4
+            else None
+        )
 
     def getInfo(self):
         """
         Gets a NamedPoint information dictionary.
         """
-        return {"class": type(self).__name__, "name": self.name, "ident": self.ident, "region": self.region, "airport": self.airport}  # from Vertex()
+        return {
+            "class": type(self).__name__,
+            "name": self.name,
+            "ident": self.ident,
+            "region": self.region,
+            "airport": self.airport,
+        }  # from Vertex()
 
     def getFeature(self):
         """
@@ -112,9 +137,19 @@ class NavAid(NamedPoint):
     """
 
     # 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
+    def __init__(
+        self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name
+    ):
         # for marker beacons, we use their "name"/type (OM/MM/IM) rather than a generic MB (marker beacon)
-        NamedPoint.__init__(self, ident, region, airport, type(self).__name__ if type(self).__name__ != "MB" else name, lat, lon)
+        NamedPoint.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            type(self).__name__ if type(self).__name__ != "MB" else name,
+            lat,
+            lon,
+        )
         self.elev = elev
         self.freq = freq
         self.ndb_class = ndb_class
@@ -127,8 +162,22 @@ class NDB(NavAid):  # 2
     Non Directional Beacon
     """
 
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
-        NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
+    def __init__(
+        self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name
+    ):
+        NavAid.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            lat,
+            lon,
+            elev,
+            freq,
+            ndb_class,
+            ndb_ident,
+            name,
+        )
 
 
 class VOR(NavAid):  # 3
@@ -136,8 +185,22 @@ class VOR(NavAid):  # 3
     VHF Omnidirectional Range
     """
 
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
-        NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
+    def __init__(
+        self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name
+    ):
+        NavAid.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            lat,
+            lon,
+            elev,
+            freq,
+            ndb_class,
+            ndb_ident,
+            name,
+        )
 
 
 class LOC(NavAid):  # 4,5
@@ -145,8 +208,33 @@ class LOC(NavAid):  # 4,5
     Localiser
     """
 
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
-        NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
+    def __init__(
+        self,
+        ident,
+        region,
+        airport,
+        lat,
+        lon,
+        elev,
+        freq,
+        ndb_class,
+        ndb_ident,
+        runway,
+        name,
+    ):
+        NavAid.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            lat,
+            lon,
+            elev,
+            freq,
+            ndb_class,
+            ndb_ident,
+            name,
+        )
         self.runway = runway
 
 
@@ -155,8 +243,33 @@ class GS(NavAid):  # 6
     GLide slope component of an ILS
     """
 
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
-        NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
+    def __init__(
+        self,
+        ident,
+        region,
+        airport,
+        lat,
+        lon,
+        elev,
+        freq,
+        ndb_class,
+        ndb_ident,
+        runway,
+        name,
+    ):
+        NavAid.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            lat,
+            lon,
+            elev,
+            freq,
+            ndb_class,
+            ndb_ident,
+            name,
+        )
         self.runway = runway
 
 
@@ -165,8 +278,33 @@ class MB(NavAid):  # 7,8,9
     Marker Beacon, outer, middle or inner.
     """
 
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
-        NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
+    def __init__(
+        self,
+        ident,
+        region,
+        airport,
+        lat,
+        lon,
+        elev,
+        freq,
+        ndb_class,
+        ndb_ident,
+        runway,
+        name,
+    ):
+        NavAid.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            lat,
+            lon,
+            elev,
+            freq,
+            ndb_class,
+            ndb_ident,
+            name,
+        )
         self.runway = runway
 
 
@@ -175,8 +313,22 @@ class DME(NavAid):  # 12,13
     Distance Measuring Equipment
     """
 
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name):
-        NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
+    def __init__(
+        self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name
+    ):
+        NavAid.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            lat,
+            lon,
+            elev,
+            freq,
+            ndb_class,
+            ndb_ident,
+            name,
+        )
 
 
 class FPAP(NavAid):  # 14
@@ -184,8 +336,33 @@ class FPAP(NavAid):  # 14
     Final approach path alignment point (SBAS and GBAS)
     """
 
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
-        NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
+    def __init__(
+        self,
+        ident,
+        region,
+        airport,
+        lat,
+        lon,
+        elev,
+        freq,
+        ndb_class,
+        ndb_ident,
+        runway,
+        name,
+    ):
+        NavAid.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            lat,
+            lon,
+            elev,
+            freq,
+            ndb_class,
+            ndb_ident,
+            name,
+        )
         self.runway = runway
 
 
@@ -194,8 +371,33 @@ class GLS(NavAid):  # 16
     GBAS Landing System
     """
 
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
-        NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
+    def __init__(
+        self,
+        ident,
+        region,
+        airport,
+        lat,
+        lon,
+        elev,
+        freq,
+        ndb_class,
+        ndb_ident,
+        runway,
+        name,
+    ):
+        NavAid.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            lat,
+            lon,
+            elev,
+            freq,
+            ndb_class,
+            ndb_ident,
+            name,
+        )
         self.runway = runway
 
 
@@ -204,8 +406,33 @@ class LTPFTP(NavAid):  # 16
     Landing threshold point or fictitious threshold point of an SBAS/GBAS approach
     """
 
-    def __init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, runway, name):
-        NavAid.__init__(self, ident, region, airport, lat, lon, elev, freq, ndb_class, ndb_ident, name)
+    def __init__(
+        self,
+        ident,
+        region,
+        airport,
+        lat,
+        lon,
+        elev,
+        freq,
+        ndb_class,
+        ndb_ident,
+        runway,
+        name,
+    ):
+        NavAid.__init__(
+            self,
+            ident,
+            region,
+            airport,
+            lat,
+            lon,
+            elev,
+            freq,
+            ndb_class,
+            ndb_ident,
+            name,
+        )
         self.runway = runway
 
 
@@ -222,7 +449,16 @@ class Fix(NamedPoint):
 
     # 1150: 46.646819444 -123.722388889  AAYRR KSEA K1 4530263
     # 1200: 46.646819444 -123.722388889  AAYRR KSEA K1 4530263 AAYRR
-    def __init__(self, ident, region, airport, lat, lon, waypoint_type: str, spoken_name: str = None):
+    def __init__(
+        self,
+        ident,
+        region,
+        airport,
+        lat,
+        lon,
+        waypoint_type: str,
+        spoken_name: str = None,
+    ):
         NamedPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.waypoint_type = waypoint_type
         self.spoken_name = spoken_name
@@ -240,8 +476,26 @@ class Terminal(NamedPoint):
 
     AS_WAYPOINTS = {}
 
-    def __init__(self, name: str, lat: float, lon: float, alt: int, iata: str, longname: str, country: str, city: str):
-        NamedPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)
+    def __init__(
+        self,
+        name: str,
+        lat: float,
+        lon: float,
+        alt: int,
+        iata: str,
+        longname: str,
+        country: str,
+        city: str,
+    ):
+        NamedPoint.__init__(
+            self,
+            ident=name,
+            region=name[0:2],
+            airport=name,
+            pointtype=type(self).__name__,
+            lat=lat,
+            lon=lon,
+        )
         self.iata = iata
         self.icao = name
         self.country = country
@@ -249,19 +503,33 @@ class Terminal(NamedPoint):
         # logger.debug(f"Terminal:__init__: name: {self.id} / {name[0:2]}:{iata} / {longname}")
         self.longname = longname
         self._as_waypoint = f"{name[0:2]}:{iata}"
-        Terminal.AS_WAYPOINTS[self.as_waypoint] = self  # keep region:iata name for reference in lnav
+        Terminal.AS_WAYPOINTS[self.as_waypoint] = (
+            self  # keep region:iata name for reference in lnav
+        )
         self.setAltitude(alt)
 
     @staticmethod
     def as_waypoint(name):
-        return Terminal.AS_WAYPOINTS[name] if name in Terminal.AS_WAYPOINTS.keys() else None
+        return (
+            Terminal.AS_WAYPOINTS[name]
+            if name in Terminal.AS_WAYPOINTS.keys()
+            else None
+        )
 
     def getKey(self):
         return key_path(self.icao[0:2], self.icao[2:4])
 
     def getInfo(self):
         i = super().getInfo()
-        i.update({"iata": self.iata, "icao": self.icao, "country": self.country, "city": self.city, "longname": self.longname})
+        i.update(
+            {
+                "iata": self.iata,
+                "icao": self.icao,
+                "country": self.country,
+                "city": self.city,
+                "longname": self.longname,
+            }
+        )
         return i
 
 
@@ -276,7 +544,15 @@ class Waypoint(NamedPoint):  # same as fix
     A Waypoint is a fix materialised by a VHF beacon of type navtype.
     """
 
-    def __init__(self, ident: str, region: str, airport: str, lat: float, lon: float, navtype: str):
+    def __init__(
+        self,
+        ident: str,
+        region: str,
+        airport: str,
+        lat: float,
+        lon: float,
+        navtype: str,
+    ):
         # we may be should use navtype instead of "Waypoint" as point type
         NamedPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
         self.navtype = navtype
@@ -294,7 +570,16 @@ class AirwaySegment(Edge):
     An AirwaySegment is a pair of NamedPoints, directed, with optional altitude information.
     """
 
-    def __init__(self, names: str, start: NamedPoint, end: NamedPoint, direction: bool, lowhigh: int, fl_floor: int, fl_ceil: int):
+    def __init__(
+        self,
+        names: str,
+        start: NamedPoint,
+        end: NamedPoint,
+        direction: bool,
+        lowhigh: int,
+        fl_floor: int,
+        fl_ceil: int,
+    ):
         dist = distance(start, end)
         Edge.__init__(self, src=start, dst=end, directed=direction, weight=dist)
         self.names = names.split("-")
@@ -336,7 +621,9 @@ class Airway(FeatureWithProps):
                 arr.append(s.start)
             arr.append(s.end)
             via = via + "," + s.names.join("-")
-        FeatureWithProps.__init__(self, geometry=LineString(arr), properties={"name": name, "via": via})
+        FeatureWithProps.__init__(
+            self, geometry=LineString(arr), properties={"name": name, "via": via}
+        )
 
 
 ##########################

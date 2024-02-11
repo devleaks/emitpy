@@ -1,6 +1,7 @@
 """
 A METAR is a weather situation at a named location, usually an airport.
 """
+
 import logging
 
 from avwx import Metar, Taf
