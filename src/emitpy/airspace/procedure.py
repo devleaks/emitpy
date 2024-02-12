@@ -30,6 +30,13 @@ CUSTOM_DATA_DIR = os.path.join(XPLANE_DIR, "Custom Data")
 logger = logging.getLogger("Procedure")
 
 
+class PROC_TYPE(Enum):
+    SID = "sid"
+    STAR = "star"
+    APPCH = "approach"
+    RWY = "runway"
+
+
 class PROC_DATA(Enum):
     SEQ_NR = 0
     RT_TYPE = 1
@@ -182,7 +189,7 @@ class Restriction:
         a = a.strip()
         return "" if a in ["/", "@/@"] else a
 
-    def setAltitudeRestriction(self, altmin: float, altmax: float):
+    def setAltitudeRestriction(self, altmin: int, altmax: int):
         self.alt1 = altmin
         self.alt2 = altmax
 
@@ -231,7 +238,7 @@ class Restriction:
             return alt >= self.alt2
         return True  # no restriction?
 
-    def setSpeedRestriction(self, speed: float):
+    def setSpeedRestriction(self, speed: int):
         """
         If there is no restriction, set speed to None.
         """
@@ -462,7 +469,7 @@ class ProcedureData:
     #       params[PROC_DATA.PATH_TERM] = param[11]----+  (CF, Course to Fix)
     #
     def __init__(self, line):
-        self.procedure = None
+        self.procedure: str | None = None
         self.data: List[ProcedureData] = []
         self.params = []
         a = line.split(":")
@@ -474,7 +481,7 @@ class ProcedureData:
         if len(self.params) == 0:
             logger.debug("invalid line '%s', no params", line)
 
-    def proc(self) -> Procedure:
+    def proc(self) -> str:
         """
         Returns the procedure type (SID, STAR, RWY, APPCH)
         """
@@ -511,7 +518,7 @@ class ProcedureData:
         """
         return ",".join(self.params)
 
-    def param(self, name: PROC_DATA) -> Any:
+    def param(self, name: PROC_DATA) -> str:
         """
         Returns the requested procedure data or parameter.
         Name of parameter is coded in PROC_DATA enum.
@@ -1071,7 +1078,11 @@ class CIFP:
         cifp_fp = open(cipf_filename, "r")
         line = cifp_fp.readline()
         prevline = None
-        procedures = {"SID": {}, "STAR": {}, "APPCH": {}, "RWY": {}}
+        sids: Dict[str, SID] = {}
+        stars: Dict[str, STAR] = {}
+        appch: Dict[str, APPCH] = {}
+        rwys: Dict[str, RWY] = {}
+        procedures = {"SID": sids, "STAR": stars, "APPCH": appch, "RWY": rwys}
 
         while line:
             cifpline = ProcedureData(line.strip())
@@ -1217,7 +1228,7 @@ class CIFP:
                 ret[k] = v
         return ret
 
-    def getOperationalRunways(self, wind_dir: float) -> List[RWY]:
+    def getOperationalRunways(self, wind_dir: float) -> Dict[str, RWY]:
         """
         Get a runway opposite to the supplied wind direction.
         If there is no wind, a random runway is selected.
@@ -1241,7 +1252,7 @@ class CIFP:
             max1, max2 = max2, max1
 
         # logger.debug("%f %d %d" % (wind_dir, max1, max2))
-        rops = {}
+        rops: Dict[str, RWY] = {}
         if wind_dir > 90 and wind_dir < 270:
             for rwy in self.RWYS.keys():
                 # logger.debug("%s %d" % (rwy, int(rwy[2:4])))

@@ -242,7 +242,7 @@ class Terminal(NamedPoint):
 
     AS_WAYPOINTS: Dict[str, Terminal] = {}
 
-    def __init__(self, name: str, lat: float, lon: float, alt: int, iata: str, longname: str, country: str, city: str):
+    def __init__(self, name: str, lat: float, lon: float, alt: float, iata: str, longname: str, country: str, city: str):
         NamedPoint.__init__(self, ident=name, region=name[0:2], airport=name, pointtype=type(self).__name__, lat=lat, lon=lon)
         self.iata = iata
         self.icao = name

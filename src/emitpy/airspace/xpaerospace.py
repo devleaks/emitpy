@@ -6,6 +6,7 @@ import logging
 import time
 import csv
 import json
+from typing import Dict
 from importlib_resources import files
 
 from math import inf
@@ -50,8 +51,8 @@ class XPAerospace(Aerospace):
     def __init__(self, bbox=None, load_airways: bool = False):
         Aerospace.__init__(self, bbox, load_airways=load_airways)
 
-        self._cached_vectex_ids = None
-        self._cached_vectex_idents = None
+        self._cached_vectex_ids: Dict[str, dict] | None = None
+        self._cached_vectex_idents: Dict[str, str] | None = None
 
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "earth_nav.dat")

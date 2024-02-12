@@ -15,7 +15,7 @@ import logging
 import pickle
 import random
 import operator
-from typing import Dict
+from typing import Dict, List
 from abc import abstractmethod
 
 from timezonefinder import TimezoneFinder
@@ -391,7 +391,7 @@ class AirportWithProcedures(Airport):
             region=apt.region,
             lat=apt.lat(),
             lon=apt.lon(),
-            alt=apt.altitude(),
+            alt=apt.altitude(),  # type: ignore [arg-type]
         )
         ret = base.load()
         if not ret[0]:
@@ -701,14 +701,14 @@ class ManagedAirportBase(AirportWithProcedures):
         self.manager = None
         self.taxiways = Graph()
         self.service_roads = Graph()
-        self.runways = {}  # GeoJSON Features
-        self.ramps = {}  # GeoJSON Features
+        self.runways: Dict[str, Runway] = {}  # GeoJSON Features
+        self.ramps: Dict[str, Ramp] = {}  # GeoJSON Features
 
-        self.runways_in_use = []
+        self.runways_in_use: List[Runway] = []
 
-        self.aeroway_pois = None
-        self.service_pois = None
-        self.check_pois = {}
+        self.aeroway_pois: Dict[str, FeatureWithProps] = {}
+        self.service_pois: Dict[str, FeatureWithProps] = {}
+        self.check_pois: Dict[str, FeatureWithProps] = {}
 
     @classmethod
     def new(cls, cache, apt):
@@ -936,7 +936,7 @@ class ManagedAirportBase(AirportWithProcedures):
             if rwy is not None:
                 self.setRunwaysInUse(rwy)
 
-    def getRunway(self, rwy: str) -> Runway:
+    def getRunway(self, rwy: "RWY") -> Runway:
         """
         Gets the Runway GeoJSON instance for a RWY procedure instance.
 
@@ -947,10 +947,9 @@ class ManagedAirportBase(AirportWithProcedures):
         :rtype:     { return_type_description }
         """
         n = rwy.name.replace("RW", "")
-        if n in self.runways.keys():
-            return self.runways[n]
-        logger.warning(f"runway {n} not found")
-        return None
+        if n not in self.runways:
+            logger.warning(f"runway {n} not found")
+        return self.runways.get(n)
 
     def getRunways(self):
         """

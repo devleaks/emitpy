@@ -22,17 +22,9 @@ class Location(FeatureWithProps):  # Location(Feature)
     A Location is a named Feature<Point> in a city in a country.
     """
 
-    def __init__(
-        self, name: str, city: str, country: str, lat: float, lon: float, alt: float
-    ):
+    def __init__(self, name: str, city: str, country: str, lat: float, lon: float, alt: float):
         FeatureWithProps.__init__(
-            self,
-            geometry=Point((lon, lat, alt)),
-            properties={
-                FEATPROP.COUNTRY.value: country,
-                FEATPROP.CITY.value: city,
-                FEATPROP.NAME.value: name,
-            },
+            self, geometry=Point((lon, lat, alt)), properties={FEATPROP.COUNTRY.value: country, FEATPROP.CITY.value: city, FEATPROP.NAME.value: name}
         )
 
 
@@ -41,14 +33,7 @@ class Location(FeatureWithProps):  # Location(Feature)
 #
 #
 class Ramp(FeatureWithProps):
-    def __init__(
-        self,
-        name: str,
-        ramptype: str,
-        position: List[float],
-        orientation: float,
-        use: str,
-    ):
+    def __init__(self, name: str, ramptype: str, position: List[float], orientation: float, use: str):
         FeatureWithProps.__init__(
             self,
             geometry=Point(position),
@@ -197,16 +182,7 @@ class Ramp(FeatureWithProps):
 #
 #
 class Runway(FeatureWithProps):
-    def __init__(
-        self,
-        name: str,
-        width: float,
-        lat1: float,
-        lon1: float,
-        lat2: float,
-        lon2: float,
-        surface: Polygon,
-    ):
+    def __init__(self, name: str, width: float, lat1: float, lon1: float, lat2: float, lon2: float, surface: Polygon):
         p1 = Feature(geometry=Point((lon1, lat1)))
         p2 = Feature(geometry=Point((lon2, lat2)))
         brng = bearing(p1, p2)
@@ -216,13 +192,7 @@ class Runway(FeatureWithProps):
         FeatureWithProps.__init__(
             self,
             geometry=surface,
-            properties={
-                "type": "runway",
-                "name": name,
-                "width": width,
-                "orientation": brng,
-                "line": LineString([(lon1, lat1), (lon2, lat2)]),
-            },
+            properties={"type": "runway", "name": name, "width": width, "orientation": brng, "line": LineString([(lon1, lat1), (lon2, lat2)])},
         )
 
     def getInfo(self):
@@ -248,23 +218,9 @@ class ServiceParking(FeatureWithProps):
     for equipment movements (row codes 1400, 1401).
     """
 
-    def __init__(
-        self,
-        name: str,
-        parking_type: str,
-        position: List[float],
-        orientation: float,
-        use: str,
-    ):
+    def __init__(self, name: str, parking_type: str, position: List[float], orientation: float, use: str):
         FeatureWithProps.__init__(
-            self,
-            geometry=Point(position),
-            properties={
-                "type": "service-parking",
-                "sub-type": parking_type,
-                "parking-use": use,
-                "orientation": orientation,
-            },
+            self, geometry=Point(position), properties={"type": "service-parking", "sub-type": parking_type, "parking-use": use, "orientation": orientation}
         )
 
 
@@ -280,14 +236,10 @@ class WeatherPoint(FeatureWithProps):
     TROPOSPHERE = 20000  # m
 
     def __init__(self, position: List[float], weather):
-        FeatureWithProps.__init__(
-            self, geometry=Point(position), properties={"weather": weather}
-        )
+        FeatureWithProps.__init__(self, geometry=Point(position), properties={"weather": weather})
 
         self.dt_start = datetime(1970, 1, 1, 0, 0)
-        self.dt_end = datetime.now() + timedelta(
-            weeks=52 * 100
-        )  # won't be here to blame if it fails.
+        self.dt_end = datetime.now() + timedelta(weeks=52 * 100)  # won't be here to blame if it fails.
         self.bbox = [90, 180, -90, -180]
         self.alt_min = 0  # MSL
         self.alt_max = WeatherPoint.TOPOSPHERE
@@ -302,12 +254,7 @@ class WeatherPoint(FeatureWithProps):
         return alt >= self.alt_min and moment <= self.alt_max
 
     def valid_pos(self, pos):
-        return (
-            self.bbox[0] > pos[0]
-            and self.bbox[2] > pos[0]
-            and self.bbox[1] > pos[1]
-            and self.bbox[3] > pos[1]
-        )
+        return self.bbox[0] > pos[0] and self.bbox[2] > pos[0] and self.bbox[1] > pos[1] and self.bbox[3] > pos[1]
 
     def get_wind(self):
         # returns (speed (m/s), direction (° True, None if variable))

@@ -73,8 +73,8 @@ class XPAirport(ManagedAirportBase):
         self.atc_ground = None
         self.airport_base = MANAGED_AIRPORT_DIR
         self.runway_exits: Dict[str, FeatureWithProps] = {}
-        self.takeoff_queues = {}
-        self.all_pois_combo = {}
+        self.takeoff_queues: Dict[str, FeatureWithProps] = {}
+        self.all_pois_combo: Dict[str, FeatureWithProps] = {}
 
     def load(self):
         """
