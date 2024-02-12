@@ -30,7 +30,6 @@
 # Radius to a Fix                                  RF
 #
 #
-from enum import Enum
 
 
 AIRSPACE_TYPES = {
@@ -206,9 +205,4 @@ APPROACH_LEG_TYPE_ABBREV = {
 # (FM) Fix To a Manual Termination
 #
 
-RNAV_LEG_TYPE = {
-    "CF": "COURSE_TO_FIX",
-    "DF": "DIRECT_TO_FIX",
-    "RF": "CONSTANT_RADIUS_ARC",
-    "TF": "TRACK_TO_FIX",
-}
+RNAV_LEG_TYPE = {"CF": "COURSE_TO_FIX", "DF": "DIRECT_TO_FIX", "RF": "CONSTANT_RADIUS_ARC", "TF": "TRACK_TO_FIX"}

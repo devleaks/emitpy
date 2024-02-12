@@ -1,24 +1,19 @@
 """
 Definition if Airline and Airroute operated by Airlines
 """
-
+from __future__ import annotations
 import os
 import random
 import logging
 import csv
 import operator
+from typing import Dict
+
 import yaml
 
 from .company import Company
 from emitpy.airport import Airport
-from emitpy.constants import (
-    AIRLINE,
-    AIRLINE_DATABASE,
-    REDIS_PREFIX,
-    REDIS_DATABASE,
-    REDIS_LOVS,
-    REDIS_DB,
-)
+from emitpy.constants import AIRLINE, AIRLINE_DATABASE, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.utils import toNm, key_path, rejson
 from emitpy.geo.turf import distance
@@ -31,16 +26,16 @@ class Airline(Company):
     An Airline is an operator of Airroute
     """
 
-    _DB = {}
-    _DB_IATA = {}
-    _DB_NAME = {}
+    _DB: Dict[str, Airline] = {}
+    _DB_IATA: Dict[str, Airline] = {}
+    _DB_NAME: Dict(str, Airline) = {}
 
     def __init__(self, name: str, iata: str, icao: str):
         Company.__init__(self, name, AIRLINE, "", iata)
         self.icao = icao
         self.iata = iata
-        self.routes = {}  # airports
-        self.hub = {}  # airports
+        self.routes: Dict[str, Airport] = {}  # airports
+        self.hub: Dict[str, Airport] = {}  # airports
         self._rawdata = None
 
     @staticmethod
@@ -75,9 +70,7 @@ class Airline(Company):
         LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXY0123456789"
         filename = os.path.join(DATA_DIR, AIRLINE_DATABASE, "flight-operators.csv")
         if airport_icao is not None:
-            filename = os.path.join(
-                MANAGED_AIRPORT_DIR, "airlines", "flight-operators.csv"
-            )
+            filename = os.path.join(MANAGED_AIRPORT_DIR, "airlines", "flight-operators.csv")
 
         cnt = 0
         kk = ""
@@ -87,10 +80,7 @@ class Airline(Company):
             for row in csvdata:
                 # Name
                 if row["NAME"] not in Airline._DB_NAME.keys():
-                    kk = (
-                        LETTERS[int(cnt / len(LETTERS))]
-                        + LETTERS[int(cnt % len(LETTERS))]
-                    )
+                    kk = LETTERS[int(cnt / len(LETTERS))] + LETTERS[int(cnt % len(LETTERS))]
                     row["ICAO"] = "ZZ" + kk
                     row["IATA"] = "Z" + kk
                     a = Airline(name=row["NAME"], icao=row["ICAO"], iata=row["IATA"])
@@ -110,13 +100,9 @@ class Airline(Company):
         """
         if redis is not None:
             if len(code) == 3:
-                k = key_path(
-                    key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.ICAO.value), code
-                )
+                k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.ICAO.value), code)
             else:
-                k = key_path(
-                    key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.IATA.value), code
-                )
+                k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.IATA.value), code)
             ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if ac is not None:
                 return Airline.fromInfo(info=ac)
@@ -134,9 +120,7 @@ class Airline(Company):
         Finds an airline through ICAO 3 letter code.
         """
         if redis is not None:
-            k = key_path(
-                key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.ICAO.value), icao
-            )
+            k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.ICAO.value), icao)
             ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if ac is not None:
                 return Airline.fromInfo(info=ac)
@@ -152,9 +136,7 @@ class Airline(Company):
         Finds an airline through its IATA 2 letter code.
         """
         if redis is not None:
-            k = key_path(
-                key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.IATA.value), iata
-            )
+            k = key_path(key_path(REDIS_PREFIX.AIRLINES.value, REDIS_PREFIX.IATA.value), iata)
             ac = rejson(redis=redis, key=k, db=REDIS_DB.REF.value)
             if ac is not None:
                 return Airline.fromInfo(info=ac)
@@ -171,12 +153,7 @@ class Airline(Company):
         """
         if redis is not None:
             name = name.replace("'", "").replace('"', "")  # remove ' and "
-            ac = rejson(
-                redis=redis,
-                key=REDIS_PREFIX.AIRLINE_NAMES.value,
-                db=REDIS_DB.REF.value,
-                path=f"$..orgId='{name}'",
-            )
+            ac = rejson(redis=redis, key=REDIS_PREFIX.AIRLINE_NAMES.value, db=REDIS_DB.REF.value, path=f"$..orgId='{name}'")
             if ac is not None:
                 return Airline.fromInfo(info=ac)
             else:
@@ -254,11 +231,7 @@ class Airline(Company):
         :type       reglen:       int
         """
         s = "0123456789"
-        return (
-            (self.icao if icao else self.iata)
-            + "-"
-            + "".join(random.sample(s, reglen)).lstrip("0")
-        )  # no SN-0010, SN-10
+        return (self.icao if icao else self.iata) + "-" + "".join(random.sample(s, reglen)).lstrip("0")  # no SN-0010, SN-10
 
     def save(self, base, redis, mode: str = "icao"):
         """

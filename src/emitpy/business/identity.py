@@ -12,6 +12,7 @@
 # But also emitpy internal objects like flights, generated flight plan, movement, emission, broadcast.
 # Internal objects like queues.
 #
+from __future__ import annotations
 import json
 from typing import Dict
 from datetime import datetime, timezone
@@ -24,7 +25,7 @@ from emitpy.utils import key_path
 import emitpy
 
 
-ALL_IDENTITIES: Dict[str, "Identity"] = {}
+ALL_IDENTITIES: Dict[str, Identity] = {}
 
 
 class IDENTIFIER(Enum):

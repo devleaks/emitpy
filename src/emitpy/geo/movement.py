@@ -45,7 +45,7 @@ class MovePoint(FeatureWithProps):
 
 
 class Movement(Messages):
-    def __init__(self, airport: "ManagedAirportBase", reason: "Messages"):
+    def __init__(self, airport: "ManagedAirportBase", reason: Messages):
         Messages.__init__(self)
 
         self.reason = reason  # Core entity of the movement: Flight or ground service.

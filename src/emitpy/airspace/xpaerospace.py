@@ -52,8 +52,6 @@ class XPAerospace(Aerospace):
 
         self._cached_vectex_ids = None
         self._cached_vectex_idents = None
-        self.airports_icao = {}
-        self.airports_iata = {}
 
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "earth_nav.dat")
@@ -61,7 +59,7 @@ class XPAerospace(Aerospace):
             logger.info(f"custom data directory exist, using it")
             self.basename = CUSTOM_DATA_DIR
 
-    def setAiracCycle(self, str_in: str):
+    def setAiracCycle(self, str_in: str) -> str:
         """
         Attempts to find Airac Cycle from either navdata cycle_info.txt file
         or X-Plane earth_nav.dat I line (information)
@@ -77,7 +75,7 @@ class XPAerospace(Aerospace):
         cycle = str_in.strip()
         if len(str_in) > 4:
             m = re.findall("data cycle ([0-9]{4})", str_in)
-            cycle = None
+            cycle = ""
             if len(m) == 1:
                 cycle = m[0]
             elif len(m) > 1:
@@ -185,24 +183,6 @@ class XPAerospace(Aerospace):
 
         logger.debug("%d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
         return [True, "XPAerospace::Airport loaded"]
-
-    def getAirportIATA(self, iata) -> Terminal | None:
-        """
-        Returns airport from airspace airport database with matching IATA code.
-
-        :param      iata:  The iata
-        :type       iata:  { type_description }
-        """
-        return self.airports_iata[iata] if iata in self.airports_iata.keys() else None
-
-    def getAirportICAO(self, icao) -> Terminal | None:
-        """
-        Returns airport from airspace airport database with matching ICAO code.
-
-        :param      iata:  The iata
-        :type       iata:  { type_description }
-        """
-        return self.airports_icao[icao] if icao in self.airports_icao.keys() else None
 
     def checkFile(self, filename):
         KEY_HEADER = "^([\\d]{4}) Version - data cycle ([\\d]{4}), build ([\\d]{8}), metadata ([\\w]+). (.*)"
@@ -771,13 +751,13 @@ class XPAerospace(Aerospace):
                                 hid = NamedPoint.mkId(region=args[1], airport=args[2], ident=args[0], pointtype="HLD")
                                 self.holds[hid] = Hold(
                                     fix=fix,
-                                    altmin=float(args[8]),
-                                    altmax=float(args[9]),
+                                    altmin=int(args[8]),
+                                    altmax=int(args[9]),
                                     course=float(args[4]),
                                     turn=args[7],
                                     leg_time=float(args[5]),
                                     leg_length=float(args[6]),
-                                    speed=float(args[10]),
+                                    speed=int(args[10]),
                                 )
                     else:
                         if len(line) > 1:

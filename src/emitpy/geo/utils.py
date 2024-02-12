@@ -165,10 +165,7 @@ def cleanFeatures(fa):
     Returns:
         [Feature]: Converted features
     """
-    c = []
-    for f in fa:
-        c.append(cleanFeature(f))
-    return c
+    return [cleanFeature(f) for f in fa]
 
 
 def getFeatureCollection(features, addline: bool = False):

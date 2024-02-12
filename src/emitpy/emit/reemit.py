@@ -1,6 +1,7 @@
 #
 import logging
 import json
+from typing import Dict
 from datetime import datetime, timedelta
 from jsonpath import JSONPath
 
@@ -8,16 +9,10 @@ from .emit import EmitPoint, Emit
 
 # pylint: disable=C0411
 from emitpy.message import ReMessage
-from emitpy.constants import (
-    ID_SEP,
-    FEATPROP,
-    MOVE_TYPE,
-    FLIGHT_PHASE,
-    SERVICE_PHASE,
-    MISSION_PHASE,
-)
+from emitpy.constants import ID_SEP, FEATPROP, MOVE_TYPE, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASES, REDIS_TYPE, FLIGHT_DATABASE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
+from emitpy.utils import key_path
 
 
 logger = logging.getLogger("ReEmit")
@@ -85,9 +80,7 @@ class ReEmit(Emit):
         self.frequency = int(arr[-2])
         self.emit_id = ID_SEP.join(arr[1:-2])
 
-        logger.debug(
-            f"{arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}"
-        )
+        logger.debug(f"{arr}: emit_type={self.emit_type}, emit_id={self.emit_id}, frequency={self.frequency}")
         return (True, "ReEmit::parseKey parsed")
 
     def load(self):
@@ -122,7 +115,7 @@ class ReEmit(Emit):
         return (True, "ReEmit::loadMetaFromCache loaded")
 
     def loadFromCache(self):
-        def toEmitPoint(s: str):
+        def toEmitPoint(s: bytes):
             f = json.loads(s.decode("UTF-8"))
             return EmitPoint.new(f)
 
@@ -151,7 +144,7 @@ class ReEmit(Emit):
 
         return (True, "ReEmit::loadMessages loaded")
 
-    def getMeta(self, path: str = None, return_first_only: bool = True):
+    def getMeta(self, path: str | None = None, return_first_only: bool = True):
         # logger.debug(f"from ReEmit")
         if self.emit_meta is None:
             ret = self.loadMetaFromCache()
@@ -185,13 +178,7 @@ class ReEmit(Emit):
         """
         Move points are saved in emission points.
         """
-        self.setMovePoints(
-            list(
-                filter(
-                    lambda f: not f.getProp(FEATPROP.BROADCAST), self.getEmitPoints()
-                )
-            )
-        )
+        self.setMovePoints(list(filter(lambda f: not f.getProp(FEATPROP.BROADCAST), self.getEmitPoints())))
         logger.debug(f"extracted {len(self.move_points)} points")
         return (True, "ReEmit::extractMove loaded")
 
@@ -236,11 +223,7 @@ class ReEmit(Emit):
             is_arrival = self.getMeta("$.move.flight.is_arrival")
             if is_arrival is None:
                 logger.warning(f"cannot get move for {self.emit_id}")
-            mark = (
-                FLIGHT_PHASE.TOUCH_DOWN.value
-                if is_arrival
-                else FLIGHT_PHASE.TAKE_OFF.value
-            )
+            mark = FLIGHT_PHASE.TOUCH_DOWN.value if is_arrival else FLIGHT_PHASE.TAKE_OFF.value
         elif self.emit_type == MOVE_TYPE.SERVICE.value:
             mark = SERVICE_PHASE.SERVICE_START.value
         elif self.emit_type == MOVE_TYPE.MISSION.value:
@@ -377,9 +360,9 @@ class ReEmitAll:
     def __init__(self, ident: str, redis):
         self.redis = redis
         self.ident = ident
-        self.emits = {}
+        self.emits: Dict[str, ReEmit] = {}
 
-        ret = self.parseKey()
+        ret = self.parseKey(self.ident)
         if not ret[0]:
             logger.warning(ret[1])
 
@@ -391,15 +374,15 @@ class ReEmitAll:
         valid_extensions = set(item.value for item in REDIS_TYPE)
         valid_databases = dict([(v, k) for k, v in REDIS_DATABASES.items()])
 
-        arr = key.split(ID_SEP)
+        arr = ident.split(ID_SEP)
 
         # Do we have an extension?
         if arr[-1] != REDIS_TYPE.EMIT_META.value:
-            logger.warning(f"({key} is not valid (extension={arr[-1]})")
+            logger.warning(f"({ident} is not valid (extension={arr[-1]})")
             return (False, "ReEmitAll::parseKey invalid emit meta data key")
 
         if arr[0] not in valid_databases.keys():
-            logger.warning(f"({key} is not valid (database={arr[0]})")
+            logger.warning(f"({ident} is not valid (database={arr[0]})")
             return (False, "ReEmitAll::parseKey invalid emit key")
 
         self.emit_type = valid_databases[arr[0]]
@@ -422,6 +405,3 @@ class ReEmitAll:
 
         # Reschedule each
         return (True, "ReEmitAll::fetch fetched")
-
-    def emits(self):
-        return self.emits

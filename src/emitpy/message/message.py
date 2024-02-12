@@ -211,10 +211,10 @@ class Messages:
     def getMessages(self):
         return self.messages
 
-    def scheduleMessages(self, reftime: datetime):
+    def scheduleMessages(self, moment: datetime, sync: str | None = None, do_print: bool = False):
         for m in self.messages:
-            m.schedule(reftime)
-        logger.debug(f"scheduled relative to {reftime}")
+            m.schedule(moment)
+        logger.debug(f"scheduled relative to {moment}")
 
     def saveMessages(self, redis, key: str):
         for m in self.messages:
