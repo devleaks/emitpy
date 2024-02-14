@@ -7,19 +7,15 @@ import io
 import json
 import logging
 import copy
-from math import pi
+from math import dist, pi
 from datetime import timedelta
-
-from networkx import HasACycle, non_neighbors
-from emitpy import geo
-from emitpy.airspace.procedure import Restriction
-
-from emitpy.geo.turf import LineString, FeatureCollection, Feature, saveGeoJSON
-from emitpy.geo.turf import distance, destination, bearing
 
 from tabulate import tabulate
 
-from emitpy.flight import Flight
+from emitpy.airspace.restriction import Restriction
+from emitpy.geo.turf import LineString, FeatureCollection, Feature, saveGeoJSON
+from emitpy.geo.turf import distance, destination, bearing
+from emitpy.flight import Flight, FLIGHT_SEGMENT
 from emitpy.airport import ManagedAirportBase
 from emitpy.aircraft import ACPERF
 from emitpy.geo import MovePoint, Movement
@@ -30,7 +26,6 @@ from emitpy.constants import POSITION_COLOR, FEATPROP, TAXI_SPEED, SLOW_SPEED
 from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT, MOVE_TYPE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.message import FlightMessage
-
 from emitpy.utils import interpolate as doInterpolation, compute_time as doTime, toKmh, toMs
 from .standardturn import standard_turn_flyby, standard_turn_flyover
 
@@ -88,7 +83,15 @@ class FlightMovement(Movement):
             logger.warning(status[1])
             return status
 
-        # logger.debug(self.tabulateMovement())
+        logger.debug(self.tabulateMovement())
+        # #####################################################
+        #
+        #
+        logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
+        return (True, "FlightMovement::TEMPORARY completed")
+        #
+        #
+        # #####################################################
 
         status = self.standard_turns()
         if not status[0]:
@@ -191,27 +194,31 @@ class FlightMovement(Movement):
             saveGeoJSON(filename, FeatureCollection(features=fc))
 
         # saveMe(self.flight.flightplan_wpts, "1-plan")
-        ls = Feature(geometry=asLineString(self.flight.flightplan_wpts))
-        saveMe(self.flight.flightplan_wpts + [ls], FILE_FORMAT.FLIGHT_PLAN.value)
+        if len(self.flight.flightplan_wpts) > 1:
+            ls = Feature(geometry=asLineString(self.flight.flightplan_wpts))
+            saveMe(self.flight.flightplan_wpts + [ls], FILE_FORMAT.FLIGHT_PLAN.value)
 
         # saveMe(self._premoves, "2-flight")
-        ls = Feature(geometry=asLineString(self._premoves))
-        saveMe(self._premoves + [ls], FILE_FORMAT.FLIGHT.value)
+        if len(self._premoves) > 1:
+            ls = Feature(geometry=asLineString(self._premoves))
+            saveMe(self._premoves + [ls], FILE_FORMAT.FLIGHT.value)
 
         # saveMe(self.getMovePoints(), "3-move")
         move_points = self.getMovePoints()
-        ls = Feature(geometry=asLineString(move_points))
-        saveMe(move_points + [ls], FILE_FORMAT.MOVE.value)
+        if len(move_points) > 1:
+            ls = Feature(geometry=asLineString(move_points))
+            saveMe(move_points + [ls], FILE_FORMAT.MOVE.value)
+
+            kml = toKML(cleanFeatures(move_points))
+            filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
+            with open(filename, "w") as fp:
+                fp.write(kml)
+                logger.debug(f"saved kml {filename} ({len(move_points)})")
 
         # saveMe(self.taxipos, "4-taxi")
-        ls = Feature(geometry=asLineString(self.taxipos))
-        saveMe(self.taxipos + [ls], FILE_FORMAT.TAXI.value)
-
-        kml = toKML(cleanFeatures(move_points))
-        filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
-        with open(filename, "w") as fp:
-            fp.write(kml)
-            logger.debug(f"saved kml {filename} ({len(move_points)})")
+        if len(self.taxipos) > 1:
+            ls = Feature(geometry=asLineString(self.taxipos))
+            saveMe(self.taxipos + [ls], FILE_FORMAT.TAXI.value)
 
         logger.debug(f"saved {self.flight_id}")
         return (True, "Movement::save saved")
@@ -314,6 +321,65 @@ class FlightMovement(Movement):
             arr.append(mvpt)
             return mvpt
 
+        def climb_to_alt(start_idx, current_altitude, target_altitude, do_it: bool = True, expedite: bool = False) -> tuple[int, int]:
+            """Compute distance necessary to reach target_altitude.
+            From that distance, compute framing flight plan indices (example: between 6 and 7).
+            Returns the last index (7). At index 7, we will be at target_altitude.
+
+            Climbs from current_position at current_altitude to new position at target altitude.
+            if expedite climb, climb first to target_altitude and then fly level to waypoint
+            if not expedite, climb at regular pace to target_altitude at waypoint
+
+            returns:
+             - New position, which is a way point with restriction or top of climb
+             - New altitude at waypoint (after climbing)
+            """
+            if target_altitude < current_altitude:
+                logger.debug("climb to alt: need to descend")
+                return descend_to_alt(start_idx, current_altitude, target_altitude, do_it)
+            delta = target_altitude - current_altitude
+            # ranges are initial-climb, climb-150, climb-240, climb-cruise
+            # we assume we are above initial climb, we can also safely assure
+            # that we are below FL150 for SID and STAR, but let's check it
+            if self.flight.aircraft.actype.getSpeedRangeForAlt(current_altitude) != self.flight.aircraft.actype.getSpeedRangeForAlt(target_altitude):
+                logger.warning(f"change of ranges for altitudes {current_altitude} -> {target_altitude}")
+            roc = self.flight.aircraft.actype.getROCDistanceForAlt(current_altitude)
+            min_dist_to_climb = delta * roc  # km
+            total_dist = 0
+            curridx = start_idx
+            while total_dist < min_dist_to_climb and curridx < (len(fc) - 1):
+                d = distance(fc[curridx], fc[curridx + 1])
+                total_dist = total_dist + d
+                curridx = curridx + 1
+            logger.debug(f"climb from {current_altitude} at idx {start_idx} to {target_altitude} at idx {curridx}")
+            # we are now at fc[curridx], at altitude target_altitude, two ways to get there
+            if do_it:
+                if expedite:
+                    logger.debug(f"expedite")
+                else:  # regular gradient climb
+                    logger.debug(f"no expedite")
+            else:
+                logger.debug(f"getting index for climb from {current_altitude} to {target_altitude}")
+
+            return (curridx, target_altitude)
+
+        def descend_to_alt(start_idx, current_altitude, target_altitude, do_it: bool = True, expedite: bool = False) -> tuple[int, int]:
+            """Compute distance necessary to reach target_altitude.
+            From that distance, compute framing flight plan indices (example: between 6 and 7).
+            Returns the last index (7). At index 7, we will be at target_altitude.
+            """
+            if target_altitude > current_altitude:
+                logger.debug("descend to alt: need to climb")
+                return climb_to_alt(start_idx, current_altitude, target_altitude)
+            if do_it:
+                logger.debug(f"descend from {current_altitude} to {target_altitude}")
+            else:
+                logger.debug(f"getting index for descend from {current_altitude} to {target_altitude}")
+            return (min(start_idx + 5, len(self.flight.flightplan_wpts)), target_altitude)
+
+        # ###########################################################################################
+        #
+        #
         if self.flight.flightplan_wpts is None or len(self.flight.flightplan_wpts) == 0:
             logger.warning("no flight plan")
             return (False, "Movement::vnav no flight plan, cannot move")
@@ -414,7 +480,13 @@ class FlightMovement(Movement):
                 mark="end_initial_climb",
                 ix=newidx,
             )
-            logger.debug("initial climb end at %d, %f" % (newidx, initial_climb_distance))
+            logger.debug(f"initial climb end at index {newidx}, {round(initial_climb_distance,3)}km")
+            # small control to see if next point on flight plan is AFTER end of initial climb
+            ctrd = distance(fc[newidx], fc[newidx + 1])
+            if initial_climb_distance > ctrd:
+                logger.warning(f"initial climb finishes after start of SID at {round(ctrd,3)}km")
+            else:
+                logger.debug(f"index {newidx + 1} at {round(ctrd,3)}km")
             groundmv = groundmv + initial_climb_distance
             # we ignore vertices between takeoff and initial_climb
             # we go in straight line and ignore self._premoves, skipping eventual points
@@ -469,12 +541,85 @@ class FlightMovement(Movement):
                 mark_tr=FLIGHT_PHASE.INITIAL_CLIMB.value,
             )
 
-        r = self.flight.next_restriction(fcidx)
-        if r is not None:
-            logger.debug(f"at index {fcidx}, next restriction at {r.getProp(FEATPROP.FLIGHT_PLAN_INDEX)} {r.getRestrictionDesc()}")
-            # self.climbTo(currpos, r)
-        # @todo: Transition to start of SID + follow SID
-        # we have an issue if first point of SID is between TAKE_OFF and END_OF_INITIAL_CLIMB
+        # ########################################################################################
+        #
+        # New algorithm to climb from initial climb altitude to cruise altitude while respecting alt contraints.
+        #
+        #
+        cruise_alt = self.flight.flight_level * 100  # Target alt for climb
+        if self.flight.departure.has_sids():
+            logger.debug(f"--------------- climbing with constraints.. (SID = {self.flight.procedures.get(FLIGHT_SEGMENT.SID.value).name})")
+
+            curralt = 1500.0  # ft
+            curridx = fcidx  # we use curridx inside this if/then/else, we'll set fcidx back after this processing
+
+            # Step 1: We are climbing... where is the next alt constraint we have to climb above?
+            #
+            # Note: this procedure just check for alt constraints.
+            # Now is the aircraft capable of climing that fast? That is handled in climb_to_alt().
+            # If not, climb_to_alt() will report a potential constraint violation.
+            #
+            r = self.flight.next_above_alt_restriction(curridx, max_distance=150)
+            above_restrictions = 0
+            while r is not None:
+                restricted_above_alt = r.alt2 if r.alt_restriction_type in ["B"] else r.alt1
+                above_restrictions = above_restrictions + 1
+                logger.debug(f"at index {curridx}, next restriction ABOVE at idx={r.getProp(FEATPROP.FLIGHT_PLAN_INDEX)} {r.getRestrictionDesc()}")
+                r2 = self.flight.next_below_alt_restriction(curridx, r.getProp(FEATPROP.FLIGHT_PLAN_INDEX))
+
+                # Step 1b : While climbing there, are there any constraints we have to stay below?
+                while r2 is not None:
+                    # r2.alt1 is "below" limit in all cases
+                    restricted_below_alt = r2.alt1
+                    logger.debug(
+                        f"at index {curridx}, next restriction BELOW at idx={r2.getProp(FEATPROP.FLIGHT_PLAN_INDEX)} {r2.getRestrictionDesc()}, will climb at {restricted_below_alt}"
+                    )
+                    dummy, curralt = climb_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=restricted_below_alt)
+                    curridx = r.getProp(FEATPROP.FLIGHT_PLAN_INDEX)
+                    logger.debug(f"now at altitude {curralt}, checking for next BELOW restriction")
+                    r2 = self.flight.next_below_alt_restriction(curridx, r.getProp(FEATPROP.FLIGHT_PLAN_INDEX))
+
+                # Step 1c: Resume climbing to constraint to climb above...
+                logger.debug(f"at index {curridx}, no more BELOW restrictions, will climb to {restricted_above_alt}")
+                dummy, curralt = climb_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=restricted_above_alt)
+                curridx = r.getProp(FEATPROP.FLIGHT_PLAN_INDEX)
+                # Step 1d: Is there a new alt constraint we have to climb above...
+                logger.debug(f"now at altitude {curralt}, checking for next ABOVE restrictions")
+                r = self.flight.next_above_alt_restriction(curridx, max_distance=150)
+
+            logger.debug(f"now at altitude {curralt} (after {above_restrictions} ABOVE restrictions, no more ABOVE restriction)")
+            logger.debug(f"at index {curridx}, attempting to climb to cruise alt {cruise_alt}, checking for BELOW restrictions")
+
+            # Step 2: No more constraints to climb above, but while climbing to cruise alt, are there any constraints we have to stay below?
+            idx_to_cruise_alt, dummy = climb_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=cruise_alt, do_it=False)
+            r3 = self.flight.next_below_alt_restriction(curridx, idx_to_cruise_alt)
+            below_restrictions = 0
+            while r3 is not None:
+                restricted_below_alt = r3.alt1
+                below_restrictions = below_restrictions + 1
+                logger.debug(
+                    f"at index {curridx}, next restriction BELOW at {r3.getProp(FEATPROP.FLIGHT_PLAN_INDEX)} {r3.getRestrictionDesc()}, will climb at {restricted_below_alt}"
+                )
+                dummy, curralt = climb_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=restricted_below_alt)
+                curridx = r3.getProp(FEATPROP.FLIGHT_PLAN_INDEX)
+                curralt = restricted_below_alt
+                # we now have to reevaluate when we will reach cruise alt...
+                # curralt will temporarily be cruise alt, but if new r3 is not None, curralt will fall back to new restricted_below_alt
+                r3 = self.flight.next_below_alt_restriction(curridx, idx_to_cruise_alt)
+
+            logger.debug(f"at index {curridx}, no more BELOW restrictions, will climb to {cruise_alt}")
+            dummy, curralt = climb_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=cruise_alt)
+
+            logger.debug(f"now at altitude {curralt} (cruise at FL{self.flight.flight_level})")
+            assert curralt == self.flight.flight_level * 100
+            logger.debug(f"--------------- ..done climbing with constraints")
+
+            # fcidx = curridx  # !!
+        #
+        #
+        # ########################################################################################
+
+        # we have an issue if first point of SID is between TAKE_OFF and END_OF_INITIAL_CLIMB (which is )
         # but it is very unlikely (buy it may happen, in which case the solution is to remove the first point if SID)
         # Example of issue: BEY-DOH //DEP OLBA RW34 SID LEBO2F //ARR OTHH
         logger.debug("climbToFL100")
@@ -623,22 +768,46 @@ class FlightMovement(Movement):
         #
         #
         logger.debug(f"arrival to {self.flight.arrival.icao} " + "=" * 30)
+
         # Set a few default sensible values in case procedures do not give any
-        FINAL_ALT = 2000 * FT  # Altitude ABG at which we start final, always straight line aligned with runway
-        APPROACH_ALT = 3000 * FT  # Altitude ABG at which we perform approach path before final
+        # STAR
         STAR_ALT = 6000 * FT  # Altitude ABG at which we perform STAR path before approach
+        starproc = self.flight.procedures.get(FLIGHT_SEGMENT.STAR.value)
+        if starproc is not None:
+            dummy, STAR_ALT = starproc.getEntrySpeedAndAlt()
+
+        # APPROACH
+        FINAL_FIX_ALT = 2000 * FT  # Altitude ABG at which we start final, always straight line aligned with runway
+        APPROACH_ALT = 3000 * FT  # Altitude ABG at which we perform approach path before final
+        FINAL_VSPEED = None
+
+        # 1. Try to get from procedure
+        apchproc = self.flight.procedures.get(FLIGHT_SEGMENT.APPCH.value)
+        if starproc is not None:
+            dummy, APPROACH_ALT = apchproc.getEntrySpeedAndAlt()
+            FINAL_VSPEED, FINAL_FIX_ALT = apchproc.getExitSpeedAndAlt()
+            logger.debug(f"final vspeed from approach procedure ({FINAL_VSPEED})")
+
+        # 2. Try from landing speed
+        if FINAL_VSPEED is None or FINAL_VSPEED == 0:
+            if actype.getSI(ACPERF.landing_speed) is not None and actype.getSI(ACPERF.landing_speed) > 0:
+                # Alternative 2 : VSPEED adjusted to have an angle/ratio of 3% (common)
+                # Note: Landing speed is in kn. 1 kn = 101.26859 ft/min :-)
+                FINAL_VSPEED = 0.03 * actype.get(ACPERF.landing_speed) * 101.26859  # in ft/min
+                logger.debug(f"final vspeed from 3% landing speed ({FINAL_VSPEED})")
+
+        # 3. Use sensible default
+        if FINAL_VSPEED is None or FINAL_VSPEED == 0:
+            FINAL_VSPEED = 600  # ft/min, fairly standard
+            logger.debug(f"final vspeed from default ({FINAL_VSPEED})")
+
+        FINAL_FIX_ALT = round(FINAL_FIX_ALT, 1)
+        APPROACH_ALT = round(APPROACH_ALT, 1)
+        final_vspeed_ms = FINAL_VSPEED * FT / 60  # in meters/sec
+        logger.debug(f"final vspeed {actype.typeId}: {round(final_vspeed_ms, 2)} m/s, {round(FINAL_VSPEED, 2)} ft/min")
+
+        # LANDING AND TOUCH DOWN
         LAND_TOUCH_DOWN = 0.4  # km, distance of touch down from the runway threshold (given in CIFP)
-
-        # Alternative 1: VSPEED = 600ft/min for all aircrafts
-        FINAL_VSPEED = 600
-
-        if actype.getSI(ACPERF.landing_speed) is not None and actype.getSI(ACPERF.landing_speed) > 0:
-            # Alternative 2 : VSPEED adjusted to have an angle/ratio of 3% (common)
-            # Note: Landing speed is in kn. 1 kn = 101.26859 ft/min :-)
-            FINAL_VSPEED = 0.03 * actype.get(ACPERF.landing_speed) * 101.26859  # in ft/min
-
-        final_speed_ms = FINAL_VSPEED * FT / 60  # in meters/sec
-        logger.debug(f"final vspeed {actype.typeId}: {round(final_speed_ms, 2)} m/s, {round(FINAL_VSPEED, 2)} ft/min")
 
         revmoves = []
         groundmv = 0
@@ -705,9 +874,9 @@ class FlightMovement(Movement):
             )
             is_grounded = False
 
-            # we move to the final fix at max FINAL_ALT ft, landing speed, FINAL_VSPEED (ft/min), from touchdown
+            # we move to the final fix at max FINAL_FIX_ALT ft, landing speed, FINAL_VSPEED (ft/min), from touchdown
             logger.debug("(rev) final")
-            step = actype.descentFinal(alt, final_speed_ms, safealt=FINAL_ALT)  # (t, d, altend)
+            step = actype.descentFinal(alt, final_vspeed_ms, safealt=FINAL_FIX_ALT)  # (t, d, altend)
             final_distance = step[1] / 1000  # km
             # find final fix point
 
@@ -721,9 +890,9 @@ class FlightMovement(Movement):
             currpos = addMovepoint(
                 arr=revmoves,
                 src=final_fix,
-                alt=alt + FINAL_ALT,
+                alt=alt + FINAL_FIX_ALT,
                 speed=actype.getSI(ACPERF.landing_speed),
-                vspeed=final_speed_ms,
+                vspeed=final_vspeed_ms,
                 color=POSITION_COLOR.FINAL.value,
                 mark=FLIGHT_PHASE.FINAL_FIX.value,
                 ix=newidx,
@@ -763,7 +932,7 @@ class FlightMovement(Movement):
                 src=arrvapt,
                 alt=alt,
                 speed=actype.getSI(ACPERF.landing_speed),
-                vspeed=final_speed_ms,
+                vspeed=final_vspeed_ms,
                 color=POSITION_COLOR.DESTINATION.value,
                 mark="destination",
                 ix=len(fc) - fcidx,
@@ -782,7 +951,7 @@ class FlightMovement(Movement):
 
             # we move to the final fix at max 3000ft, approach speed from airport last point, vspeed=FINAL_VSPEED
             logger.debug("(rev) final")
-            step = actype.descentFinal(alt, final_speed_ms, safealt=FINAL_ALT)  # (t, d, altend)
+            step = actype.descentFinal(alt, final_vspeed_ms, safealt=FINAL_FIX_ALT)  # (t, d, altend)
             groundmv = groundmv + step[1]
             # find final fix point
             currpos, fcidx = moveOnLS(
@@ -794,11 +963,85 @@ class FlightMovement(Movement):
                 dist=step[1],
                 alt=alt + APPROACH_ALT,
                 speed=actype.getSI(ACPERF.landing_speed),
-                vspeed=final_speed_ms,
+                vspeed=final_vspeed_ms,
                 color=POSITION_COLOR.FINAL.value,
                 mark="start_of_final",
                 mark_tr=FLIGHT_PHASE.FINAL.value,
             )
+
+        # ########################################################################################
+        #
+        # New algorithm to descend from cruise altitude to final fix while respecting alt contraints.
+        #
+        #
+        finalfix_alt = FINAL_FIX_ALT  # Default target alt for descend
+        if self.flight.arrival.has_stars():
+            if self.flight.arrival.has_approaches():
+                logger.debug(
+                    f"--------------- descending with constraints.. (STAR = {self.flight.procedures.get(FLIGHT_SEGMENT.STAR.value).name}, APPCH = {self.flight.procedures.get(FLIGHT_SEGMENT.APPCH.value).name})"
+                )
+                # We set target alt to last point of approach, if any
+
+            else:
+                logger.debug(f"--------------- descending with constraints.. (STAR = {self.flight.procedures.get(FLIGHT_SEGMENT.STAR.value).name})")
+
+            dummy, curridx = self.flight.phase_indices(phase=FLIGHT_SEGMENT.CRUISE)
+            if curridx == None:
+                logger.debug(f"cannot find end of cruise")
+            else:
+                logger.debug(f"cruise finishes at {curridx}")
+
+            curralt = cruise_alt  # ft
+            r = self.flight.next_below_alt_restriction2(curridx, max_distance=150)
+            below_restrictions = 0
+            while r is not None:
+                below_restrictions = below_restrictions + 1
+                logger.debug(f"at index {curridx}, next restriction BELOW at idx={r.getProp(FEATPROP.FLIGHT_PLAN_INDEX)} {r.getRestrictionDesc()}")
+                r2 = self.flight.next_above_alt_restriction2(curridx, r.getProp(FEATPROP.FLIGHT_PLAN_INDEX))
+                while r2 is not None:
+                    restricted_above_alt = r2.alt2 if r2.alt_restriction_type in ["B"] else r2.alt1
+                    logger.debug(
+                        f"at index {curridx}, next restriction ABOVE at idx={r2.getProp(FEATPROP.FLIGHT_PLAN_INDEX)} {r2.getRestrictionDesc()}, will descend to {restricted_above_alt}"
+                    )
+                    dummy, curralt = descend_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=restricted_above_alt)
+                    curridx = r.getProp(FEATPROP.FLIGHT_PLAN_INDEX)
+                    logger.debug(f"now at altitude {curralt}, checking for next ABOVE restriction")
+                    r2 = self.flight.next_above_alt_restriction2(curridx, r.getProp(FEATPROP.FLIGHT_PLAN_INDEX))
+                logger.debug(f"at index {curridx}, no more ABOVE restrictions, will decend to {r.alt1}")
+                dummy, curralt = descend_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=r.alt1)
+                curridx = r.getProp(FEATPROP.FLIGHT_PLAN_INDEX)
+                r = self.flight.next_below_alt_restriction2(curridx, max_distance=150)
+                logger.debug(f"now at altitude {curralt}, checking for next BELOW restriction")
+
+            logger.debug(f"now at altitude {curralt} (after {below_restrictions} BELOW restriction, no more BELOW restriction)")
+            logger.debug(f"at index {curridx}, attempting to descend to final fix alt {finalfix_alt}, checking for ABOVE restrictions")
+
+            idx_to_finalfix_alt, dummy = descend_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=finalfix_alt)
+            r3 = self.flight.next_above_alt_restriction2(curridx, idx_to_finalfix_alt)
+            above_restrictions = 0
+            while r3 is not None:
+                restricted_above_alt = r3.alt2 if r3.alt_restriction_type in ["B"] else r3.alt1
+                above_restrictions = above_restrictions + 1
+                logger.debug(
+                    f"at index {curridx}, next restriction ABOVE at {r3.getProp(FEATPROP.FLIGHT_PLAN_INDEX)} {r3.getRestrictionDesc()}, will descend to {restricted_above_alt}"
+                )
+                dummy, curralt = descend_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=restricted_above_alt)
+                curridx = r3.getProp(FEATPROP.FLIGHT_PLAN_INDEX)
+                curralt = r3.alt1
+                # we now have to reevaluate when we will reach final fix alt...
+                # curralt will temporarily be final fix alt, but if new r3 is not None, curralt will fall back to new r3.alt1
+                idx_to_finalfix_alt, dummy = descend_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=finalfix_alt, do_it=False)
+                r3 = self.flight.next_above_alt_restriction2(curridx, idx_to_finalfix_alt)
+
+            logger.debug(f"at index {curridx}, no more ABOVE restrictions, will descend to {finalfix_alt}")
+            dummy, curralt = descend_to_alt(start_idx=curridx, current_altitude=curralt, target_altitude=finalfix_alt)
+
+            logger.debug(f"now at altitude {curralt} (FF at {FINAL_FIX_ALT})")
+            assert curralt == finalfix_alt
+            logger.debug(f"--------------- ..done descending with constraints")
+        #
+        #
+        # ########################################################################################
 
         # if type(self).__name__ == "ArrivalMove":
         # find first point of approach:

@@ -2,12 +2,14 @@
 Everything related to aircrafts, their codes, classes, performmances.
 """
 
+from enum import Enum
 import sys
 import logging
 import operator
 import os
 import json
 from math import inf
+from typing import Tuple
 
 # import pint
 # pylint: disable=W0611
@@ -21,23 +23,8 @@ from importlib_resources import files
 
 from emitpy.parameters import HOME_DIR, DATA_DIR
 from emitpy.business import Identity, Company
-from emitpy.constants import (
-    AIRCRAFT_TYPE_DATABASE,
-    REDIS_DATABASE,
-    REDIS_PREFIX,
-    REDIS_DB,
-    RAMP_TYPE,
-)
-from emitpy.utils import (
-    machToKmh,
-    toMeter,
-    NAUTICAL_MILE,
-    FT,
-    toKmh,
-    toMs,
-    key_path,
-    rejson,
-)
+from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB, RAMP_TYPE
+from emitpy.utils import machToKmh, toMeter, NAUTICAL_MILE, FT, toKmh, toMs, key_path, rejson
 
 
 logger = logging.getLogger("Aircraft")
@@ -122,6 +109,13 @@ class ACPERF:
     wingspan = "wingspan"
 
 
+class SPEED_RANGE(Enum):
+    SLOW = 0
+    FL150 = 1
+    FL240 = 2
+    FAST = 3
+
+
 class AircraftType(Identity):
     """
     An AircraftType is a model of aircraft.
@@ -167,11 +161,7 @@ class AircraftType(Identity):
         for row in data:
             if row["ICAO Code"] != "tbd":
                 AircraftType._DB[row["ICAO Code"]] = AircraftType(
-                    orgId=row["Manufacturer"],
-                    classId=row["Wake Category"],
-                    typeId=row["ICAO Code"],
-                    name=row["Model"],
-                    data=row,
+                    orgId=row["Manufacturer"], classId=row["Wake Category"], typeId=row["ICAO Code"], name=row["Model"], data=row
                 )
                 AircraftType._DB[row["ICAO Code"]].setClass()
         logger.debug(f"loaded {len(AircraftType._DB)} aircraft types")
@@ -188,16 +178,10 @@ class AircraftType(Identity):
         :param      icao:  The icao
         :type       icao:  str
         """
-        ae = (
-            files("data.aircraft_types")
-            .joinpath("aircraft-equivalence.yaml")
-            .read_text()
-        )
+        ae = files("data.aircraft_types").joinpath("aircraft-equivalence.yaml").read_text()
         data = yaml.safe_load(ae)
         AircraftType._DB_EQUIVALENCE = data
-        logger.debug(
-            f"loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences"
-        )
+        logger.debug(f"loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences")
 
     @staticmethod
     def getEquivalence(ac, redis=None):
@@ -255,13 +239,7 @@ class AircraftType(Identity):
 
     @classmethod
     def fromInfo(cls, info: str):
-        at = AircraftType(
-            orgId=info["actype-manufacturer"],
-            classId=info["acclass"],
-            typeId=info["actype"],
-            name=info["acmodel"],
-            data=info,
-        )
+        at = AircraftType(orgId=info["actype-manufacturer"], classId=info["acclass"], typeId=info["actype"], name=info["acmodel"], data=info)
         # backward compatibility (to be removed later)
         at.rawdata["length"] = info["properties"]["length"]
         at.rawdata["wingspan"] = info["properties"]["wingspan"]
@@ -282,10 +260,7 @@ class AircraftType(Identity):
             "actype": self.typeId,
             "acmodel": self.name,
             "acclass": self._ac_class,
-            "properties": {
-                "length": self.getProp("length"),
-                "wingspan": self.getProp("wingspan"),
-            },
+            "properties": {"length": self.getProp("length"), "wingspan": self.getProp("wingspan")},
         }
 
     def getProp(self, name):
@@ -433,13 +408,9 @@ class AircraftTypeWithPerformance(AircraftType):
             name (str): [description]
             data ([type]): [description] (default: `None`)
         """
-        AircraftType.__init__(
-            self, orgId=orgId, classId=classId, typeId=typeId, name=name, data=data
-        )
+        AircraftType.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name, data=data)
         self.perfraw = None  # Also used as a flag to see if loaded
-        self.gseprofile = (
-            None  # relative position of ground vehicle around the aircraft
-        )
+        self.gseprofile = None  # relative position of ground vehicle around the aircraft
         self.tarprofile = None  # relative scheduled time of services
         self.display_name = None
 
@@ -455,22 +426,12 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         Load all aircraft performance data files for all aircrafts where it is available.
         """
-        ac = (
-            files("data.aircraft_types")
-            .joinpath("aircraft-performances.json")
-            .read_text()
-        )
+        ac = files("data.aircraft_types").joinpath("aircraft-performances.json").read_text()
         jsondata = json.loads(ac)
         for ac in jsondata.keys():
             actype = AircraftType.find(ac)
             if actype is not None:
-                acperf = AircraftTypeWithPerformance(
-                    actype.orgId,
-                    actype.classId,
-                    actype.typeId,
-                    actype.name,
-                    actype.rawdata,
-                )
+                acperf = AircraftTypeWithPerformance(actype.orgId, actype.classId, actype.typeId, actype.name, actype.rawdata)
                 acperf.display_name = acperf.orgId + " " + acperf.name
                 acperf.perfraw = jsondata[ac]
                 acperf.setClass()
@@ -480,19 +441,9 @@ class AircraftTypeWithPerformance(AircraftType):
             else:
                 logger.warning(f"AircraftType {ac} not found")
 
-        cnt = len(
-            list(
-                filter(
-                    lambda a: a.available, AircraftTypeWithPerformance._DB_PERF.values()
-                )
-            )
-        )
-        logger.debug(
-            f"loaded {len(AircraftTypeWithPerformance._DB_PERF)} aircraft types with their performances, {cnt} available"
-        )
-        logger.debug(
-            f"{list(map(lambda f: (f.typeId, f.getIata()), AircraftTypeWithPerformance._DB_PERF.values()))}"
-        )
+        cnt = len(list(filter(lambda a: a.available, AircraftTypeWithPerformance._DB_PERF.values())))
+        logger.debug(f"loaded {len(AircraftTypeWithPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
+        logger.debug(f"{list(map(lambda f: (f.typeId, f.getIata()), AircraftTypeWithPerformance._DB_PERF.values()))}")
 
     @staticmethod
     def find(icao: str, redis=None):
@@ -510,20 +461,10 @@ class AircraftTypeWithPerformance(AircraftType):
                 return AircraftTypeWithPerformance.fromInfo(info=ap)
             else:
                 logger.warning(f"AircraftPerformance::find: no such key {k}")
-        return (
-            AircraftTypeWithPerformance._DB_PERF[icao]
-            if icao in AircraftTypeWithPerformance._DB_PERF
-            else None
-        )
+        return AircraftTypeWithPerformance._DB_PERF[icao] if icao in AircraftTypeWithPerformance._DB_PERF else None
 
     @staticmethod
-    def findAircraftForRange(
-        reqrange: int,
-        pax: int = 0,
-        cargo: int = 0,
-        restricted_list: list = None,
-        redis=None,
-    ):
+    def findAircraftForRange(reqrange: int, pax: int = 0, cargo: int = 0, restricted_list: list = None, redis=None):
         """
         Find an aircraft suitable for the requested flight range.
 
@@ -536,24 +477,14 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         rdiff = inf
         best = None
-        valid_list = (
-            restricted_list
-            if restricted_list is not None
-            else AircraftTypeWithPerformance._DB_PERF.keys()
-        )
+        valid_list = restricted_list if restricted_list is not None else AircraftTypeWithPerformance._DB_PERF.keys()
         for ac in valid_list:
             acperf = None
             if redis:
-                AircraftTypeWithPerformance.findAircraftByType(
-                    actype=ac, acsubtype=None, redis=redis
-                )
+                AircraftTypeWithPerformance.findAircraftByType(actype=ac, acsubtype=None, redis=redis)
             else:
                 acperf = AircraftTypeWithPerformance._DB_PERF[ac]
-            if (
-                acperf is not None
-                and acperf.available
-                and ("cruise_range" in acperf.perfraw)
-            ):
+            if acperf is not None and acperf.available and ("cruise_range" in acperf.perfraw):
                 r = int(acperf.perfraw["cruise_range"]) * NAUTICAL_MILE  # km
                 if r > reqrange:
                     rd = r - reqrange
@@ -578,20 +509,12 @@ class AircraftTypeWithPerformance(AircraftType):
         :rtype:     AircraftPerformance
         """
         if redis is not None:
-            k = rejson(
-                redis=redis,
-                key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, actype),
-                db=REDIS_DB.REF.value,
-            )
+            k = rejson(redis=redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, actype), db=REDIS_DB.REF.value)
             if k is not None:
                 logger.debug(f"found type {actype}")
                 return actype
 
-            k = rejson(
-                redis=redis,
-                key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, acsubtype),
-                db=REDIS_DB.REF.value,
-            )
+            k = rejson(redis=redis, key=key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, acsubtype), db=REDIS_DB.REF.value)
             if k is not None:
                 logger.debug(f"found sub type {acsubtype}")
                 return acsubtype
@@ -630,18 +553,11 @@ class AircraftTypeWithPerformance(AircraftType):
         Gets a list of pairs (code, description) for all aircafts in the AircraftPerformance database.
         """
         if redis is not None:
-            aperfs = rejson(
-                redis=redis,
-                key=REDIS_PREFIX.AIRCRAFT_PERFS.value,
-                db=REDIS_DB.REF.value,
-            )
+            aperfs = rejson(redis=redis, key=REDIS_PREFIX.AIRCRAFT_PERFS.value, db=REDIS_DB.REF.value)
             return [(ac, ac) for ac in aperfs.keys()]
 
         l = filter(lambda a: a.available, AircraftTypeWithPerformance._DB_PERF.values())
-        a = [
-            (a.typeId, a.display_name)
-            for a in sorted(l, key=operator.attrgetter("display_name"))
-        ]
+        a = [(a.typeId, a.display_name) for a in sorted(l, key=operator.attrgetter("display_name"))]
         return a
 
     def getKey(self):
@@ -684,15 +600,7 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         Gets the IATA code of an aircraft type if available.
         """
-        iata = (
-            self.perfraw["iata"]
-            if (
-                "iata" in self.perfraw
-                and self.perfraw["iata"] is not None
-                and self.perfraw["iata"] != "nodata"
-            )
-            else None
-        )
+        iata = self.perfraw["iata"] if ("iata" in self.perfraw and self.perfraw["iata"] is not None and self.perfraw["iata"] != "nodata") else None
         return str(iata).split("/") if iata else []
 
     def load(self, redis=None):
@@ -726,9 +634,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       extension:  str
         """
         data = None
-        filename = os.path.join(
-            DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.typeId.upper() + extension
-        )
+        filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.typeId.upper() + extension)
         if os.path.exists(filename):
             with open(filename, "r") as file:
                 if filename[-5:] == ".yaml":
@@ -738,36 +644,26 @@ class AircraftTypeWithPerformance(AircraftType):
             logger.debug(f"loaded {filename} for aircraft type {self.typeId.upper()}")
         else:  # fall back on aircraft performance category (A-F)
             logger.warning(f"file not found {filename}, using default")
-            filename = os.path.join(
-                DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.getClass() + extension
-            )
+            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, self.getClass() + extension)
             if os.path.exists(filename):
                 with open(filename, "r") as file:
                     if filename[-5:] == ".yaml":
                         data = yaml.safe_load(file)
                     else:  # JSON or GeoJSON
                         data = json.load(file)
-                logger.debug(
-                    f"loaded class {filename} data for aircraft class {self.getClass()}"
-                )
+                logger.debug(f"loaded class {filename} data for aircraft class {self.getClass()}")
             else:
                 logger.warning(f"file not found {filename}")
-                filename = os.path.join(
-                    DATA_DIR, AIRCRAFT_TYPE_DATABASE, _STD_CLASS + extension
-                )
+                filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, _STD_CLASS + extension)
                 if os.path.exists(filename):
                     with open(filename, "r") as file:
                         if filename[-5:] == ".yaml":
                             data = yaml.safe_load(file)
                         else:  # JSON or GeoJSON
                             data = json.load(file)
-                    logger.debug(
-                        f"loaded {filename} standard data for aircraft, ignoring model"
-                    )
+                    logger.debug(f"loaded {filename} standard data for aircraft, ignoring model")
                 else:
-                    logger.warning(
-                        f"standard data file {filename} for aircraft not found"
-                    )
+                    logger.warning(f"standard data file {filename} for aircraft not found")
                     logger.warning(f"no data file for {self.typeId.upper()}")
         return data
 
@@ -780,19 +676,12 @@ class AircraftTypeWithPerformance(AircraftType):
                 key = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, self.typeId.upper())
                 r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                 if r is None:
-                    logger.debug(
-                        f"no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})"
-                    )
+                    logger.debug(f"no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})")
                     key = key_path(REDIS_PREFIX.AIRCRAFT_PERFS.value, self._ac_class)
                     r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                     if r is None:
-                        logger.warning(
-                            f"no turnaround profile data file for class {self._ac_class} ({key})"
-                        )
-                        return (
-                            False,
-                            "AircraftPerformance::loadPerformance: no profile found in Redis",
-                        )
+                        logger.warning(f"no turnaround profile data file for class {self._ac_class} ({key})")
+                        return (False, "AircraftPerformance::loadPerformance: no profile found in Redis")
                 logger.debug(f"loaded from redis for {self.typeId.upper()}")
             else:
                 data = self.loadFromFile(".json")
@@ -801,9 +690,7 @@ class AircraftTypeWithPerformance(AircraftType):
                     if self.check_availability():
                         self.toSI()
                 else:
-                    logger.warning(
-                        f"no performance data file for {self.typeId.upper()}"
-                    )
+                    logger.warning(f"no performance data file for {self.typeId.upper()}")
         logger.debug(f"loaded for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadPerformance: loaded"]
 
@@ -813,37 +700,22 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         if self.gseprofile is None:
             if redis is not None:
-                key = key_path(
-                    REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, self.typeId.upper()
-                )
+                key = key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, self.typeId.upper())
                 r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                 pty = f"aircraft model {self.typeId.upper()}"
                 if r is None:
-                    logger.debug(
-                        f"no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})"
-                    )
-                    key = key_path(
-                        REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, self._ac_class
-                    )
+                    logger.debug(f"no profile for {self.typeId.upper()}, trying class {self._ac_class} ({key})")
+                    key = key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, self._ac_class)
                     r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
                     pty = f"aircraft class {self._ac_class}"
                     if r is None:
-                        logger.warning(
-                            f"no turnaround profile data file for class {self._ac_class} ({key}), trying default class {_STD_CLASS}"
-                        )
-                        key = key_path(
-                            REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, _STD_CLASS
-                        )
+                        logger.warning(f"no turnaround profile data file for class {self._ac_class} ({key}), trying default class {_STD_CLASS}")
+                        key = key_path(REDIS_PREFIX.AIRCRAFT_GSEPROFILES.value, _STD_CLASS)
                         r = rejson(redis=redis, key=key, db=REDIS_DB.REF.value)
 
                         if r is None:
-                            logger.error(
-                                f"no turnaround profile data file for standard class {_STD_CLASS} ({key})"
-                            )
-                            return (
-                                False,
-                                "AircraftPerformance::loadGSEProfile: no profile found in Redis",
-                            )
+                            logger.error(f"no turnaround profile data file for standard class {_STD_CLASS} ({key})")
+                            return (False, "AircraftPerformance::loadGSEProfile: no profile found in Redis")
                         pty = f"default class {_STD_CLASS}"
                 self.gseprofile = r
                 logger.debug(f"using profile for {self.typeId.upper()} ({pty}, {key})")
@@ -852,9 +724,7 @@ class AircraftTypeWithPerformance(AircraftType):
                 if data is not None:
                     self.gseprofile = data
                 else:
-                    logger.warning(
-                        f"no GSE profile data file for {self.typeId.upper()}"
-                    )
+                    logger.warning(f"no GSE profile data file for {self.typeId.upper()}")
         return [True, "AircraftPerformance::loadGSEProfile: loaded"]
 
     def check_availability(self):
@@ -871,19 +741,9 @@ class AircraftTypeWithPerformance(AircraftType):
             logger.warning(f"no max ceiling for: {self.typeId}")
             return False
 
-        param_list = [
-            "takeoff_distance",
-            "takeoff_speed",
-            "initial_climb_speed",
-            "initial_climb_vspeed",
-        ]
+        param_list = ["takeoff_distance", "takeoff_speed", "initial_climb_speed", "initial_climb_vspeed"]
         param_list = param_list + ["cruise_speed", "cruise_range"]
-        param_list = param_list + [
-            "approach_speed",
-            "approach_vspeed",
-            "landing_speed",
-            "landing_distance",
-        ]
+        param_list = param_list + ["approach_speed", "approach_vspeed", "landing_speed", "landing_distance"]
         param_list = param_list + ["length", "wingspan"]
 
         param_list = param_list + ["climbFL150_speed", "climbFL150_vspeed"]
@@ -962,9 +822,7 @@ class AircraftTypeWithPerformance(AircraftType):
                 if name in self.perfraw and self.perfraw[name] != "no data":
                     self.perfdata[name] = round(self.perfraw[name] * FT / 60, ROUND)
                     if SHOW_CONVERT:
-                        logger.debug(
-                            f"{self.name}: {name}: {self.perfraw[name]} ft/min -> {self.perfdata[name]} m/s"
-                        )
+                        logger.debug(f"{self.name}: {name}: {self.perfraw[name]} ft/min -> {self.perfdata[name]} m/s")
                 else:
                     logger.warning(f"{self.name} no value for: {name}")
                     err = err + 1
@@ -980,13 +838,9 @@ class AircraftTypeWithPerformance(AircraftType):
                 "landing_speed",
             ]:  # speed: kn -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
-                    self.perfdata[name] = round(
-                        toMs(kmh=toKmh(kn=float(self.perfraw[name]))), ROUND
-                    )
+                    self.perfdata[name] = round(toMs(kmh=toKmh(kn=float(self.perfraw[name]))), ROUND)
                     if SHOW_CONVERT:
-                        logger.debug(
-                            f"{self.name}: {name}: {self.perfraw[name]} kn -> {self.perfdata[name]} m/s, {self.perfdata[name] * 3.6} km/h"
-                        )
+                        logger.debug(f"{self.name}: {name}: {self.perfraw[name]} kn -> {self.perfdata[name]} m/s, {self.perfdata[name] * 3.6} km/h")
                 else:
                     logger.warning(f"{self.name} no value for: {name}")
                     err = err + 1
@@ -996,9 +850,7 @@ class AircraftTypeWithPerformance(AircraftType):
                     kmh = machToKmh(float(self.perfraw[name]), 24000)
                     self.perfdata[name] = round(toMs(kmh=kmh), ROUND)
                     if SHOW_CONVERT:
-                        logger.debug(
-                            f"{self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL240)"
-                        )
+                        logger.debug(f"{self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL240)")
                 else:
                     logger.warning(f"{self.name} no value for: {name}")
                     err = err + 1
@@ -1008,9 +860,7 @@ class AircraftTypeWithPerformance(AircraftType):
                     kmh = machToKmh(float(self.perfraw[name]), 30000)
                     self.perfdata[name] = round(toMs(kmh=kmh), ROUND)
                     if SHOW_CONVERT:
-                        logger.debug(
-                            f"{self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL300)"
-                        )
+                        logger.debug(f"{self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL300)")
                 else:
                     logger.warning(f"{self.name} no value for: {name}")
                     err = err + 1
@@ -1060,9 +910,7 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         max_ceiling = self.get("max_ceiling")
         if max_ceiling is None:
-            logger.warning(
-                f"no max ceiling for: {self.typeId}, assuming max ceiling is FL300"
-            )
+            logger.warning(f"no max ceiling for: {self.typeId}, assuming max ceiling is FL300")
             max_ceiling = 300
         # Set Flight Level for given flight range in km.
         if reqrange < 300:
@@ -1073,20 +921,39 @@ class AircraftTypeWithPerformance(AircraftType):
             return min(280, max_ceiling)
         return min(340, max_ceiling)
 
-    def rate_of_climb_per_distance(self, alt):
+    def getSpeedRangeForAlt(self, alt: float) -> SPEED_RANGE:
         if alt <= toMeter(1500):
-            return self.getSI(ACPERF.initial_climb_vspeed) / self.getSI(
-                ACPERF.initial_climb_speed
-            )
+            return SPEED_RANGE.SLOW
+        elif alt <= toMeter(15000):
+            return SPEED_RANGE.FL150
+        elif alt <= toMeter(24000):
+            return SPEED_RANGE.FL240
+        elif alt > toMeter(24000):
+            return SPEED_RANGE.FAST
+        logger.warning(f"invalid altitude {alt}, cannot convert to speed range")
+        return None
+
+    def getSpeedAndVSpeedForAlt(self, alt) -> Tuple[float, float]:
+        if alt <= toMeter(1500):
+            return self.getSI(ACPERF.initial_climb_speed), self.getSI(ACPERF.initial_climb_vspeed)
         elif alt < toMeter(15000):
-            return self.getSI(ACPERF.climbFL150_vspeed) / self.getSI(
-                ACPERF.climbFL150_speed
-            )
+            return self.getSI(ACPERF.climbFL150_speed), self.getSI(ACPERF.climbFL150_vspeed)
         elif alt < toMeter(24000):
-            return self.getSI(ACPERF.climbFL240_speed) / self.getSI(
-                ACPERF.climbFL240_speed
-            )
-        return self.getSI(ACPERF.climbmach_vspeed) / self.getSI(ACPERF.climbmach_speed)
+            return self.getSI(ACPERF.climbFL240_speed), self.getSI(ACPERF.climbFL240_vspeed)
+        # convert mach to speed
+        cms = toMs(kmh=machToKmh(self.getSI(ACPERF.climbmach_mach), alt))  # should not be 0, we need to know...
+        return cms, self.getSI(ACPERF.climbmach_vspeed)
+
+    def getROCDistanceForAlt(self, alt):
+        if alt <= toMeter(1500):
+            return self.getSI(ACPERF.initial_climb_vspeed) / self.getSI(ACPERF.initial_climb_speed)
+        elif alt < toMeter(15000):
+            return self.getSI(ACPERF.climbFL150_vspeed) / self.getSI(ACPERF.climbFL150_speed)
+        elif alt < toMeter(24000):
+            return self.getSI(ACPERF.climbFL240_vspeed) / self.getSI(ACPERF.climbFL240_speed)
+        # convert mach to speed
+        cms = toMs(kmh=machToKmh(self.getSI(ACPERF.climbmach_mach), alt))  # should not be 0, we need to know...
+        return self.getSI(ACPERF.climbmach_vspeed) / cms
 
     def perfs(self):
         """
@@ -1123,12 +990,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        return self.climb(
-            altstart,
-            altstart + safealt,
-            self.getSI(ACPERF.initial_climb_vspeed),
-            self.getSI(ACPERF.initial_climb_speed),
-        )
+        return self.climb(altstart, altstart + safealt, self.getSI(ACPERF.initial_climb_vspeed), self.getSI(ACPERF.initial_climb_speed))
 
     def climbToFL100(self, altstart):
         """
@@ -1140,12 +1002,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        return self.climb(
-            altstart,
-            10000 * FT,
-            self.getSI(ACPERF.climbFL150_vspeed),
-            self.fl100Speed(),
-        )
+        return self.climb(altstart, 10000 * FT, self.getSI(ACPERF.climbFL150_vspeed), self.fl100Speed())
 
     def fl100Speed(self):
         """
@@ -1170,12 +1027,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        return self.climb(
-            altstart,
-            15000 * FT,
-            self.getSI(ACPERF.climbFL150_vspeed),
-            self.getSI(ACPERF.climbFL150_speed),
-        )
+        return self.climb(altstart, 15000 * FT, self.getSI(ACPERF.climbFL150_vspeed), self.getSI(ACPERF.climbFL150_speed))
 
     def climbToFL240(self, altstart):
         """
@@ -1187,12 +1039,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        return self.climb(
-            altstart,
-            24000 * FT,
-            self.getSI(ACPERF.climbFL240_vspeed),
-            self.getSI(ACPERF.climbFL240_speed),
-        )
+        return self.climb(altstart, 24000 * FT, self.getSI(ACPERF.climbFL240_vspeed), self.getSI(ACPERF.climbFL240_speed))
 
     def climbToCruise(self, altstart, altcruise):
         """
@@ -1205,12 +1052,8 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         # Time to climb what is usually accepted as 1500ft AGL
         avgalt = (altstart + altcruise) / 2
-        avgspd = toMs(
-            kmh=machToKmh(float(self.get(ACPERF.climbmach_mach)), avgalt)
-        )  # m/s
-        return self.climb(
-            altstart, altcruise, self.getSI(ACPERF.climbmach_vspeed), avgspd
-        )
+        avgspd = toMs(kmh=machToKmh(float(self.get(ACPERF.climbmach_mach)), avgalt))  # m/s
+        return self.climb(altstart, altcruise, self.getSI(ACPERF.climbmach_vspeed), avgspd)
 
     #
     # Descent helper functions
@@ -1228,12 +1071,8 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         altend = 24000 * FT
         avgalt = (altcruise + altend) / 2
-        avgspd = toMs(
-            kmh=machToKmh(float(self.get(ACPERF.descentFL240_mach)), avgalt)
-        )  # m/s
-        return self.climb(
-            altcruise, altend, -float(self.getSI(ACPERF.descentFL240_vspeed)), avgspd
-        )
+        avgspd = toMs(kmh=machToKmh(float(self.get(ACPERF.descentFL240_mach)), avgalt))  # m/s
+        return self.climb(altcruise, altend, -float(self.getSI(ACPERF.descentFL240_vspeed)), avgspd)
 
     def descentToFL100(self, altstart):
         """
@@ -1244,12 +1083,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :param      safealt:   The safealt
         :type       safealt:   int
         """
-        return self.climb(
-            altstart,
-            10000 * FT,
-            -float(self.getSI(ACPERF.descentFL100_vspeed)),
-            float(self.getSI(ACPERF.descentFL100_speed)),
-        )
+        return self.climb(altstart, 10000 * FT, -float(self.getSI(ACPERF.descentFL100_vspeed)), float(self.getSI(ACPERF.descentFL100_speed)))
 
     def descentApproach(self, altstart, altend):
         """
@@ -1260,12 +1094,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :param      safealt:   The safealt
         :type       safealt:   int
         """
-        return self.climb(
-            altstart,
-            altend,
-            -self.getSI(ACPERF.approach_vspeed),
-            self.getSI(ACPERF.approach_speed),
-        )
+        return self.climb(altstart, altend, -self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.approach_speed))
 
     def descentFinal(self, altend, vspeed, safealt: float = FINAL_APPROACH_FIX_ALT):
         """
@@ -1276,9 +1105,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :param      safealt:   The safealt
         :type       safealt:   int
         """
-        return self.climb(
-            altend + safealt, altend, -vspeed, self.getSI(ACPERF.landing_speed)
-        )
+        return self.climb(altend + safealt, altend, -vspeed, self.getSI(ACPERF.landing_speed))
 
     def getGSEProfile(self, redis=None):
         if self.gseprofile is None:
@@ -1291,30 +1118,15 @@ class AircraftTypeWithPerformance(AircraftType):
         return self.gseprofile
 
     def inTarget(self, current, target: dict) -> dict:
-        sok = (
-            current.speed > target["speed_min"] and current.speed < target["speed_max"]
-        )
-        aok = (
-            current.altitude > target["altitude_min"]
-            and current.speed < target["altitude_max"]
-        )
+        sok = current.speed > target["speed_min"] and current.speed < target["speed_max"]
+        aok = current.altitude > target["altitude_min"] and current.speed < target["altitude_max"]
         tok = True
         if current.time is not None:
-            tok = (
-                current.time > target["time_min"] and current.time < target["time_max"]
-            )
+            tok = current.time > target["time_min"] and current.time < target["time_max"]
         return sok and aok and tok
 
     def getPotential(self, current, dist: float) -> dict:
-        return {
-            "speed_min": 0,
-            "speed_max": 0,
-            "altitude_min": 0,
-            "altitude_min": 0,
-            "time_max": 0,
-            "time_min": 0,
-            "time_curr": 0,
-        }
+        return {"speed_min": 0, "speed_max": 0, "altitude_min": 0, "altitude_min": 0, "time_max": 0, "time_min": 0, "time_curr": 0}
 
     def getTarget(self, current, dist: float, target: dict) -> dict:
         return {"speed": 0, "acceleration": 0, "altitude": 0, "vrate": 0, "time": 0}
@@ -1336,9 +1148,7 @@ class AircraftClass(AircraftTypeWithPerformance):
     _DB_AC_CLASS = {}
 
     def __init__(self, orgId: str, classId: str, typeId: str, name: str, data):
-        AircraftTypeWithPerformance.__init__(
-            self, orgId=orgId, classId=classId, typeId=typeId, name=name, data=data
-        )
+        AircraftTypeWithPerformance.__init__(self, orgId=orgId, classId=classId, typeId=typeId, name=name, data=data)
 
     @staticmethod
     def loadAll():
@@ -1351,45 +1161,27 @@ class AircraftClass(AircraftTypeWithPerformance):
         """
         data = None
         for ac_class in "ABCDEF":
-            filename = os.path.join(
-                DATA_DIR, AIRCRAFT_TYPE_DATABASE, ac_class + ".json"
-            )
+            filename = os.path.join(DATA_DIR, AIRCRAFT_TYPE_DATABASE, ac_class + ".json")
             if os.path.exists(filename):
                 with open(filename, "r") as file:
                     data = json.load(file)
                     ac = data["icao"]
                     actype = AircraftType.find(ac)
                     if actype is not None:
-                        acperf = AircraftClass(
-                            actype.orgId,
-                            actype.classId,
-                            actype.typeId,
-                            actype.name,
-                            data,
-                        )
-                        acperf.display_name = (
-                            acperf.orgId + " " + acperf.name + " CLASS " + ac_class
-                        )
+                        acperf = AircraftClass(actype.orgId, actype.classId, actype.typeId, actype.name, data)
+                        acperf.display_name = acperf.orgId + " " + acperf.name + " CLASS " + ac_class
                         acperf.perfraw = data
-                        if (
-                            acperf.check_availability()
-                        ):  # sets but also returns availability
+                        if acperf.check_availability():  # sets but also returns availability
                             acperf.toSI()
                         AircraftClass._DB_AC_CLASS[ac_class] = acperf
                     else:
                         logger.warning(f"AircraftClass {ac_class} not found")
 
-        logger.debug(
-            f"loaded {len(AircraftClass._DB_AC_CLASS)} aircraft classes with their performances"
-        )
+        logger.debug(f"loaded {len(AircraftClass._DB_AC_CLASS)} aircraft classes with their performances")
 
     @staticmethod
     def getClass(ac_class: str = _STD_CLASS):
-        return (
-            AircraftClass._DB_AC_CLASS[ac_class]
-            if ac_class in "ABCDEF"
-            else AircraftClass._DB_AC_CLASS[_STD_CLASS]
-        )
+        return AircraftClass._DB_AC_CLASS[ac_class] if ac_class in "ABCDEF" else AircraftClass._DB_AC_CLASS[_STD_CLASS]
 
 
 class Aircraft(Identity):
@@ -1397,24 +1189,12 @@ class Aircraft(Identity):
     An aircraft servicing an airline route.
     """
 
-    def __init__(
-        self,
-        registration: str,
-        icao24: str,
-        actype: AircraftTypeWithPerformance,
-        operator: Company,
-    ):
+    def __init__(self, registration: str, icao24: str, actype: AircraftTypeWithPerformance, operator: Company):
         """
         An aircraft servicing a flight.
 
         """
-        Identity.__init__(
-            self,
-            orgId=operator.name,
-            classId="Aircraft",
-            typeId=actype.typeId,
-            name=registration,
-        )
+        Identity.__init__(self, orgId=operator.name, classId="Aircraft", typeId=actype.typeId, name=registration)
         self.registration = registration
         self.icao24 = icao24  # 6 hexadecimal digit string, ADS-B address
         self.operator = operator
@@ -1442,9 +1222,7 @@ class Aircraft(Identity):
         self.icao24 = icao24
 
     def getId(self):
-        return (
-            self.name
-        )  # == self.registration, (not correct, should return Indentity string)
+        return self.name  # == self.registration, (not correct, should return Indentity string)
 
     def getInfo(self) -> dict:
         """
@@ -1477,9 +1255,6 @@ class Aircraft(Identity):
 
         prevdb = redis.client_info()["db"]
         redis.select(REDIS_DB.PERM.value)
-        redis.set(
-            key_path(REDIS_DATABASE.AIRCRAFTS.value, self.getId()),
-            json.dumps(self.getInfo()),
-        )
+        redis.set(key_path(REDIS_DATABASE.AIRCRAFTS.value, self.getId()), json.dumps(self.getInfo()))
         redis.select(prevdb)
         return (True, "Aircraft::save: saved")

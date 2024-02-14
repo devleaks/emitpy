@@ -5,6 +5,7 @@ from .timezone import Timezone
 from .case import KebabToCamel
 from .unitconversion import (
     cifp_alt_in_ft,
+    cifp_alt_in_fl,
     cifp_speed,
     sign,
     toNm,

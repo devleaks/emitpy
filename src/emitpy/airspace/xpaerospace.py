@@ -19,7 +19,7 @@ from emitpy.parameters import XPLANE_DIR, DATA_DIR
 from emitpy.utils import FT
 from .aerospace import Aerospace, Terminal, Fix, NamedPoint, AirwaySegment, CPIDENT
 from .aerospace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP
-from .procedure import Hold, ControlledAirspace
+from .restriction import Hold, ControlledAirspace
 
 logger = logging.getLogger("XPAerospace")
 

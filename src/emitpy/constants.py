@@ -221,6 +221,7 @@ class REDIS_PREFIX(Enum):
     AIRCRAFT_TYPES = key_path("aircraft", "types")
     AIRLINE_ROUTES = key_path("business", "airroutes", "airlines")
     AIRLINES = key_path("business", "airlines")
+    AIRLINE_NAMES = key_path("business", "airline_names")
     AIRPORT = "airport"
     AIRPORT_ROUTES = key_path("business", "airroutes", "airports")
     AIRPORTS = "airports"

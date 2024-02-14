@@ -116,3 +116,13 @@ Target « cruise » speed and altitude (to reach)
 optimize climb, descend respecting constraints.
 
 Problem: Give optimum high and speed at each waypoint.
+
+
+
+# Transitions
+
+- from end of initial climb (straight) to start of SID
+- from end of SID to start to cruise
+- from end of cruise to STAR
+- from STAR to APPCH
+- from end APPCH to FF (straight to landing)

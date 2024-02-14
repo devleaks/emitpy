@@ -15,6 +15,9 @@ class FCU:
 
         self.flight_phase = "READY"
 
+        self.cruise_alt = 0.0  # ft or FL?
+        self.cruise_speed = 0.0  # mach
+
         self.course = 0.0
 
         self.speed = 0.0
@@ -43,7 +46,7 @@ class FCU:
         self.target_alt = alt
         self.vert_nav_managed = False
 
-    def set_vspeed(self, vspeed: float, alt: float = None):
+    def set_vspeed(self, vspeed: float, alt: float | None = None):
         self.target_vspeed = vspeed
         self.vert_nav_managed = False
 

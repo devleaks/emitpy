@@ -8,7 +8,7 @@ import os
 import io
 import json
 import logging
-from typing import List
+from typing import List, Dict, Any
 from math import inf
 
 from datetime import datetime, timedelta, timezone
@@ -61,9 +61,9 @@ class Emit(Movement):
 
         self.reason = move
 
-        self.emit_id = None
-        self.emit_type = None
-        self.emit_meta = None
+        self.emit_id: str | None = None
+        self.emit_type: str | None = None
+        self.emit_meta: Dict[str, Any] | None = None
         self.format = None
         self.frequency: int = -1  # seconds
         self._emit_points: List[EmitPoint] = []  # time-relative emission of messages

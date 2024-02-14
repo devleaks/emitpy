@@ -27,6 +27,12 @@ def cifp_alt_in_ft(s: str) -> int | None:
     return int(s)
 
 
+def cifp_alt_in_fl(alt):
+    if alt > 15000 and alt == (100 * int(alt / 100)):
+        return f"FL{int(alt/100)}"
+    return f"{alt}"
+
+
 def cifp_speed(s: str) -> int | None:
     """Convert speed in ARINC424 to float."""
     s = s.strip()

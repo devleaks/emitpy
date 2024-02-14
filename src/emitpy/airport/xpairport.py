@@ -72,7 +72,7 @@ class XPAirport(ManagedAirportBase):
 
         self.atc_ground = None
         self.airport_base = MANAGED_AIRPORT_DIR
-        self.runway_exits: Dict[str, FeatureWithProps] = {}
+        self.runway_exits: Dict[str, List[FeatureWithProps]] = {}
         self.takeoff_queues: Dict[str, FeatureWithProps] = {}
         self.all_pois_combo: Dict[str, FeatureWithProps] = {}
 
@@ -904,7 +904,7 @@ class XPAirport(ManagedAirportBase):
             return None
         return random.choice(l)
 
-    def getServiceDepot(self, name: str, service_name: str = None, redis=None):
+    def getServiceDepot(self, name: str, service_name: str | None = None, redis=None):
         """
         Returns the named depot POI if existing, otherwise tries to locate an alternative depot for service.
 
@@ -913,7 +913,7 @@ class XPAirport(ManagedAirportBase):
         :param      service:  The service
         :type       service:  str
         """
-        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name, redis=None)
+        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name, redis=redis)
         dn = list(filter(lambda f: f.getName() == name, dl))
         if len(dn) == 0:
             logger.warning(f"{ name } not found")
@@ -929,7 +929,7 @@ class XPAirport(ManagedAirportBase):
         :param      service:  The service
         :type       service:  str
         """
-        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name)
+        dl = self.service_pois if service_name is None else self.getServicePOIs(service_name, redis=redis)
         dn = list(filter(lambda f: f.getName() == name, dl))
         if len(dn) == 0:
             logger.warning(f"{ name } not found")
