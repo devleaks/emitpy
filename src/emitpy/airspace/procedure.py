@@ -696,6 +696,7 @@ class CIFP:
         self.STARS: Dict[str, STAR] = {}
         self.APPCHS: Dict[str, APPCH] = {}
         self.RWYS: Dict[str, RWY] = {}
+        self.BYNAME: Dict[str, Procedure] = {}  # this is weak temporary construct to quicly locate procedures see flight.force_procedures().
 
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "CIFP")
@@ -769,10 +770,13 @@ class CIFP:
                     if procname not in procedures[procty][procrwy].keys():
                         if procty == "SID":
                             procedures[procty][procrwy][procname] = SID(procname)
+                            self.BYNAME[procname] = procedures[procty][procrwy][procname]
                         elif procty == "STAR":
                             procedures[procty][procrwy][procname] = STAR(procname)
+                            self.BYNAME[procname] = procedures[procty][procrwy][procname]
                         elif procty == "APPCH":
                             procedures[procty][procrwy][procname] = APPCH(procname)
+                            self.BYNAME[procname] = procedures[procty][procrwy][procname]
                         else:
                             logger.warning("invalid procedure %s", procty)
 

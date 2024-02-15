@@ -409,6 +409,9 @@ class EmitApp(ManagedAirport):
             gate = ramp_name
         flight.setGate(gate)
 
+        # For debugging
+        flight.force_procedures(rwydep="RW16L", sid="BUND1M", star="OTGI2E", appch="D22R", rwyarr="RW22R")
+
         # 3.4 planning + route
         logger.debug("..planning..")
         ret = flight.plan()
@@ -420,6 +423,7 @@ class EmitApp(ManagedAirport):
 
         # logger.debug(f"route: {flight.tabulateFlightRoute()}")
         logger.info(str(flight))
+        logger.debug(flight.force_string())
         logger.debug(f"{flight.tabulateFlightPlan()}")
         logger.info("***** FLIGHT PLAN CREATED " + ("*" * 83))
 

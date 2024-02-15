@@ -78,6 +78,7 @@ class Flight(Messages):
         self.flight_type = PAYLOAD.PAX
         self.load_factor = load_factor  # 100% capacity, estimated, both passengers and cargo.
 
+        self.forced_procedures = None
         # try:
         #     if int(number) > 5000:
         #         if int(number) > 9900:
@@ -457,6 +458,19 @@ class Flight(Messages):
         self.actual = dt.isoformat()
         self.schedule_history.append((dt.isoformat(), "AT", info_time.isoformat()))
 
+    def force_procedures(self, rwydep, sid, star, appch, rwyarr):
+        """For debugging purpose to set reproducible situations"""
+        logger.info(f"forcing procedures {rwydep}, {sid}, {star}, {appch}, {rwyarr}")
+        depapt = self.departure
+        arrapt = self.arrival
+        deprwy = depapt.procedures.RWYS.get(rwydep)
+        arrrwy = arrapt.procedures.RWYS.get(rwyarr)
+        self.forced_procedures = [deprwy, depapt.procedures.BYNAME.get(sid), arrapt.procedures.BYNAME.get(star), arrapt.procedures.BYNAME.get(appch), arrrwy]
+        print(self.forced_procedures)
+
+    def force_string(self):
+        return f".force_procedures(rwydep='{self.procedures.get(FLIGHT_SEGMENT.RWYDEP.value).name}', sid='{self.procedures.get(FLIGHT_SEGMENT.SID.value).name}', star='{self.procedures.get(FLIGHT_SEGMENT.STAR.value).name}', appch='{self.procedures.get(FLIGHT_SEGMENT.APPCH.value).name}', rwyarr='{self.procedures.get(FLIGHT_SEGMENT.RWYARR.value).name}')"
+
     def plan(self):
         if self.flightroute is None:  # not loaded, trying to load
             self.makeFlightRoute()
@@ -483,7 +497,7 @@ class Flight(Messages):
         # RWY
         # self.meta["departure"]["metar"] = depapt.getMetar()
         if depapt.has_rwys():
-            rwydep = depapt.selectRWY(self)
+            rwydep = depapt.selectRWY(self) if self.forced_procedures is None else self.forced_procedures[0]
             logger.debug(f"departure airport {depapt.icao} using runway {rwydep.name}")
             if self.is_departure():
                 self.setRWY(rwydep)
@@ -502,7 +516,7 @@ class Flight(Messages):
         # SID
         if depapt.has_sids() and rwydep is not None:
             logger.debug(f"using procedures for departure airport {depapt.icao}")
-            sid = depapt.selectSID(rwydep)
+            sid = depapt.selectSID(rwydep) if self.forced_procedures is None else self.forced_procedures[1]
             if sid is not None:  # inserts it
                 logger.debug(f"{depapt.icao} using SID {sid.name}")
                 ret = depapt.procedures.getRoute(sid, self.managedAirport.airport.airspace)
@@ -535,7 +549,7 @@ class Flight(Messages):
         # RWY
         # self.meta["arrival"]["metar"] = depapt.getMetar()
         if arrapt.has_rwys():
-            rwyarr = arrapt.selectRWY(self)
+            rwyarr = arrapt.selectRWY(self) if self.forced_procedures is None else self.forced_procedures[4]
             logger.debug(f"arrival airport {arrapt.icao} using runway {rwyarr.name}")
             if self.is_arrival():
                 self.setRWY(rwyarr)
@@ -553,7 +567,7 @@ class Flight(Messages):
         star = None  # used in APPCH
         star_route = None
         if arrapt.has_stars() and rwyarr is not None:
-            star = arrapt.selectSTAR(rwyarr)
+            star = arrapt.selectSTAR(rwyarr) if self.forced_procedures is None else self.forced_procedures[2]
             if star is not None:
                 logger.debug(f"{arrapt.icao} using STAR {star.name}")
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
@@ -570,7 +584,7 @@ class Flight(Messages):
 
         # APPCH, we found airports with approaches and no STAR
         if arrapt.has_approaches() and rwyarr is not None:
-            appch = arrapt.selectApproach(star, rwyarr)  # star won't be used, we can safely pass star=None
+            appch = arrapt.selectApproach(star, rwyarr) if self.forced_procedures is None else self.forced_procedures[3]
             if appch is not None:
                 logger.debug(f"{arrapt.icao} using APPCH {appch.name}")
                 ret = arrapt.procedures.getRoute(appch, self.managedAirport.airport.airspace)
@@ -778,6 +792,32 @@ class Flight(Messages):
             if max_distance is not None and total_dist > max_distance:
                 logger.debug(f"has no alt restriction before {round(total_dist, 2)}km")
                 return None
+        return None
+
+    def next_above_alt_restriction2(self, idx_start, idx_end) -> FeatureWithRestriction | None:
+        """Used during desdend"""
+        fun = "hasAltitudeRestriction"
+        last_point = self.flightplan_wpts[idx_start]
+        total_dist = 0.0
+        idx = idx_start + 1
+        if idx_end == -1 or idx_end > (len(self.flightplan_wpts) - 1):
+            idx_end = len(self.flightplan_wpts) - 1
+        while idx <= idx_end:
+            w = self.flightplan_wpts[idx]
+            d = distance(last_point, w)
+            if hasattr(w, fun):
+                func = getattr(w, fun)
+                if func():
+                    if w.alt_restriction_type in [" ", "+", "B"]:
+                        # logger.debug(
+                        #     f"idx {idx}: has alt restriction at or below {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})"
+                        # )
+                        return w  # (w, d)
+                    # else:
+                    #     logger.debug(f"idx {idx}: has alt restriction {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})")
+            idx = idx + 1
+            last_point = w
+            total_dist = total_dist + d
         return None
 
     def next_above_alt_restriction2(self, idx_start, idx_end) -> FeatureWithRestriction | None:
