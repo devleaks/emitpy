@@ -16,6 +16,7 @@ from typing import Tuple
 import csv
 
 import yaml
+from emitpy.utils.unitconversion import toFeet
 
 from importlib_resources import files
 
@@ -921,7 +922,7 @@ class AircraftTypeWithPerformance(AircraftType):
             return min(280, max_ceiling)
         return min(340, max_ceiling)
 
-    def getSpeedRangeForAlt(self, alt: float) -> SPEED_RANGE:
+    def getClimbSpeedRangeForAlt(self, alt: float) -> SPEED_RANGE:
         if alt <= toMeter(1500):
             return SPEED_RANGE.SLOW
         elif alt <= toMeter(15000):
@@ -933,7 +934,16 @@ class AircraftTypeWithPerformance(AircraftType):
         logger.warning(f"invalid altitude {alt}, cannot convert to speed range")
         return None
 
-    def getSpeedAndVSpeedForAlt(self, alt) -> Tuple[float, float]:
+    def getDescendSpeedRangeForAlt(self, alt):
+        if alt > toMeter(24000):
+            return SPEED_RANGE.FAST
+        elif alt > toMeter(10000):
+            return SPEED_RANGE.FL240
+        elif alt > toMeter(3000):
+            return SPEED_RANGE.FL150
+        return SPEED_RANGE.SLOW
+
+    def getClimbSpeedAndVSpeedForAlt(self, alt) -> Tuple[float, float]:
         if alt <= toMeter(1500):
             return self.getSI(ACPERF.initial_climb_speed), self.getSI(ACPERF.initial_climb_vspeed)
         elif alt < toMeter(15000):
@@ -951,9 +961,16 @@ class AircraftTypeWithPerformance(AircraftType):
             return self.getSI(ACPERF.climbFL150_vspeed) / self.getSI(ACPERF.climbFL150_speed)
         elif alt < toMeter(24000):
             return self.getSI(ACPERF.climbFL240_vspeed) / self.getSI(ACPERF.climbFL240_speed)
-        # convert mach to speed
-        cms = toMs(kmh=machToKmh(self.getSI(ACPERF.climbmach_mach), alt))  # should not be 0, we need to know...
-        return self.getSI(ACPERF.climbmach_vspeed) / cms
+        return self.getSI(ACPERF.climbmach_vspeed) / self.getSI(ACPERF.climbmach_mach)
+
+    def getRODDistanceForAlt(self, alt):
+        if alt > toMeter(24000):
+            return self.getSI(ACPERF.descentFL240_vspeed) / self.getSI(ACPERF.descentFL240_mach)
+        elif alt > toMeter(10000):
+            return self.getSI(ACPERF.descentFL100_vspeed) / self.getSI(ACPERF.descentFL100_speed)
+        elif alt > toMeter(3000):
+            return self.getSI(ACPERF.approach_vspeed) / self.getSI(ACPERF.approach_speed)
+        return self.getSI(ACPERF.approach_vspeed) / self.getSI(ACPERF.landing_speed)
 
     def perfs(self):
         """
