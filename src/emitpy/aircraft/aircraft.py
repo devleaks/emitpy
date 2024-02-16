@@ -16,7 +16,7 @@ from typing import Tuple
 import csv
 
 import yaml
-from emitpy.utils.unitconversion import toFeet
+from emitpy.utils.unitconversion import convertMach, toFeet
 
 from importlib_resources import files
 
@@ -944,6 +944,27 @@ class AircraftTypeWithPerformance(AircraftType):
         return SPEED_RANGE.SLOW
 
     def getClimbSpeedAndVSpeedForAlt(self, alt) -> Tuple[float, float]:
+        if alt <= toMeter(1500):
+            return self.getSI(ACPERF.initial_climb_speed), self.getSI(ACPERF.initial_climb_vspeed)
+        elif alt < toMeter(15000):
+            return self.getSI(ACPERF.climbFL150_speed), self.getSI(ACPERF.climbFL150_vspeed)
+        elif alt < toMeter(24000):
+            return self.getSI(ACPERF.climbFL240_speed), self.getSI(ACPERF.climbFL240_vspeed)
+        # convert mach to speed
+        cms = toMs(kmh=machToKmh(self.getSI(ACPERF.climbmach_mach), alt))  # should not be 0, we need to know...
+        return cms, self.getSI(ACPERF.climbmach_vspeed)
+
+    def getDescendSpeedAndVSpeedForAlt(self, alt) -> Tuple[float, float]:
+        if alt > toMeter(24000):
+            kmh = machToKmh(self.get(ACPERF.descentFL240_mach), alt)
+            ms = toMs(kmh=kmh)
+            return ms, self.getSI(ACPERF.descentFL240_vspeed)
+        elif alt > toMeter(10000):
+            return self.getSI(ACPERF.descentFL100_speed), self.getSI(ACPERF.descentFL100_vspeed)
+        elif alt > toMeter(3000):
+            return self.getSI(ACPERF.approach_speed), self.getSI(ACPERF.approach_vspeed)
+        return self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.landing_speed)
+
         if alt <= toMeter(1500):
             return self.getSI(ACPERF.initial_climb_speed), self.getSI(ACPERF.initial_climb_vspeed)
         elif alt < toMeter(15000):

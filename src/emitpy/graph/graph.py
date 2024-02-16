@@ -27,6 +27,13 @@ class Vertex(FeatureWithProps):
         self.usage = usage
         self.adjacent: Dict[str, float] = {}
         self.connected = False
+        self.restriction: "Restriction" | None = None
+
+    def set_restriction(self, restriction: "Restriction"):
+        self.restriction = restriction
+
+    def has_restriction(self) -> bool:
+        return self.restriction is not None
 
     def add_neighbor(self, neighbor, weight: float = 0.0):
         self.adjacent[neighbor] = weight
@@ -62,6 +69,7 @@ class Edge(FeatureWithProps):
         self.weight = weight  # weight = distance to next vertext
         self.directed = directed  # if edge is directed src to dst, False = twoway
         self.widthCode: str | None = None
+        self.restriction: "Restriction" | None = None
 
         if type(usage) == str:
             usage = [usage]
@@ -76,6 +84,12 @@ class Edge(FeatureWithProps):
                 self.setTag(USAGE_TAG, "taxiway")
             if s.lower().startswith("runway"):
                 self.setTag(USAGE_TAG, "runway")
+
+    def set_restriction(self, restriction: "Restriction"):
+        self.restriction = restriction
+
+    def has_restriction(self) -> bool:
+        return self.restriction is not None
 
     def getKey(self):
         return self.start.getId() + "-" + self.end.getId()

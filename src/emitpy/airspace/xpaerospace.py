@@ -19,7 +19,7 @@ from emitpy.parameters import XPLANE_DIR, DATA_DIR
 from emitpy.utils import FT
 from .aerospace import Aerospace, Terminal, Fix, NamedPoint, AirwaySegment, CPIDENT
 from .aerospace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP
-from .restriction import Hold, ControlledAirspace
+from .restriction import Hold, ControlledAirspace, Restriction
 
 logger = logging.getLogger("XPAerospace")
 
@@ -672,11 +672,20 @@ class XPAerospace(Aerospace):
                             dst = self.findNamedPoint(region=args[4], ident=args[3], navtypeid=args[5])
                             if dst:
                                 if args[6] == DIRECTION["FORWARD"]:
-                                    self.add_edge(AirwaySegment(args[10], src, dst, True, args[7], args[8], args[9]))
+                                    awy = AirwaySegment(args[10], src, dst, True, args[7], args[8], args[9])
+                                    if args[8] is not None or args[9] is not None:
+                                        awy.set_restriction(Restriction(altmin=args[8], altmax=args[9]))
+                                    self.add_edge(awy)
                                 elif args[6] == DIRECTION["BACKWARD"]:
-                                    self.add_edge(AirwaySegment(args[10], dst, src, True, args[7], args[8], args[9]))
+                                    awy = AirwaySegment(args[10], dst, src, True, args[7], args[8], args[9])
+                                    if args[8] is not None or args[9] is not None:
+                                        awy.set_restriction(Restriction(altmin=args[8], altmax=args[9]))
+                                    self.add_edge(awy)
                                 else:
-                                    self.add_edge(AirwaySegment(args[10], src, dst, False, args[7], args[8], args[9]))
+                                    awy = AirwaySegment(args[10], src, dst, False, args[7], args[8], args[9])
+                                    if args[8] is not None or args[9] is not None:
+                                        awy.set_restriction(Restriction(altmin=args[8], altmax=args[9]))
+                                    self.add_edge(awy)
                                 count += 1
                                 if count % 10000 == 0:
                                     logger.debug("%d segments loaded.", count)

@@ -226,8 +226,14 @@ class Fix(NamedPoint):
     # 1200: 46.646819444 -123.722388889  AAYRR KSEA K1 4530263 AAYRR
     def __init__(self, ident, region, airport, lat, lon, waypoint_type: str, spoken_name: str | None = None):
         NamedPoint.__init__(self, ident, region, airport, type(self).__name__, lat, lon)
-        self.waypoint_type = waypoint_type
+        self.waypoint_type = self.decode_waypoint_type(waypoint_type)
         self.spoken_name = spoken_name
+
+    def decode_waypoint_type(self, s: str) -> str:
+        """32bit representation of the 3-byte field defined by ARINC 424.18 field type definition 5.42, with the 4th byte set to 0 in Little Endian byte order."""
+        i = int(s)
+        b = i.to_bytes(4, "little")
+        return b.decode("utf-8")
 
 
 ################################
@@ -301,7 +307,7 @@ class AirwaySegment(Edge):
         Edge.__init__(self, src=start, dst=end, directed=direction, weight=dist)
         self.names: List[str] = names.split("-")
         self.lowhigh = lowhigh
-        self.fl_floor = fl_floor  # Should be implemented as a Restriction(altmin=fl_floor, altmax=fl_ceil)
+        self.fl_floor = fl_floor
         self.fl_ceil = fl_ceil
 
     def getKey(self):

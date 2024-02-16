@@ -2,6 +2,7 @@
 import logging
 import json
 import random
+from threading import local
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -266,6 +267,7 @@ class EmitApp(ManagedAirport):
         actual_datetime: str = None,
     ):
         # 0. Presentation + input
+        local_locals = locals()
         fromto = "from" if movetype == ARRIVAL else "to"
         arrdep = FLIGHT_PHASE.TOUCH_DOWN.value if movetype == ARRIVAL else FLIGHT_PHASE.TAKE_OFF.value
         timeinfo = actual_datetime if actual_datetime is not None else scheduled
@@ -410,7 +412,7 @@ class EmitApp(ManagedAirport):
         flight.setGate(gate)
 
         # For debugging
-        flight.force_procedures(rwydep="RW16L", sid="BUND1M", star="OTGI2E", appch="D22R", rwyarr="RW22R")
+        # flight.force_procedures(rwydep="RW16L", sid="BUND1M", star="OTGI2E", appch="D22R", rwyarr="RW22R")
 
         # 3.4 planning + route
         logger.debug("..planning..")
@@ -418,12 +420,12 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             return StatusInfo(6, f"problem during flight planning", ret[1])
 
+        logger.debug(f"{EmitApp.do_flight.__qualname__}({', '.join([f'{k}={v}' for k, v in local_locals.items()])})")
+        logger.debug("flight." + flight.force_string())  # to use above if you want to replay same flight
         # logger.debug(f"route: {flight.printFlightRoute()}")
         # logger.debug(f"plan : {flight.printFlightPlan()}")
-
         # logger.debug(f"route: {flight.tabulateFlightRoute()}")
         logger.info(str(flight))
-        logger.debug(flight.force_string())
         logger.debug(f"{flight.tabulateFlightPlan()}")
         logger.info("***** FLIGHT PLAN CREATED " + ("*" * 83))
 
