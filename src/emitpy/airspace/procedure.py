@@ -513,8 +513,11 @@ class APPCH(Procedure):
         interrupted = False
         a = []
         for v in self.route.values():
-            code = v.param(PROC_DATA.DESC_CODE)[0]
-            if code == "E" and not interrupted:
+            code_raw = v.param(PROC_DATA.DESC_CODE)
+            # Need to exclude wp that are part of missed approach procedure/path
+            is_miss_approach = (len(code_raw) > 2 and code_raw[2] == "M") or (len(code_raw) > 3 and (code_raw[2] == "M" or code_raw[3] == "M"))
+            code = code_raw[0]
+            if code == "E" and not is_miss_approach and not interrupted:
                 vid = v.param(PROC_DATA.ICAO_CODE) + ":" + v.param(PROC_DATA.FIX_IDENT) + ":"
                 # logger.debug("APPCH:getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
@@ -533,6 +536,9 @@ class APPCH(Procedure):
 
         self.prepareRestrictions(a)
         return a
+
+    def getFinalFixAltInFt(self) -> int:
+        return 2000  # ft
 
     def prepareRestrictions(self, route):
         # Speed
