@@ -413,6 +413,7 @@ class EmitApp(ManagedAirport):
 
         # For debugging
         # flight.force_procedures(rwydep="RW16L", sid="BUND1M", star="OTGI2E", appch="D22R", rwyarr="RW22R")
+        flight.force_procedures(rwydep="RW34L", sid="ALVE1W", star="INDO1W", appch="D22R", rwyarr="RW22R")
 
         # 3.4 planning + route
         logger.debug("..planning..")
@@ -421,7 +422,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(6, f"problem during flight planning", ret[1])
 
         logger.debug(f"{EmitApp.do_flight.__qualname__}({', '.join([f'{k}={v}' for k, v in local_locals.items()])})")
-        logger.debug("flight." + flight.force_string())  # to use above if you want to replay same flight
+        logger.debug("flight" + flight.force_string())  # to use above if you want to replay same flight
         # logger.debug(f"route: {flight.printFlightRoute()}")
         # logger.debug(f"plan : {flight.printFlightPlan()}")
         # logger.debug(f"route: {flight.tabulateFlightRoute()}")

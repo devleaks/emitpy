@@ -10,7 +10,7 @@ import re
 
 from emitpy.business import Identity, Company
 from emitpy.constants import DEFAULT_VEHICLE, DEFAULT_VEHICLE_ICAO, EQUIPMENT
-from emitpy.utils import toMs
+from emitpy.utils import convert
 
 logger = logging.getLogger("Equipment")
 
@@ -44,11 +44,7 @@ class Equipment(Identity):
         self.position = None
         self.next_position = None
 
-        self.speed = {
-            "slow": toMs(kmh=5),
-            "normal": toMs(kmh=30),
-            "fast": toMs(kmh=50),
-        }  # km/h to m/s
+        self.speed = {"slow": convert.kmh_to_ms(kmh=5), "normal": convert.kmh_to_ms(kmh=30), "fast": convert.kmh_to_ms(kmh=50)}  # km/h to m/s
 
         # Good handling
         self.flow = 1  # units per time, ex. 1 unit every 6 seconds= 1/6 ~= 0.1666
@@ -66,10 +62,7 @@ class Equipment(Identity):
         Returns (display_name, internal_name) tuple for all vehicle types.
         """
         a = []
-        for name, cls in inspect.getmembers(
-            importlib.import_module(name=".service.equipment", package="emitpy"),
-            inspect.isclass,
-        ):
+        for name, cls in inspect.getmembers(importlib.import_module(name=".service.equipment", package="emitpy"), inspect.isclass):
             if name.__contains__("Vehicle"):
                 a.append((name, name))
         return a
@@ -84,19 +77,14 @@ class Equipment(Identity):
         """
 
         def toSnake(s):
-            return "".join(["_" + i.lower() if i.isupper() else i for i in s]).lstrip(
-                "_"
-            )
+            return "".join(["_" + i.lower() if i.isupper() else i for i in s]).lstrip("_")
 
         def toCamel(s):
             return "".join(map(str.title, s.split("_")))
 
         a = []
         base = service[0].upper() + service[1:].lower() + "Vehicle"
-        for name, cls in inspect.getmembers(
-            importlib.import_module(name=".service.equipment", package="emitpy"),
-            inspect.isclass,
-        ):
+        for name, cls in inspect.getmembers(importlib.import_module(name=".service.equipment", package="emitpy"), inspect.isclass):
             if name.startswith(base):
                 model = name.replace(base, "")
                 if len(model) > 0:
@@ -111,27 +99,18 @@ class Equipment(Identity):
         def is_default_model(model):
             if model is None:
                 return True
-            return (
-                len(model) <= len(DEFAULT_VEHICLE)
-                or model[: -len(DEFAULT_VEHICLE)] != DEFAULT_VEHICLE
-            )
+            return len(model) <= len(DEFAULT_VEHICLE) or model[: -len(DEFAULT_VEHICLE)] != DEFAULT_VEHICLE
 
-        servicevehicleclasses = importlib.import_module(
-            name=".service.equipment", package="emitpy"
-        )
+        servicevehicleclasses = importlib.import_module(name=".service.equipment", package="emitpy")
         vtype = service[0].upper() + service[1:].lower() + "Vehicle"
 
         if not is_default_model(model):
             model = model.replace("-", "_")  # now model is snake_case
-            vtype = vtype + "".join(
-                word.title() for word in model.split("_")
-            )  # now model is CamelCase
+            vtype = vtype + "".join(word.title() for word in model.split("_"))  # now model is CamelCase
             logger.debug(f"Equipment::new creating {vtype}")
             if hasattr(servicevehicleclasses, vtype):
                 logger.debug(f"Equipment::new creating {vtype}")
-                return getattr(servicevehicleclasses, vtype)(
-                    registration=registration, operator=operator
-                )
+                return getattr(servicevehicleclasses, vtype)(registration=registration, operator=operator)
         return None
 
     def getId(self):
@@ -151,9 +130,7 @@ class Equipment(Identity):
             "callsign": self.registration,
             "icao24": self.icao24,
             "operator": self.operator.getInfo(),
-            "service": re.sub(
-                "Vehicle(.*)$", "", type(self).__name__
-            ).lower(),  # a try..., not 100% correct
+            "service": re.sub("Vehicle(.*)$", "", type(self).__name__).lower(),  # a try..., not 100% correct
             #             "classname": type(self).__name__,
             "model": self.model,
             "model_name": self.label,
@@ -252,9 +229,7 @@ class Equipment(Identity):
         else:
             served = self.current_load
             self.current_load = 0  # empty
-            logger.warning(
-                f"can only load {self.current_load:f} out of {quantity:f}. {(quantity - served):f} remaning to serve"
-            )
+            logger.warning(f"can only load {self.current_load:f} out of {quantity:f}. {(quantity - served):f} remaning to serve")
         return served
 
     def unload(self, quantity: float = None):
@@ -272,9 +247,7 @@ class Equipment(Identity):
         else:
             unloaded = self.capacity_left()
             self.current_load = self.capacity  # full
-            logger.warning(
-                f"can only unload {unloaded:f} out of {quantity:f}. {(quantity - unloaded):f} remaning to serve"
-            )
+            logger.warning(f"can only unload {unloaded:f} out of {quantity:f}. {(quantity - unloaded):f} remaning to serve")
         return unloaded
 
     def has_capacity(self) -> bool:

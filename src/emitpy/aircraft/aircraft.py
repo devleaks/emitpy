@@ -11,21 +11,19 @@ import json
 from math import inf
 from typing import Tuple
 
+from importlib_resources import files
+
 # import pint
 # pylint: disable=W0611
 import csv
-
 import yaml
-from emitpy.utils.unitconversion import convertMach, toFeet
-
-from importlib_resources import files
 
 # from openap import WRAP
 
 from emitpy.parameters import HOME_DIR, DATA_DIR
 from emitpy.business import Identity, Company
-from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB, RAMP_TYPE
-from emitpy.utils import machToKmh, toMeter, NAUTICAL_MILE, FT, toKmh, toMs, key_path, rejson
+from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB
+from emitpy.utils import FT, convert, key_path, rejson
 
 
 logger = logging.getLogger("Aircraft")
@@ -839,7 +837,7 @@ class AircraftTypeWithPerformance(AircraftType):
                 "landing_speed",
             ]:  # speed: kn -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
-                    self.perfdata[name] = round(toMs(kmh=toKmh(kn=float(self.perfraw[name]))), ROUND)
+                    self.perfdata[name] = round(convert.kmh_to_ms(kmh=convert.kn_to_kmh(kn=float(self.perfraw[name]))), ROUND)
                     if SHOW_CONVERT:
                         logger.debug(f"{self.name}: {name}: {self.perfraw[name]} kn -> {self.perfdata[name]} m/s, {self.perfdata[name] * 3.6} km/h")
                 else:
@@ -848,8 +846,8 @@ class AircraftTypeWithPerformance(AircraftType):
 
             for name in ["climbmach_mach", "descentFL240_mach"]:  # speed: mach -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
-                    kmh = machToKmh(float(self.perfraw[name]), 24000)
-                    self.perfdata[name] = round(toMs(kmh=kmh), ROUND)
+                    kmh = convert.mach_to_kmh(float(self.perfraw[name]), 24000)
+                    self.perfdata[name] = round(convert.kmh_to_ms(kmh=kmh), ROUND)
                     if SHOW_CONVERT:
                         logger.debug(f"{self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL240)")
                 else:
@@ -858,8 +856,8 @@ class AircraftTypeWithPerformance(AircraftType):
 
             for name in ["cruise_mach"]:  # speed: mach -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
-                    kmh = machToKmh(float(self.perfraw[name]), 30000)
-                    self.perfdata[name] = round(toMs(kmh=kmh), ROUND)
+                    kmh = convert.mach_to_kmh(float(self.perfraw[name]), 30000)
+                    self.perfdata[name] = round(convert.kmh_to_ms(kmh=kmh), ROUND)
                     if SHOW_CONVERT:
                         logger.debug(f"{self.name}: {name}: {self.perfraw[name]} mach -> {self.perfdata[name]} m/s, {kmh} km/h (FL300)")
                 else:
@@ -923,73 +921,73 @@ class AircraftTypeWithPerformance(AircraftType):
         return min(340, max_ceiling)
 
     def getClimbSpeedRangeForAlt(self, alt: float) -> SPEED_RANGE:
-        if alt <= toMeter(1500):
+        if alt <= convert.feet_to_meters(1500):
             return SPEED_RANGE.SLOW
-        elif alt <= toMeter(15000):
+        elif alt <= convert.feet_to_meters(15000):
             return SPEED_RANGE.FL150
-        elif alt <= toMeter(24000):
+        elif alt <= convert.feet_to_meters(24000):
             return SPEED_RANGE.FL240
-        elif alt > toMeter(24000):
+        elif alt > convert.feet_to_meters(24000):
             return SPEED_RANGE.FAST
         logger.warning(f"invalid altitude {alt}, cannot convert to speed range")
         return None
 
     def getDescendSpeedRangeForAlt(self, alt):
-        if alt > toMeter(24000):
+        if alt > convert.feet_to_meters(24000):
             return SPEED_RANGE.FAST
-        elif alt > toMeter(10000):
+        elif alt > convert.feet_to_meters(10000):
             return SPEED_RANGE.FL240
-        elif alt > toMeter(3000):
+        elif alt > convert.feet_to_meters(3000):
             return SPEED_RANGE.FL150
         return SPEED_RANGE.SLOW
 
     def getClimbSpeedAndVSpeedForAlt(self, alt) -> Tuple[float, float]:
-        if alt <= toMeter(1500):
+        if alt <= convert.feet_to_meters(1500):
             return self.getSI(ACPERF.initial_climb_speed), self.getSI(ACPERF.initial_climb_vspeed)
-        elif alt < toMeter(15000):
+        elif alt < convert.feet_to_meters(15000):
             return self.getSI(ACPERF.climbFL150_speed), self.getSI(ACPERF.climbFL150_vspeed)
-        elif alt < toMeter(24000):
+        elif alt < convert.feet_to_meters(24000):
             return self.getSI(ACPERF.climbFL240_speed), self.getSI(ACPERF.climbFL240_vspeed)
         # convert mach to speed
-        cms = toMs(kmh=machToKmh(self.getSI(ACPERF.climbmach_mach), alt))  # should not be 0, we need to know...
+        cms = convert.kmh_to_ms(kmh=convert.mach_to_kmh(self.getSI(ACPERF.climbmach_mach), alt))  # should not be 0, we need to know...
         return cms, self.getSI(ACPERF.climbmach_vspeed)
 
     def getDescendSpeedAndVSpeedForAlt(self, alt) -> Tuple[float, float]:
-        if alt > toMeter(24000):
-            kmh = machToKmh(self.get(ACPERF.descentFL240_mach), alt)
-            ms = toMs(kmh=kmh)
+        if alt > convert.feet_to_meters(24000):
+            kmh = convert.mach_to_kmh(self.get(ACPERF.descentFL240_mach), alt)
+            ms = convert.kmh_to_ms(kmh=kmh)
             return ms, self.getSI(ACPERF.descentFL240_vspeed)
-        elif alt > toMeter(10000):
+        elif alt > convert.feet_to_meters(10000):
             return self.getSI(ACPERF.descentFL100_speed), self.getSI(ACPERF.descentFL100_vspeed)
-        elif alt > toMeter(3000):
+        elif alt > convert.feet_to_meters(3000):
             return self.getSI(ACPERF.approach_speed), self.getSI(ACPERF.approach_vspeed)
         return self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.landing_speed)
 
-        if alt <= toMeter(1500):
+        if alt <= convert.feet_to_meters(1500):
             return self.getSI(ACPERF.initial_climb_speed), self.getSI(ACPERF.initial_climb_vspeed)
-        elif alt < toMeter(15000):
+        elif alt < convert.feet_to_meters(15000):
             return self.getSI(ACPERF.climbFL150_speed), self.getSI(ACPERF.climbFL150_vspeed)
-        elif alt < toMeter(24000):
+        elif alt < convert.feet_to_meters(24000):
             return self.getSI(ACPERF.climbFL240_speed), self.getSI(ACPERF.climbFL240_vspeed)
         # convert mach to speed
-        cms = toMs(kmh=machToKmh(self.getSI(ACPERF.climbmach_mach), alt))  # should not be 0, we need to know...
+        cms = convert.kmh_to_ms(kmh=convert.mach_to_kmh(self.getSI(ACPERF.climbmach_mach), alt))  # should not be 0, we need to know...
         return cms, self.getSI(ACPERF.climbmach_vspeed)
 
     def getROCDistanceForAlt(self, alt):
-        if alt <= toMeter(1500):
+        if alt <= convert.feet_to_meters(1500):
             return self.getSI(ACPERF.initial_climb_vspeed) / self.getSI(ACPERF.initial_climb_speed)
-        elif alt < toMeter(15000):
+        elif alt < convert.feet_to_meters(15000):
             return self.getSI(ACPERF.climbFL150_vspeed) / self.getSI(ACPERF.climbFL150_speed)
-        elif alt < toMeter(24000):
+        elif alt < convert.feet_to_meters(24000):
             return self.getSI(ACPERF.climbFL240_vspeed) / self.getSI(ACPERF.climbFL240_speed)
         return self.getSI(ACPERF.climbmach_vspeed) / self.getSI(ACPERF.climbmach_mach)
 
     def getRODDistanceForAlt(self, alt):
-        if alt > toMeter(24000):
+        if alt > convert.feet_to_meters(24000):
             return self.getSI(ACPERF.descentFL240_vspeed) / self.getSI(ACPERF.descentFL240_mach)
-        elif alt > toMeter(10000):
+        elif alt > convert.feet_to_meters(10000):
             return self.getSI(ACPERF.descentFL100_vspeed) / self.getSI(ACPERF.descentFL100_speed)
-        elif alt > toMeter(3000):
+        elif alt > convert.feet_to_meters(3000):
             return self.getSI(ACPERF.approach_vspeed) / self.getSI(ACPERF.approach_speed)
         return self.getSI(ACPERF.approach_vspeed) / self.getSI(ACPERF.landing_speed)
 
@@ -1052,7 +1050,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        maxfl100 = toMs(kmh=toKmh(MAX_FL100_SPEED))  # m/s
+        maxfl100 = convert.kmh_to_ms(kmh=convert.kn_to_kmh(MAX_FL100_SPEED))  # m/s
         return min(self.getSI(ACPERF.climbFL150_speed), maxfl100)
 
     def climbToFL150(self, altstart):
@@ -1090,7 +1088,7 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         # Time to climb what is usually accepted as 1500ft AGL
         avgalt = (altstart + altcruise) / 2
-        avgspd = toMs(kmh=machToKmh(float(self.get(ACPERF.climbmach_mach)), avgalt))  # m/s
+        avgspd = convert.kmh_to_ms(kmh=convert.mach_to_kmh(float(self.get(ACPERF.climbmach_mach)), avgalt))  # m/s
         return self.climb(altstart, altcruise, self.getSI(ACPERF.climbmach_vspeed), avgspd)
 
     #
@@ -1109,7 +1107,7 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         altend = 24000 * FT
         avgalt = (altcruise + altend) / 2
-        avgspd = toMs(kmh=machToKmh(float(self.get(ACPERF.descentFL240_mach)), avgalt))  # m/s
+        avgspd = convert.kmh_to_ms(kmh=convert.mach_to_kmh(float(self.get(ACPERF.descentFL240_mach)), avgalt))  # m/s
         return self.climb(altcruise, altend, -float(self.getSI(ACPERF.descentFL240_vspeed)), avgspd)
 
     def descentToFL100(self, altstart):

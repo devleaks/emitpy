@@ -15,7 +15,7 @@ from .company import Company
 from emitpy.airport import Airport
 from emitpy.constants import AIRLINE, AIRLINE_DATABASE, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR, MANAGED_AIRPORT_DIR
-from emitpy.utils import toNm, key_path, rejson
+from emitpy.utils import convert, key_path, rejson
 from emitpy.geo.turf import distance
 
 logger = logging.getLogger("Airline")
@@ -286,5 +286,5 @@ class Airroute:
         destination = Airport.find_by_icao(self.origin.icao)
         if destination is not None:
             # logger.debug("destination %s: %f,%f", destination.name, destination.lat, destination.lon)
-            return toNm(distance(self.origin, self.destination))
+            return convert.m_to_nm(distance(self.origin, self.destination))
         return 0.0

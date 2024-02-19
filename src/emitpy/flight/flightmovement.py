@@ -27,7 +27,7 @@ from emitpy.constants import POSITION_COLOR, FEATPROP, TAXI_SPEED, SLOW_SPEED
 from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT, MOVE_TYPE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 from emitpy.message import FlightMessage
-from emitpy.utils import interpolate as doInterpolation, compute_time as doTime, toKmh, toMs, toMeter, toNm, toFPM, toKn2
+from emitpy.utils import interpolate as doInterpolation, compute_time as doTime, convert
 from .standardturn import standard_turn_flyby, standard_turn_flyover
 
 logger = logging.getLogger("FlightMovement")
@@ -270,7 +270,7 @@ class FlightMovement(Movement):
 
         def respect250kn(speed_in_ms, alt_in_ft, switch_alt_in_ft: int = 10000) -> float:
             """Returns authorized speed in m/s"""
-            return min(toMs(toKmh(kn=250)), speed_in_ms) if alt_in_ft < switch_alt_in_ft else speed_in_ms
+            return min(convert.kmh_to_ms(convert.kn_to_kmh(kn=250)), speed_in_ms) if alt_in_ft < switch_alt_in_ft else speed_in_ms
 
         def transfer_restriction(src, dst):
             if src in fc:
@@ -365,11 +365,15 @@ class FlightMovement(Movement):
             # ranges are initial-climb, climb-150, climb-240, climb-cruise
             # we assume we are above initial climb, we can also safely assure
             # that we are below FL150 for SID and STAR, but let's check it
-            if actype.getClimbSpeedRangeForAlt(toMeter(current_altitude)) != actype.getClimbSpeedRangeForAlt(toMeter(target_altitude)):
+            if actype.getClimbSpeedRangeForAlt(convert.feet_to_meters(current_altitude)) != actype.getClimbSpeedRangeForAlt(
+                convert.feet_to_meters(target_altitude)
+            ):
                 logger.warning(f"change of ranges for altitudes {current_altitude} -> {target_altitude}")
 
-            roc = actype.getROCDistanceForAlt(toMeter(target_altitude if do_it else current_altitude))  # special when we suspect we climb to cruise
-            min_dist_to_climb = (toMeter(ft=delta) / roc) / 1000  # km
+            roc = actype.getROCDistanceForAlt(
+                convert.feet_to_meters(target_altitude if do_it else current_altitude)
+            )  # special when we suspect we climb to cruise
+            min_dist_to_climb = (convert.feet_to_meters(ft=delta) / roc) / 1000  # km
             logger.debug(f"need distance {round(min_dist_to_climb, 2)} km to climb")
             total_dist = 0
             curridx = start_idx  # we just get an idea from the difference in altitude and the distance to travel, no speed/time involved
@@ -401,16 +405,16 @@ class FlightMovement(Movement):
                 currdist = 0
                 for idx in range(start_idx, curridx):
                     curralt = current_altitude + delta * (currdist / total_dist)
-                    speed, vspeed = actype.getClimbSpeedAndVSpeedForAlt(toMeter(curralt))
+                    speed, vspeed = actype.getClimbSpeedAndVSpeedForAlt(convert.feet_to_meters(curralt))
                     speed = respect250kn(speed, curralt)
                     d = distance(fc[idx], fc[idx + 1])
                     logger.debug(
-                        f"no expedite climb: at idx {idx}, alt={round(curralt, 0)}, speed={round(toKn2(speed), 0)}kn, vspeed={round(toFPM(vspeed), 0)}ft/min (d={round(d, 0)})"
+                        f"no expedite climb: at idx {idx}, alt={round(curralt, 0)}, speed={round(convert.ms_to_kn(speed), 0)}kn, vspeed={round(convert.ms_to_fpm(vspeed), 0)}ft/min (d={round(d, 0)})"
                     )
                     currpos = addMovepoint(
                         arr=self._premoves,
                         src=fc[idx],
-                        alt=toMeter(ft=curralt),
+                        alt=convert.feet_to_meters(ft=curralt),
                         speed=speed,
                         vspeed=vspeed,
                         color=POSITION_COLOR.CLIMB.value,
@@ -449,8 +453,8 @@ class FlightMovement(Movement):
             if actype.getDescendSpeedRangeForAlt(current_altitude) != actype.getDescendSpeedRangeForAlt(target_altitude):
                 logger.warning(f"change of ranges for altitudes {current_altitude} -> {target_altitude}")
 
-            rod = actype.getRODDistanceForAlt(toMeter(current_altitude))  # we descend as fast as current altitude allows it
-            min_dist_to_descend = (toMeter(ft=delta) / rod) / 1000  # km
+            rod = actype.getRODDistanceForAlt(convert.feet_to_meters(current_altitude))  # we descend as fast as current altitude allows it
+            min_dist_to_descend = (convert.feet_to_meters(ft=delta) / rod) / 1000  # km
             # logger.debug(f"ROD {rod} at {current_altitude}, need distance {round(min_dist_to_descend, 2)} km to descend")
             # Rule of thumb formula: (3 x height) + (1nm per 10kts of speed loss) + (1nm per 10kts of Tailwind Component)
             # 10kts = 5.144444 m/s
@@ -460,7 +464,7 @@ class FlightMovement(Movement):
             if min_dist_to_descend > MAX_TOD:
                 wind_contrib = 10  # nm, average, arbitrary
                 alt_contrib = 3 * delta * 0.0001645788  # delta in ft, contrib in nm
-                speed, vspeed = actype.getDescendSpeedAndVSpeedForAlt(toMeter(current_altitude))
+                speed, vspeed = actype.getDescendSpeedAndVSpeedForAlt(convert.feet_to_meters(current_altitude))
                 speed2 = actype.getSI(ACPERF.approach_speed)
                 speed_diff = max(0, speed - speed2)
                 speed_contrib = 0
@@ -470,10 +474,10 @@ class FlightMovement(Movement):
                 contrib = alt_contrib + speed_contrib + wind_contrib
                 # print(">>>", alt_contrib, speed_contrib, wind_contrib)
 
-                new_rod = toMeter(delta) / (MAX_TOD * 1000)
-                fpm = toFPM(ms=vspeed * new_rod / rod)
+                new_rod = convert.feet_to_meters(delta) / (MAX_TOD * 1000)
+                fpm = convert.ms_to_fpm(ms=vspeed * new_rod / rod)
                 logger.debug(
-                    f"descend too long ({round(min_dist_to_descend, 2)} km), will expedite to max {round(toNm(m=MAX_TOD), 0)}nm (vs {round(contrib, 0)} calculated) (ROD={round(new_rod,2)}, or {round(fpm, 0)}ft/min)"
+                    f"descend too long ({round(min_dist_to_descend, 2)} km), will expedite to max {round(convert.m_to_nm(m=MAX_TOD), 0)}nm (vs {round(contrib, 0)} calculated) (ROD={round(new_rod,2)}, or {round(fpm, 0)}ft/min)"
                 )
                 min_dist_to_descend = MAX_TOD
 
@@ -507,16 +511,16 @@ class FlightMovement(Movement):
                 logger.debug(f"rate: {delta}ft/{total_dist}km")
                 for idx in range(curridx, target_index):
                     curralt = current_altitude - delta * (currdist / total_dist)
-                    speed, vspeed = actype.getDescendSpeedAndVSpeedForAlt(toMeter(curralt))
+                    speed, vspeed = actype.getDescendSpeedAndVSpeedForAlt(convert.feet_to_meters(curralt))
                     speed = respect250kn(speed, curralt)
                     d = distance(fc[idx - 1], fc[idx])
                     logger.debug(
-                        f"no expedite descend: at idx {idx}, dist={round(currdist, 0)}km, alt={round(curralt, 0)}, speed={round(toKn2(speed), 0)}kn, vspeed={round(toFPM(vspeed), 0)}ft/min (d={round(d, 0)})"
+                        f"no expedite descend: at idx {idx}, dist={round(currdist, 0)}km, alt={round(curralt, 0)}, speed={round(convert.ms_to_kn(speed), 0)}kn, vspeed={round(convert.ms_to_fpm(vspeed), 0)}ft/min (d={round(d, 0)})"
                     )
                     currpos = addMovepoint(
                         arr=self._premoves,
                         src=fc[idx],
-                        alt=toMeter(ft=curralt),
+                        alt=convert.feet_to_meters(ft=curralt),
                         speed=speed,
                         vspeed=vspeed,
                         color=POSITION_COLOR.DESCEND.value,
@@ -813,7 +817,7 @@ class FlightMovement(Movement):
             currpos = addMovepoint(
                 arr=self._premoves,
                 src=last_restricted_point,
-                alt=toMeter(ft=curralt),
+                alt=convert.feet_to_meters(ft=curralt),
                 speed=respect250kn(actype.getSI(ACPERF.climbFL150_speed), curralt),
                 vspeed=actype.getSI(ACPERF.climbFL150_vspeed),
                 color=POSITION_COLOR.CLIMB.value,
@@ -833,7 +837,7 @@ class FlightMovement(Movement):
         # we have an issue if first point of SID is between TAKE_OFF and END_OF_INITIAL_CLIMB (which is )
         # but it is very unlikely (buy it may happen, in which case the solution is to remove the first point if SID)
         # Example of issue: BEY-DOH //DEP OLBA RW34 SID LEBO2F //ARR OTHH
-        if self._premoves[-1].altitude() < toMeter(10000):
+        if self._premoves[-1].altitude() < convert.feet_to_meters(10000):
             logger.debug("climbToFL100")
             step = actype.climbToFL100(currpos.altitude())  # (t, d, altend)
             groundmv = groundmv + step[1]
@@ -853,10 +857,10 @@ class FlightMovement(Movement):
             )
 
         # climb to cruise altitude
-        # added 10ft to alt in feet because of rounding would get alt < toMeter(15000)
+        # added 10ft to alt in feet because of rounding would get alt < convert.feet_to_meters(15000)
         cruise_speed = actype.getSI(ACPERF.cruise_mach)
 
-        if self._premoves[-1].altitude() <= toMeter(15010) and self.flight.flight_level > 150:
+        if self._premoves[-1].altitude() <= convert.feet_to_meters(15010) and self.flight.flight_level > 150:
             logger.debug("climbToFL150")
             step = actype.climbToFL150(currpos.altitude())  # (t, d, altend)
             groundmv = groundmv + step[1]
@@ -875,7 +879,7 @@ class FlightMovement(Movement):
                 mark_tr=FLIGHT_PHASE.CLIMB.value,
             )
 
-            if self._premoves[-1].altitude() <= toMeter(24010) and self.flight.flight_level > 240:
+            if self._premoves[-1].altitude() <= convert.feet_to_meters(24010) and self.flight.flight_level > 240:
                 logger.debug("climbToFL240")
                 step = actype.climbToFL240(currpos.altitude())  # (t, d, altend)
                 groundmv = groundmv + step[1]
@@ -894,7 +898,7 @@ class FlightMovement(Movement):
                     mark_tr=FLIGHT_PHASE.CLIMB.value,
                 )
 
-                if self._premoves[-1].altitude() <= toMeter(24010) and self.flight.flight_level > 240:
+                if self._premoves[-1].altitude() <= convert.feet_to_meters(24010) and self.flight.flight_level > 240:
                     logger.debug("climbToCruise")
                     step = actype.climbToCruise(currpos.altitude(), self.flight.getCruiseAltitude())  # (t, d, altend)
                     groundmv = groundmv + step[1]
@@ -1627,7 +1631,7 @@ class FlightMovement(Movement):
         move_points = []
 
         # @todo: should fetch another reasonable value from aircraft performance.
-        last_speed = toMs(toKmh(kn=200))  # kn to km/h; and km/h to m/s
+        last_speed = convert.kmh_to_ms(convert.kn_to_kmh(kn=200))  # kn to km/h; and km/h to m/s
 
         # Add first point
         move_points.append(self._premoves[0])

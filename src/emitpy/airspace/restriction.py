@@ -11,7 +11,7 @@ from emitpy.constants import FEATPROP
 from emitpy.geo.turf import destination, Point, Feature
 from emitpy.geo import FeatureWithProps
 
-from emitpy.utils import cifp_alt_in_ft, cifp_alt_in_fl, cifp_speed, toKn, toKmh2, toKmh, toMs, toMeter
+from emitpy.utils import convert
 from .aerospace import NamedPoint
 
 logger = logging.getLogger("Restriction")
@@ -60,18 +60,18 @@ class Restriction:
         # speed
         if sr != "":
             r.speed_restriction_type = sr[0]
-            r.restricted_speed = cifp_speed(sr[1:])
+            r.restricted_speed = convert.cifp_speed(sr[1:])
         # alt
         if ar != "":
             r.alt_restriction_type = ar[0]
             if "," in ar:
                 r.alt1, r.alt2 = ar[1:].split(",")
                 if r.alt1 != "":
-                    r.alt1 = cifp_alt_in_ft(r.alt1)
+                    r.alt1 = convert.cifp_alt_in_ft(r.alt1)
                 if r.alt2 != "":
-                    r.alt2 = cifp_alt_in_ft(r.alt2)
+                    r.alt2 = convert.cifp_alt_in_ft(r.alt2)
             else:
-                r.alt1 = cifp_alt_in_ft(ar[1:])
+                r.alt1 = convert.cifp_alt_in_ft(ar[1:])
         if restriction != r.getRestrictionDesc():
             logger.warning(f"parsed restriction '{restriction}' to '{r.getRestrictionDesc()}'")
         assert restriction == r.getRestrictionDesc()
@@ -112,12 +112,12 @@ class Restriction:
                 a = "@"  # more explicit on display
             astr = f"{self.alt1}"
             if use_fl:
-                astr = cifp_alt_in_fl(self.alt1)
+                astr = convert.cifp_alt_in_fl(self.alt1)
             a = f"{a}{astr}"
             if self.alt2 is not None:
                 astr = f"{self.alt2}"
                 if use_fl:
-                    astr = cifp_alt_in_fl(self.alt2)
+                    astr = convert.cifp_alt_in_fl(self.alt2)
                 a = f"{a},{astr}"
         elif self.alt2 is not None:
             a = "?" if self.alt_restriction_type is None else self.alt_restriction_type
@@ -125,7 +125,7 @@ class Restriction:
                 a = "@"  # more explicit on display
             astr = f"{self.alt2}"
             if use_fl:
-                astr = cifp_alt_in_fl(self.alt2)
+                astr = convert.cifp_alt_in_fl(self.alt2)
             a = f"{a},{astr}"
         return a
 
@@ -156,10 +156,13 @@ class Restriction:
         self.restricted_speed = speed
 
     def getSISpeed(self):
-        return toMs(kmh=toKmh(kn=self.restricted_speed))
+        return convert.kmh_to_ms(kmh=convert.kn_to_kmh(kn=self.restricted_speed))
 
     def getSIAltitudes(self):
-        return (toMeter(ft=self.alt1) if self.alt1 is not None else None, toMeter(ft=self.alt2) if self.alt2 is not None else None)
+        return (
+            convert.feet_to_meters(ft=self.alt1) if self.alt1 is not None else None,
+            convert.feet_to_meters(ft=self.alt2) if self.alt2 is not None else None,
+        )
 
     def getSpeedRestrictionDesc(self):
         a = ""

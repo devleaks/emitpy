@@ -14,7 +14,7 @@ from typing import Dict, List
 
 from emitpy.constants import ID_SEP
 from emitpy.geo.turf import distance, bearing
-from emitpy.utils import ConvertDMSToDD, FT, cifp_alt_in_ft, cifp_speed
+from emitpy.utils import convert, FT
 from emitpy.parameters import XPLANE_DIR
 from .restriction import Restriction, NamedPointWithRestriction
 
@@ -93,12 +93,6 @@ class RWY_DATA(Enum):
     LATITUDE = 8
     LONGITUDE = 9
     DSPLCD_THR = 10
-
-
-def cifp_alt_in_fl(alt):
-    if alt > 15000 and alt == (100 * int(alt / 100)):
-        return f"FL{int(alt/100)}"
-    return f"{alt}"
 
 
 ################################
@@ -196,9 +190,9 @@ class ProcedureData:
 
     def getRestriction(self) -> Restriction:
         """@todo"""
-        altmin = cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT1))
-        altmax = cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT2))
-        speedlim = cifp_speed(self.param(PROC_DATA.SPEED_LIMIT))
+        altmin = convert.cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT1))
+        altmax = convert.cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT2))
+        speedlim = convert.cifp_speed(self.param(PROC_DATA.SPEED_LIMIT))
         r = Restriction(altmin=altmin, altmax=altmax, speed=speedlim)
         r._source = self
         r.alt_restriction_type = self.param(PROC_DATA.ALT_DESC)
@@ -649,14 +643,14 @@ class RWY(Procedure):
         Returns latitude of threshold point
         """
         latstr = self.route[0].params[7].split(";")[1]
-        return ConvertDMSToDD(latstr[1:3], latstr[3:5], int(latstr[5:9]) / 100, latstr[0])
+        return convert.dms_to_dd(latstr[1:3], latstr[3:5], int(latstr[5:9]) / 100, latstr[0])
 
     def getLongitude(self):
         """
         Returns longitude of threshold point
         """
         lonstr = self.route[0].params[8]
-        return ConvertDMSToDD(lonstr[1:4], lonstr[4:6], int(lonstr[6:10]) / 100, lonstr[0])
+        return convert.dms_to_dd(lonstr[1:4], lonstr[4:6], int(lonstr[6:10]) / 100, lonstr[0])
 
     def setAltitude(self, alt):
         """
