@@ -615,7 +615,7 @@ class Flight(Messages):
         logger.debug(f"generated {len(self.flightplan_wpts)} points")
         return (True, "Flight::plan: planned")
 
-    def phase_indices(self, phase: FLIGHT_SEGMENT):
+    def phase_indices(self, phase: FLIGHT_SEGMENT) -> Tuple[int, int | None]:
         """Returns flight plan indices for begin and end of phase"""
         start = None
         # should sort waypoints?

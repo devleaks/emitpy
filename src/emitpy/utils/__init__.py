@@ -13,6 +13,7 @@ from .unitconversion import (
     toKmh2,
     toMs,
     toKn,
+    toKn2,
     toFeet,
     toFPM,
     toMeter,

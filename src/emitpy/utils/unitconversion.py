@@ -97,6 +97,19 @@ def toKn(kmh):
     return kmh / NAUTICAL_MILE
 
 
+def toKn2(ms):
+    """
+    Convert meters per second into knots
+
+    :param      ms:  The meters per second
+    :type       kmh:  { type_description }
+
+    :returns:   { description_of_the_return_value }
+    :rtype:     { return_type_description }
+    """
+    return toKn(kmh=toKmh2(ms))
+
+
 def toMs(kmh):
     """
     Convert kilometer per hours into meters/second
