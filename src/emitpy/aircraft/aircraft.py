@@ -961,7 +961,7 @@ class AircraftTypeWithPerformance(AircraftType):
             return self.getSI(ACPERF.descentFL100_speed), self.getSI(ACPERF.descentFL100_vspeed)
         elif alt > convert.feet_to_meters(3000):
             return self.getSI(ACPERF.approach_speed), self.getSI(ACPERF.approach_vspeed)
-        return self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.landing_speed)
+        return self.getSI(ACPERF.landing_speed), self.getSI(ACPERF.approach_vspeed)
 
         if alt <= convert.feet_to_meters(1500):
             return self.getSI(ACPERF.initial_climb_speed), self.getSI(ACPERF.initial_climb_vspeed)

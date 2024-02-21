@@ -469,7 +469,19 @@ class Flight(Messages):
         print(self.forced_procedures)
 
     def force_string(self):
-        return f".force_procedures(rwydep='{self.procedures.get(FLIGHT_SEGMENT.RWYDEP.value).name}', sid='{self.procedures.get(FLIGHT_SEGMENT.SID.value).name}', star='{self.procedures.get(FLIGHT_SEGMENT.STAR.value).name}', appch='{self.procedures.get(FLIGHT_SEGMENT.APPCH.value).name}', rwyarr='{self.procedures.get(FLIGHT_SEGMENT.RWYARR.value).name}')"
+        def nvl(a):
+            b = self.procedures.get(a.value)
+            return f"'{b.name}'" if b is not None else None
+
+        return ", ".join(
+            [
+                f".force_procedures(rwydep={nvl(FLIGHT_SEGMENT.RWYDEP)}",
+                f"sid={nvl(FLIGHT_SEGMENT.SID)}",
+                f"star={nvl(FLIGHT_SEGMENT.STAR)}",
+                f"appch={nvl(FLIGHT_SEGMENT.APPCH)}",
+                f"rwyarr={nvl(FLIGHT_SEGMENT.RWYARR)})",
+            ]
+        )
 
     def plan(self):
         if self.flightroute is None:  # not loaded, trying to load

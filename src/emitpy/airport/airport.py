@@ -60,9 +60,9 @@ class Airport(Location):
         self.airlines: Dict[str, "Airline"] = {}
         self.hub: Dict[str, "Airline"] = {}
 
-        self.tzname = None
-        self.tzoffset = None
-        self.timezone = None
+        self.tzname: str | None = None
+        self.tzoffset: datetime | None = None
+        self.timezone: Timezone | None = None
 
         # this is the airway network representation of this airport
         self.terminal = Terminal(name=icao, lat=lat, lon=lon, alt=alt, iata=iata, longname=name, country=country, city=city)
@@ -303,6 +303,7 @@ class Airport(Location):
             "lat": self.lat(),
             "lon": self.lon(),
             "alt": self.alt(),
+            "tz": self.tzname,
         }
 
     def getKey(self):

@@ -384,8 +384,8 @@ class STAR(Procedure):
     def __init__(self, name: str):
         Procedure.__init__(self, name)
 
-    def getEntrySpeedAndAlt(self):
-        return (0, 6000 * FT)
+    def getEntrySpeedAndAlt(self, default: int = 6000):
+        return (0, default * FT)
 
     def getRoute(self, airspace: Aerospace):
         """
@@ -490,11 +490,44 @@ class APPCH(Procedure):
     def __init__(self, name: str):
         Procedure.__init__(self, name)
 
-    def getEntrySpeedAndAlt(self):
-        return (0, 3000 * FT)
+    def getEntrySpeedAndAlt(self, default: int = 3000):
+        return (0, default * FT)
 
-    def getExitSpeedAndAlt(self):
-        return (0, 2000 * FT)
+    def getExitSpeedAndAlt(self, default: int = 2000):
+        return (0, default * FT)
+
+    def is_final_fix_point(self, vertex):
+        code_raw = vertex.param(PROC_DATA.DESC_CODE)
+        return len(code_raw) > 4 and code_raw[3] in ["E", "F"]
+
+    def getFinalFixAltInFt(self, default: int = 2000) -> int:
+        alt = default
+        has_one = False
+        for v in self.route.values():
+            if self.is_final_fix_point(v):
+                if v.hasAltitudeRestriction():
+                    has_one = True
+                    logger.debug(f"final fix restriction {v.getAltitudeRestrictionDesc()}")
+                    alt_desc = v.alt_restriction_type
+                    if alt_desc in [" ", "@"]:
+                        alt = v.alt1
+                    elif alt_desc == "B":
+                        if v.alt1 > v.alt2:  # keep the lowest
+                            alt = v.alt2
+                        else:
+                            alt = v.alt1
+                    elif alt_desc in ["+"]:
+                        alt = v.alt1
+                    elif alt_desc in ["C", "D"]:
+                        alt = v.alt2
+                    elif alt_desc == "-":
+                        alt = v.alt1
+                    logger.debug(f"final fix altitude: {alt}ft")
+                else:
+                    logger.debug(f"final fix has no restriction")
+        if not has_one:
+            logger.debug(f"no final fix in approach, using default alt {default}ft")
+        return alt
 
     def getRoute(self, airspace: Aerospace):
         """
@@ -530,9 +563,6 @@ class APPCH(Procedure):
 
         self.prepareRestrictions(a)
         return a
-
-    def getFinalFixAltInFt(self) -> int:
-        return 2000  # ft
 
     def prepareRestrictions(self, route):
         # Speed

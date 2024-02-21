@@ -3,6 +3,7 @@ Conversion utility functions.
 Why doesn't airline business use MKSA?
 There are only 3 countries in the world that are still officially using the imperial system: The United States of America, Myanmar, and Liberia.
 """
+from typing import Tuple
 
 # Geology constants
 R = 6371000  # Approximate average radius of third rock from the sun, in metres
@@ -20,7 +21,7 @@ def sign(x):
 
 class convert:
     @staticmethod
-    def dms_to_dd(degrees, minutes, seconds, direction):
+    def dms_to_dd(degrees, minutes, seconds, direction) -> float:
         dd = float(degrees) + float(minutes) / 60 + float(seconds) / (60 * 60)
         return dd if direction in ("N", "E") else dd * -1
 
@@ -38,7 +39,7 @@ class convert:
         return int(s)
 
     @staticmethod
-    def cifp_alt_in_fl(alt):
+    def cifp_alt_in_fl(alt: float) -> str:
         if alt > 15000 and alt == (100 * int(alt / 100)):
             return f"FL{int(alt/100)}"
         return f"{alt}"
@@ -52,7 +53,7 @@ class convert:
         return int(s)
 
     @staticmethod
-    def m_to_nm(m):
+    def m_to_nm(m: float) -> float:
         """
         Convert meter to nautical miles
 
@@ -65,7 +66,7 @@ class convert:
         return round(m / NAUTICAL_MILE)
 
     @staticmethod
-    def meters_to_feet(m):
+    def meters_to_feet(m: float) -> float:
         """
         Convert meter to feet
 
@@ -78,7 +79,7 @@ class convert:
         return round(m / FT)
 
     @staticmethod
-    def feet_to_meters(ft):
+    def feet_to_meters(ft: float) -> float:
         """
         Convert feet to meters
 
@@ -91,7 +92,7 @@ class convert:
         return round(ft * FT)
 
     @staticmethod
-    def kmh_to_kn(kmh):
+    def kmh_to_kn(kmh: float) -> float:
         """
         Convert kilometer per hours into knots
 
@@ -104,7 +105,7 @@ class convert:
         return kmh / NAUTICAL_MILE
 
     @staticmethod
-    def ms_to_kn(ms):
+    def ms_to_kn(ms: float, r: int | None = None) -> float:
         """
         Convert meters per second into knots
 
@@ -114,10 +115,13 @@ class convert:
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        return convert.kmh_to_kn(kmh=convert.ms_to_kmh(ms))
+        s = convert.kmh_to_kn(kmh=convert.ms_to_kmh(ms))
+        if r is not None:
+            s = round(s, r)
+        return s
 
     @staticmethod
-    def kmh_to_ms(kmh):
+    def kmh_to_ms(kmh: float) -> float:
         """
         Convert kilometer per hours into meters/second
 
@@ -128,23 +132,34 @@ class convert:
         return kmh / 3.6
 
     @staticmethod
-    def ms_to_kmh(ms):
+    def ms_to_kmh(ms: float) -> float:
         return ms * 3.6
 
     @staticmethod
-    def kn_to_kmh(kn):
+    def kn_to_kmh(kn: float) -> float:
         return kn * NAUTICAL_MILE
 
     @staticmethod
-    def ms_to_fpm(ms):
-        return convert.meters_to_feet(ms * 60)
+    def kn_to_ms(kn: float) -> float:
+        return convert.kmh_to_ms(kn * NAUTICAL_MILE)
 
     @staticmethod
-    def fl_to_m(fl: int):
+    def ms_to_fpm(ms: float, r: int | None = None) -> float:
+        s = convert.meters_to_feet(ms * 60)
+        if r is not None:
+            s = round(s, r)
+        return s
+
+    @staticmethod
+    def fpm_to_ms(fpm: float) -> float:
+        return convert.feet_to_meters(fpm / 60)
+
+    @staticmethod
+    def fl_to_m(fl: int) -> float:
         return fl * FT / 100
 
     @staticmethod
-    def mach_to_speeds(mach: float, altitude: int = 30000):
+    def mach_to_speeds(mach: float, altitude: int = 30000) -> Tuple[float, float, float]:
         mph_machconvert = mach * 660
         kmh_machconvert = mach * 1062
         knots_machconvert = mach * 573
@@ -197,7 +212,7 @@ class convert:
         return (kmh_machconvert, knots_machconvert, mph_machconvert)
 
     @staticmethod
-    def mach_to_kmh(mach: float, altitude: int = 30000):
+    def mach_to_kmh(mach: float, altitude: int = 30000) -> float:
         """
         Convert MACH speed to ground speed for different altitude ranges.
         Altitude should be supplied in feet ASL.

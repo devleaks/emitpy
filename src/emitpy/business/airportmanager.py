@@ -62,6 +62,8 @@ class AirportManager:
         self.equipments: Dict[str, "Equipment"] = {}
         self.equipment_allocator = None
 
+        self.people = {}  # dummy, unused
+
         self.ramps: Dict[str, "Ramp"] = {}
         self.ramp_allocator = None
 

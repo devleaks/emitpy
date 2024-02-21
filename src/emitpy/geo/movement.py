@@ -165,7 +165,7 @@ class Movement(Messages):
 
         output = io.StringIO()
         print("\nMOVEMENT", file=output)
-        HEADER = ["INDEX", "SEGMENT NAME", "DISTANCE", "TOTAL DISTANCE", "ALT", "SPEED", "V/S", "RESTRICTION"]
+        HEADER = ["INDEX", "FP INDEX", "SEGMENT NAME", "DISTANCE", "TOTAL DISTANCE", "ALT", "SPEED", "V/S", "RESTRICTION"]
         table = []
 
         idx = 0
@@ -178,7 +178,19 @@ class Movement(Messages):
                 total_dist = total_dist + d
 
             # mvpt.setProp(FEATPROP.GROUNDED, is_grounded)
-            table.append([idx, w.getMark(), round(d, 1), round(total_dist), w.altitude(), w.speed(), w.vspeed(), w.getProp(FEATPROP.RESTRICTION)])
+            table.append(
+                [
+                    idx,
+                    w.getProp(FEATPROP.FLIGHT_PLAN_INDEX),
+                    w.getMark(),
+                    round(d, 1),
+                    round(total_dist),
+                    w.altitude(),
+                    w.speed(),
+                    w.vspeed(),
+                    w.getProp(FEATPROP.RESTRICTION),
+                ]
+            )
             idx = idx + 1
             last_point = w
 

@@ -176,7 +176,7 @@ class Restriction:
     def hasSpeedRestriction(self) -> bool:
         return self.restricted_speed is not None
 
-    def checkSpeed(self, feature: Feature, propname: str = FEATPROP.SPEED.value, tolerance: int = 5):
+    def checkSpeed(self, feature: Feature, tolerance: int = 5):
         """
         Note: We assume same units for feature speed and constrains.
         We also assume feature has properties dict set.
@@ -184,17 +184,54 @@ class Restriction:
         if self.restricted_speed is None:
             logger.debug("no speed constrains")
             return True
-        speed = toKn(toKmh2(ms=feature.props().get(propname)))
-        if speed is not None:
-            if self.speed_restriction_type in [" ", "@"]:
-                return (speed - self.restricted_speed) <= tolerance  # 5 m/s=18km/h=10kn
-            elif self.speed_restriction_type == "-":
-                return speed <= self.restricted_speed
-            elif self.speed_restriction_type == "+":
-                return speed >= self.restricted_speed
-            else:
-                logger.warning(f"invalid control speed type '{self.speed_restriction_type}'")
+        speed = feature.speed()  # m/s
+        if speed is None:
+            logger.warning("feature has no speed")
+            return True
+
+        speed = convert.ms_to_kn(speed)
+        if self.speed_restriction_type in [" ", "@"]:
+            return (speed - self.restricted_speed) <= tolerance  # 5 m/s=18km/h=10kn
+        elif self.speed_restriction_type == "-":
+            return speed <= self.restricted_speed
+        elif self.speed_restriction_type == "+":
+            return speed >= self.restricted_speed
+        else:
+            logger.warning(f"invalid control speed type '{self.speed_restriction_type}'")
+
         return True
+
+    def adjustSpeed(self, feature: Feature, tolerance: int = 5):
+        """
+        Note: We assume same units for feature speed and constrains.
+        We also assume feature has properties dict set.
+        """
+        if self.restricted_speed is None:
+            logger.debug("no speed constrains")
+            return True
+        speed = feature.speed()  # m/s
+        if speed is None:
+            logger.warning("feature has no speed")
+            return True
+
+        speed_kn = convert.ms_to_kn(speed)
+        if self.speed_restriction_type in [" ", "@"]:
+            if not (speed_kn - self.restricted_speed) <= tolerance:
+                new_speed = convert.kn_to_ms(self.restricted_speed)
+                feature.setSpeed(new_speed)
+                logger.debug(f"speed @adjusted from {speed_kn} to {self.restricted_speed}")
+        elif self.speed_restriction_type == "-":
+            if speed_kn > self.restricted_speed:
+                new_speed = convert.kn_to_ms(self.restricted_speed)
+                feature.setSpeed(new_speed)
+                logger.debug(f"speed -adjusted from {speed_kn} to {self.restricted_speed}")
+        elif self.speed_restriction_type == "+":
+            if speed_kn < self.restricted_speed:
+                new_speed = convert.kn_to_ms(self.restricted_speed)
+                feature.setSpeed(new_speed)
+                logger.debug(f"speed +adjusted from {speed_kn} to {self.restricted_speed}")
+        else:
+            logger.warning(f"invalid control speed type '{self.speed_restriction_type}'")
 
     def combine(self, restriction):
         def nvl(a, b):

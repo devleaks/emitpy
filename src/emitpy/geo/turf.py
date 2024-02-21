@@ -161,6 +161,9 @@ class EmitpyFeature(Feature):
         else:
             self.properties[name] = value
 
+    def delProp(self, name: str | FEATPROP):
+        self.unsetProp(name)
+
     def unsetProp(self, name: str | FEATPROP):
         if isinstance(name, FEATPROP):
             name = name.value
