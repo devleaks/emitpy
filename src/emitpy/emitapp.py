@@ -413,8 +413,9 @@ class EmitApp(ManagedAirport):
 
         # For debugging purposes, we can "impose" FP here
         #
-        #
+        # Example:
         # flight.force_procedures(rwydep="RW16L", sid="BUND1M", star="OTGI2E", appch="D22R", rwyarr="RW22R")
+        flight.force_procedures(rwydep="RW34L", sid="ALVE1W", star="ELKA3B", appch="D16R", rwyarr="RW16R")
         #
         #
 

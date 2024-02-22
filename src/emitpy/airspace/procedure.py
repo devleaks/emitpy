@@ -500,7 +500,7 @@ class APPCH(Procedure):
         code_raw = vertex.param(PROC_DATA.DESC_CODE)
         return len(code_raw) > 4 and code_raw[3] in ["E", "F"]
 
-    def getFinalFixAltInFt(self, default: int = 2000) -> int:
+    def getFinalFixAltInFt(self, default: int | None = 2000) -> int | None:
         alt = default
         has_one = False
         for v in self.route.values():
@@ -528,6 +528,18 @@ class APPCH(Procedure):
         if not has_one:
             logger.debug(f"no final fix in approach, using default alt {default}ft")
         return alt
+
+    def getLastAltitudeRestriction(self, default: int | None = 2000) -> int | None:
+        last_restriction = None
+        # r = list(self.route.values())
+        # r.reverse()
+        # for v in r:
+        #     if last_restriction is None and v.hasAltitudeRestriction():
+        #         last_restriction = v.getRestriction().alt1
+        # if last_restriction is None:
+        #     logger.debug(f"no last altitude restriction, using default alt {default}ft")
+        #     last_restriction = default
+        return last_restriction
 
     def getRoute(self, airspace: Aerospace):
         """

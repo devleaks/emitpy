@@ -63,8 +63,8 @@ class Edge(FeatureWithProps):
     ):
         ls = linestring if linestring is not None else LineString([src.geometry.coordinates, dst.geometry.coordinates])
         FeatureWithProps.__init__(self, geometry=ls)
-        self.start = src
-        self.end = dst
+        self.start: Vertex = src
+        self.end: Vertex = dst
         self.name = name  # segment name, not unique!
         self.weight = weight  # weight = distance to next vertext
         self.directed = directed  # if edge is directed src to dst, False = twoway
