@@ -1,6 +1,8 @@
 import os
 import sys
 
+from networkx import convert
+
 # from parameters import HOME_DIR
 sys.path.append(os.path.join(".."))  # os.path.join(HOME_DIR, "src"), changed to avoid dependancy on parameter
 
@@ -26,7 +28,6 @@ from emitpy.weather import WebWeatherEngine
 from emitpy.constants import REDIS_DB, REDIS_DATABASE, REDIS_PREFIX, REDIS_LOVS, POI_COMBO, key_path, AIRAC_CYCLE
 from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, AIRCRAFT_TYPE_DATABASE, FLIGHTROUTE_DATABASE
 
-from emitpy.utils import NAUTICAL_MILE
 from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT
 from emitpy.parameters import MANAGED_AIRPORT_ICAO, DATA_DIR, MANAGED_AIRPORT_DIR
 from emitpy.geo import FeatureWithProps
@@ -588,7 +589,6 @@ class LoadApp(ManagedAirport):
             if hasattr(v, "_resource"):
                 del v._resource
             v.unsetProp("line")
-            print(type(v), v, v.to_geojson())
             self.redis.json().set(
                 key_path(REDIS_PREFIX.AIRPORT.value, REDIS_PREFIX.GEOJSON.value, REDIS_PREFIX.RUNWAYS.value, k), Path.root_path(), v.to_geojson()
             )
@@ -724,7 +724,7 @@ class LoadApp(ManagedAirport):
             longitude=self.longitude,
             latitude=self.latitude,
             unit="km",
-            radius=100 * NAUTICAL_MILE,
+            radius=convert.km_to_nm(100),
             dest=store,
         )
         logger.debug(f"..stored in {store} ..done")
