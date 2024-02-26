@@ -6,7 +6,7 @@ import json
 
 from emitpy.constants import FEATPROP
 from emitpy.airport import Airport
-from emitpy.utils import FT, NAUTICAL_MILE
+from emitpy.utils import convert
 
 from .formatter import Formatter
 
@@ -28,11 +28,11 @@ class RTTFCFormatter(Formatter):
             "hexid": "efface",
             "lat": f.lat(),
             "lon": f.lon(),
-            "baro_alt": f.altitude(0) / FT,
+            "baro_alt": convert.meters_to_feet(f.altitude(0)),
             "baro_rate": 0,
             "gnd": 1,  # default will be updated below
             "track": f.course(),
-            "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,
+            "gsp": convert.ms_to_kn(f.speed(0)),
             "cs_icao": "CSICAO",
             "ac_type": "ZZZC",
             "ac_tailno": "TAILNUM",
@@ -77,7 +77,7 @@ class RTTFCFormatter(Formatter):
         #     "baro_rate": "",
         #     "gnd": "",
         #     "track": f.getProp(FEATPROP.COURSE),
-        #     "gsp": f.speed(0) * 3.6 / NAUTICAL_MILE,  # m/s in kn"
+        #     "gsp": convert.ms_to_kn(f.speed(0)),  # m/s in kn"
         #     "cs_icao": "",
         #     "ac_type": "",
         #     "ac_tailno": "",
@@ -114,16 +114,12 @@ class RTTFCFormatter(Formatter):
         #     "authentication": ""
         # }
 
-        airborne = (
-            rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50
-        )  # should be: speed < min(takeoff_speed, landing_speed)
+        airborne = rttfcObj["baro_alt"] > 0 and rttfcObj["gsp"] > 50  # should be: speed < min(takeoff_speed, landing_speed)
         rttfcObj["gnd"] = 0 if not airborne else 1  # :-)
 
         emit_type = f.getPropPath("$.emit.emit-type")
         if emit_type == "flight":
-            rttfcObj["ac_type"] = f.getPropPath(
-                "$.flight.aircraft.actype.base-type.actype"
-            )  # ICAO A35K
+            rttfcObj["ac_type"] = f.getPropPath("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
             rttfcObj["hexid"] = int(f.getPropPath("flight.aircraft.icao24"), 16)
 
             callsign = f.getPropPath("$.flight.callsign")

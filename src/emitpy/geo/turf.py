@@ -367,6 +367,12 @@ class EmitpyFeature(Feature):
             return default
         return a
 
+    def copy_restriction_from(self, src):
+        if hasattr(src, "getProp"):
+            r = src.getProp(FEATPROP.RESTRICTION)
+            if r is not None and r.strip() != "":
+                self.setProp(FEATPROP.RESTRICTION, r)
+
     def getPropPath(self, path: str):
         r = JSONPath(path).parse(self.properties)
         if len(r) == 1:

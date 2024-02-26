@@ -23,7 +23,7 @@ import yaml
 from emitpy.parameters import HOME_DIR, DATA_DIR
 from emitpy.business import Identity, Company
 from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB
-from emitpy.utils import FT, convert, key_path, rejson
+from emitpy.utils import convert, key_path, rejson
 
 
 logger = logging.getLogger("Aircraft")
@@ -34,8 +34,8 @@ sys.path.append(HOME_DIR)
 
 _STD_CLASS = "C"
 MAX_FL100_SPEED = 250  # kn
-INITIAL_CLIMB_SAFE_ALT = 1500 * FT
-FINAL_APPROACH_FIX_ALT = 3000 * FT
+INITIAL_CLIMB_SAFE_ALT = convert.feet_to_meters(1500)
+FINAL_APPROACH_FIX_ALT = convert.feet_to_meters(3000)
 
 
 class ACPERF:
@@ -274,12 +274,12 @@ class AircraftType(Identity):
         if self.rawdata:
             if name == "wingspan" and "Wingspan- ft" in self.rawdata:
                 try:
-                    return float(self.rawdata["Wingspan- ft"]) * FT
+                    return convert.feet_to_meters(float(self.rawdata["Wingspan- ft"]))
                 except ValueError:
                     return None
             if name == "length" and "Length- ft" in self.rawdata:
                 try:
-                    return float(self.rawdata["Length- ft"]) * FT
+                    return convert.feet_to_meters(float(self.rawdata["Length- ft"]))
                 except ValueError:
                     return None
             return self.rawdata[name] if name in self.rawdata else None
@@ -484,7 +484,7 @@ class AircraftTypeWithPerformance(AircraftType):
             else:
                 acperf = AircraftTypeWithPerformance._DB_PERF[ac]
             if acperf is not None and acperf.available and ("cruise_range" in acperf.perfraw):
-                r = int(acperf.perfraw["cruise_range"]) * NAUTICAL_MILE  # km
+                r = convert.km_to_nm(float(acperf.perfraw["cruise_range"]))  # km
                 if r > reqrange:
                     rd = r - reqrange
                     # logger.debug("can use %s: %f (%f)" % (ac, r, rd))
@@ -819,7 +819,7 @@ class AircraftTypeWithPerformance(AircraftType):
                 "approach_vspeed",
             ]:  # vspeed: ft/m -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
-                    self.perfdata[name] = round(self.perfraw[name] * FT / 60, ROUND)
+                    self.perfdata[name] = round(convert.fpm_to_ms(self.perfraw[name]), ROUND)
                     if SHOW_CONVERT:
                         logger.debug(f"{self.name}: {name}: {self.perfraw[name]} ft/min -> {self.perfdata[name]} m/s")
                 else:
@@ -837,7 +837,7 @@ class AircraftTypeWithPerformance(AircraftType):
                 "landing_speed",
             ]:  # speed: kn -> m/s
                 if name in self.perfraw and self.perfraw[name] != "no data":
-                    self.perfdata[name] = round(convert.kmh_to_ms(kmh=convert.kn_to_kmh(kn=float(self.perfraw[name]))), ROUND)
+                    self.perfdata[name] = round(convert.kn_to_ms(kn=float(self.perfraw[name])), ROUND)
                     if SHOW_CONVERT:
                         logger.debug(f"{self.name}: {name}: {self.perfraw[name]} kn -> {self.perfdata[name]} m/s, {self.perfdata[name] * 3.6} km/h")
                 else:
@@ -1038,7 +1038,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        return self.climb(altstart, 10000 * FT, self.getSI(ACPERF.climbFL150_vspeed), self.fl100Speed())
+        return self.climb(altstart, convert.feet_to_meters(10000), self.getSI(ACPERF.climbFL150_vspeed), self.fl100Speed())
 
     def fl100Speed(self):
         """
@@ -1063,7 +1063,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        return self.climb(altstart, 15000 * FT, self.getSI(ACPERF.climbFL150_vspeed), self.getSI(ACPERF.climbFL150_speed))
+        return self.climb(altstart, convert.feet_to_meters(15000), self.getSI(ACPERF.climbFL150_vspeed), self.getSI(ACPERF.climbFL150_speed))
 
     def climbToFL240(self, altstart):
         """
@@ -1075,7 +1075,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        return self.climb(altstart, 24000 * FT, self.getSI(ACPERF.climbFL240_vspeed), self.getSI(ACPERF.climbFL240_speed))
+        return self.climb(altstart, convert.feet_to_meters(24000), self.getSI(ACPERF.climbFL240_vspeed), self.getSI(ACPERF.climbFL240_speed))
 
     def climbToCruise(self, altstart, altcruise):
         """
@@ -1105,7 +1105,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :param      safealt:   The safealt
         :type       safealt:   int
         """
-        altend = 24000 * FT
+        altend = convert.feet_to_meters(24000)
         avgalt = (altcruise + altend) / 2
         avgspd = convert.kmh_to_ms(kmh=convert.mach_to_kmh(float(self.get(ACPERF.descentFL240_mach)), avgalt))  # m/s
         return self.climb(altcruise, altend, -float(self.getSI(ACPERF.descentFL240_vspeed)), avgspd)
@@ -1119,7 +1119,7 @@ class AircraftTypeWithPerformance(AircraftType):
         :param      safealt:   The safealt
         :type       safealt:   int
         """
-        return self.climb(altstart, 10000 * FT, -float(self.getSI(ACPERF.descentFL100_vspeed)), float(self.getSI(ACPERF.descentFL100_speed)))
+        return self.climb(altstart, convert.feet_to_meters(10000), -float(self.getSI(ACPERF.descentFL100_vspeed)), float(self.getSI(ACPERF.descentFL100_speed)))
 
     def descentApproach(self, altstart, altend):
         """

@@ -5,7 +5,7 @@ import json
 from jsonpath import JSONPath
 
 from emitpy.constants import FEATPROP
-from emitpy.utils import FT, NAUTICAL_MILE
+from emitpy.utils import convert
 
 from .formatter import Formatter
 
@@ -47,10 +47,10 @@ class TrafficFormatter(Formatter):
 
         coords = f.coords()
 
-        alt = f.altitude(0) / FT  # m -> ft
+        alt = convert.meters_to_feet(f.altitude(0))  # m -> ft
 
-        vspeed = f.vspeed(0) * FT * 60  # m/s -> ft/min
-        speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
+        vspeed = convert.ms_to_fpm(f.vspeed(0))  # m/s -> ft/min
+        speed = convert.ms_to_kn(f.speed(0))  # m/s in kn
 
         emit_type = getprop("$.emit.emit-type")
 

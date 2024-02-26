@@ -31,7 +31,7 @@ from emitpy.airspace import CIFP, Terminal
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR
 from emitpy.geo import FeatureWithProps, Ramp, Runway
-from emitpy.utils import Timezone, FT, key_path, rejson
+from emitpy.utils import Timezone, key_path, rejson, convert
 from emitpy.weather import AirportWeather
 
 logger = logging.getLogger("Airport")
@@ -102,7 +102,7 @@ class Airport(Location):
             if lat != 0.0 or lon != 0.0:
                 alt = 0
                 if "elevation_ft" in row and row["elevation_ft"] != "":
-                    alt = float(row["elevation_ft"]) * FT
+                    alt = convert.feet_to_meters(float(row["elevation_ft"]))
                 apt = Airport(
                     icao=row["ident"],
                     iata=row["iata_code"],
@@ -716,7 +716,7 @@ class ManagedAirportBase(AirportWithProcedures):
         airport = None
         airport_cache = os.path.join(cache, "airport.pickle")
         if os.path.exists(airport_cache):
-            logger.debug(f"loading managed airport from pickle.. ({airport_cache})")
+            logger.debug(f"loading managed airport from pickle.. ({os.path.abspath(airport_cache)})")
             with open(airport_cache, "rb") as fp:
                 airport = pickle.load(fp)
             logger.debug("..done")

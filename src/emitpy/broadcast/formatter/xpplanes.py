@@ -3,10 +3,9 @@
 #
 import logging
 import json
-from jsonpath import JSONPath
 
 from emitpy.constants import FEATPROP
-from emitpy.utils import FT, NAUTICAL_MILE
+from emitpy.utils import convert
 
 from .formatter import Formatter
 
@@ -105,7 +104,7 @@ class XPPlanesFormatter(Formatter):
 
         icao24x = f.getProp(FEATPROP.ICAO24.value)
         coords = f.coords()
-        alt = f.altitude(0) / FT  # m -> ft
+        alt = convert.meters_to_feet(f.altitude(0))  # m -> ft
 
         airline = f.getPropPath("$.flight.airline.name")  # IATA name, QR
         label = f.getPropPath("$.flight.identifier")
@@ -129,12 +128,7 @@ class XPPlanesFormatter(Formatter):
 
         ret = {
             "id": icao24x,
-            "ident": {
-                "airline": airline,
-                "reg": tailnumber,
-                "call": callsign,
-                "label": tailnumber,
-            },
+            "ident": {"airline": airline, "reg": tailnumber, "call": callsign, "label": tailnumber},
             "type": {
                 # "wingSpan" : 11.1,
                 # "wingArea" : 16.2,

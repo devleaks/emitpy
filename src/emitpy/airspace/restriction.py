@@ -101,8 +101,8 @@ class Restriction:
         return "" if a in ["/", "@/@"] else a
 
     def setAltitudeRestriction(self, altmin: int, altmax: int):
-        self.alt1 = altmin
-        self.alt2 = altmax
+        self.alt1 = int(altmin)
+        self.alt2 = int(altmax)
 
     def getAltitudeRestrictionDesc(self, use_fl: bool = True) -> str:
         a = ""
@@ -135,18 +135,21 @@ class Restriction:
     def checkAltitude(self, point: Point, tolerance: int = 30):
         # def checkAltitude(self, feature: Feature):
         #     point = feature["geometry"]
+        """Returns True if constraint is respected for supplied value or if no alt constraints"""
         if self.alt1 is None and self.alt2 is None:
             logger.debug("no alt constraints")
             return True
         if len(point.coordinates) < 3:  # no alt, must be ok ;-)
             return True
         alt = point.coordinates[2]
+        alt_ft = convert.meters_to_feet(alt)
+        tolerance_ft = convert.meters_to_feet(tolerance)
         if self.alt_restriction_type in ["@", " "]:
-            return (alt - self.alt1) <= tolerance  # 30meters=100ft
+            return (alt_ft - self.alt1) <= tolerance_ft  # 30meters=100ft
         elif self.alt_restriction_type == "B":
-            return self.alt1 <= alt <= self.alt2
+            return self.alt1 >= alt_ft >= self.alt2
         elif self.alt_restriction_type == "B":
-            return alt >= self.alt2
+            return alt_ft >= self.alt2
         return True  # no restriction?
 
     def setSpeedRestriction(self, speed: int):

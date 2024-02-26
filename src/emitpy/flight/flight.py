@@ -15,7 +15,7 @@ from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
 from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE, RWY_ARRIVAL_SLOT, RWY_DEPARTURE_SLOT
 from emitpy.geo.turf import distance
-from emitpy.utils import FT
+from emitpy.utils import convert
 from emitpy.message import Messages, FlightboardMessage, EstimatedTimeMessage
 
 logger = logging.getLogger("Flight")
@@ -338,7 +338,7 @@ class Flight(Messages):
         """
         Cruise altitude in meters.
         """
-        return self.flight_level * 100 * FT
+        return convert.feet_to_meters(self.flight_level * 100)
 
     def setRamp(self, ramp):
         name = ramp.getName()

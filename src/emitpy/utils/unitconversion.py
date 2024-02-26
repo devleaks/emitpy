@@ -155,6 +155,14 @@ class convert:
         return convert.feet_to_meters(fpm / 60)
 
     @staticmethod
+    def km_to_nm(km: float) -> float:
+        return km * NAUTICAL_MILE
+
+    @staticmethod
+    def nm_to_km(nm: float) -> float:
+        return nm / NAUTICAL_MILE
+
+    @staticmethod
     def fl_to_m(fl: int) -> float:
         return fl * FT / 100
 
@@ -228,3 +236,21 @@ class convert:
         """
         c = convert.mach_to_speeds(mach, altitude)
         return c[0]
+
+    @staticmethod
+    def mach_to_ms(mach: float, altitude: int = 30000) -> float:
+        """
+        Convert MACH speed to ground speed for different altitude ranges.
+        Altitude should be supplied in feet ASL.
+        Returns kilometers per hour.
+
+        :param      mach:      The mach
+        :type       mach:      float
+        :param      altitude:  The altitude
+        :type       altitude:  int
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        c = convert.mach_to_speeds(mach, altitude)
+        return c[0] / 3.6

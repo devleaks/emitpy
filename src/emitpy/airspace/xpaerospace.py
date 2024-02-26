@@ -16,7 +16,7 @@ from emitpy.geo import FeatureWithProps
 from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
 from emitpy.parameters import XPLANE_DIR, DATA_DIR
-from emitpy.utils import FT
+from emitpy.utils import convert
 from .aerospace import Aerospace, Terminal, Fix, NamedPoint, AirwaySegment, CPIDENT
 from .aerospace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP
 from .restriction import Hold, ControlledAirspace, Restriction
@@ -169,7 +169,7 @@ class XPAerospace(Aerospace):
             lat = float(r["latitude_deg"]) if r["latitude_deg"] != "" else 0.0
             lon = float(r["longitude_deg"]) if r["longitude_deg"] != "" else 0.0
             if lat != 0.0 or lon != 0.0:
-                alt = float(r["elevation_ft"]) * FT if r["elevation_ft"] != "" else None
+                alt = convert.feet_to_meters(float(r["elevation_ft"])) if r["elevation_ft"] != "" else None
                 apt = Terminal(
                     name=r["ident"], lat=lat, lon=lon, alt=alt, iata=r["iata_code"], longname=r["name"], country=r["iso_country"], city=r["municipality"]
                 )
@@ -637,11 +637,26 @@ class XPAerospace(Aerospace):
         """
         Loads airway segments from X-Plane segments database.
         """
+
         # 0     1  2  3     4  5
         # ABILO LG 11 PERIM LG 11 F 1   0   0 L53
         #   LAS K2  3 SUVIE K2 11 N 2 180 450 J100-J9
         #
         #
+        def mkRestriction(lo: str | None, hi: str | None) -> Restriction | None:
+            r = None
+            if lo is not None:
+                if hi is not None:  # both, hi and lo
+                    r = Restriction(altmin=int(lo), altmax=int(hi))
+                    r.alt_restriction_type = "B"
+                else:  # lower limit only, must stay above
+                    r = Restriction(altmin=int(lo))
+                    r.alt_restriction_type = "+"
+            elif hi is not None:  # higher limit only, must stay below
+                r = Restriction(altmin=int(hi))
+                r.alt_restriction_type = "-"
+            return r
+
         filename = os.path.join(self.basename, prefix + "_awy.dat")
         ret = self.checkFile(filename)
         if not ret[0]:
@@ -674,17 +689,17 @@ class XPAerospace(Aerospace):
                                 if args[6] == DIRECTION["FORWARD"]:
                                     awy = AirwaySegment(args[10], src, dst, True, args[7], args[8], args[9])
                                     if args[8] is not None or args[9] is not None:
-                                        awy.set_restriction(Restriction(altmin=args[8], altmax=args[9]))
+                                        awy.set_restriction(mkRestriction(args[8], args[9]))
                                     self.add_edge(awy)
                                 elif args[6] == DIRECTION["BACKWARD"]:
                                     awy = AirwaySegment(args[10], dst, src, True, args[7], args[8], args[9])
                                     if args[8] is not None or args[9] is not None:
-                                        awy.set_restriction(Restriction(altmin=args[8], altmax=args[9]))
+                                        awy.set_restriction(mkRestriction(args[8], args[9]))
                                     self.add_edge(awy)
                                 else:
                                     awy = AirwaySegment(args[10], src, dst, False, args[7], args[8], args[9])
                                     if args[8] is not None or args[9] is not None:
-                                        awy.set_restriction(Restriction(altmin=args[8], altmax=args[9]))
+                                        awy.set_restriction(mkRestriction(args[8], args[9]))
                                     self.add_edge(awy)
                                 count += 1
                                 if count % 10000 == 0:

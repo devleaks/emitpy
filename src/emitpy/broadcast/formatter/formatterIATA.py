@@ -5,8 +5,7 @@ import datetime
 import json
 
 from emitpy.constants import FEATPROP
-from emitpy.airport import Airport
-from emitpy.utils import FT, NAUTICAL_MILE
+from emitpy.utils import convert
 
 from .formatter import Formatter
 
@@ -91,11 +90,11 @@ class IATAFormatter(Formatter):
         lat = coords[1]
         lon = coords[0]
 
-        baro_alt = f.altitude(0) / FT  # m -> ft
+        baro_alt = convert.meters_to_feet(f.altitude(0))  # m -> ft
         baro_rate = f.getProp("")
 
         track = f.getProp("course")
-        gsp = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
+        gsp = convert.ms_to_kn(f.speed(0))  # m/s in kn
         cs_icao = f.getProp("")
         ac_type = f.getProp("aircraft:actype:actype")  # ICAO
         ac_tailno = f.getProp("aircraft:acreg")
@@ -139,10 +138,10 @@ class IATAFormatter(Formatter):
 
         coords = f.coords()
 
-        alt = f.altitude(0) / FT  # m -> ft
+        alt = convert.meters_to_feet(f.altitude(0))  # m -> ft
 
-        vspeed = f.vspeed(0) * FT * 60  # m/s -> ft/min
-        speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
+        vspeed = convert.ms_to_fpm(f.vspeed(0))  # m/s -> ft/min
+        speed = convert.ms_to_kn(f.speed(0))  # m/s in kn
 
         course = f.course()
 
@@ -157,20 +156,8 @@ class IATAFormatter(Formatter):
         ts = f.getProp(FEATPROP.EMIT_ABS_TIME)
 
         rttfc = f"RTTFC,{hexid},{lat},{lon},{baro_alt},{baro_rate},{gnd},{track},{gsp},{cs_icao},{ac_type},{ac_tailno},"
-        rttfc = (
-            rttfc
-            + f"{from_iata},{to_iata},{timestamp},{source},{cs_iata},{msg_type},{alt_geom},{ias},{tas},{mach},"
-        )
-        rttfc = (
-            rttfc
-            + f"{track_rate},{roll},{mag_course},{true_course},{geom_rate},{emergency},{category},"
-        )
-        rttfc = (
-            rttfc
-            + f"{nav_qnh},{nav_altitude_mcp},{nav_altitude_fms},{nav_course},{nav_modes},{seen},{rssi},"
-        )
-        rttfc = (
-            rttfc
-            + f"{winddir},{windspd},{oat},{tat},{isicaohex},{augmentation_status},{authentication}"
-        )
+        rttfc = rttfc + f"{from_iata},{to_iata},{timestamp},{source},{cs_iata},{msg_type},{alt_geom},{ias},{tas},{mach},"
+        rttfc = rttfc + f"{track_rate},{roll},{mag_course},{true_course},{geom_rate},{emergency},{category},"
+        rttfc = rttfc + f"{nav_qnh},{nav_altitude_mcp},{nav_altitude_fms},{nav_course},{nav_modes},{seen},{rssi},"
+        rttfc = rttfc + f"{winddir},{windspd},{oat},{tat},{isicaohex},{augmentation_status},{authentication}"
         return rttfc.replace("None", "")

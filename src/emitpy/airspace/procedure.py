@@ -14,7 +14,7 @@ from typing import Dict, List
 
 from emitpy.constants import ID_SEP
 from emitpy.geo.turf import distance, bearing
-from emitpy.utils import convert, FT
+from emitpy.utils import convert
 from emitpy.parameters import XPLANE_DIR
 from .restriction import Restriction, NamedPointWithRestriction
 
@@ -135,7 +135,7 @@ class ProcedureData:
         Returns the procedure name, if present
         """
         if self.proc() == "RWY":
-            return self.params[0]
+            return self.param(PROC_DATA.SEQ_NR)
         return self.params[2]
 
     def addData(self, data: ProcedureData):
@@ -153,7 +153,7 @@ class ProcedureData:
         """
         if self.proc() in ("RWY", "PRDAT"):
             return 0
-        return int(self.params[0])
+        return int(self.param(PROC_DATA.SEQ_NR))
 
     def line(self) -> str:
         """
@@ -181,7 +181,7 @@ class ProcedureData:
         This is taken into account when selecting procedures for a given runway.
         """
         if self.proc() == "RWY":
-            return self.params[0]
+            return self.param(PROC_DATA.SEQ_NR)
         if self.proc() == "APPCH":
             s = self.param(PROC_DATA.PROCEDURE_IDENT)
             l = -3 if s[-1] in list("LCR") else -2
@@ -189,7 +189,6 @@ class ProcedureData:
         return self.param(PROC_DATA.TRANS_IDENT)
 
     def getRestriction(self) -> Restriction:
-        """@todo"""
         altmin = convert.cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT1))
         altmax = convert.cifp_alt_in_ft(self.param(PROC_DATA._MIN_ALT2))
         speedlim = convert.cifp_speed(self.param(PROC_DATA.SPEED_LIMIT))
@@ -385,7 +384,7 @@ class STAR(Procedure):
         Procedure.__init__(self, name)
 
     def getEntrySpeedAndAlt(self, default: int = 6000):
-        return (0, default * FT)
+        return (0, convert.feet_to_meters(default))
 
     def getRoute(self, airspace: Aerospace):
         """
@@ -491,10 +490,10 @@ class APPCH(Procedure):
         Procedure.__init__(self, name)
 
     def getEntrySpeedAndAlt(self, default: int = 3000):
-        return (0, default * FT)
+        return (0, convert.feet_to_meters(default))
 
     def getExitSpeedAndAlt(self, default: int = 2000):
-        return (0, default * FT)
+        return (0, convert.feet_to_meters(default))
 
     def is_final_fix_point(self, vertex):
         code_raw = vertex.param(PROC_DATA.DESC_CODE)
@@ -530,15 +529,28 @@ class APPCH(Procedure):
         return alt
 
     def getLastAltitudeRestriction(self, default: int | None = 2000) -> int | None:
+        """@todo: THIS IS NOT CORRECT"""
         last_restriction = None
-        # r = list(self.route.values())
-        # r.reverse()
-        # for v in r:
-        #     if last_restriction is None and v.hasAltitudeRestriction():
-        #         last_restriction = v.getRestriction().alt1
-        # if last_restriction is None:
-        #     logger.debug(f"no last altitude restriction, using default alt {default}ft")
-        #     last_restriction = default
+        route = sorted(self.route.values(), key=lambda x: x.seq(), reverse=True)
+        for v in route:
+            # if last_restriction is not None:
+            #     continue  # break?
+            code_raw = v.param(PROC_DATA.DESC_CODE)
+            # Need to exclude wp that are part of missed approach procedure/path
+            is_miss_approach = (len(code_raw) > 2 and code_raw[2] == "M") or (len(code_raw) > 3 and (code_raw[2] == "M" or code_raw[3] == "M"))
+            code = code_raw[0]
+            if code == "E" and not is_miss_approach:
+                # print(v.seq(), v.line())
+                restriction = v.getRestriction()
+                if restriction is not None:
+                    # print(">>>", restriction.getRestrictionDesc())
+                    if restriction.hasAltitudeRestriction() and last_restriction is None:
+                        last_restriction = restriction.alt1
+            else:
+                print("missed approach", v.seq(), v.line())
+        if last_restriction is None:
+            logger.debug(f"no last altitude restriction, using default alt {default}ft")
+            last_restriction = default
         return last_restriction
 
     def getRoute(self, airspace: Aerospace):
@@ -552,6 +564,7 @@ class APPCH(Procedure):
         interrupted = False
         a = []
         for v in self.route.values():
+            print("route", v.seq())
             code_raw = v.param(PROC_DATA.DESC_CODE)
             # Need to exclude wp that are part of missed approach procedure/path
             is_miss_approach = (len(code_raw) > 2 and code_raw[2] == "M") or (len(code_raw) > 3 and (code_raw[2] == "M" or code_raw[3] == "M"))
@@ -670,7 +683,7 @@ class RWY(Procedure):
             self.point = NamedPointWithRestriction(
                 ident=line.params[0], region=self.airport[0:2], airport=self.airport, pointtype="RWY", lat=self.getLatitude(), lon=self.getLongitude()
             )
-            self.setAltitude(float(self.route[0].params[3]) * FT)
+            self.setAltitude(convert.feet_to_meters(float(self.route[0].params[3])))
         else:
             logger.warning(f"Runway {self.runway} has no threshold")
 
@@ -743,7 +756,7 @@ class CIFP:
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "CIFP")
         if os.path.isdir(fn):
-            logger.debug(f"CIFP custom data directory {CUSTOM_DATA_DIR} exist, using it")
+            logger.debug(f"CIFP custom data directory {os.path.abspath(CUSTOM_DATA_DIR)} exist, using it")
             self.basename = CUSTOM_DATA_DIR
         else:
             logger.debug(f"CIFP using {DEFAULT_DATA_DIR}")
@@ -780,7 +793,7 @@ class CIFP:
             logger.warning(f"no procedure file for {self.icao}")
             return (False, f"CIFP:loadFromFile: file not found {cipf_filename}")
 
-        logger.debug(f"procedure CIFP file {cipf_filename}")
+        logger.debug(f"procedure CIFP file {os.path.abspath(cipf_filename)}")
         self.available = True
         cifp_fp = open(cipf_filename, "r")
         line = cifp_fp.readline()

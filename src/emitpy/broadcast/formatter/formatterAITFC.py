@@ -6,8 +6,7 @@ import json
 import flatdict
 
 from emitpy.constants import FEATPROP
-from emitpy.airport import Airport
-from emitpy.utils import FT, NAUTICAL_MILE
+from emitpy.utils import convert
 
 from .formatter import Formatter
 
@@ -27,18 +26,16 @@ class AITFCFormatter(Formatter):
 
         icao24x = f.getProp(FEATPROP.ICAO24.value)
         if icao24x is not None:
-            icao24 = int(
-                str(icao24x), 16
-            )  # https://stackoverflow.com/questions/46341329/int-cant-convert-non-string-with-explicit-base-when-converting-to-gui
+            icao24 = int(str(icao24x), 16)  # https://stackoverflow.com/questions/46341329/int-cant-convert-non-string-with-explicit-base-when-converting-to-gui
         else:
             icao24 = None
 
         coords = f.coords()
 
-        alt = f.altitude(0) / FT  # m -> ft
+        alt = convert.meters_to_feet(f.altitude(0))  # m -> ft
 
-        vspeed = f.vspeed(0) * FT * 60  # m/s -> ft/min
-        speed = f.speed(0) * 3.6 / NAUTICAL_MILE  # m/s in kn
+        vspeed = convert.feet_to_meters(f.vspeed(0)) * 60  # m/s -> ft/min
+        speed = convert.ms_to_kn(f.speed(0))  # m/s in kn
         airborne = alt > 0 and speed > 20
 
         course = f.course()
@@ -46,31 +43,19 @@ class AITFCFormatter(Formatter):
         emit_type = f.getPropPath("$.emit.emit-type")
 
         if emit_type == "flight":
-            actype = f.getPropPath(
-                "$.flight.aircraft.actype.base-type.actype"
-            )  # ICAO A35K
-            callsign = (
-                f.getPropPath("$.flight.callsign").replace(" ", "").replace("-", "")
-            )
+            actype = f.getPropPath("$.flight.aircraft.actype.base-type.actype")  # ICAO A35K
+            callsign = f.getPropPath("$.flight.callsign").replace(" ", "").replace("-", "")
             tailnumber = f.getPropPath("$.flight.aircraft.acreg")
             aptfrom = f.getPropPath("$.flight.departure.icao")  # IATA
             aptto = f.getPropPath("$.flight.arrival.icao")  # IATA
         elif emit_type == "service":
-            callsign = (
-                f.getPropPath("$.service.vehicle.callsign")
-                .replace(" ", "")
-                .replace("-", "")
-            )
+            callsign = f.getPropPath("$.service.vehicle.callsign").replace(" ", "").replace("-", "")
             tailnumber = f.getPropPath("$.service.vehicle.registration")
             actype = f.getPropPath("$.service.vehicle.icao")
             aptfrom = ""
             aptto = ""
         elif emit_type == "mission":
-            callsign = (
-                f.getPropPath("$.mission.vehicle.callsign")
-                .replace(" ", "")
-                .replace("-", "")
-            )
+            callsign = f.getPropPath("$.mission.vehicle.callsign").replace(" ", "").replace("-", "")
             tailnumber = f.getPropPath("$.mission.vehicle.registration")
             actype = f.getPropPath("$.mission.vehicle.icao")
             aptfrom = ""
