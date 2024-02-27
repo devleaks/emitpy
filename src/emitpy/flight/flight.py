@@ -738,7 +738,7 @@ class Flight(Messages):
             if hasattr(w, fun):
                 func = getattr(w, fun)
                 if func():
-                    if w.alt_restriction_type in [" ", "+"]:
+                    if w.alt_restriction_type in [" ", "+", "B", "G", "H", "I", "J"]:
                         # logger.debug(
                         #     f"idx {idx}: has alt restriction at or above {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','+']})"
                         # )
@@ -749,25 +749,22 @@ class Flight(Messages):
             last_point = w
             total_dist = total_dist + d
             if max_distance is not None and total_dist > max_distance:
-                logger.debug(f"has no alt restriction before {round(total_dist, 2)}km")
+                logger.debug(f"has no alt restriction before {round(total_dist, 2)}km (req. {round(max_distance, 2)}km)")
                 return None
         return None
 
-    def next_below_alt_restriction(self, idx_start, idx_end) -> FeatureWithRestriction | None:
-        """Used during climb"""
+    def next_above_alt_restriction_idx(self, idx_start, idx_end) -> FeatureWithRestriction | None:
+        """Used during desdend"""
         fun = "hasAltitudeRestriction"
-        last_point = self.flightplan_wpts[idx_start]
-        total_dist = 0.0
         idx = idx_start + 1
-        if idx_end == -1:
-            idx_end = len(self.flightplan_wpts)
+        if idx_end == -1 or idx_end > (len(self.flightplan_wpts) - 1):
+            idx_end = len(self.flightplan_wpts) - 1
         while idx <= idx_end:
             w = self.flightplan_wpts[idx]
-            d = distance(last_point, w)
             if hasattr(w, fun):
                 func = getattr(w, fun)
                 if func():
-                    if w.alt_restriction_type in [" ", "-"]:
+                    if w.alt_restriction_type in [" ", "+", "B", "G", "H", "I", "J"]:
                         # logger.debug(
                         #     f"idx {idx}: has alt restriction at or below {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})"
                         # )
@@ -775,11 +772,9 @@ class Flight(Messages):
                     # else:
                     #     logger.debug(f"idx {idx}: has alt restriction {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})")
             idx = idx + 1
-            last_point = w
-            total_dist = total_dist + d
         return None
 
-    def next_below_alt_restriction2(self, idx_start, max_distance: int | None = None) -> FeatureWithRestriction | None:
+    def next_below_alt_restriction(self, idx_start, max_distance: int | None = None) -> FeatureWithRestriction | None:
         """Used during desdend"""
         fun = "hasAltitudeRestriction"
         last_point = self.flightplan_wpts[idx_start]
@@ -791,7 +786,7 @@ class Flight(Messages):
             if hasattr(w, fun):
                 func = getattr(w, fun)
                 if func():
-                    if w.alt_restriction_type in [" ", "-", "B"]:
+                    if w.alt_restriction_type in [" ", "-", "B", "G", "I"]:
                         # logger.debug(
                         #     f"idx {idx}: has alt restriction at or above {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','+']})"
                         # )
@@ -802,25 +797,22 @@ class Flight(Messages):
             last_point = w
             total_dist = total_dist + d
             if max_distance is not None and total_dist > max_distance:
-                logger.debug(f"has no alt restriction before {round(total_dist, 2)}km")
+                logger.debug(f"has no alt restriction before {round(total_dist, 2)}km (req. {round(max_distance, 2)}km)")
                 return None
         return None
 
-    def next_above_alt_restriction2(self, idx_start, idx_end) -> FeatureWithRestriction | None:
-        """Used during desdend"""
+    def next_below_alt_restriction_idx(self, idx_start, idx_end) -> FeatureWithRestriction | None:
+        """Used during climb"""
         fun = "hasAltitudeRestriction"
-        last_point = self.flightplan_wpts[idx_start]
-        total_dist = 0.0
         idx = idx_start + 1
-        if idx_end == -1 or idx_end > (len(self.flightplan_wpts) - 1):
-            idx_end = len(self.flightplan_wpts) - 1
+        if idx_end == -1:
+            idx_end = len(self.flightplan_wpts)
         while idx <= idx_end:
             w = self.flightplan_wpts[idx]
-            d = distance(last_point, w)
             if hasattr(w, fun):
                 func = getattr(w, fun)
                 if func():
-                    if w.alt_restriction_type in [" ", "+", "B"]:
+                    if w.alt_restriction_type in [" ", "-", "B", "G", "I"]:
                         # logger.debug(
                         #     f"idx {idx}: has alt restriction at or below {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})"
                         # )
@@ -828,34 +820,6 @@ class Flight(Messages):
                     # else:
                     #     logger.debug(f"idx {idx}: has alt restriction {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})")
             idx = idx + 1
-            last_point = w
-            total_dist = total_dist + d
-        return None
-
-    def next_above_alt_restriction2(self, idx_start, idx_end) -> FeatureWithRestriction | None:
-        """Used during desdend"""
-        fun = "hasAltitudeRestriction"
-        last_point = self.flightplan_wpts[idx_start]
-        total_dist = 0.0
-        idx = idx_start + 1
-        if idx_end == -1 or idx_end > (len(self.flightplan_wpts) - 1):
-            idx_end = len(self.flightplan_wpts) - 1
-        while idx <= idx_end:
-            w = self.flightplan_wpts[idx]
-            d = distance(last_point, w)
-            if hasattr(w, fun):
-                func = getattr(w, fun)
-                if func():
-                    if w.alt_restriction_type in [" ", "+", "B"]:
-                        # logger.debug(
-                        #     f"idx {idx}: has alt restriction at or below {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})"
-                        # )
-                        return w  # (w, d)
-                    # else:
-                    #     logger.debug(f"idx {idx}: has alt restriction {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})")
-            idx = idx + 1
-            last_point = w
-            total_dist = total_dist + d
         return None
 
     def next_restriction(self, idx_start, backwards: bool = False, fun: str = "hasRestriction"):

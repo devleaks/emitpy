@@ -144,12 +144,24 @@ class Restriction:
         alt = point.coordinates[2]
         alt_ft = convert.meters_to_feet(alt)
         tolerance_ft = convert.meters_to_feet(tolerance)
+        alt_ft_up = alt_ft + tolerance_ft
+        alt_ft_dw = alt_ft - tolerance_ft
         if self.alt_restriction_type in ["@", " "]:
             return (alt_ft - self.alt1) <= tolerance_ft  # 30meters=100ft
+        elif self.alt_restriction_type == "+":
+            return alt_ft_up >= self.alt1
+        elif self.alt_restriction_type == "-":
+            return alt_ft_dw <= self.alt1
         elif self.alt_restriction_type == "B":
-            return self.alt1 >= alt_ft >= self.alt2
-        elif self.alt_restriction_type == "B":
-            return alt_ft >= self.alt2
+            return (self.alt1 + tolerance_ft) >= alt_ft >= (self.alt2 - tolerance_ft)
+        elif self.alt_restriction_type == "C":
+            return alt_ft_up >= self.alt2
+        elif self.alt_restriction_type in ["H", "J"]:
+            return alt_ft_up >= self.alt1
+        elif self.alt_restriction_type in ["G", "I"]:
+            return alt_ft_up >= self.alt1 and (alt_ft - self.alt2) <= tolerance_ft
+        else:
+            logger.warning(f"unhandled constraint type '{self.alt_restriction_type}'")
         return True  # no restriction?
 
     def setSpeedRestriction(self, speed: int):
@@ -196,9 +208,9 @@ class Restriction:
         if self.speed_restriction_type in [" ", "@"]:
             return (speed - self.restricted_speed) <= tolerance  # 5 m/s=18km/h=10kn
         elif self.speed_restriction_type == "-":
-            return speed <= self.restricted_speed
+            return speed <= (self.restricted_speed + tolerance)
         elif self.speed_restriction_type == "+":
-            return speed >= self.restricted_speed
+            return speed >= (self.restricted_speed - tolerance)
         else:
             logger.warning(f"invalid control speed type '{self.speed_restriction_type}'")
 

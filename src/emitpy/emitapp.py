@@ -2,7 +2,6 @@
 import logging
 import json
 import random
-from threading import local
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -26,8 +25,8 @@ from emitpy.constants import MANAGED_AIRPORT_KEY, MANAGED_AIRPORT_LAST_UPDATED, 
 from emitpy.parameters import REDIS_CONNECT, REDIS_ATTEMPTS, REDIS_WAIT, XPLANE_FEED
 from emitpy.airport import Airport, AirportWithProcedures, XPAirport
 from emitpy.airspace import XPAerospace
-from emitpy.weather import XPWeatherEngine, WebWeatherEngine
-from emitpy.utils import NAUTICAL_MILE
+from emitpy.weather import WebWeatherEngine
+from emitpy.utils import convert
 
 logger = logging.getLogger("EmitApp")
 
@@ -343,7 +342,7 @@ class EmitApp(ManagedAirport):
         # logger.info("*" * 90)
         logger.info(
             "***** (%s, %dnm) %s-%s AC %s at FL%d"
-            % (remote_apt.getProp(FEATPROP.CITY), aptrange / NAUTICAL_MILE, remote_apt.iata, self.iata, acperf.typeId, reqfl)
+            % (remote_apt.getProp(FEATPROP.CITY), convert.nm_to_km(aptrange), remote_apt.iata, self.iata, acperf.typeId, reqfl)
         )
         # logger.debug("*" * 89)
 
@@ -415,7 +414,6 @@ class EmitApp(ManagedAirport):
         #
         # Example:
         # flight.force_procedures(rwydep="RW16L", sid="BUND1M", star="OTGI2E", appch="D22R", rwyarr="RW22R")
-        flight.force_procedures(rwydep="RW34L", sid="ALVE1W", star="ELKA3B", appch="D16R", rwyarr="RW16R")
         #
         #
 
