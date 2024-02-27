@@ -4,7 +4,8 @@ Mission are equally spaced in time.
 
 """
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 
 import csv
 import os
@@ -18,7 +19,8 @@ from datetime import datetime, tzinfo, timedelta
 from emitpy.emitapp import EmitApp
 from emitpy.parameters import MANAGED_AIRPORT_ICAO
 
-logging.basicConfig(level=logging.DEBUG)
+FORMAT = "%(levelname)1.1s%(module)15s:%(funcName)-15s%(lineno)4s| %(message)s"
+logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger("emitamission")
 
 # Parameters
@@ -28,7 +30,7 @@ sep = timedelta(minutes=1)
 
 name = "emit_mission"
 queue = "raw"
-rate = 5
+rate = 15
 operator = "HAS"  # for missions
 
 # Here we go..
@@ -45,7 +47,7 @@ stops = [a[0] for a in e.airport.getPOICombo()]
 logger.info("+" + "-" * 100)
 logger.info("|")
 for i in range(NUM_MISSIONS):
-    mty = random.choice(["Fire"]) # "Police", "Security", "Fire",
+    mty = random.choice(["Fire"])  # "Police", "Security", "Fire",
 
     logger.info(f"| doing mission {mty} {i}")
     logger.info("|")
@@ -54,18 +56,19 @@ for i in range(NUM_MISSIONS):
     icao24 = e.airport.manager.randomICAO24(15)
     ret = None
 
-    ret = e.do_mission(queue=queue,
-                        emit_rate=rate,
-                        operator=operator,
-                        checkpoints=random.choices(stops, k=random.randrange(2, 8)),
-                        mission=name,
-                        equipment_model=mty,
-                        equipment_ident=f"{mty[0]}-{i}-{icao24}",
-                        equipment_icao24=icao24,
-                        equipment_startpos=random.choice(stops),
-                        equipment_endpos=random.choice(stops),
-                        scheduled=dt.isoformat())
-
+    ret = e.do_mission(
+        queue=queue,
+        emit_rate=rate,
+        operator=operator,
+        checkpoints=random.choices(stops, k=3),  # random.randrange(2, 8)
+        mission=name,
+        equipment_model=mty,
+        equipment_ident=f"{mty[0]}-{i}-{icao24}",
+        equipment_icao24=icao24,
+        equipment_startpos=random.choice(stops),
+        equipment_endpos=random.choice(stops),
+        scheduled=dt.isoformat(),
+    )
 
     if ret.status != 0:
         logger.warning(f"ERROR(mission) around line {i}: {ret.status}" + ">=" * 30)
