@@ -17,11 +17,7 @@ from emitpy.airport import Airport
 from emitpy.constants import FEATPROP, AODB_DIRECTORIES
 from emitpy.parameters import HOME_DIR, DATA_DIR, TEMP_DIR
 from emitpy.parameters import CACHE_DIR, WEATHER_DIR
-from emitpy.parameters import (
-    MANAGED_AIRPORT_DIR,
-    MANAGED_AIRPORT_AODB,
-    MANAGED_AIRPORT_CACHE,
-)
+from emitpy.parameters import MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_CACHE
 
 logger = logging.getLogger("ManagedAirport")
 
@@ -64,19 +60,15 @@ class ManagedAirport:
         # Now caching ManagedAirport with pickle (~ 100MB)
         logger.debug("loading managed airport..")
 
-        self.airport = self._app._managedairport.new(
-            cache=MANAGED_AIRPORT_CACHE, apt=self.getAirportDetails()
-        )
+        self.airport = self._app._managedairport.new(cache=MANAGED_AIRPORT_CACHE, apt=self.getAirportDetails())
         logger.debug("..initializing managed airport..")
         self.timezone = self.airport.getTimezone()
 
         # Now caching Airspace with pickle (~ 100MB)
         logger.debug("..loading airspace..")
-        airspace = self._app._aerospace.new(
-            cache=CACHE_DIR, load_airways=load_airways, redis=self._app.redis
-        )
+        airspace = self._app._aerospace.new(cache=CACHE_DIR, load_airways=load_airways, redis=self._app.use_redis())
 
-        if not self._app._use_redis:  # load from data files
+        if not self._app.use_redis():  # load from data files
             logger.debug("..loading airlines..")
             Airline.loadAll(self.icao)
             Airline.loadFlightOperators(self.icao)
@@ -89,14 +81,9 @@ class ManagedAirport:
 
         logger.debug("..loading airport manager..")
         logger.debug("..creating airport operator..")
-        operator = Company(
-            orgId="Airport Operator",
-            classId="Airport Operator",
-            typeId="Airport Operator",
-            name=self.operator,
-        )
+        operator = Company(orgId="Airport Operator", classId="Airport Operator", typeId="Airport Operator", name=self.operator)
         manager = self._app._airportmanager(icao=self.icao, operator=operator)
-        ret = manager.load(self._app.redis)
+        ret = manager.load(self._app.use_redis())
         if not ret[0]:
             logger.error("..airport manager !** not loaded **!")
             return ret
@@ -112,15 +99,15 @@ class ManagedAirport:
 
         # Setting up weather
         logger.debug("..setting up weather..")
-        self.weather_engine = self._app._weather_engine.new(redis=self._app.redis)
+        self.weather_engine = self._app._weather_engine.new(redis=self._app.use_redis())
         logger.debug("..updating weather of managed airport..")
         self.updateWeather()
         logger.debug("..done")
 
         self._inited = True
 
-        # if self._app._use_redis:
-        # logger.debug(json.dumps(self.airport.getSummary(), indent=2))
+        # if self._app.use_redis():
+        #     logger.debug(json.dumps(self.airport.getSummary(), indent=2))
 
         return (True, "ManagedAirport::init done")
 
@@ -182,14 +169,7 @@ class ManagedAirport:
             return (False, "ManagedAirport::mkdirs missing mandatory base directories")
 
         # Global directories
-        dirs = [
-            TEMP_DIR,
-            CACHE_DIR,
-            WEATHER_DIR,
-            MANAGED_AIRPORT_DIR,
-            MANAGED_AIRPORT_AODB,
-            MANAGED_AIRPORT_CACHE,
-        ]
+        dirs = [TEMP_DIR, CACHE_DIR, WEATHER_DIR, MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_CACHE]
         for d in dirs:
             if not os.path.exists(d):
                 logger.warning(f"directory {d} does not exist")
@@ -215,9 +195,7 @@ class ManagedAirport:
         at regular interval. (It will, sometimes, be automatic (Thread).)
         (Let's dream, someday, it will load, parse and interpret TAF.)
         """
-        self.airport.updateWeather(
-            weather_engine=self.weather_engine
-        )  # calls prepareRunways()
+        self.airport.updateWeather(weather_engine=self.weather_engine)  # calls prepareRunways()
 
     def loadFromCache(self, dbid: int = 0):
         """

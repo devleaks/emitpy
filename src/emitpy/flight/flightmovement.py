@@ -87,11 +87,12 @@ class FlightMovement(Movement):
             return status
 
         logger.debug(self.tabulateMovement2())
+
         # #####################################################
         #
         #
-        logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
-        return (True, "FlightMovement::TEMPORARY completed")
+        # logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
+        # return (True, "FlightMovement::TEMPORARY completed")
         #
         #
         # #####################################################
@@ -1299,15 +1300,9 @@ class FlightMovement(Movement):
                 if FINAL_FIX_ALT_FT is None:
                     logger.debug("no final fix altitude")
 
-            # Not correct
-            # if FINAL_FIX_ALT_FT is None:
-            #     FINAL_FIX_ALT_FT = apchproc.getLastAltitudeRestriction(default=None)
-            #     if FINAL_FIX_ALT_FT is None:
-            #         logger.debug("no last restriction altitude")
-
-            if FINAL_FIX_ALT_FT is None:
-                FINAL_FIX_ALT_FT = 2000
-                logger.debug("using default final fix altitude")
+        if FINAL_FIX_ALT_FT is None:
+            FINAL_FIX_ALT_FT = 2000
+            logger.debug("using default final fix altitude")
 
         logger.debug(f"final fix alt {FINAL_FIX_ALT_FT}ft")
 
@@ -2573,6 +2568,7 @@ class ArrivalMove(FlightMovement):
         parkingpos.setMark(FLIGHT_PHASE.ONBLOCK.value)
         fc.append(parkingpos)
 
+        ac = self.flight.aircraft
         self.addMessage(
             FlightMessage(
                 subject=f"ACARS: {ac.icao24} {FLIGHT_PHASE.ONBLOCK.value} at {self.flight.ramp.getName()}", flight=self, sync=FLIGHT_PHASE.ONBLOCK.value
@@ -2645,6 +2641,7 @@ class DepartureMove(FlightMovement):
         parkingpos.setMark(FLIGHT_PHASE.OFFBLOCK.value)
         fc.append(parkingpos)
 
+        ac = self.flight.aircraft
         self.addMessage(
             FlightMessage(
                 subject=f"ACARS: {ac.icao24} {FLIGHT_PHASE.OFFBLOCK.value} from {self.flight.ramp.getName()}", flight=self, sync=FLIGHT_PHASE.OFFBLOCK.value
@@ -2833,6 +2830,7 @@ class TowMove(Movement):
         if show_pos:
             logger.debug(f"tow start: {parkingpos}")
 
+        ac = self.flight.aircraft
         self.addMessage(
             FlightMessage(
                 subject=f"ACARS: {ac.icao24} {FLIGHT_PHASE.OFFBLOCK.value} from {self.flight.ramp.getName()}", flight=self, sync=FLIGHT_PHASE.OFFBLOCK.value

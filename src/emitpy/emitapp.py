@@ -80,7 +80,7 @@ class EmitApp(ManagedAirport):
         self.redis = None
         self.gas = None
 
-        self._use_redis = False  # BOOTSTRAP_REDIS()
+        self._use_redis = BOOTSTRAP_REDIS()
         if self._use_redis:
             self.init_redis(icao)
 
@@ -452,8 +452,8 @@ class EmitApp(ManagedAirport):
         #
         # Temporarily done here
         #
-        logger.debug("..done")
-        return StatusInfo(0, "completed successfully", flight.getId())
+        # logger.debug("..done")
+        # return StatusInfo(0, "completed successfully", flight.getId())
         #
         #
         # #############################################################################################################

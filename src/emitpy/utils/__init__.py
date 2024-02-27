@@ -4,3 +4,11 @@ from .interpolate import compute_headings, compute_time, interpolate
 from .timezone import Timezone
 from .case import KebabToCamel
 from .unitconversion import convert, sign
+
+import os
+from emitpy import __NAME__ as name
+from emitpy.parameters import HOME_DIR
+
+
+def show_path(p: str) -> str:
+    return os.path.abspath(p).replace(os.path.abspath(HOME_DIR), f"<{name}>")

@@ -33,13 +33,13 @@ e = EmitApp(MANAGED_AIRPORT_ICAO)
 
 # Parameters
 #
-DO_SERVICE = True
+DO_SERVICE = False
 queue = "raw"
 rate = [15, 10]
 
 NUM_FLIGHTS = 1  # len(flights)
 cnt = 0
-cnt_begin = 417  # random.randint(0, len(flights) - 1)
+cnt_begin = random.randint(0, len(flights) - 1)
 cnt_end = min(cnt_begin + NUM_FLIGHTS, len(flights))
 idx = cnt_begin - 1
 # Here we go..
