@@ -441,6 +441,11 @@ class LoadApp(ManagedAirport):
         return (True, f"LoadApp::loadTurnaroundProfiles: loaded turnaround profile for aircraft classes")
 
     def loadAirports(self):
+        def packapt(a):
+            r = a.to_geojson()
+            r["properties"]["_info"] = a.getInfo()
+            return r
+
         if len(Airport._DB) == 0:
             Airport.loadAll()
 
@@ -455,9 +460,9 @@ class LoadApp(ManagedAirport):
             except:
                 logger.debug(f"cannot load {a.icao} (lat={a.lat()}, lon={a.lon()})")
                 errcnt = errcnt + 1
-        self.redis.json().set(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value), Path.root_path(), [a.getInfo() for a in Airport._DB.values()])
+        self.redis.json().set(key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.ICAO.value), Path.root_path(), {k: packapt(a) for k, a in Airport._DB.items()})
         self.redis.json().set(
-            key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value), Path.root_path(), [a.getInfo() for a in Airport._DB_IATA.values()]
+            key_path(REDIS_PREFIX.AIRPORTS.value, REDIS_PREFIX.IATA.value), Path.root_path(), {k: packapt(a) for k, a in Airport._DB_IATA.items()}
         )
         logger.debug(f"loaded {len(Airport._DB)} airports ({errcnt} geo errors)")
         return (True, f"LoadApp::loadAirports: loaded airports")

@@ -604,7 +604,7 @@ class XPAirport(ManagedAirportBase):
             if r is not None:
                 f = FeatureWithProps.new(r)
                 return Ramp(
-                    name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=r.coords(), orientation=f.getProp("orientation"), use=f.getProp("use")
+                    name=f.getProp("name"), ramptype=f.getProp("sub-type"), position=f.coords(), orientation=f.getProp("orientation"), use=f.getProp("use")
                 )
         return self.ramps[name] if name in self.ramps.keys() else None
 

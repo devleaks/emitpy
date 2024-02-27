@@ -31,7 +31,7 @@ from emitpy.airspace import CIFP, Terminal
 from emitpy.constants import AIRPORT_DATABASE, FEATPROP, REDIS_PREFIX, REDIS_DATABASE, REDIS_LOVS, REDIS_DB
 from emitpy.parameters import DATA_DIR
 from emitpy.geo import FeatureWithProps, Ramp, Runway
-from emitpy.utils import Timezone, key_path, rejson, convert
+from emitpy.utils import Timezone, key_path, rejson, convert, show_path
 from emitpy.weather import AirportWeather
 
 logger = logging.getLogger("Airport")
@@ -215,13 +215,14 @@ class Airport(Location):
         :type       info:  { type_description }
         """
         # logger.debug(f"{json.dumps(info, indent=2)}")
+        print(info)
         return Airport(
-            icao=info["icao"],
-            iata=info["iata"],
+            icao=info["properties"]["_info"]["icao"],
+            iata=info["properties"]["_info"]["iata"],
             name=info["properties"]["name"],
             city=info["properties"]["city"],
             country=info["properties"]["country"],
-            region=info["region"],
+            region=info["properties"]["_info"]["iso_region"],
             lat=float(info["geometry"]["coordinates"][1]),
             lon=float(info["geometry"]["coordinates"][0]),
             alt=float(info["geometry"]["coordinates"][2] if len(info["geometry"]["coordinates"]) > 2 else None),
@@ -716,7 +717,7 @@ class ManagedAirportBase(AirportWithProcedures):
         airport = None
         airport_cache = os.path.join(cache, "airport.pickle")
         if os.path.exists(airport_cache):
-            logger.debug(f"loading managed airport from pickle.. ({os.path.abspath(airport_cache)})")
+            logger.debug(f"loading managed airport from pickle.. ({show_path(airport_cache)})")
             with open(airport_cache, "rb") as fp:
                 airport = pickle.load(fp)
             logger.debug("..done")
