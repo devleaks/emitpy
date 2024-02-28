@@ -173,7 +173,7 @@ class FlightMovement(Movement):
         logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
         return (True, "FlightMovement::move completed")
 
-    def saveFile(self):
+    def saveFile(self, **kwargs):
         """
         Save flight paths to 3 files for flight plan, detailed movement, and taxi path.
         Save a technical json file which can be loaded later, and GeoJSON files for display.
@@ -197,31 +197,36 @@ class FlightMovement(Movement):
             saveGeoJSON(filename, FeatureCollection(features=fc))
 
         # saveMe(self.flight.flightplan_wpts, "1-plan")
-        if len(self.flight.flightplan_wpts) > 1:
-            ls = Feature(geometry=asLineString(self.flight.flightplan_wpts))
-            saveMe(self.flight.flightplan_wpts + [ls], FILE_FORMAT.FLIGHT_PLAN.value)
+        if kwargs.get("plan"):
+            if len(self.flight.flightplan_wpts) > 1:
+                ls = Feature(geometry=asLineString(self.flight.flightplan_wpts))
+                saveMe(self.flight.flightplan_wpts + [ls], FILE_FORMAT.FLIGHT_PLAN.value)
 
         # saveMe(self._premoves, "2-flight")
-        if len(self._premoves) > 1:
-            ls = Feature(geometry=asLineString(self._premoves))
-            saveMe(self._premoves + [ls], FILE_FORMAT.FLIGHT.value)
+        if kwargs.get("flight"):
+            if len(self._premoves) > 1:
+                ls = Feature(geometry=asLineString(self._premoves))
+                saveMe(self._premoves + [ls], FILE_FORMAT.FLIGHT.value)
 
         # saveMe(self.getMovePoints(), "3-move")
         move_points = self.getMovePoints()
         if len(move_points) > 1:
-            ls = Feature(geometry=asLineString(move_points))
-            saveMe(move_points + [ls], FILE_FORMAT.MOVE.value)
+            if kwargs.get("move"):
+                ls = Feature(geometry=asLineString(move_points))
+                saveMe(move_points + [ls], FILE_FORMAT.MOVE.value)
 
-            kml = toKML(cleanFeatures(move_points))
-            filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
-            with open(filename, "w") as fp:
-                fp.write(kml)
-                logger.debug(f"saved kml {show_path(filename)} ({len(move_points)})")
+            if kwargs.get("kml"):
+                kml = toKML(cleanFeatures(move_points))
+                filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
+                with open(filename, "w") as fp:
+                    fp.write(kml)
+                    logger.debug(f"saved kml {show_path(filename)} ({len(move_points)})")
 
         # saveMe(self.taxipos, "4-taxi")
-        if len(self.taxipos) > 1:
-            ls = Feature(geometry=asLineString(self.taxipos))
-            saveMe(self.taxipos + [ls], FILE_FORMAT.TAXI.value)
+        if kwargs.get("taxi"):
+            if len(self.taxipos) > 1:
+                ls = Feature(geometry=asLineString(self.taxipos))
+                saveMe(self.taxipos + [ls], FILE_FORMAT.TAXI.value)
 
         logger.debug(f"saved {self.flight_id}")
         return (True, "Movement::save saved")

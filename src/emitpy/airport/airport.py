@@ -215,7 +215,6 @@ class Airport(Location):
         :type       info:  { type_description }
         """
         # logger.debug(f"{json.dumps(info, indent=2)}")
-        print(info)
         return Airport(
             icao=info["properties"]["_info"]["icao"],
             iata=info["properties"]["_info"]["iata"],

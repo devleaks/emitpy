@@ -41,9 +41,16 @@ class StatusInfo:
         return json.dumps({"status": self.status, "message": self.message, "data": self.data})
 
 
-SAVE_TO_FILE = True  # for debugging purpose
-SAVE_TRAFFIC = True
-LOAD_AIRWAYS = True
+# All of them:
+# SAVE_AND_WRITE = ["plan", "move", "emit", "scheduled", "traffic", "messages", "emit-messages", "service", "emit-service"]
+# SAVE_AND_WRITE = SAVE_AND_WRITE + ["redis-emit", "redis-scheduled", "redis-enqueue", "redis-messages"]
+#
+# Could also add: taxi, kml, LST.
+SAVE_AND_WRITE = ["traffic", "kml"]
+
+
+def need_save(save):
+    return save in SAVE_AND_WRITE
 
 
 def BOOTSTRAP_REDIS():
@@ -119,7 +126,7 @@ class EmitApp(ManagedAirport):
         else:
             logger.info(f"not using Redis")
 
-        ret = self.init(load_airways=LOAD_AIRWAYS)
+        ret = self.init(load_airways=True)
         if not ret[0]:
             logger.warning(ret[1])
             return
@@ -441,8 +448,11 @@ class EmitApp(ManagedAirport):
             return StatusInfo(7, f"problem during move", ret[1])
 
         # 4.2 Save move
-        move.saveFile()
-        #
+        # these options only for FlightMovement
+        if need_save("plan") or need_save("flight") or need_save("move") or need_save("kml") or need_save("taxi"):
+            ret = move.saveFile(plan=need_save("plan"), flight=need_save("flight"), move=need_save("move"), kml=need_save("kml"), taxi=need_save("taxi"))
+            if not ret[0]:
+                return StatusInfo(7, f"problem during move save", ret[1])
 
         # #############################################################################################################
         #
@@ -481,17 +491,24 @@ class EmitApp(ManagedAirport):
             return StatusInfo(10, f"problem during schedule of messages", ret[1])
 
         # 9. (save emit?)
-        if SAVE_TO_FILE or SAVE_TRAFFIC:
+        if need_save("emit"):
             logger.debug("..saving positions to file..")
             ret = emit.saveFile()
             if not ret[0]:
                 return StatusInfo(11, f"problem during save to file", ret[1])
 
+        if need_save("traffic"):
+            logger.debug("..saving positions for traffic to csv file..")
+            ret = emit.saveTraffic()
+            if not ret[0]:
+                return StatusInfo(11, f"problem during save to file", ret[1])
+
         if self._use_redis:
             logger.debug("..saving positions to Redis..")
-            ret = emit.save(redis=self.redis)
-            if not ret[0]:
-                return StatusInfo(12, f"problem during save to Redis", ret[1])
+            if need_save("redis-emit"):
+                ret = emit.save(redis=self.redis)
+                if not ret[0]:
+                    return StatusInfo(12, f"problem during save to Redis", ret[1])
 
         # 10. (save messages?)
 
@@ -514,13 +531,13 @@ class EmitApp(ManagedAirport):
             return StatusInfo(14, f"problem during formatting of positions", ret[1])
 
         # 12. (save formatted position)
-        if self._use_redis:
+        if self._use_redis and need_save("redis-scheduled"):
             logger.debug("..saving formatted position to Redis..")
             ret = formatted.save(overwrite=True)
             if not ret[0]:
                 return StatusInfo(15, f"problem during save of positions to Redis", ret[1])
 
-        if SAVE_TO_FILE:
+        if need_save("emit-scheduled"):
             logger.debug("..saving formatted position to file..")
             ret = formatted.saveFile()
             # Redis: "EnqueueToRedis::save key already exist"
@@ -529,7 +546,7 @@ class EmitApp(ManagedAirport):
                 return StatusInfo(16, f"problem during formatted position output save", ret[1])
 
         # 13. Enqueue positions
-        if self._use_redis:
+        if self._use_redis and need_save("redis-enqueue"):
             logger.debug("..enqueuing positions to Redis..")
             ret = formatted.enqueue()
             if not ret[0]:
@@ -552,7 +569,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(19, f"problem during formatting of messages", ret[1])
 
         # 15. (save formatted messages)
-        if SAVE_TO_FILE:
+        if need_save("messages"):
             logger.debug("..saving messages to file..")
             ret = formatted_message.saveFile(overwrite=True)
             # Redis: "EnqueueToRedis::save key already exist"
@@ -561,7 +578,7 @@ class EmitApp(ManagedAirport):
                 return StatusInfo(20, f"problem during formatted message output save", ret[1])
 
         # 16. Enqueue messages
-        if self._use_redis:
+        if self._use_redis and need_save("redis-messages"):
             logger.debug("..enqueuing messages to Redis..")
             ret = formatted_message.enqueue()
             if not ret[0]:
@@ -643,7 +660,7 @@ class EmitApp(ManagedAirport):
 
         # 9. (save emit?)
         # 10. (save messages?)
-        if SAVE_TO_FILE or SAVE_TRAFFIC:
+        if need_save("service") or need_save("traffic"):
             logger.debug("..saving equipment and messages to files..")
             ret = flight_service.saveFile()
             if not ret[0]:
@@ -679,7 +696,7 @@ class EmitApp(ManagedAirport):
 
         else:
             logger.debug("..formatting services..")
-            ret = flight_service.format(saveToFile=SAVE_TO_FILE or SAVE_TRAFFIC)
+            ret = flight_service.format(saveToFile=need_save("emit-service") or need_save("traffic"))
             if not ret[0] and not ret[1].endswith("already exist"):
                 return StatusInfo(30, f"problem during formating", ret[1])
             # @todo: save to file?
@@ -758,7 +775,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(36, f"problem during service move", ret[1])
 
         # 5. (save move?)
-        if SAVE_TO_FILE:
+        if need_save("move"):
             ret = move.saveFile()
             if not ret[0]:
                 return StatusInfo(37, f"problem during service move save", ret[1])
@@ -779,7 +796,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(39, f"problem during service scheduling", ret[1])
 
         # 9. (save emit?)
-        if SAVE_TO_FILE:
+        if need_save("emit"):
             logger.debug("..saving positions to file..")
             ret = emit.saveFile()
             if not ret[0]:
@@ -963,7 +980,7 @@ class EmitApp(ManagedAirport):
         ## @todo
         # 9. (save emit?)
         logger.debug("..saving equipment..")
-        if SAVE_TO_FILE:
+        if need_save("service"):
             ret = flight_service.saveFile()
             if not ret[0]:
                 return StatusInfo(430, f"problem during flight service scheduling", ret[1])
@@ -1099,7 +1116,7 @@ class EmitApp(ManagedAirport):
         if not ret[0]:
             logger.warning(ret[1])
             return StatusInfo(405, f"cannot tow aircraft", ret[1])
-        if SAVE_TO_FILE:
+        if need_save("move"):
             ret = move.saveFile()
             if not ret[0]:
                 return StatusInfo(204, f"problem during mission move save", ret[1])
@@ -1119,7 +1136,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(206, f"problem during mission scheduling", ret[1])
 
         # 9. (save emit?)
-        if SAVE_TO_FILE or SAVE_TRAFFIC:
+        if need_save("emit") or need_save("traffic"):
             logger.debug("..saving to file..")
             ret = emit.saveFile()
             if not ret[0]:
@@ -1193,7 +1210,7 @@ class EmitApp(ManagedAirport):
                 return StatusInfo(216, f"problem during formatting of messages", ret[1])
 
         # 15. (save formatted messages)
-        if SAVE_TO_FILE:
+        if need_save("messages"):
             logger.debug("..saving messages..")
             ret = formatted_message.saveFile(overwrite=True)
             # Redis: "EnqueueToRedis::save key already exist"
@@ -1272,7 +1289,7 @@ class EmitApp(ManagedAirport):
         ret = move.move()
         if not ret[0]:
             return StatusInfo(203, f"problem during mission move", ret[1])
-        if SAVE_TO_FILE:
+        if need_save("move"):
             ret = move.saveFile()
             if not ret[0]:
                 return StatusInfo(204, f"problem during mission move save", ret[1])
@@ -1292,7 +1309,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(206, f"problem during mission scheduling", ret[1])
 
         # 9. (save emit?)
-        if SAVE_TO_FILE or SAVE_TRAFFIC:
+        if need_save("emit") or need_save("traffic"):
             logger.debug("..saving to file..")
             ret = emit.saveFile()
             if not ret[0]:
@@ -1366,7 +1383,7 @@ class EmitApp(ManagedAirport):
                 return StatusInfo(216, f"problem during formatting of messages", ret[1])
 
         # 15. (save formatted messages)
-        if SAVE_TO_FILE:
+        if need_save("messages"):
             logger.debug("..saving messages..")
             ret = formatted_message.saveFile(overwrite=True)
             # Redis: "EnqueueToRedis::save key already exist"

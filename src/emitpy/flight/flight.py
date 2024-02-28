@@ -71,6 +71,7 @@ class Flight(Messages):
         self.flight_level = 0
         self.flightroute = None  # FlightRoute object
         self.flightplan_wpts = []
+
         self.procedures = {}
         self.rwy = None  # RWY object
 
@@ -79,6 +80,7 @@ class Flight(Messages):
         self.load_factor = load_factor  # 100% capacity, estimated, both passengers and cargo.
 
         self.forced_procedures = None
+        self.comment: str = ""
         # try:
         #     if int(number) > 5000:
         #         if int(number) > 9900:
@@ -145,6 +147,7 @@ class Flight(Messages):
             "ramp": self.ramp.getInfo() if self.ramp is not None else {},
             "runway": (self.runway.getInfo() if self.runway is not None else {}),  # note: this is the GeoJSON feature, not the RWY procedure
             "is_arrival": self.is_arrival(),  # simply useful denormalisation...
+            "comment": self.comment
             # "meta": self.meta
         }
 
@@ -460,13 +463,13 @@ class Flight(Messages):
 
     def force_procedures(self, rwydep, sid, star, appch, rwyarr):
         """For debugging purpose to set reproducible situations"""
-        logger.info(f"forcing procedures {rwydep}, {sid}, {star}, {appch}, {rwyarr}")
+        logger.info(f"forcing procedures departure={rwydep}, sid={sid}, star={star}, approach={appch}, arrival={rwyarr}")
         depapt = self.departure
         arrapt = self.arrival
         deprwy = depapt.procedures.RWYS.get(rwydep)
         arrrwy = arrapt.procedures.RWYS.get(rwyarr)
         self.forced_procedures = [deprwy, depapt.procedures.BYNAME.get(sid), arrapt.procedures.BYNAME.get(star), arrapt.procedures.BYNAME.get(appch), arrrwy]
-        print(self.forced_procedures)
+        logger.debug(f"forced procedures {self.forced_procedures}")
 
     def force_string(self):
         def nvl(a):
