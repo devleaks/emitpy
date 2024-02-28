@@ -14,7 +14,7 @@ from typing import Dict, List
 
 from emitpy.constants import ID_SEP
 from emitpy.geo.turf import distance, bearing
-from emitpy.utils import convert
+from emitpy.utils import convert, show_path
 from emitpy.parameters import XPLANE_DIR
 from .restriction import Restriction, NamedPointWithRestriction
 
@@ -756,10 +756,10 @@ class CIFP:
         self.basename = DEFAULT_DATA_DIR
         fn = os.path.join(CUSTOM_DATA_DIR, "CIFP")
         if os.path.isdir(fn):
-            logger.debug(f"CIFP custom data directory {os.path.abspath(CUSTOM_DATA_DIR)} exist, using it")
+            logger.debug(f"CIFP custom data directory {show_path(CUSTOM_DATA_DIR)} exist, using it")
             self.basename = CUSTOM_DATA_DIR
         else:
-            logger.debug(f"CIFP using {DEFAULT_DATA_DIR}")
+            logger.debug(f"CIFP using {show_path(DEFAULT_DATA_DIR)}")
         self.loadFromFile()
 
     def getKey(self):
@@ -793,7 +793,7 @@ class CIFP:
             logger.warning(f"no procedure file for {self.icao}")
             return (False, f"CIFP:loadFromFile: file not found {cipf_filename}")
 
-        logger.debug(f"procedure CIFP file {os.path.abspath(cipf_filename)}")
+        logger.debug(f"procedure CIFP file {show_path(cipf_filename)}")
         self.available = True
         cifp_fp = open(cipf_filename, "r")
         line = cifp_fp.readline()

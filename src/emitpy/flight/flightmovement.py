@@ -11,7 +11,6 @@ from math import log, pi
 from datetime import timedelta
 
 from tabulate import tabulate
-from emitpy import airspace
 
 from emitpy.airspace.restriction import Restriction
 from emitpy.geo.turf import LineString, FeatureCollection, Feature, saveGeoJSON
@@ -22,7 +21,7 @@ from emitpy.aircraft import ACPERF
 from emitpy.geo import MovePoint, Movement
 from emitpy.geo import moveOn, cleanFeatures, asLineString, toKML, adjust_speed_vector
 from emitpy.graph import Route
-from emitpy.utils import compute_headings
+from emitpy.utils import compute_headings, show_path
 from emitpy.constants import POSITION_COLOR, FEATPROP, TAXI_SPEED, SLOW_SPEED
 from emitpy.constants import FLIGHT_DATABASE, FLIGHT_PHASE, FILE_FORMAT, MOVE_TYPE
 from emitpy.parameters import MANAGED_AIRPORT_AODB
@@ -217,7 +216,7 @@ class FlightMovement(Movement):
             filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
             with open(filename, "w") as fp:
                 fp.write(kml)
-                logger.debug(f"saved kml {os.path.abspath(filename)} ({len(move_points)})")
+                logger.debug(f"saved kml {show_path(filename)} ({len(move_points)})")
 
         # saveMe(self.taxipos, "4-taxi")
         if len(self.taxipos) > 1:

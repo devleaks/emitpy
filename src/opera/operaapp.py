@@ -13,6 +13,7 @@ from tabulate import tabulate
 sys.path.append("../../src")
 
 from emitpy.geo import FeatureWithProps, point_in_polygon, asFeature
+from emitpy.utils import show_path
 from emitpy.parameters import MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_DIR, AERODROME_PERIMETER_INDENTITY
 
 from opera.rule import Rule, Event
@@ -387,7 +388,7 @@ if __name__ == "__main__":
         data = [FeatureWithProps.new(p) for p in data]
         # for filename in glob.glob(data_dir):
         #     data = {}
-        #     logger.debug(f"{'>' * 20} {os.path.abspath(filename)}")
+        #     logger.debug(f"{'>' * 20} {show_path(filename)}")
         #     with open(filename, "r") as file:
         #         data = json.load(file)
         #     data = [FeatureWithProps.new(p) for p in data]
