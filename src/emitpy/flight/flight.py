@@ -481,11 +481,11 @@ class Flight(Messages):
 
         return ", ".join(
             [
-                f"{{('rwydep'={nvl(FLIGHT_SEGMENT.RWYDEP)}",
-                f"'sid'={nvl(FLIGHT_SEGMENT.SID)}",
-                f"'star'={nvl(FLIGHT_SEGMENT.STAR)}",
-                f"'appch'={nvl(FLIGHT_SEGMENT.APPCH)}",
-                f"'rwyarr'={nvl(FLIGHT_SEGMENT.RWYARR)}}}",
+                f"{{'rwydep': {nvl(FLIGHT_SEGMENT.RWYDEP)}",
+                f"'sid': {nvl(FLIGHT_SEGMENT.SID)}",
+                f"'star': {nvl(FLIGHT_SEGMENT.STAR)}",
+                f"'appch': {nvl(FLIGHT_SEGMENT.APPCH)}",
+                f"'rwyarr': {nvl(FLIGHT_SEGMENT.RWYARR)}}}",
             ]
         )
 
