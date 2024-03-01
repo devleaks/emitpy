@@ -34,6 +34,15 @@ ROUTES = "routes"
 PASSENGER = "pax"
 CARGO = "cargo"
 
+# Aircraft performances
+LOW_ALT_MAX_SPEED = 250  # kn
+LOW_ALT_ALT_FT = 10000  # ft
+
+# Navigation
+FT = 12 * 0.0254
+INITIAL_CLIMB_SAFE_ALT = 1500 * FT
+FINAL_APPROACH_FIX_ALT = 2000 * FT
+
 
 #
 # TYPES

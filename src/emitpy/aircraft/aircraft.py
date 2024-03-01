@@ -23,6 +23,7 @@ import yaml
 from emitpy.parameters import HOME_DIR, DATA_DIR
 from emitpy.business import Identity, Company
 from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB
+from emitpy.constants import LOW_ALT_MAX_SPEED, LOW_ALT_ALT_FT, FINAL_APPROACH_FIX_ALT, INITIAL_CLIMB_SAFE_ALT
 from emitpy.utils import convert, key_path, rejson
 
 
@@ -33,9 +34,6 @@ sys.path.append(HOME_DIR)
 # ureg = pint.UnitRegistry()
 
 _STD_CLASS = "C"
-MAX_FL100_SPEED = 250  # kn
-INITIAL_CLIMB_SAFE_ALT = convert.feet_to_meters(1500)
-FINAL_APPROACH_FIX_ALT = convert.feet_to_meters(3000)
 
 
 class ACPERF:
@@ -1038,9 +1036,9 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        return self.climb(altstart, convert.feet_to_meters(10000), self.getSI(ACPERF.climbFL150_vspeed), self.fl100Speed())
+        return self.climb(altstart, convert.feet_to_meters(10000), self.getSI(ACPERF.climbFL150_vspeed), self.low_alt_max_speed(alt=altstart))
 
-    def fl100Speed(self):
+    def low_alt_max_speed(self, alt, speed=convert.kn_to_ms(LOW_ALT_MAX_SPEED)):
         """
         Alias to climb function for FL100 speed and vspeed.
 
@@ -1050,8 +1048,9 @@ class AircraftTypeWithPerformance(AircraftType):
         :type       safealt:   int
         """
         # Time to climb what is usually accepted as 1500ft AGL
-        maxfl100 = convert.kmh_to_ms(kmh=convert.kn_to_kmh(MAX_FL100_SPEED))  # m/s
-        return min(self.getSI(ACPERF.climbFL150_speed), maxfl100)
+        if alt <= convert.feet_to_meters(LOW_ALT_ALT_FT):
+            return min(speed, convert.kn_to_ms(LOW_ALT_MAX_SPEED))
+        return speed
 
     def climbToFL150(self, altstart):
         """

@@ -564,7 +564,7 @@ class APPCH(Procedure):
         interrupted = False
         a = []
         for v in self.route.values():
-            print("route", v.seq())
+            # print("route", v.seq())
             code_raw = v.param(PROC_DATA.DESC_CODE)
             # Need to exclude wp that are part of missed approach procedure/path
             is_miss_approach = (len(code_raw) > 2 and code_raw[2] == "M") or (len(code_raw) > 3 and (code_raw[2] == "M" or code_raw[3] == "M"))
