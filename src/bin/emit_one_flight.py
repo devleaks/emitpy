@@ -50,6 +50,7 @@ logger.info(f"File contains {len(flights)} flights. Generating from from {cnt_be
 now = datetime.now().replace(tzinfo=e.local_timezone)
 first_dt = None
 icao = {}
+failed = []
 
 logger.info("\n\n\n+" + "-" * 10 + f" {cnt_begin}-{cnt_end}\n\n")
 
@@ -72,33 +73,40 @@ for r in flights[cnt_begin:cnt_end]:
     else:
         move = "departure"
 
-    # try:
-    # just for display...
-    dt = datetime.strptime(r["FLIGHT SCHEDULED TIME"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
-    # for real time
-    at = datetime.strptime(r["FLIGHT ACTUAL TIME"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
-    if first_dt is None:
-        first_dt = at
-    tdiff = at - first_dt
-    dtnow = now + tdiff + timedelta(minutes=2)
-    logger.info(f"| {idx}:{move} {r['AIRLINE CODE']}{r['FLIGHT NO']}: time diff {first_dt}, {at}, {tdiff} => {dtnow}")
-    logger.info("|")
+    try:
+        # just for display...
+        dt = datetime.strptime(r["FLIGHT SCHEDULED TIME"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+        # for real time
+        at = datetime.strptime(r["FLIGHT ACTUAL TIME"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=e.timezone)
+        if first_dt is None:
+            first_dt = at
+        tdiff = at - first_dt
+        dtnow = now + tdiff + timedelta(minutes=2)
+        logger.info(f"| {idx}:{move} {r['AIRLINE CODE']}{r['FLIGHT NO']}: time diff {first_dt}, {at}, {tdiff} => {dtnow}")
+        logger.info("|")
 
-    ret = e.do_flight(
-        queue=queue,
-        emit_rate=rate,
-        airline=r["AIRLINE CODE"],
-        flightnumber=r["FLIGHT NO"],
-        scheduled=dt.isoformat(),
-        apt=r["AIRPORT"],
-        movetype=move,
-        actype=(r["AC TYPE"], r["AC TYPE IATA"]),
-        acreg=r["REGISTRATION NO"],
-        icao24=icao[r["REGISTRATION NO"]],
-        ramp=r["RAMP"],
-        runway="RW16L",
-        do_services=DO_SERVICE,
-        actual_datetime=dtnow.isoformat(),
-    )
+        ret = e.do_flight(
+            queue=queue,
+            emit_rate=rate,
+            airline=r["AIRLINE CODE"],
+            flightnumber=r["FLIGHT NO"],
+            scheduled=dt.isoformat(),
+            apt=r["AIRPORT"],
+            movetype=move,
+            actype=(r["AC TYPE"], r["AC TYPE IATA"]),
+            acreg=r["REGISTRATION NO"],
+            icao24=icao[r["REGISTRATION NO"]],
+            ramp=r["RAMP"],
+            runway="RW16L",
+            do_services=DO_SERVICE,
+            actual_datetime=dtnow.isoformat(),
+            comment=f"index {idx}",
+        )
+    except:
+        failed.append(idx)
+        logger.error(f"item {r} failed", exc_info=True)
+    finally:
+        logger.info(f"{idx}:{ret}")
 
-    logger.info(f"{idx}:{ret}")
+if len(failed) > 0:
+    print("Failed:", failed)

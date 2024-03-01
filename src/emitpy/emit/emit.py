@@ -28,7 +28,7 @@ from emitpy.utils import interpolate as doInterpolation, compute_headings, key_p
 from emitpy.constants import SLOW_SPEED, FEATPROP, FLIGHT_PHASE, SERVICE_PHASE, MISSION_PHASE
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_DATABASES
 from emitpy.constants import RATE_LIMIT, EMIT_RANGE, MOVE_TYPE, EMIT_TYPE
-from emitpy.constants import DEFAULT_FREQUENCY
+from emitpy.constants import DEFAULT_FREQUENCY, FILE_FORMAT
 from emitpy.parameters import MANAGED_AIRPORT_AODB
 
 logger = logging.getLogger("Emit")
@@ -215,7 +215,7 @@ class Emit(Movement):
         # 1. Save emission points
         emit = {}
         for f in self.getEmitPoints():
-            emit[json.dumps(f)] = f.getProp(FEATPROP.EMIT_REL_TIME)
+            emit[json.dumps(f.to_geojson())] = f.getProp(FEATPROP.EMIT_REL_TIME)
         redis.delete(emit_id)
         redis.zadd(emit_id, emit)
         move_id = self.getKey("")
@@ -283,13 +283,13 @@ class Emit(Movement):
 
         # 3. Save linestring with timestamp
         # Save for traffic analysis
-        ret = self.saveTraffic()
-        if not ret[0]:
-            logger.warning("could not save traffic file")
+        # ret = self.saveTraffic()
+        # if not ret[0]:
+        #     logger.warning("could not save traffic file")
 
-        ret = self.saveLST()
-        if not ret[0]:
-            logger.warning("could not save LST file")
+        # ret = self.saveLST()
+        # if not ret[0]:
+        #     logger.warning("could not save LST file")
 
         logger.debug(f"saved {self.getId()} files")
         return (True, "Emit::saveFile saved")
@@ -313,8 +313,7 @@ class Emit(Movement):
             logger.info(f"directory {basedir} did not exist. created.")
 
         ls = toTraffic(self._scheduled_points)
-        basename = os.path.join(basedir, ident)
-        filename = os.path.join(basename + "-traffic.csv")
+        filename = os.path.join(basedir, ident + FILE_FORMAT.TRAFFIC.value + ".csv")
         with open(filename, "w") as fp:
             fp.write(ls)
         logger.debug(f"..saved {ident} for traffic analysis")

@@ -3,7 +3,7 @@ from typing import List
 from emitpy.geo.turf import Feature
 
 
-def header(name: str, desc: str):
+def header(name: str, desc: str) -> str:
     """Create XML header for KML
     Args:
         name (str): Title of KML file
@@ -35,7 +35,7 @@ def header(name: str, desc: str):
 """
 
 
-def footer():
+def footer() -> str:
     """Create XML footer for KML
     Returns:
         str: KML formatted string (XML)
@@ -48,7 +48,7 @@ def footer():
 """
 
 
-def toKML(path: List[Feature]):
+def toKML(path: List[Feature], name: str = "Flight Path", desc: str = "Emitpy Flight Path") -> str:
     """Convert list of features to KML for Google Earth
     Args:
         path (List[Feature]): List of Features to convert
@@ -56,7 +56,7 @@ def toKML(path: List[Feature]):
     Returns:
         str: KML string
     """
-    kml = header("Flight Path", "Emitpy Flight Path")
+    kml = header(name, desc)
     for f in path:
         # -117.184650,34.627964,980
         if f.geometry.type == "Point" and len(f.geometry.coordinates) > 2:

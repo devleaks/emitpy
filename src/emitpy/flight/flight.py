@@ -130,6 +130,8 @@ class Flight(Messages):
         s = self.getName()
         s = s + f" {self.departure.iata}-{self.arrival.iata} {airc(self.aircraft)} FL{self.flight_level}"
         s = s + f" //DEP {self.departure.icao} {dproc()} //ARR {self.arrival.icao} {aproc()}"
+        if self.comment is not None:
+            s = s + f"(note: {self.comment})"
         return s
 
     def getInfo(self):
@@ -513,14 +515,17 @@ class Flight(Messages):
         # self.meta["departure"]["metar"] = depapt.getMetar()
         if depapt.has_rwys():
             rwydep = depapt.selectRWY(self) if self.forced_procedures is None else self.forced_procedures[0]
-            logger.debug(f"departure airport {depapt.icao} using runway {rwydep.name}")
-            if self.is_departure():
-                self.setRWY(rwydep)
-            waypoints = rwydep.getRoute()
-            waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_TYPE, "origin/rwy")
-            waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_NAME, depapt.icao + "/" + rwydep.name)
-            self.procedures[FLIGHT_SEGMENT.RWYDEP.value] = rwydep
-            self.meta["departure"]["procedure"] = rwydep.name
+            if rwydep is not None:
+                logger.debug(f"departure airport {depapt.icao} using runway {rwydep.name}")
+                if self.is_departure():
+                    self.setRWY(rwydep)
+                waypoints = rwydep.getRoute()
+                waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_TYPE, "origin/rwy")
+                waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_NAME, depapt.icao + "/" + rwydep.name)
+                self.procedures[FLIGHT_SEGMENT.RWYDEP.value] = rwydep
+                self.meta["departure"]["procedure"] = rwydep.name
+            else:
+                logger.debug(f"departure airport {depapt.icao} no runway found")
         else:  # no runway, we leave from airport
             logger.warning(f"departure airport {depapt.icao} has no runway, first point is departure airport")
             dep = depapt.copy()  # depapt.getTerminal().copy() would be more correct

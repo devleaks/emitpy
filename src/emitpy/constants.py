@@ -126,15 +126,16 @@ class POI_COMBO(Enum):
 
 
 class FILE_FORMAT(Enum):
-    FLIGHT_PLAN = "-1-plan"
-    FLIGHT = "-2-flight"
-    SERVICE = "-3-service"
-    MOVE = "-3-move"
-    TAXI = "-3-taxi"
-    EMIT = "-4-emit"
-    BROADCAST = "-5-broadcast"
-    KML = "kml"
-    TRAFFIC = "-traffic"
+    FLIGHT_PLAN = "1-plan"
+    FLIGHT = "2-flight"
+    SERVICE = "3-service"
+    MOVE = "3-move"
+    TAXI = "4-taxi"
+    EMIT = "5-emit"
+    BROADCAST = "6-broadcast"
+    MESSAGE = "7-messages"
+    KML = "9-kml"
+    TRAFFIC = "9-traffic"
 
 
 ########################################

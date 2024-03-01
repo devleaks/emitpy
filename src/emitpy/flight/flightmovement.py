@@ -216,7 +216,7 @@ class FlightMovement(Movement):
                 saveMe(move_points + [ls], FILE_FORMAT.MOVE.value)
 
             if kwargs.get("kml"):
-                kml = toKML(cleanFeatures(move_points))
+                kml = toKML(cleanFeatures(move_points), name=self.flight.getId(), desc=str(self.flight))
                 filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
                 with open(filename, "w") as fp:
                     fp.write(kml)
@@ -948,6 +948,8 @@ class FlightMovement(Movement):
             groundmv = groundmv + initial_climb_distance
             # we ignore vertices between takeoff and initial_climb
             # we go in straight line and ignore self._premoves, skipping eventual points
+            if newidx == 0:
+                newidx = 1
             fcidx = newidx
 
         else:  # no runway, simpler departure
@@ -1007,13 +1009,17 @@ class FlightMovement(Movement):
         # This only deals with altitude constraints, speed constraints will be adjusted after.
         # There is no aircraft performance consideration.
         #
-        if self.flight.departure.has_sids():
+        # currpos is end of initial climb
+        #
+        if self.flight.procedures.get(FLIGHT_SEGMENT.SID.value) is not None:
             logger.debug(f"--------------- climbing with constraints..")
             logger.debug(f"SID = {self.flight.procedures.get(FLIGHT_SEGMENT.SID.value).name}")
 
             # Initial values, after initial climb
             curralt = 1500.0  # ft
             curridx = fcidx  # we use curridx inside this if/then/else, we'll set fcidx back after this processing
+
+            logger.debug(f"fcidx={fcidx}, curralt={curralt}")
 
             # Step 1: We are climbing... where is the next alt constraint we have to climb above?
             #
@@ -1533,7 +1539,7 @@ class FlightMovement(Movement):
         # print("\n".join([f.getMark() for f in revmoves]))
         # print("*" * 60)
         cruise_added = False
-        if self.flight.arrival.has_stars() or self.flight.arrival.has_approaches():
+        if self.flight.procedures.get(FLIGHT_SEGMENT.STAR.value) is not None or self.flight.procedures.get(FLIGHT_SEGMENT.APPCH.value):
             logger.debug(f"--------------- descending with constraints..")
             if self.flight.procedures.get(FLIGHT_SEGMENT.STAR.value) is not None:
                 logger.debug(f"STAR = {self.flight.procedures.get(FLIGHT_SEGMENT.STAR.value).name}")
@@ -1782,7 +1788,7 @@ class FlightMovement(Movement):
             self._premoves = self._premoves + revmoves
             logger.debug("..added")
         else:
-            logger.debug(f"no STAR or APPROACH, no restriction, descend from cruise altitude according to aicraft capabilities")
+            logger.debug(f"no STAR and no APPROACH, no restriction, descend from cruise altitude to final fix according to aicraft capabilities")
         #
         #
         # ########################################################################################
@@ -1793,7 +1799,11 @@ class FlightMovement(Movement):
         # Version 2: Not using procedures but straight descending segments following flight plan
         # Version 2 is also used if version 1 failed
         #
-        if not (cruise_added or self.flight.arrival.has_stars() or self.flight.arrival.has_approaches()):
+        if not (
+            cruise_added
+            or self.flight.procedures.get(FLIGHT_SEGMENT.STAR.value) is not None
+            or self.flight.procedures.get(FLIGHT_SEGMENT.APPCH.value) is not None
+        ):
             logger.debug("(rev) vnav without restriction *****************")
             k = len(fcrev) - 1
             while fcrev[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE) != "appch" and k > 0:

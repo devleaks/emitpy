@@ -46,7 +46,7 @@ class StatusInfo:
 # SAVE_AND_WRITE = SAVE_AND_WRITE + ["redis-emit", "redis-scheduled", "redis-enqueue", "redis-messages"]
 #
 # Could also add: taxi, kml, LST.
-SAVE_AND_WRITE = ["traffic", "kml"]
+SAVE_AND_WRITE = ["plan", "move", "traffic", "kml"]
 
 
 def need_save(save):
@@ -87,7 +87,7 @@ class EmitApp(ManagedAirport):
         self.redis = None
         self.gas = None
 
-        self._use_redis = BOOTSTRAP_REDIS()
+        self._use_redis = False  # BOOTSTRAP_REDIS()
         if self._use_redis:
             self.init_redis(icao)
 
@@ -271,6 +271,7 @@ class EmitApp(ManagedAirport):
         is_cargo: bool = False,
         do_services: bool = False,
         actual_datetime: str = None,
+        comment: str = None,
     ):
         # 0. Presentation + input
         local_locals = locals()
@@ -382,6 +383,8 @@ class EmitApp(ManagedAirport):
             sync = FLIGHT_PHASE.TAKE_OFF.value
             svc_sync = FLIGHT_PHASE.OFFBLOCK.value
             Movement = DepartureMove  # Typed
+
+        flight.comment = comment
 
         # 3.2 Schedule actual time if supplied
         logger.debug(f"scheduled={scheduled}, actual={actual_datetime} ({sync})")
