@@ -271,6 +271,7 @@ class EmitApp(ManagedAirport):
         is_cargo: bool = False,
         do_services: bool = False,
         actual_datetime: str = None,
+        forced_procedures: dict = {},
         comment: str = None,
     ):
         # 0. Presentation + input
@@ -420,12 +421,8 @@ class EmitApp(ManagedAirport):
             gate = ramp_name
         flight.setGate(gate)
 
-        # For debugging purposes, we can "impose" FP here
-        #
-        # Example:
-        # flight.force_procedures(rwydep="RW16L", sid="BUND1M", star="OTGI2E", appch="D22R", rwyarr="RW22R")
-        #
-        #
+        if forced_procedures is not None and len(forced_procedures) > 0:
+            flight.force_procedures(**forced_procedures)
 
         # 3.4 planning + route
         logger.debug("..planning..")
@@ -434,7 +431,7 @@ class EmitApp(ManagedAirport):
             return StatusInfo(6, f"problem during flight planning", ret[1])
 
         logger.debug(f"{EmitApp.do_flight.__qualname__}({', '.join([f'{k}={v}' for k, v in local_locals.items()])})")
-        logger.debug("flight" + flight.force_string())  # to use above if you want to replay same flight
+        logger.debug("forced procedures:" + flight.force_string())  # to use above if you want to replay same flight
         # logger.debug(f"route: {flight.printFlightRoute()}")
         # logger.debug(f"plan : {flight.printFlightPlan()}")
         # logger.debug(f"route: {flight.tabulateFlightRoute()}")

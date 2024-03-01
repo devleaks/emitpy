@@ -146,17 +146,17 @@ class Restriction:
         tolerance_ft = convert.meters_to_feet(tolerance)
         alt_ft_up = alt_ft + tolerance_ft
         alt_ft_dw = alt_ft - tolerance_ft
-        if self.alt_restriction_type in ["@", " "]:
+        if self.alt_restriction_type in ["@", " ", "X"]:
             return (alt_ft - self.alt1) <= tolerance_ft  # 30meters=100ft
         elif self.alt_restriction_type == "+":
             return alt_ft_up >= self.alt1
-        elif self.alt_restriction_type == "-":
+        elif self.alt_restriction_type in ["-", "Y"]:
             return alt_ft_dw <= self.alt1
         elif self.alt_restriction_type == "B":
             return (self.alt1 + tolerance_ft) >= alt_ft >= (self.alt2 - tolerance_ft)
         elif self.alt_restriction_type == "C":
             return alt_ft_up >= self.alt2
-        elif self.alt_restriction_type in ["H", "J"]:
+        elif self.alt_restriction_type in ["H", "J", "V"]:
             return alt_ft_up >= self.alt1
         elif self.alt_restriction_type in ["G", "I"]:
             return alt_ft_up >= self.alt1 and (alt_ft - self.alt2) <= tolerance_ft

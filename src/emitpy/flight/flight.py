@@ -149,7 +149,8 @@ class Flight(Messages):
             "ramp": self.ramp.getInfo() if self.ramp is not None else {},
             "runway": (self.runway.getInfo() if self.runway is not None else {}),  # note: this is the GeoJSON feature, not the RWY procedure
             "is_arrival": self.is_arrival(),  # simply useful denormalisation...
-            "comment": self.comment
+            "comment": self.comment,
+            "summary": str(self)
             # "meta": self.meta
         }
 
@@ -471,7 +472,7 @@ class Flight(Messages):
         deprwy = depapt.procedures.RWYS.get(rwydep)
         arrrwy = arrapt.procedures.RWYS.get(rwyarr)
         self.forced_procedures = [deprwy, depapt.procedures.BYNAME.get(sid), arrapt.procedures.BYNAME.get(star), arrapt.procedures.BYNAME.get(appch), arrrwy]
-        logger.debug(f"forced procedures {self.forced_procedures}")
+        # logger.debug(f"forced procedures {self.forced_procedures}")
 
     def force_string(self):
         def nvl(a):
@@ -480,11 +481,11 @@ class Flight(Messages):
 
         return ", ".join(
             [
-                f".force_procedures(rwydep={nvl(FLIGHT_SEGMENT.RWYDEP)}",
-                f"sid={nvl(FLIGHT_SEGMENT.SID)}",
-                f"star={nvl(FLIGHT_SEGMENT.STAR)}",
-                f"appch={nvl(FLIGHT_SEGMENT.APPCH)}",
-                f"rwyarr={nvl(FLIGHT_SEGMENT.RWYARR)})",
+                f"{{('rwydep'={nvl(FLIGHT_SEGMENT.RWYDEP)}",
+                f"'sid'={nvl(FLIGHT_SEGMENT.SID)}",
+                f"'star'={nvl(FLIGHT_SEGMENT.STAR)}",
+                f"'appch'={nvl(FLIGHT_SEGMENT.APPCH)}",
+                f"'rwyarr'={nvl(FLIGHT_SEGMENT.RWYARR)}}}",
             ]
         )
 
@@ -513,10 +514,11 @@ class Flight(Messages):
 
         # RWY
         # self.meta["departure"]["metar"] = depapt.getMetar()
+        forced = "" if self.forced_procedures is None else " (FORCED)"
         if depapt.has_rwys():
             rwydep = depapt.selectRWY(self) if self.forced_procedures is None else self.forced_procedures[0]
             if rwydep is not None:
-                logger.debug(f"departure airport {depapt.icao} using runway {rwydep.name}")
+                logger.debug(f"departure airport {depapt.icao} using runway {rwydep.name}{forced}")
                 if self.is_departure():
                     self.setRWY(rwydep)
                 waypoints = rwydep.getRoute()
@@ -538,7 +540,7 @@ class Flight(Messages):
             logger.debug(f"using procedures for departure airport {depapt.icao}")
             sid = depapt.selectSID(rwydep) if self.forced_procedures is None else self.forced_procedures[1]
             if sid is not None:  # inserts it
-                logger.debug(f"{depapt.icao} using SID {sid.name}")
+                logger.debug(f"{depapt.icao} using SID {sid.name}{forced}")
                 ret = depapt.procedures.getRoute(sid, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.SID.value)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, sid.name)
@@ -570,7 +572,7 @@ class Flight(Messages):
         # self.meta["arrival"]["metar"] = depapt.getMetar()
         if arrapt.has_rwys():
             rwyarr = arrapt.selectRWY(self) if self.forced_procedures is None else self.forced_procedures[4]
-            logger.debug(f"arrival airport {arrapt.icao} using runway {rwyarr.name}")
+            logger.debug(f"arrival airport {arrapt.icao} using runway {rwyarr.name}{forced}")
             if self.is_arrival():
                 self.setRWY(rwyarr)
             ret = rwyarr.getRoute()
@@ -589,7 +591,7 @@ class Flight(Messages):
         if arrapt.has_stars() and rwyarr is not None:
             star = arrapt.selectSTAR(rwyarr) if self.forced_procedures is None else self.forced_procedures[2]
             if star is not None:
-                logger.debug(f"{arrapt.icao} using STAR {star.name}")
+                logger.debug(f"{arrapt.icao} using STAR {star.name}{forced}")
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.STAR.value)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, star.name)
@@ -606,7 +608,7 @@ class Flight(Messages):
         if arrapt.has_approaches() and rwyarr is not None:
             appch = arrapt.selectApproach(star, rwyarr) if self.forced_procedures is None else self.forced_procedures[3]
             if appch is not None:
-                logger.debug(f"{arrapt.icao} using APPCH {appch.name}")
+                logger.debug(f"{arrapt.icao} using APPCH {appch.name}{forced}")
                 ret = arrapt.procedures.getRoute(appch, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.APPCH.value)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, appch.name)
@@ -679,12 +681,12 @@ class Flight(Messages):
             "RESTRICTIONS",
             "DISTANCE",
             "TOTAL DISTANCE",
-            "MIN ALT",
-            "MAX ALT",
-            "ALT TARGET",
-            "MIN SPEED",
-            "MAX SPEED",
-            "SPEED TARGET",
+            # "MIN ALT",
+            # "MAX ALT",
+            # "ALT TARGET",
+            # "MIN SPEED",
+            # "MAX SPEED",
+            # "SPEED TARGET",
         ]
         table = []
 
@@ -706,12 +708,12 @@ class Flight(Messages):
                     (w.getRestrictionDesc() if hasattr(w, "hasRestriction") and w.hasRestriction() else ""),
                     round(d, 1),
                     round(total_dist),
-                    w.getProp("_alt_min"),
-                    w.getProp("_alt_max"),
-                    w.getProp("_alt_target"),
-                    w.getProp("_speed_min"),
-                    w.getProp("_speed_max"),
-                    w.getProp("_speed_target"),
+                    # w.getProp("_alt_min"),
+                    # w.getProp("_alt_max"),
+                    # w.getProp("_alt_target"),
+                    # w.getProp("_speed_min"),
+                    # w.getProp("_speed_max"),
+                    # w.getProp("_speed_target"),
                 ]
             )
             last_point = w
@@ -746,7 +748,7 @@ class Flight(Messages):
             if hasattr(w, fun):
                 func = getattr(w, fun)
                 if func():
-                    if w.alt_restriction_type in [" ", "+", "B", "G", "H", "I", "J"]:
+                    if w.alt_restriction_type in [" ", "+", "B", "G", "H", "I", "J", "V", "X"]:
                         # logger.debug(
                         #     f"idx {idx}: has alt restriction at or above {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','+']})"
                         # )
@@ -772,7 +774,7 @@ class Flight(Messages):
             if hasattr(w, fun):
                 func = getattr(w, fun)
                 if func():
-                    if w.alt_restriction_type in [" ", "+", "B", "G", "H", "I", "J"]:
+                    if w.alt_restriction_type in [" ", "+", "B", "G", "H", "I", "J", "V", "X"]:
                         # logger.debug(
                         #     f"idx {idx}: has alt restriction at or below {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})"
                         # )
@@ -794,7 +796,7 @@ class Flight(Messages):
             if hasattr(w, fun):
                 func = getattr(w, fun)
                 if func():
-                    if w.alt_restriction_type in [" ", "-", "B", "G", "I"]:
+                    if w.alt_restriction_type in [" ", "-", "B", "G", "H", "I", "J", "X", "Y"]:
                         # logger.debug(
                         #     f"idx {idx}: has alt restriction at or above {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','+']})"
                         # )
@@ -820,7 +822,7 @@ class Flight(Messages):
             if hasattr(w, fun):
                 func = getattr(w, fun)
                 if func():
-                    if w.alt_restriction_type in [" ", "-", "B", "G", "I"]:
+                    if w.alt_restriction_type in [" ", "-", "B", "G", "H", "I", "J", "X", "Y"]:
                         # logger.debug(
                         #     f"idx {idx}: has alt restriction at or below {w.alt1} {w.getAltitudeRestrictionDesc()} ({w.alt_restriction_type in [' ','-']})"
                         # )

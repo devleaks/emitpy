@@ -63,7 +63,7 @@ class convert:
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        return round(m / NAUTICAL_MILE)
+        return m / NAUTICAL_MILE
 
     @staticmethod
     def meters_to_feet(m: float) -> float:
@@ -76,7 +76,7 @@ class convert:
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        return round(m / FT)
+        return m / FT
 
     @staticmethod
     def feet_to_meters(ft: float) -> float:
@@ -89,7 +89,7 @@ class convert:
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        return round(ft * FT)
+        return ft * FT
 
     @staticmethod
     def kmh_to_kn(kmh: float) -> float:
@@ -156,11 +156,15 @@ class convert:
 
     @staticmethod
     def km_to_nm(km: float) -> float:
-        return km * NAUTICAL_MILE
+        return km / NAUTICAL_MILE
 
     @staticmethod
     def nm_to_km(nm: float) -> float:
-        return nm / NAUTICAL_MILE
+        return nm * NAUTICAL_MILE
+
+    @staticmethod
+    def nm_to_meters(nm: float) -> float:
+        return nm * NAUTICAL_MILE * 1000
 
     @staticmethod
     def fl_to_m(fl: int) -> float:

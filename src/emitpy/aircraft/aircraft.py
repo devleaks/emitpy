@@ -1171,6 +1171,26 @@ class AircraftTypeWithPerformance(AircraftType):
         p = self.getPotential(current, d)
         return self.inTarget(target, p)
 
+    def descend_rate(self, altitude: int, delta: int, wind_contrib: int = convert.nm_to_meters(10)) -> float:
+        # Rule of thumb formula: (3 x height) + (1nm per 10kts of speed loss) + (1nm per 10kts of Tailwind Component)
+        # 10kts = 5.144444 m/s
+        # Tailwind: add 10nm for safety
+        # Alt
+        alt_contrib = 3 * delta
+        # Speed
+        speed, vspeed = self.getDescendSpeedAndVSpeedForAlt(altitude)
+        speed2 = self.getSI(ACPERF.approach_speed)
+        speed_diff = max(0, speed - speed2)
+        speed_contrib = 0
+        if speed_diff > 0:
+            speed_contrib = convert.nm_to_meters(speed_diff / 5.1)  # 1nm per 5.14 m/s
+        # Wind in parameters
+        contrib = alt_contrib + speed_contrib + wind_contrib
+        logger.debug(
+            f"descend_rate a={round(alt_contrib/1000)}km + s={round(speed_contrib/1000)}km + w={round(wind_contrib/1000)}km = {round(contrib/1000)}km ({round(convert.km_to_nm(contrib/1000))}nm)"
+        )
+        return contrib
+
 
 class AircraftClass(AircraftTypeWithPerformance):
     """
