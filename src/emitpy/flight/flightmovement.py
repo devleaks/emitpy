@@ -379,11 +379,6 @@ class FlightMovement(Movement):
         def fpi(f) -> int:
             return int(f.getProp(FEATPROP.FLIGHT_PLAN_INDEX))
 
-        def respect250kn(speed_in_ms, alt_in_ft) -> float:
-            """Returns authorized speed in m/s"""
-            # should use actype.fl100Speed()
-            return actype.low_alt_max_speed(alt=alt_in_ft, speed=speed_in_ms)
-
         def already_copied(index):
             x = list(filter(lambda f: f.getProp(FEATPROP.FLIGHT_PLAN_INDEX) == index, self._premoves))
             return len(x) > 0
@@ -412,6 +407,23 @@ class FlightMovement(Movement):
             # logger.debug("return index: %d" % (ni))
             # we now are at pos which is on LineString after index ni
             return ni
+
+        def addIntermediatePoint(arr, propname: FEATPROP, value: float, go_up: bool) -> MovePoint | None:
+            last_value = 0
+            for f in arr:
+                currval = f.getProp(propname)
+                if go_up and currval > value or not go_up and currval < value:
+                    # interpolate between last_val and f
+                    delta = f.getProp(propname) - currval
+                    d = distance(last_value, f)
+                    pct = (currval - value) / delta
+                    brg = bearing(last_value, f)
+                    pt = destination(last_value, length=pct * d, course=brg)
+                    newpos = MovePoint.new(pt)
+                    newpos.setMark(f"intermediate point for {propname.value} at {value}")
+                    return newpos
+                last_value = f
+            return None
 
         def addMovepoint(arr, src, alt, speed, vspeed, color, mark, ix):
             # create a copy of src, add properties on copy, and add copy to arr.
@@ -518,7 +530,7 @@ class FlightMovement(Movement):
                     curralt = current_altitude + delta * (currdist / total_dist)
                     alt_in_m = convert.feet_to_meters(curralt)
                     speed, vspeed = actype.getClimbSpeedAndVSpeedForAlt(alt_in_m)
-                    speed = respect250kn(speed, curralt)
+                    speed = actype.low_alt_max_speed(alt=alt_in_m, speed=speed)
                     d = distance(fc[idx], fc[idx + 1])
                     logger.debug(
                         ", ".join(
@@ -659,7 +671,7 @@ class FlightMovement(Movement):
                 curralt = current_altitude - delta * (currdist / total_dist)
                 alt_in_m = convert.feet_to_meters(curralt)
                 speed, vspeed = actype.getDescendSpeedAndVSpeedForAlt(alt_in_m)
-                speed = respect250kn(speed, curralt)
+                speed = actype.low_alt_max_speed(alt=alt_in_m, speed=speed)
                 # print(">>>>>", idx, alt, alt_in_m, speed, vspeed, convert.ms_to_kn(speed, 0), convert.ms_to_fpm(vspeed, 0))
                 logger.debug(
                     ", ".join(
@@ -1109,7 +1121,7 @@ class FlightMovement(Movement):
                 arr=self._premoves,
                 src=last_restricted_point,
                 alt=convert.feet_to_meters(ft=curralt),
-                speed=respect250kn(actype.getSI(ACPERF.climbFL150_speed), curralt),
+                speed=actype.low_alt_max_speed(alt=convert.feet_to_meters(curralt), speed=actype.getSI(ACPERF.climbFL150_speed)),
                 vspeed=actype.getSI(ACPERF.climbFL150_vspeed),
                 color=POSITION_COLOR.CLIMB.value,
                 mark=FLIGHT_PHASE.END_DEPARTURE_RESTRICTIONS.value,
@@ -1425,7 +1437,7 @@ class FlightMovement(Movement):
                 vspeed=final_vspeed_ms,
                 color=POSITION_COLOR.FINAL.value,
                 mark=FLIGHT_PHASE.FINAL_FIX.value,
-                ix=newidx,
+                ix=len(fcrev) - fcidx_rev,
             )
             logger.debug(
                 ", ".join(
@@ -1491,9 +1503,10 @@ class FlightMovement(Movement):
                 speed=actype.getSI(ACPERF.landing_speed),
                 vspeed=final_vspeed_ms,
                 color=POSITION_COLOR.FINAL.value,
-                mark="start_of_final",
+                mark=FLIGHT_PHASE.FINAL_FIX.value,
                 mark_tr=FLIGHT_PHASE.FINAL.value,
             )
+
         # We now have a reverse path from final fix alt to either touchdown to rollout or to airport center (if no rwy).
         # Final fix to touch down is (vspedd=)600ft/min at (speed=)landing speed.
         #
@@ -2319,12 +2332,12 @@ class FlightMovement(Movement):
             "RESTRICTIONS",
             "DISTANCE",
             "TOTAL DISTANCE",
-            "ALT",
+            "ALT (m)",
+            "SPEED (m/s)",
+            "V/S (m/s)",
             "ALT (ft)",
-            "SPEED",
             "SPEED (kn)",
-            "V/S",
-            "V/S (fp/m)",
+            "V/S (ft/min)",
             "COMMENTS",
         ]  # long comment to provoke wrap :-)
         table = []
@@ -2361,10 +2374,10 @@ class FlightMovement(Movement):
                     round(d, 1),
                     round(total_dist),
                     round(w.altitude()) if w.altitude() is not None else "",
-                    alt_ft(w.altitude()) + alt_ok,
                     w.speed(),
-                    speed_kn(w.speed()) + speed_ok,
                     w.vspeed(),
+                    alt_ft(w.altitude()) + alt_ok,
+                    speed_kn(w.speed()) + speed_ok,
                     speed_fpm(w.vspeed()),
                     w.comment(),
                 ]
