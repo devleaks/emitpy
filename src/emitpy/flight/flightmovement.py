@@ -2621,7 +2621,7 @@ class FlightMovement(Movement):
             logger.info(f"directory {basedir} did not exist. created.")
 
         ls = toSO6(flight_plan)
-        filename = os.path.join(basedir, ident + FILE_FORMAT.SO6.value + ".so6")
+        filename = os.path.join(basedir, ident + "-" + FILE_FORMAT.FLIGHT_PLAN.value + ".so6")
         with open(filename, "w") as fp:
             fp.write(ls)
         logger.debug(f"..saved {ident} timed flight plan")

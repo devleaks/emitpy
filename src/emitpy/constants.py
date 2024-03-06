@@ -136,6 +136,7 @@ class POI_COMBO(Enum):
 
 class FILE_FORMAT(Enum):
     FLIGHT_PLAN = "1-plan"
+    SO6 = "1-so6"  # Flight plan in Eurocontrol SO6 format
     FLIGHT = "2-flight"
     SERVICE = "3-service"
     MOVE = "3-move"
@@ -145,7 +146,6 @@ class FILE_FORMAT(Enum):
     MESSAGE = "7-messages"
     KML = "9-kml"
     TRAFFIC = "9-traffic"
-    SO6 = "9-so6"
 
 
 ########################################

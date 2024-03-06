@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from emitpy.constants import FEATPROP, FLIGHT_SEGMENT
 from emitpy.geo.turf import distance
@@ -13,9 +13,7 @@ from .features import FeatureWithProps
 logger = logging.getLogger("SO6")
 
 
-# from emitpy.utils import convert
-# from emitpy.geo import MovePoint
-#
+# Example SO6 flight:
 # LFBO_LFPO LFBO LFPO A320 161330 161730 13 103 0 AFR99NZ 180101 180101 2618.339926512 81.37730189759999 2627.9736328139998 71.2373955306 137241184 0 0 0
 # LFBO_LFPO LFBO LFPO A320 161730 162650 103 286 0 AFR99NZ 180101 180101 2627.9736328139998 71.2373955306 2679.0738380580005 71.372278725 137241184 0 0 0
 # LFBO_LFPO LFBO LFPO A320 162650 165140 286 272 0 AFR99NZ 180101 180101 2679.0738380580005 71.372278725 2829.1657011360003 64.86581655660001 137241184 0 0 0
@@ -26,6 +24,8 @@ logger = logging.getLogger("SO6")
 # LFBO_LFPO LFBO LFPO A320 171150 171310 58 40 0 AFR99NZ 180101 180101 2919.372253416 163.9836237978 2924.2666626 165.72030874380002 137241184 0 0 0
 # LFBO_LFPO LFBO LFPO A320 171310 171440 40 39 0 AFR99NZ 180101 180101 2924.2666626 165.72030874380002 2926.708374024 160.94548152059997 137241184 0 0 0
 # LFBO_LFPO LFBO LFPO A320 171440 171840 39 16 0 AFR99NZ 180101 180101 2926.708374024 160.94548152059997 2924.034506586 146.2381463304 137241184 0 0 0
+
+
 def meters_to_fl(m: float, rounding: int = -1) -> int:
     """
     Convert meter to feet
@@ -42,7 +42,7 @@ def meters_to_fl(m: float, rounding: int = -1) -> int:
     return int(r)
 
 
-def asSO6CSV(features: List[FeatureWithProps], header: bool = True) -> str:
+def asSO6CSV(features: List[FeatureWithProps], header: bool = False) -> str:
     """Convert feature geometry and properties for Traffic package analysis.
 
     CSV traffic format:
@@ -69,7 +69,17 @@ def asSO6CSV(features: List[FeatureWithProps], header: bool = True) -> str:
     DATE_FORMAT = "%y%m%d"
     TIME_FORMAT = "%H%M%S"
 
-    f = features[0]  # constants
+    i = 0
+    f = features[i]
+    has_flight_info = f.getPropPath("$.flight") is not None
+    while i < len(features) and not has_flight_info:
+        f = features[i]  # constants
+        has_flight_info = f.getPropPath("$.flight") is not None
+        i = i + 1
+    logger.debug(f"found movepoint with flight info at {i}")
+    # logger.debug(f"found movepoint with flight info at {i}: \n{json.dumps(f.to_geojson(), indent=2)}")
+    if not has_flight_info:
+        return "no movepoint with flight info"
     callsign = None
     flight = f.getProp("flight")
     if flight is not None:
@@ -84,9 +94,9 @@ def asSO6CSV(features: List[FeatureWithProps], header: bool = True) -> str:
     dtdt = datetime.fromisoformat(dtstr)
     start = dtdt.timestamp()
     segmentid = f"{origin}_{destination}"
-    flightidstr: str = f.getPropPath("$.flight.identifier")
-    flightid = f"{ int( ''.join([i for i in flightidstr if i.isdigit()]) ) }"  # only keeps digit
-    print(">>>>>>>>", flightidstr, flightid, actype, origin, destination)
+    flightidstr = f.getPropPath("$.flight.identifier")
+    num = "".join([str(i) for i in flightidstr if i.isdigit()]).replace("20", "")
+    flightid = f"{ num[:min(14, len(num))] }"  # only keeps digit
 
     # Point elements
     seq = 0
@@ -95,16 +105,17 @@ def asSO6CSV(features: List[FeatureWithProps], header: bool = True) -> str:
     for f in features:
         # Must only consider flight plan points, not move points.
         #
-        if f.geomtype() == "Point":
+        if f.geomtype() == "Point" and has_flight_info:
             if last is None:
                 last = f
                 continue
 
             seq = seq + 1
-            if f.getProp(FEATPROP.PLAN_SEGMENT_TYPE) == FLIGHT_SEGMENT.CRUISE.value:
-                status = 1  # we're cruising
-            elif status == 1 and f.getProp(FEATPROP.PLAN_SEGMENT_TYPE) != FLIGHT_SEGMENT.CRUISE.value:
-                status = 2  # we're descending
+            if f.getProp(FEATPROP.PLAN_SEGMENT_TYPE) is not None:
+                if f.getProp(FEATPROP.PLAN_SEGMENT_TYPE) == FLIGHT_SEGMENT.CRUISE.value:
+                    status = 1  # we're cruising
+                elif status == 1 and f.getProp(FEATPROP.PLAN_SEGMENT_TYPE) != FLIGHT_SEGMENT.CRUISE.value:
+                    status = 2  # we're descending
 
             dbegin = last.time()
             dend = f.time()
@@ -112,51 +123,55 @@ def asSO6CSV(features: List[FeatureWithProps], header: bool = True) -> str:
                 logger.warning(f"no time information")
                 continue
 
-            timebeginsegement = datetime.fromtimestamp(dbegin + start).strftime(TIME_FORMAT)
-            timeendsegment = datetime.fromtimestamp(dend + start).strftime(TIME_FORMAT)
+            timebeginsegement = datetime.fromtimestamp(dbegin + start, tz=timezone.utc).strftime(TIME_FORMAT)
+            timeendsegment = datetime.fromtimestamp(dend + start, tz=timezone.utc).strftime(TIME_FORMAT)
 
             flbeginsegment = meters_to_fl(last.altitude())
             flendsegment = meters_to_fl(f.altitude())
 
-            datebeginsegement = datetime.fromtimestamp(dbegin + start).strftime(DATE_FORMAT)
-            dateendsegement = datetime.fromtimestamp(dend + start).strftime(DATE_FORMAT)
+            datebeginsegement = datetime.fromtimestamp(dbegin + start, tz=timezone.utc).strftime(DATE_FORMAT)
+            dateendsegement = datetime.fromtimestamp(dend + start, tz=timezone.utc).strftime(DATE_FORMAT)
 
             latbeginsegement = last.lat()
             lonbeginsegment = last.lon()
             latendsegment = f.lat()
             longendsegment = f.lon()
 
-            segmentlength = distance(last, f)
+            segmentlength = round(distance(last, f) / 1.852, 2)  # nm
             segmentparity = "0"  # 0-9 color coded
 
-            res = [
-                str(f)
-                for f in [
-                    segmentid,
-                    origin,
-                    destination,
-                    actype,
-                    timebeginsegement,
-                    timeendsegment,
-                    flbeginsegment,
-                    flendsegment,
-                    status,
-                    callsign,
-                    datebeginsegement,
-                    dateendsegement,
-                    latbeginsegement,
-                    lonbeginsegment,
-                    latendsegment,
-                    longendsegment,
-                    flightid,
-                    seq,
-                    segmentlength,
-                    segmentparity,
-                ]
-            ]
-            print(res)
-            s = " ".join(res)
+            s = (
+                " ".join(
+                    [
+                        str(f)
+                        for f in [
+                            segmentid,
+                            origin,
+                            destination,
+                            actype,
+                            timebeginsegement,
+                            timeendsegment,
+                            flbeginsegment,
+                            flendsegment,
+                            status,
+                            callsign,
+                            datebeginsegement,
+                            dateendsegement,
+                            latbeginsegement,
+                            lonbeginsegment,
+                            latendsegment,
+                            longendsegment,
+                            flightid,
+                            seq,
+                            segmentlength,
+                            segmentparity,
+                        ]
+                    ]
+                )
+                + "\n"
+            )
             csv = csv + s
+            last = f
 
     return csv
 
