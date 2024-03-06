@@ -896,11 +896,12 @@ class AircraftTypeWithPerformance(AircraftType):
             return None
         return val
 
-    def FLFor(self, reqrange: int):
+    def FlightLevelFor(self, reqrange: int):
         """
         Estimates a flight level for supplied range.
         (No need to go FL340 for a 200km flight. Not a formal computation, just a reasonable suggestion.)
         The aircraft type max_ceiling is taken into consideration.
+        Returns flight level in FEETS / 100
 
         :param      reqrange:  The reqrange
         :type       reqrange:  int
@@ -917,6 +918,23 @@ class AircraftTypeWithPerformance(AircraftType):
         if reqrange < 1000:
             return min(280, max_ceiling)
         return min(340, max_ceiling)
+
+    def CruiseSpeedFor(self, reqfl: int) -> int | float:
+        """
+        Returns cruise speed according to flight level.
+        Returns cruise speed in IMPERIAL UNITS
+
+        :param      reqfl:  The required flight level
+        :type       reqfl:  int
+        """
+
+        if reqfl < 100:
+            return min(250, self.get(ACPERF.climbFL150_speed))
+        if reqfl < 240:
+            return self.get(ACPERF.climbFL240_speed)
+        if reqfl < 240:
+            return self.get(ACPERF.climbmach_mach)
+        return self.get(ACPERF.cruise_mach)
 
     def getClimbSpeedRangeForAlt(self, alt: float) -> SPEED_RANGE:
         if alt <= convert.feet_to_meters(1500):

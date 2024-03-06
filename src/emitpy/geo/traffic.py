@@ -1,8 +1,8 @@
-"""Summary
+"""Format flight and ground service mouvement as Xavier Olive Traffic trajectory format
 """
 
-from typing import List
 import json
+from typing import List
 
 from .features import FeatureWithProps
 
@@ -38,7 +38,7 @@ def asTrafficCSV(features: List[FeatureWithProps], header: bool = True) -> str:
 
     for f in features:
         if f.geomtype() == "Point":
-            s = f"{int(f.getAbsoluteEmissionTime())},{icao24},{callsign},{f.lat()},{f.lon()},{f.altitude(0)},{f.speed(0)},{f.heading(0)},{f.vspeed(0)}\n"
+            s = f"{int(f.getAbsoluteEmissionTime())},{icao24},{callsign},{f.lat()},{f.lon()},{f.altitude(0) * 3.28084},{f.speed(0)},{f.heading_or_course(0)},{f.vspeed(0)}\n"
             csv = csv + s
 
     return csv
@@ -80,10 +80,10 @@ def asTrafficJSON(features: List[FeatureWithProps]):
                 "latitude": f.lat(),
                 "longitude": f.lon(),
                 "groundspeed": f.speed(),
-                "track": f.heading(),
+                "track": f.heading_or_course(),
                 "vertical_rate": f.vspeed(),
                 "callsign": callsign,
-                "altitude": f.altitude(),
+                "altitude": f.altitude() * 3.28084,
             }
             for f in filter(lambda f: f.geometry.type == "Point", features)
         ]

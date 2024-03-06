@@ -1,14 +1,13 @@
 """
 A succession of positions where the aircraft passes. Includes taxi and takeoff or landing and taxi.
 """
-
 import os
 import io
 import json
 import logging
 import copy
-from math import log, pi
-from datetime import timedelta
+from math import pi
+from datetime import datetime, timedelta
 
 from tabulate import tabulate
 
@@ -19,7 +18,7 @@ from emitpy.flight import Flight, FLIGHT_SEGMENT
 from emitpy.airport import ManagedAirportBase
 from emitpy.aircraft import ACPERF
 from emitpy.geo import MovePoint, Movement
-from emitpy.geo import moveOn, cleanFeatures, asLineString, toKML, adjust_speed_vector
+from emitpy.geo import moveOn, cleanFeatures, asLineString, toKML, adjust_speed_vector, toSO6
 from emitpy.graph import Route
 from emitpy.utils import compute_headings, show_path
 from emitpy.constants import POSITION_COLOR, FEATPROP, TAXI_SPEED, SLOW_SPEED, INITIAL_CLIMB_SAFE_ALT, FINAL_APPROACH_FIX_ALT
@@ -80,28 +79,32 @@ class FlightMovement(Movement):
         """
         Chains local function calls to do the work.
         """
+        logger.debug("moving..")
+        logger.debug("..compute vertical navigation..")
         status = self.vnav()
         if not status[0]:
             logger.warning(status[1])
             return status
 
-        logger.debug(self.tabulateMovement2())
+        logger.debug(self.tabulateFlightMovement("UNTIMED FLIGHT PLAN"))
 
         # #####################################################
         #
         #
-        logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
-        return (False, "FlightMovement::TEMPORARY completed")
+        # logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
+        # return (False, "FlightMovement::TEMPORARY completed")
         #
         #
         # #####################################################
 
+        logger.debug("..compute standard turns..")
         status = self.standard_turns()
         if not status[0]:
             logger.warning(status[1])
             return status
 
         if self.flight.is_arrival():
+            logger.debug("..add TMO..")
             status = self.add_tmo()
             if not status[0]:
                 logger.warning(status[1])
@@ -112,16 +115,21 @@ class FlightMovement(Movement):
                 logger.warning(status[1])
                 return status
 
+        logger.debug("..interpolate..")
         status = self.interpolate()
         if not status[0]:
             logger.warning(status[1])
             return status
 
+        logger.debug("..compute course..")
         res = compute_headings(self.getMovePoints())
         if not res[0]:
             logger.warning(status[1])
             return res
 
+        # print([f.course() for f in self.getMovePoints()])
+
+        logger.debug("..compute time..")
         status = self.time()  # sets the time for gross approximation
         if not status[0]:
             logger.warning(status[1])
@@ -134,11 +142,13 @@ class FlightMovement(Movement):
         for p in self.getMovePoints():
             tb.append(p.time())
 
+        logger.debug("..add wind..")
         status = self.add_wind()  # refines speeds
         if not status[0]:
             logger.warning(status[1])
             return status
 
+        logger.debug("..compute time with wind..")
         status = self.time()  # sets the time for wind adjusted speed
         if not status[0]:
             logger.warning(status[1])
@@ -157,6 +167,7 @@ class FlightMovement(Movement):
         logger.debug(f"flight duration with winds: {duration} ({timedelta(seconds=round(duration))} + {timedelta(seconds=round(duration - duration0))})")
         self.flight.estimate_opposite(travel_time=duration)
 
+        logger.debug("..add taxi..")
         status = self.taxi()
         if not status[0]:
             logger.warning(status[1])
@@ -168,8 +179,11 @@ class FlightMovement(Movement):
             return status
         # printFeatures(self.taxipos, "after taxi")
 
-        logger.debug(self.tabulateMovement2())
+        logger.debug(self.tabulateFlightMovement("FLIGHT MOVEMENT"))
 
+        logger.debug(self.tabulateFlightPlan())
+
+        logger.debug("..moved")
         logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
         return (True, "FlightMovement::move completed")
 
@@ -180,7 +194,6 @@ class FlightMovement(Movement):
         @todo should save file format version number.
         """
         basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE, self.flight_id)
-        LINESTRING_EXTENSION = "_ls"
 
         def saveMe(arr, name):
             # filename = os.path.join(basename + "-" + name + ".json")
@@ -2157,6 +2170,7 @@ class FlightMovement(Movement):
         for f in move_points:
             f.setProp(FEATPROP.MOVE_INDEX, idx)
             f.setProp("flight-summary", str(self.flight))
+            f.setProp("flight", self.flight.getInfo())
             idx = idx + 1
 
         self.setMovePoints(move_points)
@@ -2311,7 +2325,7 @@ class FlightMovement(Movement):
 
         return (True, "Movement::time computed")
 
-    def tabulateMovement2(self):
+    def tabulateFlightMovement(self, title: str = "FLIGHT MOVEMENT"):
         def alt_ft(a):
             return "" if a is None else str(round(convert.meters_to_feet(a)))
 
@@ -2323,7 +2337,7 @@ class FlightMovement(Movement):
 
         output = io.StringIO()
         print("\n", file=output)
-        print(f"FLIGHT MOVEMENT", file=output)
+        print(f"{title}", file=output)
         HEADER = [
             "INDEX",
             "MARK",
@@ -2338,6 +2352,7 @@ class FlightMovement(Movement):
             "ALT (ft)",
             "SPEED (kn)",
             "V/S (ft/min)",
+            "COURSE",
             "COMMENTS",
         ]  # long comment to provoke wrap :-)
         table = []
@@ -2379,6 +2394,7 @@ class FlightMovement(Movement):
                     alt_ft(w.altitude()) + alt_ok,
                     speed_kn(w.speed()) + speed_ok,
                     speed_fpm(w.vspeed()),
+                    w.course(),
                     w.comment(),
                 ]
             )
@@ -2405,6 +2421,12 @@ class FlightMovement(Movement):
 
         logger.debug("interpolate speed..")
         status = doInterpolation(self.taxipos, "speed")
+        if not status[0]:
+            logger.warning(status[1])
+            return status
+
+        logger.debug("..compute course..")
+        status = compute_headings(self.taxipos)
         if not status[0]:
             logger.warning(status[1])
             return status
@@ -2467,6 +2489,144 @@ class FlightMovement(Movement):
         # FARAWAY is ~100 miles away following airways (i.e. 100 miles of flight to go),
         # not in straght line, although we could adjust algorithm if needed.
         return self.add_tmo(TMO=FARAWAY, mark=FLIGHT_PHASE.FAR_AWAY.value)
+
+    def get_timed_flight_plan(self) -> list:
+        """Now that we have timed the trip and that each point has a speed,
+        it is possible to build a timed flight plan
+        """
+        fpidx = set([f.getProp(FEATPROP.FLIGHT_PLAN_INDEX) for f in self.flight.flightplan_wpts])
+        done = []
+        ret = []
+        for f in self.getMovePoints():
+            i = f.getProp(FEATPROP.FLIGHT_PLAN_INDEX)
+            if i is not None and i not in done:
+                done.append(i)
+                ret.append(f)
+                if i not in fpidx:
+                    logger.warning(f"invalid index {i} in flight plan")
+                else:
+                    fpidx.remove(i)
+        ret = sorted(ret, key=lambda f: f.getProp(FEATPROP.FLIGHT_PLAN_INDEX))
+        logger.debug(f"extracted {len(ret)} flight plan waypoints")
+        return ret
+
+    def tabulateFlightPlan(self):
+        def alt_ft(a):
+            return "" if a is None else str(round(convert.meters_to_feet(a)))
+
+        def speed_kn(a):
+            return "" if a is None else str(round(convert.ms_to_kn(a)))
+
+        def speed_fpm(a):
+            return "" if a is None else str(round(convert.ms_to_fpm(a)))
+
+        output = io.StringIO()
+        print("\n", file=output)
+        print(f"TIMED FLIGHT PLAN", file=output)
+        HEADER = [
+            "INDEX",
+            "MARK",
+            "WAYPOINT",
+            "RESTRICTIONS",
+            "DISTANCE",
+            "TOTAL DISTANCE",
+            "TIME (s)",
+            "TOTAL TIME (s)",
+            "DATE TIME",
+            "ALT (m)",
+            "SPEED (m/s)",
+            "V/S (m/s)",
+            "ALT (ft)",
+            "SPEED (kn)",
+            "V/S (ft/min)",
+            "COURSE",
+            "COMMENTS",
+        ]  # long comment to provoke wrap :-)
+        table = []
+
+        fid = self.flight.getId()
+        f0 = self.flight.getScheduledDepartureTime()
+        start = datetime.now().timestamp()
+        if self.flight.estimated_dt is not None:
+            start = self.flight.scheduled_dt.timestamp()
+        elif self.flight.estimated_dt is not None:
+            start = self.flight.scheduled_dt.timestamp()
+        ft = f0
+        last_ti = 0
+        total_dist = 0
+        last_point = None
+        idx = 0
+        for w in self.get_timed_flight_plan():
+            d = 0
+            if last_point is not None:
+                d = distance(last_point, w)
+                total_dist = total_dist + d
+
+            speed_ok = ""
+            alt_ok = ""
+            restriction = w.getProp("restriction")
+            if restriction is not None and restriction != "":  # has restriction...
+                r = Restriction.parse(restriction)
+                if w.speed() is not None and not r.checkSpeed(w):
+                    speed_ok = " ***"
+                if w.altitude() is not None and not r.checkAltitude(w.geometry):
+                    alt_ok = " ***"
+
+            ti = w.time()
+            fti = datetime.fromtimestamp(start + ti).replace(microsecond=0).isoformat()
+
+            table.append(
+                [
+                    w.getProp(FEATPROP.FLIGHT_PLAN_INDEX),
+                    w.getMark(),
+                    w.getId(),
+                    restriction,
+                    round(d, 1),
+                    round(total_dist),
+                    timedelta(seconds=int(ti - last_ti)),
+                    timedelta(seconds=int(ti)),
+                    fti,
+                    round(w.altitude()) if w.altitude() is not None else "",
+                    w.speed(),
+                    w.vspeed(),
+                    alt_ft(w.altitude()) + alt_ok,
+                    speed_kn(w.speed()) + speed_ok,
+                    speed_fpm(w.vspeed()),
+                    w.course(),
+                    w.comment(),
+                ]
+            )
+            last_point = w
+            last_ti = ti
+            idx = idx + 1
+
+        table = sorted(table, key=lambda x: x[0])  # absolute emission time
+        print(tabulate(table, headers=HEADER), file=output)
+
+        contents = output.getvalue()
+        output.close()
+        return contents
+
+    def saveSO6(self):
+        """
+        Save GSE paths to file for emitted positions for python traffic analysis
+        """
+        flight_plan = self.get_timed_flight_plan()
+        logger.debug(f"flight plan has {len(flight_plan)} positions, saving..")
+
+        ident = self.getId()
+        basedir = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE)
+        if not os.path.exists(basedir):
+            os.mkdir(basedir)
+            logger.info(f"directory {basedir} did not exist. created.")
+
+        ls = toSO6(flight_plan)
+        filename = os.path.join(basedir, ident + FILE_FORMAT.SO6.value + ".so6")
+        with open(filename, "w") as fp:
+            fp.write(ls)
+        logger.debug(f"..saved {ident} timed flight plan")
+
+        return (True, "Move::saveSO6 saved")
 
 
 class ArrivalMove(FlightMovement):

@@ -46,7 +46,7 @@ class StatusInfo:
 # SAVE_AND_WRITE = SAVE_AND_WRITE + ["redis-emit", "redis-scheduled", "redis-enqueue", "redis-messages"]
 #
 # Could also add: taxi, kml, LST.
-SAVE_AND_WRITE = ["plan", "move", "traffic", "kml"]
+SAVE_AND_WRITE = ["plan", "move", "traffic", "kml", "so6"]
 
 
 def need_save(save):
@@ -340,7 +340,8 @@ class EmitApp(ManagedAirport):
         if acperf is None:
             return StatusInfo(4, f"aircraft performance not found for {ac}", None)
         acperf.load()
-        reqfl = acperf.FLFor(aptrange)
+        reqfl = acperf.FlightLevelFor(aptrange)
+        reqcs = acperf.CruiseSpeedFor(reqfl)
 
         logger.debug("..loading aircraft..")
         aircraft = Aircraft(registration=acreg, icao24=icao24, actype=acperf, operator=airline)
@@ -406,7 +407,7 @@ class EmitApp(ManagedAirport):
             self.airport.setRunwaysInUse(runway)
         # else:??
 
-        flight.setFL(reqfl)
+        flight.setCruise(reqfl, reqcs)
 
         rampval = self.airport.getRamp(ramp, redis=self.use_redis())
         if rampval is None:
@@ -454,6 +455,12 @@ class EmitApp(ManagedAirport):
             if not ret[0]:
                 return StatusInfo(7, f"problem during move save", ret[1])
 
+        if need_save("so6"):
+            logger.debug("..saving timed flight plan file..")
+            ret = move.saveSO6()
+            if not ret[0]:
+                return StatusInfo(7, f"problem during move save (so6)", ret[1])
+
         # #############################################################################################################
         #
         # FMC
@@ -495,13 +502,13 @@ class EmitApp(ManagedAirport):
             logger.debug("..saving positions to file..")
             ret = emit.saveFile()
             if not ret[0]:
-                return StatusInfo(11, f"problem during save to file", ret[1])
+                return StatusInfo(11, f"problem during save to file (emit)", ret[1])
 
         if need_save("traffic"):
             logger.debug("..saving positions for traffic to csv file..")
             ret = emit.saveTraffic()
             if not ret[0]:
-                return StatusInfo(11, f"problem during save to file", ret[1])
+                return StatusInfo(11, f"problem during save to file (traffic)", ret[1])
 
         if self._use_redis:
             logger.debug("..saving positions to Redis..")

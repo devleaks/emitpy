@@ -1,5 +1,6 @@
 # Everything Flight
 import logging
+import re
 import traceback
 import io
 from typing import Tuple
@@ -13,21 +14,13 @@ from emitpy.airport import Airport
 from emitpy.airspace.restriction import FeatureWithRestriction
 from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
-from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE, RWY_ARRIVAL_SLOT, RWY_DEPARTURE_SLOT
+from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE, RWY_ARRIVAL_SLOT, RWY_DEPARTURE_SLOT, FLIGHT_SEGMENT
 from emitpy.geo.turf import distance
 from emitpy.utils import convert
 from emitpy.message import Messages, FlightboardMessage, EstimatedTimeMessage
+from emitpy.utils.interpolate import compute_time
 
 logger = logging.getLogger("Flight")
-
-
-class FLIGHT_SEGMENT(Enum):
-    RWYDEP = "rwydep"
-    RWYARR = "rwyarr"
-    SID = "sid"
-    STAR = "star"
-    APPCH = "appch"
-    CRUISE = "cruise"
 
 
 class Flight(Messages):
@@ -69,6 +62,7 @@ class Flight(Messages):
         self.codeshare = None
         self.phase = FLIGHT_PHASE.SCHEDULED if scheduled else FLIGHT_PHASE.UNKNOWN
         self.flight_level = 0
+        self.cruise_speed = 0.85  # mach
         self.flightroute = None  # FlightRoute object
         self.flightplan_wpts = []
 
@@ -321,12 +315,13 @@ class Flight(Messages):
         else:
             logger.warning(f"{linked_flight.getId()} already linked")
 
-    def setFL(self, flight_level: int) -> None:
+    def setCruise(self, flight_level: int, cruise_speed: float = 0.85) -> None:
         self.flight_level = flight_level
         if flight_level <= 100:
             logger.warning(f"{self.flight_level}")
         else:
             logger.debug(f"{self.flight_level}")
+        self.cruise_speed = cruise_speed
 
     def setLoadFactor(self, load_factor: float):
         if load_factor >= 0 and load_factor <= 2:
@@ -558,7 +553,7 @@ class Flight(Messages):
         else:  # no sid, we go straight
             logger.debug(f"departure airport {depapt.icao} has no procedure, flying straight")
             ret = normplan[1:]  # remove departure airport and leave cruise
-            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, "cruise")
+            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.CRUISE.value)
             Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao + "-" + self.arrival.icao)
             waypoints = waypoints + ret
 
@@ -634,8 +629,26 @@ class Flight(Messages):
 
         self.flightplan_wpts = waypoints
         # printFeatures(self.flightplan_wpts, "plan")
+        #
+        # Flight plan has no speed...
+        #
+        # ret = self.time_flight_plan()
+        # if not ret[0]:
+        #     logger.warning(ret[1])
+        # else:
+        #     logger.debug(ret[1])
         logger.debug(f"generated {len(self.flightplan_wpts)} points")
         return (True, "Flight::plan: planned")
+
+    def time_flight_plan(self):
+        # Flight plan has no speed...
+        compute_time(self.flightplan_wpts, self.scheduled_dt.timestamp())
+        # tranfer "time" to "flight plan time"
+        for f in self.flightplan_wpts:
+            f.setProp(FEATPROP.FLIGHT_PLAN_TIME, f.time())
+            f.delProp(FEATPROP.TIME)
+        logger.debug(f"timed {len(self.flightplan_wpts)} points")
+        return (True, "Flight::time_flight_plan: timed")
 
     def phase_indices(self, phase: FLIGHT_SEGMENT) -> Tuple[int, int | None]:
         """Returns flight plan indices for begin and end of phase"""

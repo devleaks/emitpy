@@ -79,6 +79,35 @@ class convert:
         return m / FT
 
     @staticmethod
+    def meters_to_fl(m: float, rounding: int = -1) -> int:
+        """
+        Convert meter to feet
+
+        :param      m:    { parameter_description }
+        :type       m:    { type_description }
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        r = (m / FT) / 100
+        if rounding != -1:
+            r = rounding * round(r / rounding)
+        return int(r)
+
+    @staticmethod
+    def fl_to_meters(fl: float) -> float:
+        """
+        Convert meter to feet
+
+        :param      m:    { parameter_description }
+        :type       m:    { type_description }
+
+        :returns:   { description_of_the_return_value }
+        :rtype:     { return_type_description }
+        """
+        return fl * 100 * FT
+
+    @staticmethod
     def feet_to_meters(ft: float) -> float:
         """
         Convert feet to meters

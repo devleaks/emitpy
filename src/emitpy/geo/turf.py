@@ -333,6 +333,13 @@ class EmitpyFeature(Feature):
             return default
         return float(a)
 
+    def heading_or_course(self, default: float | None = None) -> float | None:
+        """Returns heading if available, else course"""
+        a = self.getProp(FEATPROP.HEADING)
+        if a is not None and a != "None":
+            return a
+        return self.course(default)
+
     def setTime(self, time: float):
         self.setProp(FEATPROP.TIME, time)
 

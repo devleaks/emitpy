@@ -145,6 +145,7 @@ class FILE_FORMAT(Enum):
     MESSAGE = "7-messages"
     KML = "9-kml"
     TRAFFIC = "9-traffic"
+    SO6 = "9-so6"
 
 
 ########################################
@@ -338,6 +339,15 @@ class MOVE_TYPE(Enum):
     MISSION = "mission"
 
 
+class FLIGHT_SEGMENT(Enum):
+    RWYDEP = "rwydep"
+    RWYARR = "rwyarr"
+    SID = "sid"
+    STAR = "star"
+    APPCH = "appch"
+    CRUISE = "cruise"
+
+
 class FLIGHT_PHASE(Enum):
     OFFBLOCK = "OFFBLOCK"
     PUSHBACK = "PUSHBACK"
@@ -499,7 +509,7 @@ class FEATPROP(Enum):
     EMIT_RELATIVE_TIME = "emit-relative-time"
     FLIGHT_MOVE_INDEX = "move-index"
     FLIGHT_PLAN_INDEX = "plan-index"
-    FLIGHT_PLANDB_INDEX = "fpdb-index"
+    FLIGHT_PLAN_TIME = "plan-time"
     TAXI_INDEX = "taxi-index"
     JETWAY = "jetway"
     GROUNDED = "grounded"
