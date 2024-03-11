@@ -52,6 +52,13 @@ class Vertex(FeatureWithProps):
         a["vertex"] = {"name": self.name, "usage": self.usage, "adjacent": self.adjacent, "connected": self.connected}
         return a
 
+    def get_nxattrs(self):
+        a = {"lat": self.lat(), "lon": self.lon(), "id": self.getId(), "v": self}  # , "alt": self.alt()
+        if self.restriction is not None:
+            a["base"] = self.restriction.alt1
+            a["ceil"] = self.restriction.alt2
+        return a
+
     @classmethod
     def new(cls, info):
         return info
@@ -71,7 +78,7 @@ class Edge(FeatureWithProps):
         self.widthCode: str | None = None
         self.restriction: "Restriction" | None = None
 
-        if type(usage) == str:
+        if isinstance(usage, str):
             usage = [usage]
 
         for s in usage:
@@ -105,7 +112,7 @@ class Edge(FeatureWithProps):
         # returns array of Feature<Point>.
         # If an edge is a linestring rather than a straight line from src to end, returns all intermediate points.
         pts = []
-        pts.append(self.src)  # extremity points have their own props from vertex
+        pts.append(self.start)  # extremity points have their own props from vertex
         coords = self.geometry.coordinates
         if len(coords) > 2:
             props = self.props()  # copies edge props to each "inner" point
@@ -118,12 +125,24 @@ class Edge(FeatureWithProps):
         pts.append(self.end)
         return pts
 
+    def get_nxattrs(self):
+        # self.lowhigh = lowhigh
+        # self.fl_floor = fl_floor
+        # self.fl_ceil = fl_ceil
+        a = {"weight": self.weight}
+        if type(self).__name__ == "AirwaySegment":
+            a["hilo"] = self.lowhigh
+            if self.restriction is not None:
+                a["base"] = self.restriction.alt1
+                a["ceil"] = self.restriction.alt2
+        return a
+
 
 class Graph:  # Graph(FeatureCollection)?
     def __init__(self):
         self.vert_dict = {}
         self.edges_arr = []
-        self.nx = nx.Graph()
+        self.nx = nx.DiGraph()
 
     def print(self, vertex: bool = True, edge: bool = True):
         allitems: List[Vertex | Edge] = []
@@ -140,7 +159,7 @@ class Graph:  # Graph(FeatureCollection)?
         if vertex.id in self.vert_dict.keys():
             logger.warning(f"duplicate {vertex.id}")
         self.vert_dict[vertex.id] = vertex
-        self.nx.add_node(vertex.id, v=vertex)
+        self.nx.add_node(vertex.id, **vertex.get_nxattrs())  # node attributes unused, only vertex.id to identify the vertex
         return vertex
 
     def get_vertex(self, ident: str):
@@ -195,8 +214,9 @@ class Graph:  # Graph(FeatureCollection)?
             self.vert_dict[edge.start.id].add_neighbor(self.vert_dict[edge.end.id].id, edge.weight)
             self.vert_dict[edge.start.id].connected = True
             self.vert_dict[edge.end.id].connected = True
-            self.nx.add_edge(edge.start.id, edge.end.id, weight=edge.weight)
+            self.nx.add_edge(edge.start.id, edge.end.id, weight=edge.weight, **edge.get_nxattrs())
             if not edge.directed:
+                self.nx.add_edge(edge.end.id, edge.start.id, weight=edge.weight, **edge.get_nxattrs())
                 self.vert_dict[edge.end.id].add_neighbor(self.vert_dict[edge.start.id].id, edge.weight)
 
         else:
@@ -223,11 +243,13 @@ class Graph:  # Graph(FeatureCollection)?
         #     nd[ident] = self.vert_dict[ident]
         self.vert_dict = nd
         logger.debug(f"purged {n - len(self.vert_dict)} vertices, {len(self.vert_dict)} left")
-        newnx = nx.Graph()
+        newnx = nx.DiGraph()
         for ident, vertex in self.vert_dict.items():
             newnx.add_node(ident, v=vertex)
         for edge in self.edges_arr:
             newnx.add_edge(edge.start.id, edge.end.id, weight=edge.weight)
+            if not edge.directed:
+                self.nx.add_edge(edge.end.id, edge.start.id, weight=edge.weight)
         self.nx = newnx
         logger.debug(f"networkx graph recreated: {len(nx.nodes(self.nx))} vertices, {len(nx.edges(self.nx))} edges")
 
