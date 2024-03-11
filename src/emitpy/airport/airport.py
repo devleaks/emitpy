@@ -401,13 +401,13 @@ class AirportWithProcedures(Airport):
 
     def getInfo(self):
         base = super().getInfo()
+        return base
+
+    def getSummary(self):
+        base = self.getInfo()
         if base is not None:
             base["procedures"] = self.procedures.getInfo()
         return base
-        # return {
-        #     "airport": super().getInfo(),
-        #     "procedures": self.procedures.getInfo()
-        # }
 
     def load(self):
         """
@@ -765,16 +765,11 @@ class ManagedAirportBase(AirportWithProcedures):
     def getInfo(self):
         base = super().getInfo()
         if base is not None:
-            base["info_source"] = type(self).__name__
+            base["data-source"] = type(self).__name__
         return base
-        # return {
-        #     "airport": super().getInfo(),
-        #     "procedures": self.procedures.getInfo()
-        # }
 
     def getSummary(self):
-        base = self.getInfo()
-        base["procedures"] = self.procedures.getInfo()
+        base = self.getSummary()  # CIFP procedures
         base["runways"] = list(self.runways.keys())
         base["taxiway-network"] = (len(self.taxiways.vert_dict.keys()), len(self.taxiways.edges_arr))
         base["ramps"] = list(self.ramps.keys())

@@ -3,18 +3,22 @@ import logging
 import re
 import traceback
 import io
+import os
+import json
 from typing import Tuple
 from enum import Enum
 from datetime import datetime, timedelta, timezone
 
 from tabulate import tabulate
 
+from emitpy.parameters import MANAGED_AIRPORT_AODB
+from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE, RWY_ARRIVAL_SLOT, RWY_DEPARTURE_SLOT, FLIGHT_SEGMENT
+from emitpy.constants import FLIGHT_DATABASE, FEATPROP
 from emitpy.airspace import FlightRoute
 from emitpy.airport import Airport
 from emitpy.airspace.restriction import FeatureWithRestriction
 from emitpy.business import Airline
 from emitpy.aircraft import Aircraft
-from emitpy.constants import PAYLOAD, FLIGHT_PHASE, FEATPROP, FLIGHT_TIME_FORMAT, ARRIVAL, DEPARTURE, RWY_ARRIVAL_SLOT, RWY_DEPARTURE_SLOT, FLIGHT_SEGMENT
 from emitpy.geo.turf import distance
 from emitpy.utils import convert
 from emitpy.message import Messages, FlightboardMessage, EstimatedTimeMessage
@@ -144,7 +148,8 @@ class Flight(Messages):
             "runway": (self.runway.getInfo() if self.runway is not None else {}),  # note: this is the GeoJSON feature, not the RWY procedure
             "is_arrival": self.is_arrival(),  # simply useful denormalisation...
             "comment": self.comment,
-            "summary": str(self)
+            "summary": str(self),
+            "procedures": self.force_string()
             # "meta": self.meta
         }
 
@@ -171,6 +176,16 @@ class Flight(Messages):
         a = flight_id.split("-")
         scheduled_utc = datetime.strptime(a[1], "S" + FLIGHT_TIME_FORMAT).replace(tzinfo=timezone.utc)
         return (a[0], scheduled_utc, a[0][0:2], a[2:])
+
+    def saveFile(self, **kwargs):
+        if kwargs.get("info"):
+            basename = os.path.join(MANAGED_AIRPORT_AODB, FLIGHT_DATABASE, self.getId())
+            filename = basename + "-0-info.json"
+            with open(filename, "w") as fp:
+                json.dump(self.getInfo(), fp, indent=4)
+
+        logger.debug(f"saved {self.getId()}")
+        return (True, "Flight::saveFile saved")
 
     def set_movement(self, move):
         self._movement = move
@@ -473,6 +488,9 @@ class Flight(Messages):
         def nvl(a):
             b = self.procedures.get(a.value)
             return f"'{b.name}'" if b is not None else None
+
+        if self.procedures is None:
+            return "{}"
 
         return ", ".join(
             [

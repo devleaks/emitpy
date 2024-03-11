@@ -638,7 +638,7 @@ class XPAerospace(Aerospace):
         Loads airway segments from X-Plane segments database.
         """
 
-        # 0     1  2  3     4  5
+        # 0     1  2  3     4  5  6 7   8   9 10+
         # ABILO LG 11 PERIM LG 11 F 1   0   0 L53
         #   LAS K2  3 SUVIE K2 11 N 2 180 450 J100-J9
         #
@@ -687,17 +687,23 @@ class XPAerospace(Aerospace):
                             dst = self.findNamedPoint(region=args[4], ident=args[3], navtypeid=args[5])
                             if dst:
                                 if args[6] == DIRECTION["FORWARD"]:
-                                    awy = AirwaySegment(args[10], src, dst, True, args[7], args[8], args[9])
+                                    awy = AirwaySegment(
+                                        names=args[10], start=src, end=dst, direction=True, lowhigh=int(args[7]), fl_floor=args[8], fl_ceil=args[9]
+                                    )
                                     if args[8] is not None or args[9] is not None:
                                         awy.set_restriction(mkRestriction(args[8], args[9]))
                                     self.add_edge(awy)
                                 elif args[6] == DIRECTION["BACKWARD"]:
-                                    awy = AirwaySegment(args[10], dst, src, True, args[7], args[8], args[9])
+                                    awy = AirwaySegment(
+                                        names=args[10], start=dst, end=src, direction=True, lowhigh=int(args[7]), fl_floor=args[8], fl_ceil=args[9]
+                                    )
                                     if args[8] is not None or args[9] is not None:
                                         awy.set_restriction(mkRestriction(args[8], args[9]))
                                     self.add_edge(awy)
                                 else:
-                                    awy = AirwaySegment(args[10], src, dst, False, args[7], args[8], args[9])
+                                    awy = AirwaySegment(
+                                        names=args[10], start=src, end=dst, direction=False, lowhigh=int(args[7]), fl_floor=args[8], fl_ceil=args[9]
+                                    )
                                     if args[8] is not None or args[9] is not None:
                                         awy.set_restriction(mkRestriction(args[8], args[9]))
                                     self.add_edge(awy)

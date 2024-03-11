@@ -495,7 +495,7 @@ class FlightMovement(Movement):
 
             if target_altitude == current_altitude:
                 logger.debug("same altitude, no need to climb")
-                return (target_index, target_altitude)
+                # return (target_index, target_altitude)
 
             delta = target_altitude - current_altitude
             # ranges are initial-climb, climb-150, climb-240, climb-cruise
@@ -534,13 +534,18 @@ class FlightMovement(Movement):
                 logger.debug(f"expedite: will climb from {current_altitude} at idx {start_idx} to {target_altitude} at idx {curridx}")
             else:  # regular gradient climb
                 logger.debug(
-                    f"no expedite: will climb from {current_altitude} at idx {start_idx} to {target_altitude} at idx {curridx}, (has {round(d, 2)} km to climb)"
+                    f"no expedite: will climb from {current_altitude} at idx {start_idx} to {target_altitude} at idx {curridx}, (has {round(total_dist, 2)} km to climb)"
                 )
                 curridx = max(curridx, target_index)
                 currpos = None
                 currdist = 0
+                # special case: we do not copy the first point (airport)
+                if start_idx == 0:
+                    start_idx = 1
                 for idx in range(start_idx, curridx):
-                    curralt = current_altitude + delta * (currdist / total_dist)
+                    curralt = current_altitude
+                    if delta != 0 and total_dist != 0:
+                        curralt = current_altitude + delta * (currdist / total_dist)
                     alt_in_m = convert.feet_to_meters(curralt)
                     speed, vspeed = actype.getClimbSpeedAndVSpeedForAlt(alt_in_m)
                     speed = actype.low_alt_max_speed(alt=alt_in_m, speed=speed)
@@ -870,6 +875,7 @@ class FlightMovement(Movement):
         groundmv = 0
         fcidx = 0
         rwy = None
+        newidx = 0
 
         if self.flight.departure.has_rwys():  # take off self.flight.is_departure()
             if self.flight.is_departure():  # we are at the managed airport, we must use the selected runway
@@ -963,9 +969,6 @@ class FlightMovement(Movement):
             groundmv = groundmv + initial_climb_distance
             # we ignore vertices between takeoff and initial_climb
             # we go in straight line and ignore self._premoves, skipping eventual points
-            if newidx == 0:
-                newidx = 1
-            fcidx = newidx
 
         else:  # no runway, simpler departure
             deptapt = fc[0]
@@ -1002,7 +1005,7 @@ class FlightMovement(Movement):
             # find initial climb point
             groundmv = step[1]
 
-            currpos, fcidx = moveOnLS(
+            currpos, newidx = moveOnLS(
                 coll=self._premoves,
                 reverse=False,
                 fc=fc,
@@ -1018,6 +1021,10 @@ class FlightMovement(Movement):
             )
             currpos.setComment("initial climb (from airport)")
 
+        if newidx == 0:
+            logger.debug(f"moved flight plan index to 1")
+            newidx = 1
+        fcidx = newidx
         # ########################################################################################
         #
         # Version 1: New algorithm to climb from initial climb altitude to cruise altitude while respecting alt contraints.
@@ -1046,7 +1053,7 @@ class FlightMovement(Movement):
 
             f = fc[curridx]
             if hasattr(f, "hasRestriction") and f.hasRestriction():
-                logger.debug(f"start index idx={curridx} has restriction")
+                logger.debug(f"start index idx={curridx} has restriction, backing up to {max(curridx - 1, 0)}")
                 curridx = max(curridx - 1, 0)
 
             logger.debug(f"getting next above restriction after idx={curridx} ({LOOK_AHEAD_DISTANCE}km)")
@@ -1087,6 +1094,10 @@ class FlightMovement(Movement):
                     )
                 else:
                     logger.debug(f"at index {curridx} at alt {curralt}ft, no need to climb, already at or above restriction {restricted_above_alt}ft")
+                    tidx = fpi(r)
+                    curridx, curralt = climb_to_alt(
+                        start_idx=curridx, current_altitude=curralt, target_altitude=restricted_above_alt, target_index=tidx, comment="climb above restriction"
+                    )
 
                 logger.debug(f"getting next above restriction after idx={fpi(r)} ({LOOK_AHEAD_DISTANCE}km)")
                 r = self.flight.next_above_alt_restriction(fpi(r), max_distance=LOOK_AHEAD_DISTANCE)
@@ -1323,7 +1334,7 @@ class FlightMovement(Movement):
         #
         final_fix_alt_ft = None  # Altitude ABG at which we start final, always straight line aligned with runway
         final_vspeed_fpm = 600  # average accepted vertical speed for final approach
-        approach_alt = 3000  # Altitude ABG at which we perform approach path before final
+        approach_alt_ft = 3000  # Altitude ABG at which we perform approach path before final
 
         # 1. Try to get defaults from procedure
         apchproc = self.flight.procedures.get(FLIGHT_SEGMENT.APPCH.value)
@@ -1352,10 +1363,10 @@ class FlightMovement(Movement):
             final_vspeed_fpm = convert.fpm_to_ms(600)  # ft/min, fairly standard
             logger.debug(f"final vspeed from default ({final_vspeed_fpm}m/s)")
 
-        final_fix_alt_ft = round(final_fix_alt_ft, 1)
-        approach_alt = round(approach_alt, 1)
-
+        final_fix_alt_ft = int(final_fix_alt_ft)
         final_fix_alt_m = convert.feet_to_meters(final_fix_alt_ft)  # Default target alt for descend ft
+        approach_alt_ft = int(approach_alt_ft)
+        approach_alt_m = convert.feet_to_meters(approach_alt_ft)  # Default target alt for descend ft
         final_vspeed_ms = convert.fpm_to_ms(final_vspeed_fpm)
 
         # Create (reverse) path
@@ -1368,6 +1379,7 @@ class FlightMovement(Movement):
         fcrev = fc.copy()
         fcrev.reverse()
         fcidx_rev = 0
+        last_rev_idx = len(fcrev) - 1
 
         is_grounded = True
 
@@ -1401,7 +1413,7 @@ class FlightMovement(Movement):
                 vspeed=0,
                 color=POSITION_COLOR.ROLL_OUT.value,
                 mark=FLIGHT_PHASE.END_ROLLOUT.value,
-                ix=len(fcrev) - fcidx_rev,
+                ix=last_rev_idx - fcidx_rev,
             )
             logger.debug(f"(rev) end roll out at {rwy.name}, landing distance={rollout_distance:f}km, alt={alt:f}")
             self.end_rollout = copy.deepcopy(currpos)  # we keep this special position for taxiing (start_of_taxi)
@@ -1415,7 +1427,7 @@ class FlightMovement(Movement):
                 vspeed=0,
                 color=POSITION_COLOR.TOUCH_DOWN.value,
                 mark=FLIGHT_PHASE.TOUCH_DOWN.value,
-                ix=len(fcrev) - fcidx_rev,
+                ix=last_rev_idx - fcidx_rev,
             )
             logger.debug(f"(rev) touch down at {rwy.name}, distance from threshold={LAND_TOUCH_DOWN:f}km, alt={alt:f}")
 
@@ -1450,7 +1462,7 @@ class FlightMovement(Movement):
                 vspeed=final_vspeed_ms,
                 color=POSITION_COLOR.FINAL.value,
                 mark=FLIGHT_PHASE.FINAL_FIX.value,
-                ix=len(fcrev) - fcidx_rev,
+                ix=last_rev_idx - fcidx_rev,
             )
             logger.debug(
                 ", ".join(
@@ -1768,6 +1780,7 @@ class FlightMovement(Movement):
                         r3 = self.flight.next_above_alt_restriction_idx(fpi(r3), final_fix_index)
                     else:
                         logger.debug(f"at or after final fix index {final_fix_index}, no more above restrition before final fix")
+                        r3 = None
 
                 logger.debug(f"at index {curridx} at alt {curralt}ft")
                 # descend from last above restriction, if any to final fix
@@ -1818,7 +1831,7 @@ class FlightMovement(Movement):
             or self.flight.procedures.get(FLIGHT_SEGMENT.APPCH.value) is not None
         ):
             logger.debug("(rev) vnav without restriction *****************")
-            k = len(fcrev) - 1
+            k = last_rev_idx
             while fcrev[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE) != "appch" and k > 0:
                 k = k - 1
             if k == 0:
@@ -1837,7 +1850,7 @@ class FlightMovement(Movement):
                         p = addMovepoint(
                             arr=revmoves,
                             src=wpt,
-                            alt=alt + approach_alt,
+                            alt=alt + approach_alt_m,
                             speed=actype.getSI(ACPERF.approach_speed),
                             vspeed=0,
                             color=POSITION_COLOR.APPROACH.value,
@@ -1851,7 +1864,7 @@ class FlightMovement(Movement):
                     currpos = addMovepoint(
                         arr=revmoves,
                         src=fcrev[k],
-                        alt=alt + approach_alt,
+                        alt=alt + approach_alt_m,
                         speed=actype.getSI(ACPERF.approach_speed),
                         vspeed=0,
                         color=POSITION_COLOR.APPROACH.value,
@@ -1863,7 +1876,7 @@ class FlightMovement(Movement):
                     fcidx_rev = k
 
             # find first point of star:
-            k = len(fcrev) - 1
+            k = last_rev_idx
             while fcrev[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE) != "star" and k > 0:
                 k = k - 1
             if k == 0:
@@ -2016,7 +2029,7 @@ class FlightMovement(Movement):
             else:
                 # descent from cruise below FL100 to approach alt
                 logger.debug("(rev) descent from cruise alt under FL100 to approach alt")
-                step = actype.descentApproach(self.flight.getCruiseAltitude(), alt + approach_alt)  # (t, d, altend)
+                step = actype.descentApproach(self.flight.getCruiseAltitude(), alt + approach_alt_m)  # (t, d, altend)
                 groundmv = groundmv + step[1]
                 currpos, fcidx_rev = moveOnLS(
                     coll=revmoves,
@@ -2495,6 +2508,7 @@ class FlightMovement(Movement):
         it is possible to build a timed flight plan
         """
         fpidx = set([f.getProp(FEATPROP.FLIGHT_PLAN_INDEX) for f in self.flight.flightplan_wpts])
+        print("set", fpidx)
         done = []
         ret = []
         for f in self.getMovePoints():
@@ -2504,6 +2518,7 @@ class FlightMovement(Movement):
                 ret.append(f)
                 if i not in fpidx:
                     logger.warning(f"invalid index {i} in flight plan")
+                    print(json.dumps(f.to_geojson(), indent=2))
                 else:
                     fpidx.remove(i)
         ret = sorted(ret, key=lambda f: f.getProp(FEATPROP.FLIGHT_PLAN_INDEX))

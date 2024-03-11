@@ -46,7 +46,7 @@ class StatusInfo:
 # SAVE_AND_WRITE = SAVE_AND_WRITE + ["redis-emit", "redis-scheduled", "redis-enqueue", "redis-messages"]
 #
 # Could also add: taxi, kml, LST.
-SAVE_AND_WRITE = ["plan", "move", "traffic", "kml", "so6"]
+SAVE_AND_WRITE = ["info", "plan", "flight", "move", "traffic", "kml", "so6"]
 
 
 def need_save(save):
@@ -125,6 +125,7 @@ class EmitApp(ManagedAirport):
                     self.queues[k].save()
         else:
             logger.info(f"not using Redis")
+            logger.info(f"Managed airport is {icao}")
 
         ret = self.init(load_airways=True)
         if not ret[0]:
@@ -439,6 +440,11 @@ class EmitApp(ManagedAirport):
         logger.info(str(flight))
         logger.debug(f"{flight.tabulateFlightPlan()}")
         logger.info("***** FLIGHT PLAN CREATED " + ("*" * 83))
+
+        if need_save("plan") or need_save("info"):
+            ret = flight.saveFile(plan=need_save("plan"), info=need_save("info"))
+            if not ret[0]:
+                return StatusInfo(7, f"problem during flight save", ret[1])
 
         # 4. Move
         # 4.1 Create move
