@@ -15,7 +15,7 @@ from emitpy.geo.turf import distance, destination, bearing
 
 from emitpy.graph import Vertex, Edge, USAGE_TAG
 from emitpy.geo import Ramp, ServiceParking, Runway, mkPolygon, FeatureWithProps, ls_length, ls_point_at
-from emitpy.parameters import DATA_DIR, XPLANE_DIR, MANAGED_AIRPORT_DIR
+from emitpy.parameters import DATA_DIR, XPLANE_DIR, MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_CACHE
 from emitpy.constants import TAKE_OFF_QUEUE_SIZE, FEATPROP, POI_TYPE, TAG_SEP, POI_COMBO, RAMP_TYPE, SERVICE
 from emitpy.constants import REDIS_PREFIX, REDIS_DB, ID_SEP, QUEUE_GAP
 from emitpy.utils import key_path, rejson
@@ -275,6 +275,8 @@ class XPAirport(ManagedAirportBase):
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
+        ADD_RUNWAYS = True
+        RESTRICT_ONEWAY = True
 
         def addVertex(aptline):
             args = aptline.content().split()
@@ -290,6 +292,7 @@ class XPAirport(ManagedAirportBase):
         # 1204 ils 16L,34R
         edgeCount = 0  # just for info
         edgeActiveCount = 0
+        not_added = 0
         edge = False
         for aptline in self.lines:
             if aptline.linecode() == 1202:  # edge
@@ -299,13 +302,20 @@ class XPAirport(ManagedAirportBase):
                     dst = self.taxiways.get_vertex(args[1])
                     cost = distance(src.geometry, dst.geometry)
                     edge = None
-                    if len(args) == 5:
-                        # args[2] = {oneway|twoway}, args[3] = {runway|taxiway}
-                        edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2] == "oneway"), usage=[args[3]], name=args[4])
+                    # args[2] = {oneway|twoway}, args[3] = {runway|taxiway}
+                    one_way = RESTRICT_ONEWAY and (args[2] == "oneway")
+                    if args[3] != "runway" or (args[3] == "runway" and ADD_RUNWAYS):
+                        if len(args) == 5:
+                            edge = Edge(src=src, dst=dst, weight=cost, directed=one_way, usage=[args[3]], name=args[4])
+                        else:
+                            edge = Edge(src=src, dst=dst, weight=cost, directed=one_way, usage=[args[3]], name="")
                     else:
-                        edge = Edge(src=src, dst=dst, weight=cost, directed=(args[2] == "oneway"), usage=args[3], name="")
-                    if args[2] == "oneway":
-                        edge.setColor("#AA4444")
+                        logger.debug(f"not adding runway segment {src.getId()}-{dst.getId()}")
+                        not_added = not_added + 1
+                        continue
+                    edge.setColor("#FFFF0A")  # yellow
+                    if one_way:
+                        edge.setColor("#FD8008")  # orange
                     self.taxiways.add_edge(edge)
                     edgeCount += 1
                 else:
@@ -326,8 +336,15 @@ class XPAirport(ManagedAirportBase):
         self.findRunwayExits()
         logger.debug(f"..found")
 
+        logger.info("loaded %d nodes, %d edges (%d enhanced).", len(self.taxiways.vert_dict), edgeCount, edgeActiveCount)
+
         self.taxiways.purge()
         # Info 6
+        #
+        fn = os.path.join(MANAGED_AIRPORT_CACHE, f"{self.icao}-taxiways.geojson")
+        with open(fn, "w") as fp:
+            json.dump(self.taxiways.to_geojson(), fp, indent=2)
+            logger.debug(f"save taxiways into {fn}")
         logger.info("added %d nodes, %d edges (%d enhanced).", len(self.taxiways.vert_dict), edgeCount, edgeActiveCount)
         return [True, "XPAirport::loadTaxiways loaded"]
 
@@ -371,8 +388,13 @@ class XPAirport(ManagedAirportBase):
             else:
                 edge = False
 
+        logger.info("loaded %d nodes, %d edges.", len(self.service_roads.vert_dict), edgeCount)
         self.service_roads.purge()
         # Info 6
+        fn = os.path.join(MANAGED_AIRPORT_CACHE, f"{self.icao}-serviceroads.geojson")
+        with open(fn, "w") as fp:
+            json.dump(self.service_roads.to_geojson(), fp, indent=2)
+            logger.debug(f"save service roads into {fn}")
         logger.info("added %d nodes, %d edges.", len(self.service_roads.vert_dict), edgeCount)
         return [True, "XPAirport::loadServiceNetwork loaded"]
 

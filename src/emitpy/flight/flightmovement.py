@@ -2508,7 +2508,6 @@ class FlightMovement(Movement):
         it is possible to build a timed flight plan
         """
         fpidx = set([f.getProp(FEATPROP.FLIGHT_PLAN_INDEX) for f in self.flight.flightplan_wpts])
-        print("set", fpidx)
         done = []
         ret = []
         for f in self.getMovePoints():

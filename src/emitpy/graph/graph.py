@@ -227,10 +227,11 @@ class Graph:  # Graph(FeatureCollection)?
             self.vert_dict[edge.start.id].connected = True
             self.vert_dict[edge.end.id].connected = True
             self.nx.add_edge(edge.start.id, edge.end.id, weight=edge.weight, **edge.get_nxattrs())
-            if not edge.directed:
+            if isinstance(self.nx, nx.DiGraph) and not edge.directed:
+                bef = len(nx.edges(self.nx))
                 self.nx.add_edge(edge.end.id, edge.start.id, weight=edge.weight, **edge.get_nxattrs())
+                # print("DOUBLE", edge.directed, bef, len(nx.edges(self.nx)))
                 self.vert_dict[edge.end.id].add_neighbor(self.vert_dict[edge.start.id].id, edge.weight)
-
         else:
             logger.critical(":add_edge: vertex not found when adding edges %s,%s", edge.start, edge.end)
 
@@ -257,13 +258,13 @@ class Graph:  # Graph(FeatureCollection)?
         logger.debug(f"purged {n - len(self.vert_dict)} vertices, {len(self.vert_dict)} left")
         newnx = nx.DiGraph()
         for ident, vertex in self.vert_dict.items():
-            newnx.add_node(ident, v=vertex)
+            newnx.add_node(ident, **vertex.get_nxattrs())
         for edge in self.edges_arr:
-            newnx.add_edge(edge.start.id, edge.end.id, weight=edge.weight)
-            if not edge.directed:
-                self.nx.add_edge(edge.end.id, edge.start.id, weight=edge.weight)
+            newnx.add_edge(edge.start.id, edge.end.id, weight=edge.weight, **edge.get_nxattrs())
+            if isinstance(newnx, nx.DiGraph) and not edge.directed:
+                newnx.add_edge(edge.end.id, edge.start.id, weight=edge.weight, **edge.get_nxattrs())
         self.nx = newnx
-        logger.debug(f"networkx graph recreated: {len(nx.nodes(self.nx))} vertices, {len(nx.edges(self.nx))} edges")
+        logger.debug(f"networkx graph recreated: {len(nx.nodes(self.nx))} vertices, {len(nx.edges(self.nx))} edges ({len(self.edges_arr)} raw edges)")
 
     def nearest_point_on_edge(self, point: Feature, with_connection: bool = False):  # @todo: construct array of lines on "add_edge"
         def nearest_point_on_line(point, line, dist):
