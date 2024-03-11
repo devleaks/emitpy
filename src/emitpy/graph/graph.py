@@ -9,7 +9,7 @@ from math import inf
 from typing import List, Dict
 import networkx as nx
 
-from emitpy.geo.turf import Point, LineString, Feature
+from emitpy.geo.turf import Point, LineString, Feature, FeatureCollection
 from emitpy.geo.turf import distance, destination, bearing, point_in_polygon, point_to_line_distance
 
 from emitpy.geo import FeatureWithProps, line_intersect, printFeatures
@@ -99,7 +99,11 @@ class Edge(FeatureWithProps):
         return self.restriction is not None
 
     def getKey(self):
-        return self.start.getId() + "-" + self.end.getId()
+        prefix = ""
+        if type(self).__name__ == "AirwaySegment":
+            if self.lowhigh == 2:  # the same airway may exist for hi and lo
+                prefix = "U"
+        return prefix + self.start.getId() + "-" + self.end.getId()
 
     def setColor(self, color: str):
         # geojson.io specific
@@ -129,7 +133,7 @@ class Edge(FeatureWithProps):
         # self.lowhigh = lowhigh
         # self.fl_floor = fl_floor
         # self.fl_ceil = fl_ceil
-        a = {"weight": self.weight}
+        a = {}
         if type(self).__name__ == "AirwaySegment":
             a["hilo"] = self.lowhigh
             if self.restriction is not None:
@@ -154,6 +158,14 @@ class Graph:  # Graph(FeatureCollection)?
             allitems = allitems + self.edges_arr
             txt = txt + ", edges"
         printFeatures(allitems, f"graph {txt}")
+
+    def to_geojson(self, vertices: bool = False, edges: bool = True):
+        fc = []
+        if vertices:
+            fc = [v.to_geojson() for v in self.vert_dict.values()]
+        if edges:
+            fc = fc + [e.to_geojson() for e in self.edges_arr]
+        return FeatureCollection(features=fc).to_geojson()
 
     def add_vertex(self, vertex: Vertex):
         if vertex.id in self.vert_dict.keys():
