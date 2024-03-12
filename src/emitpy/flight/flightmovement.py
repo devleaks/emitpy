@@ -747,10 +747,11 @@ class FlightMovement(Movement):
             curridx = target_index
             target_dist = 0
             while total_dist < min_dist_to_descend and curridx > 0:
-                d = distance(fpln[curridx - 1], fpln[curridx])
+                previdx = curridx - 1
+                d = distance(fpln[previdx], fpln[curridx])
                 total_dist = total_dist + d
-                if (curridx - 1) == current_index:  # we are at current_index, and added segment upto target_index
-                    target_dist = total_dist
+                if previdx == current_index:  # we are at current_index, and added segment upto target_index
+                    target_dist = total_dist  # this is distance between current_index and target_index
                 curridx = curridx - 1
                 # print(">>>", current_index, "->", target_index, "now", curridx, "=", d, total_dist, min_dist_to_descend, target_dist)
 
@@ -998,8 +999,10 @@ class FlightMovement(Movement):
         #
         # For take off, altitude is AGL.
         #
-        logger.debug(f"departure from {self.flight.departure.icao} " + "=" * 30)
+        movelenghth = 50
+        logger.debug(f"departure from {self.flight.departure.icao} " + "=" * movelenghth)
         TOH_BLASTOFF = 0.2  # km, distance of take-off hold position from runway threshold
+        initial_climb_distance = 0
         groundmv = 0
         fcidx = 0
         rwy = None
@@ -1070,6 +1073,7 @@ class FlightMovement(Movement):
             #
             logger.debug("initialClimb")
             step = actype.initialClimb(depapt_alt.in_m)  # (t, d, altend)
+            groundmv = groundmv + step[1]
             initial_climb_distance = step[1] / 1000  # km
             # find initial climb point
 
@@ -1090,15 +1094,6 @@ class FlightMovement(Movement):
             )
             currpos.setComment("inital climb")
             logger.debug(f"initial climb end at index {newidx}, {round(initial_climb_distance,3)}km")
-            # small control to see if next point on flight plan is AFTER end of initial climb
-            ctrd = distance(fpln[newidx], fpln[newidx + 1])
-            if initial_climb_distance > ctrd:
-                logger.warning(f"initial climb finishes at {round(initial_climb_distance,3)}km after start of SID that finishes at {round(ctrd,3)}km")
-            else:
-                logger.debug(f"index {newidx + 1} at {round(ctrd,3)}km")
-            groundmv = groundmv + initial_climb_distance
-            # we ignore vertices between takeoff and initial_climb
-            # we go in straight line and ignore self._premoves, skipping eventual points
 
         else:  # no runway, simpler departure
             deptapt = fpln[0]
@@ -1134,6 +1129,7 @@ class FlightMovement(Movement):
             # initial climb, commonly accepted to above 1500ft AGL
             logger.debug("initialClimb")
             step = actype.initialClimb(depapt_alt.in_m)  # (t, d, altend)
+            initial_climb_distance = step[1] / 1000  # km
             # find initial climb point
             groundmv = step[1]
 
@@ -1152,6 +1148,18 @@ class FlightMovement(Movement):
                 mark_tr=FLIGHT_PHASE.INITIAL_CLIMB.value,
             )
             currpos.setComment("initial climb (from airport)")
+
+        # small control to see if next point on flight plan is AFTER end of initial climb
+        first_point_distance = distance(fpln[newidx], fpln[newidx + 1])
+        logger.debug(f"index {newidx + 1} at {round(first_point_distance,3)}km")
+        if initial_climb_distance > first_point_distance:
+            if newidx == 0:  # we should skip points as necessry until distance > initial_climb_distance
+                newidx = 2  # skip first, go to second right away
+            else:
+                newidx = newidx + 1
+            logger.warning(f"initial climb finishes at {round(initial_climb_distance,3)}km after start of SID, skipping first point, climb starts at {newidx}")
+        # we ignore vertices between takeoff and initial_climb
+        # we go in straight line and ignore self._premoves, skipping eventual points
 
         if newidx == 0:
             logger.debug(f"moved flight plan index to 1")
@@ -1461,7 +1469,7 @@ class FlightMovement(Movement):
         )
 
         top_of_ascent_idx = fcidx + 1  # we reach top of ascent between idx and idx+1, so we cruise from idx+1 on.
-        logger.debug("cruise at %d after %f" % (top_of_ascent_idx, round(groundmv, 2)))
+        logger.debug(f"cruise at index {top_of_ascent_idx} after {round(groundmv / 1000, 1)}km")
         logger.debug(f"ascent added (+{len(self._premoves)} {len(self._premoves)})")
         #
         #
@@ -1474,7 +1482,7 @@ class FlightMovement(Movement):
         #
         # PART 2.1: In reverse order, from ROLL OUT back to FINAL FIX
         #
-        logger.debug(f"arrival to {self.flight.arrival.icao} " + "=" * 30)
+        logger.debug(f"arrival to {self.flight.arrival.icao} " + "=" * movelenghth)
 
         # Set a few default sensible values in case procedures do not give any
         #
@@ -1539,11 +1547,12 @@ class FlightMovement(Movement):
 
         revmoves = []
         groundmv = 0
+        final_fix_distance = 0
         fplnrev = fpln.copy()
         fplnrev.reverse()
         fplnidx_rev = 0
         last_rev_idx = len(fplnrev) - 1
-        artificial_final_fix = None
+        art_final_fix_point = None
 
         is_grounded = True
 
@@ -1582,11 +1591,11 @@ class FlightMovement(Movement):
                 mark=FLIGHT_PHASE.END_ROLLOUT.value,
                 ix=last_rev_idx - fplnidx_rev,
             )
-            logger.debug(f"(rev) end roll out at {rwy.name}, landing distance={rollout_distance:f}km, alt={round(arrapt_alt.in_m,1)}")
+            logger.debug(f"(rev) end roll out at {rwy.name}, landing distance={round(rollout_distance, 1)}km, alt={round(arrapt_alt.in_m,1)}")
             self.end_rollout = copy.deepcopy(currpos)  # we keep this special position for taxiing (start_of_taxi)
 
             # Point just before is touch down
-            p = addMovepoint(
+            touch_down_point = addMovepoint(
                 arr=revmoves,
                 src=touch_down,
                 alt=arrapt_alt.in_m,
@@ -1596,7 +1605,7 @@ class FlightMovement(Movement):
                 mark=FLIGHT_PHASE.TOUCH_DOWN.value,
                 ix=last_rev_idx - fplnidx_rev,
             )
-            logger.debug(f"(rev) touch down at {rwy.name}, distance from threshold={LAND_TOUCH_DOWN:f}km, alt={round(arrapt_alt.in_m,1)}")
+            logger.debug(f"(rev) touch down at {rwy.name}, distance from threshold={LAND_TOUCH_DOWN}km, alt={round(arrapt_alt.in_m,1)}")
 
             self.addMessage(
                 FlightMessage(
@@ -1611,43 +1620,53 @@ class FlightMovement(Movement):
             # we move to the final fix at max final_fix_alt.in_ft ft, landing speed, final_vspeed.in_fpm (ft/min), from touchdown
             logger.debug("(rev) final")
             step = actype.descentFinal(arrapt_alt.in_m, final_vspeed.in_ms, safealt=final_fix_alt.in_m)  # (t, d, altend)
-            final_distance = step[1] / 1000  # km
-            # find final fix point
+            final_fix_distance = step[1] / 1000  # km
 
-            # we (reverse) descent on path to see if we reach indices...
-            p, newidx = moveOn(fplnrev, fplnidx_rev, p, final_distance)
+            # small control to see if final fix is after last point of descend in flight plan
+            # fplan[-1] = runway, fplan[-2] = last point of last procedure or descend
+            last_point_idx = -2
+            last_point_distance = distance(fpln[last_point_idx], touch_down_point)
+            logger.debug(f"index {len(fpln)+last_point_idx} at {round(last_point_distance,3)}km")
+            logger.debug(f"final fix at {round(final_fix_distance,3)}km from touchdown, last point of flight plan at {round(last_point_distance,3)}km")
+            if final_fix_distance > last_point_distance:
+                logger.warning(f"no artificial final fix added, will flight straight from last point of flight plan to touch down, kiss landing not guaranteed")
+            else:
+                logger.debug("adding artificial final fix after last point of flight plan")
 
-            # we ignore currpos for now, we will descent straight, we ignore points
-            # between fplnidx_rev and newidx during final descent...
-            artificial_final_fix = destination(touch_down, final_distance, brg + 180)
+                # we (reverse) descent on path to see if we reach indices...
+                p, newidx = moveOn(fplnrev, fplnidx_rev, touch_down_point, final_fix_distance)
 
-            currpos = addMovepoint(
-                arr=revmoves,
-                src=artificial_final_fix,
-                alt=arrapt_alt.in_m + final_fix_alt.in_m,
-                speed=actype.getSI(ACPERF.landing_speed),
-                vspeed=final_vspeed.in_ms,
-                color=POSITION_COLOR.FINAL.value,
-                mark=FLIGHT_PHASE.FINAL_FIX.value,
-                ix=last_rev_idx - fplnidx_rev,
-            )
-            logger.debug(
-                ", ".join(
-                    [
-                        f"(rev) final fix at new idx={newidx}(old idx={fplnidx_rev})",
-                        f"distance from touch-down={final_distance}km",
-                        f"alt={arrapt_alt} + {final_fix_alt}",
-                        f"(v/s={final_vspeed}",
-                        f"speed={actype.getSI(ACPERF.landing_speed)}m/s,{actype.get(ACPERF.landing_speed)}kn)",
-                    ]
+                # we ignore currpos for now, we will descent straight, we ignore points
+                # between fplnidx_rev and newidx during final descent...
+                art_final_fix_point = destination(touch_down, final_fix_distance, brg + 180)
+
+                currpos = addMovepoint(
+                    arr=revmoves,
+                    src=art_final_fix_point,
+                    alt=arrapt_alt.in_m + final_fix_alt.in_m,
+                    speed=actype.getSI(ACPERF.landing_speed),
+                    vspeed=final_vspeed.in_ms,
+                    color=POSITION_COLOR.FINAL.value,
+                    mark=FLIGHT_PHASE.FINAL_FIX.value,
+                    ix=last_rev_idx - fplnidx_rev,
                 )
-            )
-            groundmv = groundmv + final_distance
-            #
-            # Possible issue: we ignore vertices between final fix and touch down
-            # we go in straight line and ignore self._premoves, skipping eventual points
-            #
-            fplnidx_rev = newidx
+                logger.debug(
+                    ", ".join(
+                        [
+                            f"(rev) final fix at new idx={newidx}(old idx={fplnidx_rev})",
+                            f"distance from touch-down={round(final_fix_distance, 1)}km",
+                            f"alt={arrapt_alt} + {final_fix_alt}",
+                            f"(v/s={final_vspeed}",
+                            f"speed={actype.getSI(ACPERF.landing_speed)}m/s,{actype.get(ACPERF.landing_speed)}kn)",
+                        ]
+                    )
+                )
+                groundmv = groundmv + final_fix_distance
+                #
+                # Possible issue: we ignore vertices between final fix and touch down
+                # we go in straight line and ignore self._premoves, skipping eventual points
+                #
+                fplnidx_rev = newidx
 
         else:  # no run way
             arrvapt = fplnrev[fplnidx_rev]
@@ -1683,23 +1702,35 @@ class FlightMovement(Movement):
             # we move to the final fix at max 3000ft, approach speed from airport last point, vspeed=final_vspeed.in_fpm
             logger.debug("(rev) final")
             step = actype.descentFinal(arrapt_alt.in_m, final_vspeed.in_ms, safealt=final_fix_alt.in_ft)  # (t, d, altend)
-            groundmv = groundmv + step[1]
-            # find final fix point
-            currpos, fplnidx_rev = moveOnLS(
-                coll=revmoves,
-                reverse=True,
-                fc=fplnrev,
-                fcidx=fplnidx_rev,
-                currpos=currpos,
-                dist=step[1],
-                alt=arrapt_alt.in_m + final_fix_alt.in_m,
-                speed=actype.getSI(ACPERF.landing_speed),
-                vspeed=final_vspeed.in_ms,
-                color=POSITION_COLOR.FINAL.value,
-                mark=FLIGHT_PHASE.FINAL_FIX.value,
-                mark_tr=FLIGHT_PHASE.FINAL.value,
-            )
-            artificial_final_fix = currpos  # in this case, final fix is a point on the slope from before last flight plan point to airport.
+            final_fix_distance = step[1] / 1000  # km
+
+            # small control to see if final fix is after last point of descend in flight plan
+            # fplan[-1] = runway, fplan[-2] = last point of last procedure or descend
+            last_point_idx = -2
+            last_point_distance = distance(fpln[last_point_idx], touch_down_point)
+            logger.debug(f"index {len(fpln)+last_point_idx} at {round(last_point_distance,3)}km")
+            logger.debug(f"final fix at {round(initial_climb_distance,3)}km from touchdown, last point of flight plan at {round(last_point_distance,3)}km")
+            if final_fix_distance > last_point_distance:
+                logger.warning(f"no artificial final fix added, will flight straight from last point of flight plan to touch down, kiss landing not guaranteed")
+            else:
+                logger.debug("adding artificial final fix after last point of flight plan")
+                # find artificial final fix point
+                currpos, fplnidx_rev = moveOnLS(
+                    coll=revmoves,
+                    reverse=True,
+                    fc=fplnrev,
+                    fcidx=fplnidx_rev,
+                    currpos=currpos,
+                    dist=step[1],
+                    alt=arrapt_alt.in_m + final_fix_alt.in_m,
+                    speed=actype.getSI(ACPERF.landing_speed),
+                    vspeed=final_vspeed.in_ms,
+                    color=POSITION_COLOR.FINAL.value,
+                    mark=FLIGHT_PHASE.FINAL_FIX.value,
+                    mark_tr=FLIGHT_PHASE.FINAL.value,
+                )
+                art_final_fix_point = currpos  # in this case, final fix is a point on the slope from before last flight plan point to airport.
+                groundmv = groundmv + final_fix_distance
 
         # We now have a reverse path from final fix alt to either touchdown to rollout or to airport center (if no rwy).
         # Final fix to touch down is (vspeed=)600ft/min at (speed=)landing speed.
@@ -1722,9 +1753,15 @@ class FlightMovement(Movement):
                 logger.debug(f"APPCH = {appch.name}")
 
             logger.debug(f"(artificial) final fix alt {final_fix_alt}")
+
             cruise_start_idx, cruise_end_idx = self.flight.phase_indices(phase=FLIGHT_SEGMENT.CRUISE)
-            cruise_start_idx = max(cruise_start_idx, top_of_ascent_idx)  # if no start procedure, climbed from departure airport
+            if cruise_start_idx is not None:
+                cruise_start_idx = max(cruise_start_idx, top_of_ascent_idx)  # if no start procedure, climbed from departure airport
+            else:
+                logger.warning(f"unable to fetch cruise indices ({cruise_start_idx} to {cruise_end_idx})")
+                cruise_start_idx = top_of_ascent_idx
             cruise_alt.in_ft = self.flight.flight_level * 100
+            logger.debug(f"cruise from {cruise_start_idx} to {cruise_end_idx} at {cruise_alt}")
 
             # Start situation before descend
             #
@@ -1744,7 +1781,7 @@ class FlightMovement(Movement):
             #
             last_pt_fpln_index = len(fpln) - 2  # not correct
             last_pt_fpln_alt = Altitude()
-            d = distance(fpln[len(fpln) - 2], fpln[len(fpln) - 1])
+            d = distance(fpln[len(fpln) - 2], fpln[len(fpln) - 1])  # approximate, roll should be substracted
             logger.debug(f"last point in flight plan index {last_pt_fpln_index} at {round(d,1)}km from runway")
             if fpln[last_pt_fpln_index].hasAltitudeRestriction():
                 last_alt = fpln[last_pt_fpln_index].getLowestAlt()
