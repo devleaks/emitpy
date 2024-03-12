@@ -749,10 +749,10 @@ class FlightMovement(Movement):
             while total_dist < min_dist_to_descend and curridx > 0:
                 d = distance(fpln[curridx - 1], fpln[curridx])
                 total_dist = total_dist + d
-                if curridx == current_index:
+                if (curridx - 1) == current_index:  # we are at current_index, and added segment upto target_index
                     target_dist = total_dist
                 curridx = curridx - 1
-                # print(">>>!!!", current_index, "->", target_index, curridx, d, total_dist, min_dist_to_descend, target_dist)
+                # print(">>>", current_index, "->", target_index, "now", curridx, "=", d, total_dist, min_dist_to_descend, target_dist)
 
             if target_altitude == current_altitude:  # special case, level flight, no need to descend
                 # in this case above total_dist = 0 since alt requirement satisfied at target
