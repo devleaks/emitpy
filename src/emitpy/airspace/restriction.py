@@ -132,6 +132,16 @@ class Restriction:
     def hasAltitudeRestriction(self) -> bool:
         return self.alt1 is not None or self.alt2 is not None
 
+    def getLowestAlt(self) -> float | None:
+        if self.alt1 is not None:
+            if self.alt2 is not None:
+                return min(self.alt1, self.alt2)
+            else:
+                return self.alt1
+        if self.alt2 is not None:
+            return self.alt2
+        return None
+
     def checkAltitude(self, point: Point, tolerance: int = 30):
         # def checkAltitude(self, feature: Feature):
         #     point = feature["geometry"]
@@ -305,6 +315,10 @@ class NamedPointWithRestriction(NamedPoint, Restriction):
     def __init__(self, ident: str, region: str, airport: str, pointtype: str, lat: float, lon: float):
         NamedPoint.__init__(self, ident=ident, region=region, airport=airport, pointtype=pointtype, lat=lat, lon=lon)
         Restriction.__init__(self)
+
+    def add_restriction(self, restriction):
+        self.restrictions.append(restriction)
+        self.combine(restriction)
 
 
 class ControlledAirspace(FeatureWithProps, Restriction):

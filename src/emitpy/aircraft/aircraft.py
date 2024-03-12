@@ -23,7 +23,7 @@ import yaml
 from emitpy.parameters import HOME_DIR, DATA_DIR
 from emitpy.business import Identity, Company
 from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB
-from emitpy.constants import LOW_ALT_MAX_SPEED, LOW_ALT_ALT_FT, FINAL_APPROACH_FIX_ALT, INITIAL_CLIMB_SAFE_ALT
+from emitpy.constants import LOW_ALT_MAX_SPEED, LOW_ALT_ALT_FT, FINAL_APPROACH_FIX_ALT_M, INITIAL_CLIMB_SAFE_ALT_M
 from emitpy.utils import convert, key_path, rejson
 
 
@@ -1032,7 +1032,7 @@ class AircraftTypeWithPerformance(AircraftType):
         # logger.debug("%s from %f to %f at %f m/s during %f, move %f at %f m/s" % (self.name, altstart, altend, vspeed, t, d, speed))
         return (t, d, altend)
 
-    def initialClimb(self, altstart, safealt: float = INITIAL_CLIMB_SAFE_ALT):
+    def initialClimb(self, altstart, safealt: float = INITIAL_CLIMB_SAFE_ALT_M):
         """
         Alias to climb function for initialClimb speed and vspeed.
 
@@ -1149,7 +1149,7 @@ class AircraftTypeWithPerformance(AircraftType):
         """
         return self.climb(altstart, altend, -self.getSI(ACPERF.approach_vspeed), self.getSI(ACPERF.approach_speed))
 
-    def descentFinal(self, altend, vspeed, safealt: float = FINAL_APPROACH_FIX_ALT):
+    def descentFinal(self, altend, vspeed, safealt: float = FINAL_APPROACH_FIX_ALT_M):
         """
         Alias to climb function to descent from final to touch down.
 
