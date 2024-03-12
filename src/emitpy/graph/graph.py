@@ -228,9 +228,7 @@ class Graph:  # Graph(FeatureCollection)?
             self.vert_dict[edge.end.id].connected = True
             self.nx.add_edge(edge.start.id, edge.end.id, weight=edge.weight, **edge.get_nxattrs())
             if isinstance(self.nx, nx.DiGraph) and not edge.directed:
-                bef = len(nx.edges(self.nx))
                 self.nx.add_edge(edge.end.id, edge.start.id, weight=edge.weight, **edge.get_nxattrs())
-                # print("DOUBLE", edge.directed, bef, len(nx.edges(self.nx)))
                 self.vert_dict[edge.end.id].add_neighbor(self.vert_dict[edge.start.id].id, edge.weight)
         else:
             logger.critical(":add_edge: vertex not found when adding edges %s,%s", edge.start, edge.end)
