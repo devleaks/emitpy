@@ -112,17 +112,17 @@ class Flight(Messages):
             e = self.procedures.get(FLIGHT_SEGMENT.RWYDEP.value)
             s = e.name if e is not None else "RW--"
             e = self.procedures.get(FLIGHT_SEGMENT.SID.value)
-            s = s + " SID " + e.name if e is not None else "-none-"
+            s = s + (" SID " + e.name if e is not None else "-none-")
             return s
 
         def aproc():
             s = ""
             e = self.procedures.get(FLIGHT_SEGMENT.STAR.value)
-            s = s + "STAR " + e.name if e is not None else "-none-"
+            s = s + "STAR " + (e.name if e is not None else "-none-")
             e = self.procedures.get(FLIGHT_SEGMENT.APPCH.value)
-            s = s + " APPCH " + e.name if e is not None else "-none-"
+            s = s + " APPCH " + (e.name if e is not None else "-none-")
             e = self.procedures.get(FLIGHT_SEGMENT.RWYARR.value)
-            s = s + " " + e.name if e is not None else "RW--"
+            s = s + " " + (e.name if e is not None else "RW--")
             return s
 
         s = self.getName()
