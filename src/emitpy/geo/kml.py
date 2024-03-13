@@ -1,66 +1,34 @@
 # Creates KML 3D flight path for visualisation in Google Earth or alike
 from typing import List
+
+import simplekml
+
 from emitpy.geo.turf import Feature
+from emitpy import __version__
+
+KML_EXPORT = "1.0.0"
 
 
-def header(name: str, desc: str) -> str:
-    """Create XML header for KML
-    Args:
-        name (str): Title of KML file
-        desc (str): Optional description of file content
+def toKML(path: List[Feature], name: str = "Flight Path", desc: str = f"Emitpy Flight Path (rel. {__version__})", airport: dict = {}) -> str:
+    # coords = []
+    # for f in path:
+    #     if f.geometry.type == "Point" and len(f.geometry.coordinates) > 2:
+    #         coords.append(f.geometry.coordinates)
+    kml = simplekml.Kml(open=1, name="Emitpy Flight Path", description=f"Emitpy Flight Path (rel. {__version__}, KML export {KML_EXPORT})")
+    ls = kml.newlinestring(name=name, description=desc)
+    ls.coords = [f.geometry.coordinates for f in filter(lambda f: f.geometry.type == "Point" and len(f.geometry.coordinates) > 2, path)]
+    ls.altitudemode = simplekml.AltitudeMode.relativetoground
+    ls.extrude = 1
+    ls.style.linestyle.color = simplekml.Color.yellow
+    ls.style.linestyle.width = 4
+    ls.style.polystyle.color = "80ffff00"  # a,b,g,r
 
-    Returns:
-        str: KML formatted string (XML)
-    """
-    return f"""<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-    <Document>
-        <name>{ name }</name>
-        <description>
-            <![CDATA[{ desc }]]>
-        </description>
-        <Style id="emitpysty">
-            <LineStyle><color>7f00ffff</color><width>4</width></LineStyle>
-            <PolyStyle><color>7f00ff00</color></PolyStyle>
-        </Style>
-        <Placemark>
-            <name>{ name }</name>
-            <description>{ desc }</description>
-            <styleUrl>#emitpysty</styleUrl>
-            <LineString>
-                <extrude>1</extrude>
-                <tesselate>1</tesselate>
-                <altitudeMode>absolute</altitudeMode>
-                <coordinates>
-"""
+    if len(airport) > 0:
+        ls.lookat.gxaltitudemode = simplekml.GxAltitudeMode.relativetoseafloor
+        ls.lookat.latitude = airport.get("lat")
+        ls.lookat.longitude = airport.get("lon")
+        ls.lookat.range = 70000
+        ls.lookat.heading = 0
+        ls.lookat.tilt = 70
 
-
-def footer() -> str:
-    """Create XML footer for KML
-    Returns:
-        str: KML formatted string (XML)
-    """
-    return """                </coordinates>
-            </LineString>
-        </Placemark>
-    </Document>
-</kml>
-"""
-
-
-def toKML(path: List[Feature], name: str = "Flight Path", desc: str = "Emitpy Flight Path") -> str:
-    """Convert list of features to KML for Google Earth
-    Args:
-        path (List[Feature]): List of Features to convert
-
-    Returns:
-        str: KML string
-    """
-    kml = header(name, desc)
-    for f in path:
-        # -117.184650,34.627964,980
-        if f.geometry.type == "Point" and len(f.geometry.coordinates) > 2:
-            c = f.geometry.coordinates
-            kml = kml + f"{c[0]},{c[1]},{round(c[2], 3)}\n"
-    kml = kml + footer()
-    return kml
+    return kml.kml(format=True)

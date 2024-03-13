@@ -347,7 +347,7 @@ class FlightMovement(Movement):
                 saveMe(move_points + [ls], FILE_FORMAT.MOVE.value)
 
             if kwargs.get("kml"):
-                kml = toKML(cleanFeatures(move_points), name=self.flight.getId(), desc=str(self.flight))
+                kml = toKML(cleanFeatures(move_points), name=self.flight.getId(), desc=str(self.flight), airport=self.flight.managedAirport.getAirportDetails())
                 filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
                 with open(filename, "w") as fp:
                     fp.write(kml)
