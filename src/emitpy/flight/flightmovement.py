@@ -347,7 +347,8 @@ class FlightMovement(Movement):
                 saveMe(move_points + [ls], FILE_FORMAT.MOVE.value)
 
             if kwargs.get("kml"):
-                kml = toKML(cleanFeatures(move_points), name=self.flight.getId(), desc=str(self.flight), airport=self.flight.managedAirport.getAirportDetails())
+                apt = self.flight.managedAirport.getAirportDetails()
+                kml = toKML(cleanFeatures(move_points), name=self.flight.getId(), desc=str(self.flight), airport=apt)
                 filename = os.path.join(basename + FILE_FORMAT.MOVE.value + ".kml")
                 with open(filename, "w") as fp:
                     fp.write(kml)
@@ -1011,8 +1012,9 @@ class FlightMovement(Movement):
         if self.flight.departure.has_rwys():  # take off self.flight.is_departure()
             if self.flight.is_departure():  # we are at the managed airport, we must use the selected runway
                 rwy = self.flight.rwy
+                logger.debug(f"local departure: using runway {rwy.name}")
             else:
-                rwy = self.flight.departure.selectRWY(self.flight)
+                rwy = self.flight.plan_get_dep_rwy()
                 logger.debug(f"remote departure: using runway {rwy.name}")
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
@@ -1500,9 +1502,9 @@ class FlightMovement(Movement):
         approach_alt.in_ft = 3000  # Altitude ABG at which we perform approach path before final
         # approach_alt.in_ft = int(approach_alt.in_ft)
 
-        # FINAL
+        # FINAL (ARTIFICIAL FINAL FIX)
         #
-        # FIX
+        # ALTITUDE
         final_fix_alt = Altitude()
         final_fix_alt.in_ft = Altitude.NO_ALTITUDE_VALUE  # Altitude ABG at which we start final, always straight line aligned with runway
 
@@ -1559,8 +1561,9 @@ class FlightMovement(Movement):
         rwy = None
         if self.flight.is_arrival():  # we are at the managed airport, we must use the selected runway
             rwy = self.flight.rwy
+            logger.debug(f"local arrival: using runway {rwy.name}")
         else:
-            rwy = self.flight.arrival.selectRWY(self.flight)
+            rwy = self.flight.plan_get_arr_rwy()
             logger.debug(f"remote arrival: using runway {rwy.name}")
 
         if rwy is not None:  # the path starts at the of roll out

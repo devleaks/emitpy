@@ -32,3 +32,6 @@ def toKML(path: List[Feature], name: str = "Flight Path", desc: str = f"Emitpy F
         ls.lookat.tilt = 70
 
     return kml.kml(format=True)
+
+
+# Possible and easy to animate with TimeStamp added to each segment.

@@ -502,6 +502,21 @@ class Flight(Messages):
             ]
         )
 
+    def plan_get_dep_rwy(self):
+        return self.departure.selectRWY(self) if self.forced_procedures is None else self.forced_procedures[0]
+
+    def plan_get_dep_sid(self, rwydep):
+        return self.departure.selectSID(rwydep) if self.forced_procedures is None else self.forced_procedures[1]
+
+    def plan_get_arr_rwy(self):
+        return self.arrival.selectRWY(self) if self.forced_procedures is None else self.forced_procedures[4]
+
+    def plan_get_arr_star(self, rwyarr):
+        return self.arrival.selectSTAR(rwyarr) if self.forced_procedures is None else self.forced_procedures[2]
+
+    def plan_get_arr_appch(self, star, rwyarr):
+        return self.arrival.selectApproach(star, rwyarr) if self.forced_procedures is None else self.forced_procedures[3]
+
     def plan(self):
         if self.flightroute is None:  # not loaded, trying to load
             self.makeFlightRoute()
@@ -529,7 +544,7 @@ class Flight(Messages):
         # self.meta["departure"]["metar"] = depapt.getMetar()
         forced = "" if self.forced_procedures is None else " (FORCED)"
         if depapt.has_rwys():
-            rwydep = depapt.selectRWY(self) if self.forced_procedures is None else self.forced_procedures[0]
+            rwydep = self.plan_get_dep_rwy()
             if rwydep is not None:
                 logger.debug(f"departure airport {depapt.icao} using runway {rwydep.name}{forced}")
                 if self.is_departure():
@@ -551,7 +566,7 @@ class Flight(Messages):
         # SID
         if depapt.has_sids() and rwydep is not None:
             logger.debug(f"using procedures for departure airport {depapt.icao}")
-            sid = depapt.selectSID(rwydep) if self.forced_procedures is None else self.forced_procedures[1]
+            sid = self.plan_get_dep_sid(rwydep=rwydep)
             if sid is not None:  # inserts it
                 logger.debug(f"{depapt.icao} using SID {sid.name}{forced}")
                 ret = depapt.procedures.getRoute(sid, self.managedAirport.airport.airspace)
@@ -584,7 +599,7 @@ class Flight(Messages):
         # RWY
         # self.meta["arrival"]["metar"] = depapt.getMetar()
         if arrapt.has_rwys():
-            rwyarr = arrapt.selectRWY(self) if self.forced_procedures is None else self.forced_procedures[4]
+            rwyarr = self.plan_get_arr_rwy()
             logger.debug(f"arrival airport {arrapt.icao} using runway {rwyarr.name}{forced}")
             if self.is_arrival():
                 self.setRWY(rwyarr)
@@ -602,7 +617,7 @@ class Flight(Messages):
         star = None  # used in APPCH
         star_route = None
         if arrapt.has_stars() and rwyarr is not None:
-            star = arrapt.selectSTAR(rwyarr) if self.forced_procedures is None else self.forced_procedures[2]
+            star = self.plan_get_arr_star(rwyarr=rwyarr)
             if star is not None:
                 logger.debug(f"{arrapt.icao} using STAR {star.name}{forced}")
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
@@ -619,7 +634,7 @@ class Flight(Messages):
 
         # APPCH, we found airports with approaches and no STAR
         if arrapt.has_approaches() and rwyarr is not None:
-            appch = arrapt.selectApproach(star, rwyarr) if self.forced_procedures is None else self.forced_procedures[3]
+            appch = self.plan_get_arr_appch(star=star, rwyarr=rwyarr)
             if appch is not None:
                 logger.debug(f"{arrapt.icao} using APPCH {appch.name}{forced}")
                 ret = arrapt.procedures.getRoute(appch, self.managedAirport.airport.airspace)
