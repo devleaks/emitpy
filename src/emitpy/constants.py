@@ -520,7 +520,7 @@ class FEATPROP(Enum):
     MARK_SEQUENCE = "_mark-seq"
     MESSAGE_ID = "message-id"
     MISSION = "mission"
-    MOVE_INDEX = "move-index"  # after standard turns added
+    MOVE_INDEX = "move-index"  # after standard turns added, smoothing, etc.
     NAME = "name"
     ORG_ID = "orgId"
     ORIENTATION = "orientation"  # direction in which point the aircraft, synonym of HEADING, used for ground vehicle
@@ -529,7 +529,7 @@ class FEATPROP(Enum):
     PLAN_SEGMENT_TYPE = "_plan_segment_type"
     POI_TYPE = "poi-type"
     POI_SERVICE = "poi-service"
-    PREMOVE_INDEX = "move-pre-index"
+    PREMOVE_INDEX = "pre-move-index"  # pre-move is flight plan + vnav, without smoothing, timing, etc.
     REGION = "region"
     RESTRICTION = "restriction"
     RUNWAY = "runway"

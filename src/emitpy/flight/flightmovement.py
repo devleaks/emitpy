@@ -536,7 +536,7 @@ class FlightMovement(Movement):
                     # print(f"****C adding idx={len(arr)}, pt={i}, f={wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE)}, alt={wpt.altitude()}m, mark={mark}")
                     arr.append(p)
             arr.append(pos)
-            # logger.debug("adding remarkable point: %s (%d)" % (pos.getProp(FEATPROP.MARK), len(coll)))
+            # logger.debug("adding remarkable point: %s (%d)" % (pos.getProp(FEATPROP.MARK), len(arr)))
             # logger.debug("return index: %d" % (ni))
             # we now are at pos which is on LineString after index ni
             return ni
@@ -2075,21 +2075,22 @@ class FlightMovement(Movement):
         #
         # ########################################################################################
         #
-        if not (
+        if not (  # all comments in this " IF " are preceeded with (rev) to mark reverse progress
             cruise_added
             or self.flight.procedures.get(FLIGHT_SEGMENT.STAR.value) is not None
             or self.flight.procedures.get(FLIGHT_SEGMENT.APPCH.value) is not None
         ):
             logger.debug("(rev) vnav without restriction *****************")
+            logger.debug("(rev) building descend..")
             k = last_rev_idx
             while fplnrev[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE) != "appch" and k > 0:
                 k = k - 1
             if k == 0:
-                logger.warning("no approach found")
+                logger.warning("(rev) no approach found")
             else:
                 logger.debug("(rev) start of approach at index %d, %s" % (k, fplnrev[k].getProp(FEATPROP.PLAN_SEGMENT_TYPE)))
                 if k <= fplnidx_rev:
-                    logger.debug("(rev) final fix seems further away than start of apprach")
+                    logger.debug("(rev) final fix is further away than start of approach")
                 else:
                     logger.debug("(rev) flight level to final fix")
                     # add all approach points between start to approach to final fix
@@ -2118,7 +2119,7 @@ class FlightMovement(Movement):
                         speed=actype.getSI(ACPERF.approach_speed),
                         vspeed=0,
                         color=POSITION_COLOR.APPROACH.value,
-                        mark="start_of_approach",
+                        mark="(rev) start_of_approach",
                         ix=len(fplnrev) - k,
                     )
                     # logger.debug("adding remarkable point: %d %s (%d)" % (k, currpos.getProp(FEATPROP.MARK), len(revmoves)))
@@ -2161,7 +2162,7 @@ class FlightMovement(Movement):
                         speed=actype.getSI(ACPERF.approach_speed),
                         vspeed=0,
                         color=POSITION_COLOR.APPROACH.value,
-                        mark="start_of_star",
+                        mark="(rev) start_of_star",
                         ix=len(fplnrev) - k,
                     )
                     # logger.debug("adding remarkable point: %d %s (%d)" % (k, currpos.getProp(FEATPROP.MARK), len(revmoves)))
@@ -2213,7 +2214,7 @@ class FlightMovement(Movement):
                     speed=actype.getSI(ACPERF.approach_speed),
                     vspeed=actype.getSI(ACPERF.approach_vspeed),
                     color=POSITION_COLOR.DESCEND.value,
-                    mark="descent_fl100_reached",
+                    mark="(rev) descent_fl100_reached",
                     mark_tr=FLIGHT_PHASE.DESCEND.value,
                 )
 
@@ -2233,7 +2234,7 @@ class FlightMovement(Movement):
                         speed=actype.getSI(ACPERF.descentFL100_speed),
                         vspeed=actype.getSI(ACPERF.descentFL100_vspeed),
                         color=POSITION_COLOR.DESCEND.value,
-                        mark="descent_fl240_reached",
+                        mark="(rev) descent_fl240_reached",
                         mark_tr=FLIGHT_PHASE.DESCEND.value,
                     )
 
@@ -2312,14 +2313,18 @@ class FlightMovement(Movement):
                 vspeed=0,
                 color=POSITION_COLOR.DECELERATE.value,
                 mark=FLIGHT_PHASE.LEAVE_CRUISE_SPEED.value,
-                mark_tr="end_of_decelerate",
+                mark_tr="(rev) end_of_decelerate",
             )
 
+            logger.debug("..(rev) descend built")
+
             top_of_decent_idx = fplnidx_rev + 1  # we reach top of descent between idx and idx+1, so we cruise until idx+1
-            logger.debug("(rev) reverse descent at %d after %f" % (top_of_decent_idx, groundmv))
             # we .reverse() array:
             top_of_decent_idx = len(fplnrev) - top_of_decent_idx - 1
-            logger.debug("(rev) cruise until %d, descent after %d, remains %f to destination" % (top_of_decent_idx, top_of_decent_idx, groundmv))
+
+            logger.debug(
+                f"(rev) cruise until {top_of_decent_idx}, decelerate and descend after {top_of_decent_idx}, remains {round(groundmv/1000,1)}km to destination"
+            )
 
             #
             #
@@ -2327,12 +2332,12 @@ class FlightMovement(Movement):
             #           If airawys have restrictions, should adjust "stepped" climbs/desends
             #           to comply with airway restrictions.
             #           We copy waypoints from start of cruise to end of cruise
-            logger.debug("cruise")
+            logger.debug("(rev) adding cruise..")
             if top_of_decent_idx > top_of_ascent_idx:
                 # logger.debug("adding cruise: %d -> %d" % (top_of_ascent_idx, top_of_decent_idx))
                 # add_cruise(top_of_ascent_idx, top_of_decent_idx)
                 for i in range(top_of_ascent_idx, top_of_decent_idx):
-                    wpt = fplnrev[i]
+                    wpt = fpln[i]
                     # logger.debug("adding cruise: %d %s" % (i, wpt.getProp(FEATPROP.PLAN_SEGMENT_TYPE)))
 
                     p = addMovepoint(
@@ -2345,13 +2350,15 @@ class FlightMovement(Movement):
                         mark=FLIGHT_PHASE.CRUISE.value,
                         ix=i,
                     )
-                logger.debug("cruise added (+%d %d)" % (top_of_decent_idx - top_of_ascent_idx, len(self._premoves)))
+                logger.debug(f"(rev) ..cruise added (+{top_of_decent_idx - top_of_ascent_idx} pre-moves={len(self._premoves)})")
             else:
-                logger.warning("cruise too short (%d -> %d)" % (top_of_ascent_idx, top_of_decent_idx))
+                logger.warning(f"(rev) cruise too short ({top_of_ascent_idx} -> {top_of_decent_idx})")
 
-            logger.debug(f"descent added (+{len(revmoves)} {len(self._premoves)})")
+            logger.debug("(rev) adding descend..")
             revmoves.reverse()
             self._premoves = self._premoves + revmoves
+            logger.debug(f"(rev) ..descend added (+{len(revmoves)} pre-moves={len(self._premoves)})")
+
         # END if not (cruise_added or self.flight.arrival.has_stars() or self.flight.arrival.has_approaches())
         # In fact, END old method.
 
