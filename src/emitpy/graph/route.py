@@ -42,9 +42,7 @@ class Route:
 
         logger.debug("trying networkx shortest_path..")
         try:
-            self.route = shortest_path(
-                self.graph.nx, source=self.src, target=self.dst, weight="weight"
-            )
+            self.route = shortest_path(self.graph.nx, source=self.src, target=self.dst, weight="weight")
             logger.debug("..found")
             # logger.debug("..found %s", self.route)
             return self.route

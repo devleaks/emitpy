@@ -1014,8 +1014,12 @@ class FlightMovement(Movement):
                 rwy = self.flight.rwy
                 logger.debug(f"local departure: using runway {rwy.name}")
             else:
-                rwy = self.flight.plan_get_dep_rwy()
-                logger.debug(f"remote departure: using runway {rwy.name}")
+                rwy = self.flight.plan_get_rwydep()
+                if rwy is not None:
+                    logger.debug(f"remote departure: using runway {rwy.name}")
+                else:
+                    logger.debug(f"remote departure: no runway?")
+
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
             if alt is None:
@@ -1559,14 +1563,17 @@ class FlightMovement(Movement):
         is_grounded = True
 
         rwy = None
-        if self.flight.is_arrival():  # we are at the managed airport, we must use the selected runway
-            rwy = self.flight.rwy
-            logger.debug(f"local arrival: using runway {rwy.name}")
-        else:
-            rwy = self.flight.plan_get_arr_rwy()
-            logger.debug(f"remote arrival: using runway {rwy.name}")
+        if self.flight.departure.has_rwys():  # take off self.flight.is_departure()
+            if self.flight.is_arrival():  # we are at the managed airport, we must use the selected runway
+                rwy = self.flight.rwy
+                logger.debug(f"local arrival: using runway {rwy.name}")
+            else:
+                rwy = self.flight.plan_get_rwyarr()
+                if rwy is not None:
+                    logger.debug(f"remote arrival: using runway {rwy.name}")
+                else:
+                    logger.debug(f"remote arrival: no runway?")
 
-        if rwy is not None:  # the path starts at the of roll out
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
             if alt is None:

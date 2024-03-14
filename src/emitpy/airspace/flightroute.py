@@ -3,8 +3,8 @@ import logging
 import copy
 import typing
 from typing import List
-from emitpy.airspace.aerospace import Aerospace
 
+from emitpy.airspace.aerospace import Aerospace
 from emitpy.geo.turf import Feature, LineString, FeatureCollection
 
 from emitpy.graph import Route
@@ -292,7 +292,7 @@ class FlightRoute:
             self.flight_plan = Route(a, s[0].id, e[0].id, auto=False)
             self.flight_plan.direct()
             self._convertToGeoJSON()
-            logger.warning(f"direct route from {self.fromICAO} to {self.toICAO}")
+            logger.warning(f"direct route from {self.fromICAO} to {self.toICAO} (wpts: {len(self.waypoints)})")
         logger.debug(f"..done")
 
     def makeFlightRouteFromPlan(self, flightplan: FlightPlan):
