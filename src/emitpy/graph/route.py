@@ -110,6 +110,7 @@ class Route:
             prev = f
         arc = arc[:-1]  # remove last=arrival
         arc.append(fdst)  # add arrival with details
+        logger.debug(f"great circle arc is {len(lsarc['geometry']['coordinates'])} points, returning {len(arc)} total")
         return arc
 
     def get_edges(self):

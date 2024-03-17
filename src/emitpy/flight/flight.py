@@ -645,24 +645,38 @@ class Flight(Messages):
             else:
                 logger.warning(f"departure airport {depapt.icao} has no SID for {rwydep.name}")
 
-            route = route[1:]
-            Flight.setProp(route, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.CRUISE.value)
-            Flight.setProp(route, FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao + "-" + self.arrival.icao)
-            waypoints = waypoints + route
-
         else:  # no sid, we go straight
             logger.debug(f"departure airport {depapt.icao} has no procedure, flying straight")
-            ret = route[1:]  # remove departure airport and leave cruise
-            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.CRUISE.value)
-            Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao + "-" + self.arrival.icao)
-            waypoints = waypoints + ret
+
+        # adding cruise route
+        #
+        # should may be remove more than first point?
+        # remove cruise points until they are after end of SID
+        #
+        if len(waypoints) > 1:  # if SID added
+            departure_airport = waypoints[0]  # departure airport
+            sidend = distance(departure_airport, waypoints[-1])
+            logger.debug(f"SID ends at {round(sidend)}km")
+            end = 1
+            while distance(departure_airport, route[end]) < sidend and end < len(route):
+                logger.debug(f"removed cruise point {end} because closer than SID end ({round(distance(departure_airport, route[end]))}km)")
+                end = end + 1
+            route = route[end:]
+            logger.debug(f"keep route from {end} on")
+        else:  # probably no SID
+            logger.debug(f"no SID, route starts after departure airport")
+            route = route[1:]
+
+        Flight.setProp(route, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.CRUISE.value)
+        Flight.setProp(route, FEATPROP.PLAN_SEGMENT_NAME.value, depapt.icao + "-" + self.arrival.icao)
+        waypoints = waypoints + route
+        logger.debug(f"route added ({len(route)} pts)")
 
         # ###########################
         # ARRIVAL
         #
         arrapt = self.arrival
         rwyarr = None
-
         # RWY
         # self.meta["arrival"]["metar"] = depapt.getMetar()
         if arrapt.has_rwys():
@@ -671,7 +685,7 @@ class Flight(Messages):
                 logger.debug(f"arrival airport {arrapt.icao} using runway {rwyarr.name}{forced}")
                 if self.is_arrival():
                     self.setRWY(rwyarr)
-                ret = rwyarr.getRoute()
+                ret = rwyarr.getRoute()  # route for airport is 1 point only, the airport (len=1)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.RWYARR.value)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, rwyarr.name)
                 waypoints = waypoints[:-1] + ret  # no need to add last point which is arrival airport, we replace it with the precise runway end.
@@ -683,6 +697,7 @@ class Flight(Messages):
             logger.warning(f"arrival airport {arrapt.icao} has no runway, last point is arrival airport")
             waypoints.append(arrapt)  # and rwyarr is None
 
+        arrival_airport = waypoints[-1]  # arrival airport
         # STAR
         star = None  # used in APPCH
         star_route = None
@@ -693,7 +708,20 @@ class Flight(Messages):
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.STAR.value)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, star.name)
-                waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert STAR before airport
+                #
+                # should may be remove more than last point?
+                #
+                starstart = distance(ret[0], arrival_airport)
+                logger.debug(f"STAR begins at {round(starstart)}km, {len(waypoints)} waypoints total")
+                end = len(waypoints) - 1
+                while distance(waypoints[end], arrival_airport) < starstart and end > 0:
+                    logger.debug(f"removed cruise point {end} because closer than STAR ({round(distance(waypoints[end], waypoints[-1]))}km)")
+                    end = end - 1
+                logger.debug(f"keep point from {end}/{len(waypoints)} pts")
+                waypoints = waypoints[: end + 1]
+                waypoints.append(arrival_airport)
+                logger.debug(f"last cruise point at ({round(distance(waypoints[-2], waypoints[-1]))}km), {len(waypoints)} left")
+                waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert STAR before airport, which is last point only (len=1)
                 self.procedures[FLIGHT_SEGMENT.STAR.value] = star
                 self.meta["arrival"]["procedure"] = (rwyarr.name, star.name)
                 star_route = ret
@@ -714,7 +742,7 @@ class Flight(Messages):
                     logger.debug(f"duplicate end STAR/begin APPCH {ret[0].id} removed")
                     waypoints = waypoints[:-2] + ret + [waypoints[-1]]  # remove last point of STAR
                 else:
-                    waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert APPCH before airport
+                    waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert APPCH before airport, which is last point only (len=1)
                 self.procedures[FLIGHT_SEGMENT.APPCH.value] = appch
                 self.meta["arrival"]["procedure"] = (rwyarr.name, star.name if star is not None else "no STAR", appch.name)
             else:
