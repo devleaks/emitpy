@@ -70,6 +70,10 @@ class Flight(Messages):
         self.flightroute = None  # FlightRoute object
         self.flightplan_wpts = []
 
+        # New feature!
+        self.runway_slot = -1
+        self.runway_slot_dt = None
+
         self.procedures = {}
         self.rwy = None  # RWY object
 
@@ -425,9 +429,9 @@ class Flight(Messages):
                 return False
 
         fplen = len(self.flightroute.nodes())
-        if fplen < 4:  # 4 features means 3 nodes (dept, fix, arr) and LineString.
+        if fplen < 4:  # 4 features means 3 nodes (dep, fix, arr) and LineString.
             logger.warning(f"flight route is too short {fplen}")
-            return False
+            # return False
         logger.debug(f"loaded {fplen} waypoints")
         return True
 
@@ -588,6 +592,7 @@ class Flight(Messages):
             return (False, "Flight::plan: no flight route")
 
         route = self.flightroute.route()
+        logger.debug(f"route has {len(route)} points")
         waypoints = []
 
         sync = self.get_oooi(gate=True)

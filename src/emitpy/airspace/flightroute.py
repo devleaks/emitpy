@@ -183,7 +183,7 @@ class FlightRoute:
         self.useAWYLO = useAWYLO
         self.useAWYHI = useAWYHI
         self.force = force
-        self.flight_plan = None
+        self.flight_route: Route | None = None
         self._route: FeatureCollection | None = None
         self.routeLS: LineString | None = None
         self.waypoints = None
@@ -203,16 +203,16 @@ class FlightRoute:
         """
         Returns the flight plan route as a collection of nodes.
         """
-        if self.flight_plan is None:
+        if self.flight_route is None:
             self.makeFlightRoute()
 
-        return self.flight_plan.route if self.flight_plan is not None else None
+        return self.flight_route.route if self.flight_route is not None else None
 
     def has_route(self):
         """
         Returns whether a route is found.
         """
-        return self.flight_plan is not None and self.flight_plan.found()
+        return self.flight_route is not None and self.flight_route.found()
 
     def makeFlightRoute(self):
         """
@@ -247,8 +247,8 @@ class FlightRoute:
         # Routing
         logger.debug(f"from {s[0].id} to {e[0].id}..")
         if s[0] is not None and e[0] is not None:
-            self.flight_plan = Route(a, s[0].id, e[0].id)  # self.flight_plan.find()  # auto route
-            if self.flight_plan is not None and self.flight_plan.found():
+            self.flight_route = Route(a, s[0].id, e[0].id)  # self.flight_route.find()  # auto route
+            if self.flight_route is not None and self.flight_route.found():
                 self._convertToGeoJSON()
             else:
                 cnt = 10
@@ -289,8 +289,8 @@ class FlightRoute:
         # Routing
         logger.debug(f"from {s[0].id} to {e[0].id}..")
         if s[0] is not None and e[0] is not None:
-            self.flight_plan = Route(a, s[0].id, e[0].id, auto=False)
-            self.flight_plan.direct()
+            self.flight_route = Route(a, s[0].id, e[0].id, auto=False)
+            self.flight_route.direct()
             self._convertToGeoJSON()
             logger.warning(f"direct route from {self.fromICAO} to {self.toICAO} (wpts: {len(self.waypoints)})")
         logger.debug(f"..done")
@@ -330,6 +330,9 @@ class FlightRoute:
         Returns flight route from airspace vertices,
         returns a copy because Feature properties will be modified
         """
+        if self.flight_route._direct:
+            logger.debug(f"returning great circle")
+            return copy.deepcopy(self.flight_route.get_great_arc())
         return copy.deepcopy(self.waypoints)
 
     def print(self):

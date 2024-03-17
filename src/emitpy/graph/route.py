@@ -3,10 +3,15 @@ A Route is a collection of ordered graph vertices.
 """
 
 import logging
+from typing import List
+
 from networkx import shortest_path, exception
 
 # from emitpy.geo.turf import Point, Feature
-from emitpy.geo.turf import distance
+from emitpy.constants import FEATPROP
+from emitpy.geo.turf import EmitpyFeature, distance
+from turf import great_circle
+from turf.helpers import Point
 
 logger = logging.getLogger("Route")
 
@@ -49,6 +54,9 @@ class Route:
         except exception.NetworkXNoPath:
             logger.debug("..not found")
 
+    def found(self):
+        return (self.route and len(self.route) > 2) or self._direct
+
         # logger.debug("trying local AStar..")
         # atry = self.graph.AStar(self.src, self.dst)
         # if atry is not None:
@@ -86,8 +94,23 @@ class Route:
         logger.warning("direct route created")
         return self.route
 
-    def found(self):
-        return (self.route and len(self.route) > 2) or self._direct
+    def get_great_arc(self, step: int = 50) -> List[EmitpyFeature]:
+        fsrc = self.graph.get_vertex(self.src)
+        fdst = self.graph.get_vertex(self.dst)
+        d = distance(fsrc, fdst)
+        numpoints = int(d / step)
+        lsarc = great_circle(fsrc, fdst, {"npoints": numpoints})  # Feature<LineString>
+        arc = []
+        arc.append(fsrc)  # add departure with details
+        prev = None
+        for p in lsarc["geometry"]["coordinates"]:
+            f = EmitpyFeature(geometry=Point(p), properties={FEATPROP.COMMENT.value: f"arc #{len(arc)}"})  # inefficient but ok
+            if prev is not None:  # do not add first point=departure (added above with details)
+                arc.append(f)
+            prev = f
+        arc = arc[:-1]  # remove last=arrival
+        arc.append(fdst)  # add arrival with details
+        return arc
 
     def get_edges(self):
         # From liste of vertices, build list of edges
