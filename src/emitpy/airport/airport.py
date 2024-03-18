@@ -501,7 +501,7 @@ class AirportWithProcedures(Airport):
 
         return len(sel_procs) > 0
 
-    def getProc(self, runway, all_procs, procname):
+    def getProc(self, runway, all_procs, procname, return_all: bool = False):
         """
         Gets a procedure based in runway and procedure name.
 
@@ -534,6 +534,8 @@ class AirportWithProcedures(Airport):
 
         if len(sel_procs) > 0:
             logger.debug(f"selected {procname}s for {runway.name}: {sel_procs.keys()}")
+            if return_all:
+                return list(sel_procs.values())
             ret = random.choice(list(sel_procs.values()))
             # logger.debug("returning %s for %s: %s" % (procname, runway.name, ret.name))
             return ret
@@ -541,7 +543,7 @@ class AirportWithProcedures(Airport):
         logger.warning(f"no {procname} found for runway {runway.name}")
         return None
 
-    def selectSID(self, runway: "Runway"):
+    def selectSID(self, runway: "Runway", apt: "Airport" = None, airspace: "Airspace" = None):
         """
         Randomly select a SID for supplied runway.
         @todo: Need to be a lot more clever to find procedure.
@@ -552,10 +554,24 @@ class AirportWithProcedures(Airport):
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        # return self.procedures.SIDS["RW34R"]["BATH1E"]
+        if apt is not None:
+            logger.debug(f"selecting best SID..")
+            sids = self.getProc(runway, self.procedures.SIDS, "SID", return_all=True)
+            if len(sids) > 1:
+                best = None
+                best_dist = 100000
+                for sid in sids:
+                    d = distance(sid.getRoute(airspace=airspace)[-1], apt)  # last point of SID is closest to (arrival) airport
+                    logger.debug(f"sid {sid.name} terminates at {round(d)}km from arrival")
+                    if d < best_dist:
+                        d = best_dist
+                        best = sid
+                logger.debug(f"..selected best SID {best.name}")
+                return best
+
         return self.getProc(runway, self.procedures.SIDS, "SID")
 
-    def selectSTAR(self, runway: "Runway"):
+    def selectSTAR(self, runway: "Runway", apt: "Airport" = None, airspace: "Airspace" = None):
         """
         Randomly select a STAR for supplied runway.
         @todo: Need to be a lot more clever to find procedure.
@@ -566,7 +582,20 @@ class AirportWithProcedures(Airport):
         :returns:   { description_of_the_return_value }
         :rtype:     { return_type_description }
         """
-        # return self.procedures.STARS["RW08L"]["LADB1V"]
+        if apt is not None:
+            logger.debug(f"selecting best STAR..")
+            stars = self.getProc(runway, self.procedures.STARS, "STAR", return_all=True)
+            if len(stars) > 1:
+                best = None
+                best_dist = 100000
+                for star in stars:
+                    d = distance(star.getRoute(airspace=airspace)[0], apt)  # first point of STAR is closest to (departure) airport
+                    logger.debug(f"sid {star.name} starts at {round(d)}km from departure")
+                    if d < best_dist:
+                        d = best_dist
+                        best = star
+                logger.debug(f"..selected best STAR {best.name}")
+                return best
         return self.getProc(runway, self.procedures.STARS, "STAR")
 
     def selectApproach(self, procedure: "STAR", runway: "Runway"):  # Procedure should be a STAR
@@ -710,6 +739,8 @@ class ManagedAirportBase(AirportWithProcedures):
         self.aeroway_pois: Dict[str, FeatureWithProps] = {}
         self.service_pois: Dict[str, FeatureWithProps] = {}
         self.check_pois: Dict[str, FeatureWithProps] = {}
+
+        self.airport_base = None  # where to find files
 
     @classmethod
     def new(cls, cache, apt):

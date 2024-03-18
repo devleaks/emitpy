@@ -299,7 +299,7 @@ class FlightMovement(Movement):
 
         logger.debug(self.tabulateFlightMovement("FLIGHT MOVEMENT"))
 
-        logger.debug(self.tabulateFlightPlan())
+        # logger.debug(self.tabulateFlightPlan())
 
         logger.debug("..moved")
         logger.debug(f"flight {len(self.getMovePoints())} points, taxi {len(self.taxipos)} points")
@@ -1563,7 +1563,7 @@ class FlightMovement(Movement):
         is_grounded = True
 
         rwy = None
-        if self.flight.departure.has_rwys():  # take off self.flight.is_departure()
+        if self.flight.arrival.has_rwys():  # take off self.flight.is_departure()
             if self.flight.is_arrival():  # we are at the managed airport, we must use the selected runway
                 rwy = self.flight.rwy
                 logger.debug(f"local arrival: using runway {rwy.name}")
@@ -1699,6 +1699,10 @@ class FlightMovement(Movement):
             )
             logger.debug("(rev) destination added as last point")
 
+            self.end_rollout = copy.deepcopy(currpos)  # we keep this special position for taxiing (start_of_taxi)
+            touch_down_point = self.end_rollout  # no runway, no touch down, or touch down == airport
+            end_rollout = self.end_rollout
+
             self.addMessage(
                 FlightMessage(
                     subject=f"ACARS: {ac.icao24} {FLIGHT_PHASE.TOUCH_DOWN.value} at {self.flight.arrival.icao}",
@@ -1823,7 +1827,7 @@ class FlightMovement(Movement):
             below_restrictions = 0
             while r is not None and below_restrictions < MAX_RESTRICTION_COUNT:
                 below_restrictions = below_restrictions + 1
-                logger.debug(f"\n\n>>>>>>>>>> at index {curridx} at alt {curralt}, doing next restriction below at idx={fpi(r)} {r.getRestrictionDesc()}..")
+                logger.debug(f">>>>>>>>>> at index {curridx} at alt {curralt}, doing next restriction below at idx={fpi(r)} {r.getRestrictionDesc()}..")
 
                 # when should we start to descend to satisfy this? current_altitude, target_index, target_altitude
                 candidate_alt = r.alt1

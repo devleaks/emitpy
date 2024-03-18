@@ -536,7 +536,7 @@ class Flight(Messages):
         if sid is not None:
             return sid
         if self.departure.has_sids():
-            sid = self.departure.selectSID(rwydep)
+            sid = self.departure.selectSID(rwydep, self.arrival, self.managedAirport.airport.airspace)
             if sid is not None:
                 return sid
         logger.debug(f"departure airport {self.departure.icao} no SID found")
@@ -562,7 +562,7 @@ class Flight(Messages):
         if star is not None:
             return star
         if self.arrival.has_stars():
-            star = self.arrival.selectSTAR(rwyarr)
+            star = self.arrival.selectSTAR(rwyarr, self.departure, self.managedAirport.airport.airspace)
             if star is not None:
                 return star
         logger.debug(f"arrival airport {self.arrival.icao} no STAR found")
@@ -655,14 +655,25 @@ class Flight(Messages):
         #
         if len(waypoints) > 1:  # if SID added
             departure_airport = waypoints[0]  # departure airport
-            sidend = distance(departure_airport, waypoints[-1])
-            logger.debug(f"SID ends at {round(sidend)}km")
+            end_of_sid = waypoints[-1]
+            sidenddist = distance(departure_airport, end_of_sid)
+            logger.debug(f"SID ends at {round(sidenddist)}km")
             end = 1
-            while distance(departure_airport, route[end]) < sidend and end < len(route):
+            while distance(departure_airport, route[end]) < sidenddist and end < len(route):
                 logger.debug(f"removed cruise point {end} because closer than SID end ({round(distance(departure_airport, route[end]))}km)")
                 end = end + 1
             route = route[end:]
             logger.debug(f"keep route from {end} on")
+
+            cruisestart = distance(departure_airport, route[0])
+            logger.debug(f"cruise starts at {round(cruisestart)}km")
+            d2 = distance(end_of_sid, route[0])
+            logger.debug(f"cruise starts {round(d2, 3)}km after end if SID")
+            if d2 < 1:  # probably last point of SID and first point of CRUISE are same point
+                logger.debug(f"removing first cruise point (probably same point)")
+                route = route[1:]
+                d2 = distance(end_of_sid, route[0])
+                logger.debug(f"cruise now starts {round(d2, 3)}km after end if SID")
         else:  # probably no SID
             logger.debug(f"no SID, route starts after departure airport")
             route = route[1:]
