@@ -26,6 +26,8 @@ from emitpy.utils.interpolate import compute_time
 
 logger = logging.getLogger("Flight")
 
+CLEVER_PROCEDURES = False  # True slows down creation but more realistic flight plans
+
 
 class Flight(Messages):
     def __init__(
@@ -335,12 +337,17 @@ class Flight(Messages):
             logger.warning(f"{linked_flight.getId()} already linked")
 
     def setCruise(self, flight_level: int, cruise_speed: float = 0.85) -> None:
+        if self.has_imposed_procedures():
+            v = self.forced_procedures.get(FLIGHT_SEGMENT.CRUISE.value)
+            if v is not None:
+                self.flight_level, self.cruise_speed = v
+                logger.debug(f"cruise flight level {self.flight_level} and speed {self.cruise_speed} FORCED")
+                return
+        # else, no imposed previous values
         self.flight_level = flight_level
-        if flight_level <= 100:
-            logger.warning(f"{self.flight_level}")
-        else:
-            logger.debug(f"{self.flight_level}")
         self.cruise_speed = cruise_speed
+
+        logger.debug(f"cruise flight level {self.flight_level} and speed {self.cruise_speed} set")
 
     def setLoadFactor(self, load_factor: float):
         if load_factor >= 0 and load_factor <= 2:
@@ -482,7 +489,8 @@ class Flight(Messages):
 
     def force_procedures(self, rwydep, sid, star, appch, rwyarr, **kwargs):
         """For debugging purpose to set reproducible situations"""
-        logger.info(f"forcing procedures departure={rwydep}, sid={sid}, star={star}, approach={appch}, arrival={rwyarr}")
+        v = kwargs.get(FLIGHT_SEGMENT.CRUISE.value)
+        logger.info(f"forcing procedures departure={rwydep}, sid={sid}, star={star}, approach={appch}, arrival={rwyarr}, cruise={v}")
         depapt = self.departure
         arrapt = self.arrival
         deprwy = depapt.procedures.RWYS.get(rwydep)
@@ -493,11 +501,14 @@ class Flight(Messages):
             FLIGHT_SEGMENT.STAR.value: arrapt.procedures.BYNAME.get(star),
             FLIGHT_SEGMENT.APPCH.value: arrapt.procedures.BYNAME.get(appch),
             FLIGHT_SEGMENT.RWYARR.value: arrrwy,
+            FLIGHT_SEGMENT.CRUISE.value: v,
         }
         # logger.debug(f"forced procedures {self.forced_procedures}")
 
     def force_string(self):
         def nvl(a):
+            if a == FLIGHT_SEGMENT.CRUISE:
+                return f"({self.flight_level},{self.cruise_speed})"
             b = self.procedures.get(a.value)
             return f"'{b.name}'" if b is not None else None
 
@@ -536,7 +547,10 @@ class Flight(Messages):
         if sid is not None:
             return sid
         if self.departure.has_sids():
-            sid = self.departure.selectSID(rwydep)  # , self.arrival, self.managedAirport.airport.airspace)
+            if CLEVER_PROCEDURES:
+                sid = self.departure.selectSID(rwydep, self.arrival, self.managedAirport.airport.airspace)
+            else:
+                sid = self.departure.selectSID(rwydep)
             if sid is not None:
                 return sid
         logger.debug(f"departure airport {self.departure.icao} no SID found")
@@ -562,7 +576,10 @@ class Flight(Messages):
         if star is not None:
             return star
         if self.arrival.has_stars():
-            star = self.arrival.selectSTAR(rwyarr)  # , self.departure, self.managedAirport.airport.airspace)
+            if CLEVER_PROCEDURES:
+                star = self.arrival.selectSTAR(rwyarr, self.departure, self.managedAirport.airport.airspace)
+            else:
+                star = self.arrival.selectSTAR(rwyarr)
             if star is not None:
                 return star
         logger.debug(f"arrival airport {self.arrival.icao} no STAR found")
@@ -617,7 +634,7 @@ class Flight(Messages):
                 if self.is_departure():
                     self.setRWY(rwydep)
                 waypoints = rwydep.getRoute()
-                waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_TYPE, "origin/rwy")
+                waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_TYPE, FLIGHT_SEGMENT.RWYDEP.value)
                 waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_NAME, depapt.icao + "/" + rwydep.name)
                 self.procedures[FLIGHT_SEGMENT.RWYDEP.value] = rwydep
                 self.meta["departure"]["procedure"] = rwydep.name
@@ -698,7 +715,7 @@ class Flight(Messages):
                     self.setRWY(rwyarr)
                 ret = rwyarr.getRoute()  # route for airport is 1 point only, the airport (len=1)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.RWYARR.value)
-                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, rwyarr.name)
+                Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, arrapt.icao + "/" + rwyarr.name)
                 waypoints = waypoints[:-1] + ret  # no need to add last point which is arrival airport, we replace it with the precise runway end.
                 self.procedures[FLIGHT_SEGMENT.RWYARR.value] = rwyarr
                 self.meta["arrival"]["procedure"] = rwyarr.name

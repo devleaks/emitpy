@@ -166,6 +166,8 @@ class FlightMovement(Movement):
         self._premoves = []  # Array of Features<Point>, pre-move is before standard turn applied
         self.takeoff_hold = None
         self.end_rollout = None
+        self.high_airways = None  # point where transiting from lo to hi airways on ascent
+        self.low_airways = None  # point where transiting from hi to lo airways on descent
         self.holdingpoint = None
         self.taxipos = []  # Array of Features<Point>
         self.tows = []  # list of tow movements
@@ -498,6 +500,7 @@ class FlightMovement(Movement):
         especially since it attempts to respects procedures.
 
         """
+
         fpln = self.flight.flightplan_wpts
         if fpln is None or len(fpln) == 0:
             logger.warning("no flight plan")
@@ -509,6 +512,7 @@ class FlightMovement(Movement):
         is_grounded = True
         depapt_alt = Altitude()
         arrapt_alt = Altitude()
+        descend_from_cruise_added = False
 
         def fpi(f) -> int:
             return int(f.getProp(FEATPROP.FLIGHT_PLAN_INDEX))
@@ -610,8 +614,8 @@ class FlightMovement(Movement):
              - New altitude at waypoint (after climbing)
             """
 
-            if target_altitude < current_altitude:
-                logger.debug("climb to alt: need to descend")
+            if target_altitude < (current_altitude - 10):  # issue with rounding
+                logger.debug(f"climb to alt: need to descend ({target_altitude}<{current_altitude})")
                 return descend_to_alt(start_idx, current_altitude, target_altitude, target_index, do_it, expedite)
 
             if target_altitude == current_altitude:
@@ -703,7 +707,7 @@ class FlightMovement(Movement):
             global has_top_of_descend
             MAX_TOD = 100  # km from airport, about 54nm, will descend at max. MAX_TOD km from arrival airport
 
-            if target_altitude > current_altitude:
+            if target_altitude > (current_altitude + 10):  # issue with rounding
                 logger.debug("descend to alt: need to climb")  # don't know if we can simply do this...
                 return climb_to_alt(
                     start_idx=current_index,
@@ -812,6 +816,15 @@ class FlightMovement(Movement):
                 vspeed = VSpeed()
                 localalt = Altitude()
                 localalt.in_ft = current_altitude
+
+                lvl = "100"
+                if localalt.in_ft > 10000:
+                    lvl = "180"
+                elif localalt.in_ft > 18000:
+                    lvl = "240"
+                elif localalt.in_ft > 24000:
+                    lvl = "CRZ"
+
                 if delta != 0 and total_dist != 0:
                     localalt.in_ft = current_altitude - delta * (currdist / total_dist)
                 speed.in_m, vspeed.in_m = actype.getDescendSpeedAndVSpeedForAlt(localalt.in_m)
@@ -826,6 +839,7 @@ class FlightMovement(Movement):
                             f"speed={speed}",
                             f"vspeed={vspeed}",
                             f"d={round(d, 0)}",
+                            f"(LVL={lvl}, TOD={has_top_of_descend})",
                         ]
                     )
                 )
@@ -852,6 +866,7 @@ class FlightMovement(Movement):
                         ix=idx,
                     )
                     has_top_of_descend = True
+                    logger.debug(f"top of descend")
                 if comment is not None:
                     currpos.setComment(comment)
                 currdist = currdist + d
@@ -1374,12 +1389,12 @@ class FlightMovement(Movement):
                 vspeed=actype.getSI(ACPERF.climbFL150_vspeed),
                 color=POSITION_COLOR.CLIMB.value,
                 mark="end_fl150_climb",
-                mark_tr=FLIGHT_PHASE.CLIMB.value,
+                mark_tr=FLIGHT_PHASE.CLIMB.value + "1",
             )
 
-            if self._premoves[-1].altitude() <= convert.feet_to_meters(24010) and self.flight.flight_level > 240:
-                logger.debug("climbToFL240")
-                step = actype.climbToFL240(currpos.altitude())  # (t, d, altend)
+            if self._premoves[-1].altitude() <= convert.feet_to_meters(18010) and self.flight.flight_level > 180:
+                logger.debug("climbToFL180")
+                step = actype.climbToFL180(currpos.altitude())  # (t, d, altend)
                 groundmv = groundmv + step[1]
                 currpos, fcidx = moveOnLS(
                     coll=self._premoves,
@@ -1392,12 +1407,51 @@ class FlightMovement(Movement):
                     speed=actype.getSI(ACPERF.climbFL240_speed),
                     vspeed=actype.getSI(ACPERF.climbFL240_vspeed),
                     color=POSITION_COLOR.CLIMB.value,
-                    mark="end_fl240_climb",
-                    mark_tr=FLIGHT_PHASE.CLIMB.value + "1",
+                    mark="end_fl180_climb",
+                    mark_tr=FLIGHT_PHASE.CLIMB.value + "2",
                 )
+                self.high_airways = currpos.copy()
 
                 if self._premoves[-1].altitude() <= convert.feet_to_meters(24010) and self.flight.flight_level > 240:
-                    logger.debug("climbToCruise")
+                    logger.debug("climbToFL240")
+                    step = actype.climbToFL240(currpos.altitude())  # (t, d, altend)
+                    groundmv = groundmv + step[1]
+                    currpos, fcidx = moveOnLS(
+                        coll=self._premoves,
+                        reverse=False,
+                        fc=fpln,
+                        fcidx=fcidx,
+                        currpos=currpos,
+                        dist=step[1],
+                        alt=step[2],
+                        speed=actype.getSI(ACPERF.climbFL240_speed),
+                        vspeed=actype.getSI(ACPERF.climbFL240_vspeed),
+                        color=POSITION_COLOR.CLIMB.value,
+                        mark="end_fl240_climb",
+                        mark_tr=FLIGHT_PHASE.CLIMB.value + "3",
+                    )
+
+                    if self._premoves[-1].altitude() <= convert.feet_to_meters(24010) and self.flight.flight_level > 240:
+                        logger.debug("climbToCruise")
+                        step = actype.climbToCruise(currpos.altitude(), self.flight.getCruiseAltitude())  # (t, d, altend)
+                        groundmv = groundmv + step[1]
+                        currpos, fcidx = moveOnLS(
+                            coll=self._premoves,
+                            reverse=False,
+                            fc=fpln,
+                            fcidx=fcidx,
+                            currpos=currpos,
+                            dist=step[1],
+                            alt=step[2],
+                            speed=actype.getSI(ACPERF.climbmach_mach),
+                            vspeed=actype.getSI(ACPERF.climbmach_vspeed),
+                            color=POSITION_COLOR.TOP_OF_ASCENT.value,
+                            mark=FLIGHT_PHASE.TOP_OF_ASCENT.value,
+                            mark_tr=FLIGHT_PHASE.CLIMB.value,
+                        )
+                        # cruise speed defaults to ACPERF.cruise_mach, we don't need to specify it
+                else:
+                    logger.debug("climbToCruise below FL240")
                     step = actype.climbToCruise(currpos.altitude(), self.flight.getCruiseAltitude())  # (t, d, altend)
                     groundmv = groundmv + step[1]
                     currpos, fcidx = moveOnLS(
@@ -1408,15 +1462,16 @@ class FlightMovement(Movement):
                         currpos=currpos,
                         dist=step[1],
                         alt=step[2],
-                        speed=actype.getSI(ACPERF.climbmach_mach),
-                        vspeed=actype.getSI(ACPERF.climbmach_vspeed),
+                        speed=actype.getSI(ACPERF.climbFL240_speed),
+                        vspeed=actype.getSI(ACPERF.climbFL240_vspeed),
                         color=POSITION_COLOR.TOP_OF_ASCENT.value,
                         mark=FLIGHT_PHASE.TOP_OF_ASCENT.value,
                         mark_tr=FLIGHT_PHASE.CLIMB.value,
                     )
-                    # cruise speed defaults to ACPERF.cruise_mach, we don't need to specify it
+                    cruise_speed = (actype.getSI(ACPERF.climbFL240_speed) + actype.getSI(ACPERF.cruise_mach)) / 2
+                    logger.warning(f"cruise speed below FL240: {cruise_speed:f} m/s")
             else:
-                logger.debug("climbToCruise below FL240")
+                logger.debug("climbToCruise below FL180")
                 step = actype.climbToCruise(currpos.altitude(), self.flight.getCruiseAltitude())  # (t, d, altend)
                 groundmv = groundmv + step[1]
                 currpos, fcidx = moveOnLS(
@@ -1434,7 +1489,7 @@ class FlightMovement(Movement):
                     mark_tr=FLIGHT_PHASE.CLIMB.value,
                 )
                 cruise_speed = (actype.getSI(ACPERF.climbFL240_speed) + actype.getSI(ACPERF.cruise_mach)) / 2
-                logger.warning(f"cruise speed below FL240: {cruise_speed:f} m/s")
+                logger.warning(f"cruise speed below FL180: {cruise_speed:f} m/s")
         else:
             logger.debug("climbToCruise below FL150")
             step = actype.climbToCruise(currpos.altitude(), self.flight.getCruiseAltitude())  # (t, d, altend)
@@ -1746,6 +1801,11 @@ class FlightMovement(Movement):
                 art_final_fix_point = currpos  # in this case, final fix is a point on the slope from before last flight plan point to airport.
                 groundmv = groundmv + final_fix_distance
 
+        #
+        # Note: groundmv (groud movement) is no longer maintained during "new algorithm" design
+        #       may be restored later.
+        #
+
         # We now have a reverse path from final fix alt to either touchdown to rollout or to airport center (if no rwy).
         # Final fix to touch down is (vspeed=)600ft/min at (speed=)landing speed.
         #
@@ -1756,6 +1816,7 @@ class FlightMovement(Movement):
         #            New algorithm to descend from cruise altitude to final fix while respecting alt contraints.
         #            In this algorithm, cruise is added as soon as TOD is found. cruise_add is then True.
         #
+
         cruise_added = False
         cruise_alt = Altitude()
         if self.flight.procedures.get(FLIGHT_SEGMENT.STAR.value) is not None or self.flight.procedures.get(FLIGHT_SEGMENT.APPCH.value):
@@ -2232,10 +2293,10 @@ class FlightMovement(Movement):
                     mark_tr=FLIGHT_PHASE.DESCEND.value,
                 )
 
-                if self.flight.flight_level > 240:
-                    # descent from FL240 to FL100
+                if self.flight.flight_level > 180:
+                    # descent from FL180 to FL100
                     logger.debug("(rev) descent to FL100")
-                    step = actype.descentToFL100(convert.feet_to_meters(24000))  # (t, d, altend)
+                    step = actype.descentToFL100(convert.feet_to_meters(18000))  # (t, d, altend)
                     groundmv = groundmv + step[1]
                     currpos, fplnidx_rev = moveOnLS(
                         coll=revmoves,
@@ -2253,9 +2314,50 @@ class FlightMovement(Movement):
                     )
 
                     if self.flight.flight_level > 240:
-                        # descent from cruise above FL240 to FL240
-                        logger.debug("(rev) descent from cruise alt to FL240")
-                        step = actype.descentToFL240(self.flight.getCruiseAltitude())  # (t, d, altend)
+                        # descent from FL240 to FL180
+                        logger.debug("(rev) descent to FL180")
+                        step = actype.descentToFL180(convert.feet_to_meters(24000))  # (t, d, altend)
+                        groundmv = groundmv + step[1]
+                        currpos, fplnidx_rev = moveOnLS(
+                            coll=revmoves,
+                            reverse=True,
+                            fc=fplnrev,
+                            fcidx=fplnidx_rev,
+                            currpos=currpos,
+                            dist=step[1],
+                            alt=convert.feet_to_meters(24000),
+                            speed=actype.getSI(ACPERF.descentFL100_speed),
+                            vspeed=actype.getSI(ACPERF.descentFL100_vspeed),
+                            color=POSITION_COLOR.DESCEND.value,
+                            mark="(rev) descent_fl240_reached",
+                            mark_tr=FLIGHT_PHASE.DESCEND.value,
+                        )
+                        self.low_airways = currpos.copy()
+
+                        if self.flight.flight_level > 240:
+                            # descent from cruise above FL240 to FL240
+                            logger.debug("(rev) descent from cruise alt to FL240")
+                            step = actype.descentToFL240(self.flight.getCruiseAltitude())  # (t, d, altend)
+                            groundmv = groundmv + step[1]
+                            currpos, fplnidx_rev = moveOnLS(
+                                coll=revmoves,
+                                reverse=True,
+                                fc=fplnrev,
+                                fcidx=fplnidx_rev,
+                                currpos=currpos,
+                                dist=step[1],
+                                alt=self.flight.getCruiseAltitude(),
+                                speed=actype.getSI(ACPERF.descentFL240_mach),
+                                vspeed=actype.getSI(ACPERF.descentFL240_vspeed),
+                                color=POSITION_COLOR.TOP_OF_DESCENT.value,
+                                mark=FLIGHT_PHASE.TOP_OF_DESCENT.value,
+                                mark_tr=FLIGHT_PHASE.DESCEND.value,
+                            )
+
+                    else:
+                        # descent from cruise below FL240 to FL180
+                        logger.debug("(rev) descent from cruise alt under FL240 to FL180")
+                        step = actype.descentToFL100(self.flight.getCruiseAltitude())  # (t, d, altend)
                         groundmv = groundmv + step[1]
                         currpos, fplnidx_rev = moveOnLS(
                             coll=revmoves,
@@ -2265,16 +2367,15 @@ class FlightMovement(Movement):
                             currpos=currpos,
                             dist=step[1],
                             alt=self.flight.getCruiseAltitude(),
-                            speed=actype.getSI(ACPERF.descentFL240_mach),
-                            vspeed=actype.getSI(ACPERF.descentFL240_vspeed),
-                            color=POSITION_COLOR.TOP_OF_DESCENT.value,
+                            speed=actype.getSI(ACPERF.descentFL100_speed),
+                            vspeed=actype.getSI(ACPERF.descentFL100_vspeed),
+                            color=POSITION_COLOR.DESCEND.value,
                             mark=FLIGHT_PHASE.TOP_OF_DESCENT.value,
                             mark_tr=FLIGHT_PHASE.DESCEND.value,
                         )
-
                 else:
-                    # descent from cruise below FL240 to FL100
-                    logger.debug("(rev) descent from cruise alt under FL240 to FL100")
+                    # descent from cruise below FL180 to FL100
+                    logger.debug("(rev) descent from cruise alt under FL180 to FL100")
                     step = actype.descentToFL100(self.flight.getCruiseAltitude())  # (t, d, altend)
                     groundmv = groundmv + step[1]
                     currpos, fplnidx_rev = moveOnLS(

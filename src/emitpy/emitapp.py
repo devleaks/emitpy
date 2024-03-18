@@ -29,6 +29,9 @@ from emitpy.weather import WebWeatherEngine
 from emitpy.utils import convert
 
 logger = logging.getLogger("EmitApp")
+logger_file = logging.getLogger("emit_flights_log")
+handler = logging.FileHandler("emit_flights_log.txt")
+logger_file.addHandler(handler)
 
 
 class StatusInfo:
@@ -408,6 +411,9 @@ class EmitApp(ManagedAirport):
             self.airport.setRunwaysInUse(runway)
         # else:??
 
+        if forced_procedures is not None and len(forced_procedures) > 0:  # must be set before cruise params
+            flight.force_procedures(**forced_procedures)
+
         flight.setCruise(reqfl, reqcs)
 
         rampval = self.airport.getRamp(ramp, redis=self.use_redis())
@@ -423,9 +429,6 @@ class EmitApp(ManagedAirport):
             gate = ramp_name
         flight.setGate(gate)
 
-        if forced_procedures is not None and len(forced_procedures) > 0:
-            flight.force_procedures(**forced_procedures)
-
         # 3.4 planning + route
         logger.debug("..planning..")
         ret = flight.plan()
@@ -434,6 +437,8 @@ class EmitApp(ManagedAirport):
 
         logger.debug(f"{EmitApp.do_flight.__qualname__}({', '.join([f'{k}={v}' for k, v in local_locals.items()])})")
         logger.debug("forced procedures:" + flight.force_string())  # to use above if you want to replay same flight
+        logger_file.debug(f"{EmitApp.do_flight.__qualname__}({', '.join([f'{k}={v}' for k, v in local_locals.items()])})")
+        logger_file.debug("procedures:" + flight.force_string() + "\n\n")  # to use above if you want to replay same flight
         # logger.debug(f"route: {flight.printFlightRoute()}")
         # logger.debug(f"plan : {flight.printFlightPlan()}")
         # logger.debug(f"route: {flight.tabulateFlightRoute()}")

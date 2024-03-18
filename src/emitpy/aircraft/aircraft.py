@@ -910,6 +910,8 @@ class AircraftTypeWithPerformance(AircraftType):
         if max_ceiling is None:
             logger.warning(f"no max ceiling for: {self.typeId}, assuming max ceiling is FL300")
             max_ceiling = 300
+        # get conservative
+        max_ceiling = int(0.95 * max_ceiling)
         # Set Flight Level for given flight range in km.
         if reqrange < 300:
             return min(200, max_ceiling)
@@ -917,7 +919,9 @@ class AircraftTypeWithPerformance(AircraftType):
             return min(240, max_ceiling)
         if reqrange < 1000:
             return min(280, max_ceiling)
-        return min(340, max_ceiling)
+        if reqrange < 2000:
+            return min(340, max_ceiling)
+        return min(430, max_ceiling)
 
     def CruiseSpeedFor(self, reqfl: int) -> int | float:
         """
@@ -1082,6 +1086,18 @@ class AircraftTypeWithPerformance(AircraftType):
         # Time to climb what is usually accepted as 1500ft AGL
         return self.climb(altstart, convert.feet_to_meters(15000), self.getSI(ACPERF.climbFL150_vspeed), self.getSI(ACPERF.climbFL150_speed))
 
+    def climbToFL180(self, altstart):
+        """
+        Alias to climb function for FL240 speed and vspeed.
+
+        :param      altstart:  The altstart
+        :type       altstart:  { type_description }
+        :param      safealt:   The safealt
+        :type       safealt:   int
+        """
+        # Time to climb what is usually accepted as 1500ft AGL
+        return self.climb(altstart, convert.feet_to_meters(18000), self.getSI(ACPERF.climbFL240_vspeed), self.getSI(ACPERF.climbFL240_speed))
+
     def climbToFL240(self, altstart):
         """
         Alias to climb function for FL240 speed and vspeed.
@@ -1126,6 +1142,17 @@ class AircraftTypeWithPerformance(AircraftType):
         avgalt = (altcruise + altend) / 2
         avgspd = convert.kmh_to_ms(kmh=convert.mach_to_kmh(float(self.get(ACPERF.descentFL240_mach)), avgalt))  # m/s
         return self.climb(altcruise, altend, -float(self.getSI(ACPERF.descentFL240_vspeed)), avgspd)
+
+    def descentToFL180(self, altstart):
+        """
+        Alias to climb function to descent to FL100 speed and vspeed.
+
+        :param      altstart:  The altstart
+        :type       altstart:  { type_description }
+        :param      safealt:   The safealt
+        :type       safealt:   int
+        """
+        return self.climb(altstart, convert.feet_to_meters(18000), -float(self.getSI(ACPERF.descentFL100_vspeed)), float(self.getSI(ACPERF.descentFL100_speed)))
 
     def descentToFL100(self, altstart):
         """
