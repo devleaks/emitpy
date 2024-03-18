@@ -545,8 +545,8 @@ class AirportWithProcedures(Airport):
 
     def selectSID(self, runway: "Runway", apt: "Airport" = None, airspace: "Airspace" = None):
         """
-        Randomly select a SID for supplied runway.
-        @todo: Need to be a lot more clever to find procedure.
+        Randomly select a SID for supplied runway if no airport supplied.
+        Otherwise, get SID that roughly makes shortest flight from end of SID to airport
 
         :param      runway:  The runway
         :type       runway:  { type_description }
@@ -573,8 +573,8 @@ class AirportWithProcedures(Airport):
 
     def selectSTAR(self, runway: "Runway", apt: "Airport" = None, airspace: "Airspace" = None):
         """
-        Randomly select a STAR for supplied runway.
-        @todo: Need to be a lot more clever to find procedure.
+        Randomly select a STAR for supplied runway if no airport supplied.
+        Otherwise, get STAR that roughly makes shortest flight from airport to begining of STAR.
 
         :param      runway:  The runway
         :type       runway:  { type_description }

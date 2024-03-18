@@ -209,6 +209,7 @@ class Procedure(ABC):
         self.name = name
         self.runway: str | None = None
         self.route: Dict[int, ProcedureData] = {}  # list of CIFP lines
+        self._valid = True
 
     def add(self, line: ProcedureData) -> None:
         """
@@ -686,6 +687,7 @@ class RWY(Procedure):
             self.setAltitude(convert.feet_to_meters(float(self.route[0].params[3])))
         else:
             logger.warning(f"Runway {self.runway} has no threshold")
+            self._valid = False
 
     def has_latlon(self):
         """
@@ -849,6 +851,8 @@ class CIFP:
         self.APPCHS = procedures["APPCH"]
         self.RWYS = procedures["RWY"]
 
+        self.remove_invalid()
+
         # pair runways
         self.pairRunways()
 
@@ -921,6 +925,30 @@ class CIFP:
             #             lon=apt.coords()[0]
             #         )
             #         logger.warning(f"runway {k} for {self.icao} has no threshold, replaced by airport coordinates.")
+
+    def remove_invalid(self):
+        for p in list(self.RWYS.values()):
+            if not p._valid:
+                del self.RWYS[p.name]
+                logger.warning(f"removed invalid runway {p.name}")
+        for r in self.SIDS.keys():
+            for p in list(self.SIDS[r].values()):
+                if not p._valid:
+                    del self.BYNAME[p.name]
+                    del self.SIDS[p.name]
+                    logger.warning(f"removed invalid SID {p.name}")
+        for r in self.STARS.keys():
+            for p in list(self.STARS[r].values()):
+                if not p._valid:
+                    del self.BYNAME[p.name]
+                    del self.STARS[p.name]
+                    logger.warning(f"removed invalid STAR {p.name}")
+        for r in self.APPCHS.keys():
+            for p in list(self.APPCHS[r].values()):
+                if not p._valid:
+                    del self.BYNAME[p.name]
+                    del self.APPCHS[p.name]
+                    logger.warning(f"removed invalid APPCH {p.name}")
 
     def getRoute(self, procedure: Procedure, airspace: Aerospace):
         """

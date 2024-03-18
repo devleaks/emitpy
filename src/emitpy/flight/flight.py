@@ -536,7 +536,7 @@ class Flight(Messages):
         if sid is not None:
             return sid
         if self.departure.has_sids():
-            sid = self.departure.selectSID(rwydep, self.arrival, self.managedAirport.airport.airspace)
+            sid = self.departure.selectSID(rwydep)  # , self.arrival, self.managedAirport.airport.airspace)
             if sid is not None:
                 return sid
         logger.debug(f"departure airport {self.departure.icao} no SID found")
@@ -562,7 +562,7 @@ class Flight(Messages):
         if star is not None:
             return star
         if self.arrival.has_stars():
-            star = self.arrival.selectSTAR(rwyarr, self.departure, self.managedAirport.airport.airspace)
+            star = self.arrival.selectSTAR(rwyarr)  # , self.departure, self.managedAirport.airport.airspace)
             if star is not None:
                 return star
         logger.debug(f"arrival airport {self.arrival.icao} no STAR found")
