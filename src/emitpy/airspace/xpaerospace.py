@@ -16,7 +16,7 @@ from emitpy.geo import FeatureWithProps
 from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
 from emitpy.parameters import XPLANE_DIR, DATA_DIR
-from emitpy.utils import convert
+from emitpy.utils import convert, show_path
 from .aerospace import Aerospace, Terminal, Fix, NamedPoint, AirwaySegment, CPIDENT
 from .aerospace import NDB, VOR, LOC, MB, DME, GS, FPAP, GLS, LTPFTP
 from .restriction import Hold, ControlledAirspace, Restriction
@@ -139,7 +139,7 @@ class XPAerospace(Aerospace):
         count = 0
         filename = os.path.join(DATA_DIR, "airports", "airports.csv")
         file = open(filename, "r")
-        logger.info("from %s.", filename)
+        logger.info("from %s.", show_path(filename))
         self.setAiracCycle(filename)
         csvdata = csv.DictReader(file)
 

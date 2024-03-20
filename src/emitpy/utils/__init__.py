@@ -9,6 +9,8 @@ import os
 from emitpy import __NAME__ as name
 from emitpy.parameters import HOME_DIR
 
+PROG_BASE = f"<{name}>"
+
 
 def show_path(p: str) -> str:
-    return os.path.abspath(p).replace(os.path.abspath(HOME_DIR), f"<{name}>")
+    return os.path.abspath(p).replace(os.path.abspath(HOME_DIR), PROG_BASE)

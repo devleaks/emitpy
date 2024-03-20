@@ -15,7 +15,7 @@ from emitpy.airport import Airport
 
 # All base directories will be checked and created if non existent
 from emitpy.constants import FEATPROP, AODB_DIRECTORIES
-from emitpy.parameters import HOME_DIR, DATA_DIR, TEMP_DIR
+from emitpy.parameters import HOME_DIR, DATA_DIR, AODB_DIR
 from emitpy.parameters import CACHE_DIR, WEATHER_DIR
 from emitpy.parameters import MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_CACHE
 from emitpy.utils import show_path
@@ -170,7 +170,7 @@ class ManagedAirport:
             return (False, "ManagedAirport::mkdirs missing mandatory base directories")
 
         # Global directories
-        dirs = [TEMP_DIR, CACHE_DIR, WEATHER_DIR, MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_CACHE]
+        dirs = [AODB_DIR, CACHE_DIR, WEATHER_DIR, MANAGED_AIRPORT_DIR, MANAGED_AIRPORT_AODB, MANAGED_AIRPORT_CACHE]
         for d in dirs:
             if not os.path.exists(d):
                 logger.warning(f"directory {show_path(d)} does not exist")

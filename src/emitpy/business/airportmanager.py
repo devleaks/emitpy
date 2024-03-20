@@ -25,7 +25,7 @@ from emitpy.resource import AllocationTable
 from emitpy.constants import REDIS_DATABASE, REDIS_TYPE, REDIS_PREFIX, ID_SEP, REDIS_DB, EVENT_ONLY_SERVICE
 from emitpy.constants import ARRIVAL, DEPARTURE, FLIGHT_TIME_FORMAT, DEFAULT_VEHICLE, DEFAULT_VEHICLE_SHORT, EQUIPMENT
 from emitpy.parameters import MANAGED_AIRPORT_DIR
-from emitpy.utils import key_path, rejson, rejson_keys, KebabToCamel
+from emitpy.utils import key_path, rejson, rejson_keys, KebabToCamel, show_path
 from emitpy.emit import ReEmit
 
 # from emitpy.service import Service
@@ -124,7 +124,7 @@ class AirportManager:
             if os.path.exists(business):
                 with open(business, "r") as fp:
                     self.data = yaml.safe_load(fp)
-                logger.debug(f"{business} loaded")
+                logger.debug(f"{show_path(business)} loaded")
                 return (True, "AirportManager::loadFromFile: loaded")
         logger.warning(f"{business} not found")
         return (False, "AirportManager::loadFromFile file %s not found", business)
@@ -308,7 +308,7 @@ class AirportManager:
             if os.path.exists(companies):
                 with open(companies, "r") as fp:
                     self.data = yaml.safe_load(fp)
-                logger.warning(f"{companies} loaded")
+                logger.warning(f"{show_path(companies)} loaded")
                 for k, c in self.data.items():
                     self.companies[k] = Company(orgId=c["orgId"], classId=c["classId"], typeId=c["typeId"], name=c["name"])
                 return (True, f"AirportManager::loadCompanies loaded {self.companies.keys()}")
@@ -371,7 +371,7 @@ class AirportManager:
             if os.path.exists(business):
                 with open(business, "r") as fp:
                     self.data = yaml.safe_load(fp)
-                logger.debug(f"{business} loaded")
+                logger.debug(f"{show_path(business)} loaded")
                 servicevehicleclasses = importlib.import_module(name=".service.equipment", package="emitpy")
                 #  atype: fuel
                 #  model: large-tanker

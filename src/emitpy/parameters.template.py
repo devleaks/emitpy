@@ -30,17 +30,17 @@ HOME_DIR = os.path.join("<application-home-directory>")  # should work even on w
 DATA_DIR = os.path.join(HOME_DIR, "data")
 
 # AODB is a database of working data (read-write). Mostly replaced by Redis.
-TEMP_DIR = os.path.join(HOME_DIR, "db")
+AODB_DIR = os.path.join(HOME_DIR, "db")
 
 # Cache dir is for pickle dumps.
-CACHE_DIR = os.path.join(TEMP_DIR, "cache")
+CACHE_DIR = os.path.join(AODB_DIR, "cache")
 
 # METAR storage directory
-WEATHER_DIR = os.path.join(TEMP_DIR, "weather")
+WEATHER_DIR = os.path.join(AODB_DIR, "weather")
 
 # Managed Airport storage directories
 MANAGED_AIRPORT_DIR = os.path.join(DATA_DIR, "managedairport", MANAGED_AIRPORT_ICAO)
-MANAGED_AIRPORT_AODB = os.path.join(TEMP_DIR, MANAGED_AIRPORT_ICAO)
+MANAGED_AIRPORT_AODB = os.path.join(AODB_DIR, MANAGED_AIRPORT_ICAO)
 MANAGED_AIRPORT_CACHE = os.path.join(CACHE_DIR, MANAGED_AIRPORT_ICAO)  # os.path.join(MANAGED_AIRPORT_AODB, "cache")
 
 

@@ -12,7 +12,7 @@ from datetime import datetime
 
 from emitpy.constants import REDIS_DATABASE, REDIS_DB
 from emitpy.parameters import WEATHER_DIR
-from emitpy.utils import key_path
+from emitpy.utils import key_path, show_path
 from .utils import normalize_dt
 
 logger = logging.getLogger("WeatherEngine")
@@ -107,18 +107,18 @@ class AirportWeather(ABC):
         if self.raw is not None:
             fn = self.saveFileName()
             if not os.path.exists(fn):
-                logger.warning(f"saving into {fn} '{self.raw}'")
+                logger.warning(f"saving into {show_path(fn)} '{self.raw}'")
                 with open(fn, "w") as outfile:
                     outfile.write(self.raw)
             else:
-                logger.warning(f"already exist {fn}")
+                logger.warning(f"already exist {show_path(fn)}, not overwritten")
             return (True, "Metar::saveFile: saved")
         return (False, "Metar::saveFile: no METAR to saved")
 
     def loadFile(self):
         fn = self.saveFileName()
         if os.path.exists(fn):
-            logger.debug(f"found {fn}")
+            logger.debug(f"found {show_path(fn)}")
             try:
                 with open(fn, "r") as fp:
                     self.raw = fp.readline()
@@ -128,7 +128,7 @@ class AirportWeather(ABC):
                 self.raw = None
             return (False, "Metar::loadFile: not loaded")
 
-        logger.debug(f"file not found {fn}")
+        logger.debug(f"file not found {show_path(fn)}")
         return (False, "Metar::loadFile: not loaded")
 
     def cacheKeyName(self):

@@ -51,6 +51,7 @@ src/emitpy/parameters.py
 src/emitpy/parameters-*.py
 
 data/
+aodb/
 db/
 docs-md/
 docs/

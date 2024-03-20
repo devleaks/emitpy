@@ -24,7 +24,7 @@ from emitpy.parameters import HOME_DIR, DATA_DIR
 from emitpy.business import Identity, Company
 from emitpy.constants import AIRCRAFT_TYPE_DATABASE, REDIS_DATABASE, REDIS_PREFIX, REDIS_DB
 from emitpy.constants import LOW_ALT_MAX_SPEED, LOW_ALT_ALT_FT, FINAL_APPROACH_FIX_ALT_M, INITIAL_CLIMB_SAFE_ALT_M
-from emitpy.utils import convert, key_path, rejson
+from emitpy.utils import convert, key_path, rejson, show_path
 
 
 logger = logging.getLogger("Aircraft")
@@ -161,6 +161,7 @@ class AircraftType(Identity):
                     orgId=row["Manufacturer"], classId=row["Wake Category"], typeId=row["ICAO Code"], name=row["Model"], data=row
                 )
                 AircraftType._DB[row["ICAO Code"]].setClass()
+        logger.debug(f"loaded {show_path(files('data.aircraft_types').joinpath('aircraft-types.json'))}")
         logger.debug(f"loaded {len(AircraftType._DB)} aircraft types")
         AircraftType.loadAircraftEquivalences()
 
@@ -178,6 +179,7 @@ class AircraftType(Identity):
         ae = files("data.aircraft_types").joinpath("aircraft-equivalence.yaml").read_text()
         data = yaml.safe_load(ae)
         AircraftType._DB_EQUIVALENCE = data
+        logger.debug(f"loaded {show_path(files('data.aircraft_types').joinpath('aircraft-equivalence.json'))}")
         logger.debug(f"loaded {len(AircraftType._DB_EQUIVALENCE)} aircraft equivalences")
 
     @staticmethod
@@ -439,6 +441,7 @@ class AircraftTypeWithPerformance(AircraftType):
                 logger.warning(f"AircraftType {ac} not found")
 
         cnt = len(list(filter(lambda a: a.available, AircraftTypeWithPerformance._DB_PERF.values())))
+        logger.debug(f"loaded {show_path(files('data.aircraft_types').joinpath('aircraft-performances.json'))}")
         logger.debug(f"loaded {len(AircraftTypeWithPerformance._DB_PERF)} aircraft types with their performances, {cnt} available")
         logger.debug(f"{list(map(lambda f: (f.typeId, f.getIata()), AircraftTypeWithPerformance._DB_PERF.values()))}")
 
