@@ -1271,7 +1271,7 @@ class FlightMovement(Movement):
                     curridx, curralt.in_ft = climb_to_alt(
                         start_idx=curridx,
                         current_altitude=curralt.in_ft,
-                        target_altitude=restricted_above_alt,
+                        target_altitude=max(curralt.in_ft, restricted_above_alt),  # we are climbing
                         target_index=tidx,
                         comment="climb above restriction",
                     )
@@ -2001,7 +2001,7 @@ class FlightMovement(Movement):
                     curridx, curralt.in_ft = descend_to_alt(
                         current_index=curridx,
                         current_altitude=curralt.in_ft,
-                        target_altitude=r.alt1,
+                        target_altitude=min(r.alt1, curralt.in_ft),  # we are descending
                         target_index=tidx,
                         comment="already below or at below restriction",
                     )

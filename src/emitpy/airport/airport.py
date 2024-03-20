@@ -557,17 +557,22 @@ class AirportWithProcedures(Airport):
         if apt is not None:
             logger.debug(f"selecting best SID..")
             sids = self.getProc(runway, self.procedures.SIDS, "SID", return_all=True)
-            if len(sids) > 1:
+            if sids is not None and len(sids) > 1:
                 best = None
                 best_dist = 100000
                 for sid in sids:
-                    d = distance(sid.getRoute(airspace=airspace)[-1], apt)  # last point of SID is closest to (arrival) airport
-                    logger.debug(f"sid {sid.name} terminates at {round(d)}km from arrival")
-                    if d < best_dist:
-                        d = best_dist
-                        best = sid
-                logger.debug(f"..selected best SID {best.name}")
-                return best
+                    route = sid.getRoute(airspace=airspace)
+                    if route is not None and len(route) > 1:
+                        d = distance(route[-1], apt)  # last point of SID is closest to (arrival) airport
+                        logger.debug(f"sid {sid.name} terminates at {round(d)}km from arrival")
+                        if d < best_dist:
+                            d = best_dist
+                            best = sid
+                if best is not None:
+                    logger.debug(f"..selected best SID {best.name}")
+                    return best
+
+            logger.debug("..not best SID found, using random")
 
         return self.getProc(runway, self.procedures.SIDS, "SID")
 
@@ -585,7 +590,7 @@ class AirportWithProcedures(Airport):
         if apt is not None:
             logger.debug(f"selecting best STAR..")
             stars = self.getProc(runway, self.procedures.STARS, "STAR", return_all=True)
-            if len(stars) > 1:
+            if stars is not None and len(stars) > 1:
                 best = None
                 best_dist = 100000
                 for star in stars:

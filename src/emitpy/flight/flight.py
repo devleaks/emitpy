@@ -26,7 +26,7 @@ from emitpy.utils.interpolate import compute_time
 
 logger = logging.getLogger("Flight")
 
-CLEVER_PROCEDURES = False  # True slows down creation but more realistic flight plans
+CLEVER_PROCEDURES = True  # True slows down creation but more realistic flight plans
 
 
 class Flight(Messages):
@@ -514,15 +514,7 @@ class Flight(Messages):
 
         if self.procedures is None:
             return "{}"
-
         return "{" + ", ".join([f"'{i.value}': {nvl(i)}" for i in FLIGHT_SEGMENT]) + "}"
-
-    # [
-    #                 f"{{'{FLIGHT_SEGMENT.RWYDEP.value}': {nvl(FLIGHT_SEGMENT.RWYDEP)}",
-    #                 f"'sid': {nvl(FLIGHT_SEGMENT.SID)}",
-    #                 f"'star': {nvl(FLIGHT_SEGMENT.STAR)}",
-    #                 f"'appch': {nvl(FLIGHT_SEGMENT.APPCH)}",
-    #                 f"'rwyarr': {nvl(FLIGHT_SEGMENT.RWYARR)}}}",
 
     def has_imposed_procedures(self) -> bool:
         return self.forced_procedures is not None and len(self.forced_procedures) > 1

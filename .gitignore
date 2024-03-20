@@ -62,3 +62,5 @@ tests/
 *.db
 src/web/emitview/.yarn
 src/web/emitview/.yarnrc.yml
+src/bin/emit_flights_log.txt
+src/bin/emit_flights_errors.log

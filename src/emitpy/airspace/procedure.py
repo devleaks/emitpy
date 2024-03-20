@@ -265,6 +265,7 @@ class SID(Procedure):
         :type       airspace:  Aerospace
         """
         a = []
+        last = ""
         for v in self.route.values():
             fid = v.param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
@@ -272,7 +273,11 @@ class SID(Procedure):
                 # logger.debug("SID:getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location, we keep either one
-                    a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
+                    if last != vtxs[0]:  # sometimes, same waypoint gets repeated with new instructions list turn dir, path termination, etc.
+                        a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
+                        last = vtxs[0]
+                    else:
+                        logger.debug("SID:vertex duplicated %s" % (vtxs[0]))
                 elif len(vtxs) > 2:
                     logger.warning(f"SID:vertex ambiguous {vid} ({len(vtxs)}, {vtxs})")
                 else:
@@ -396,6 +401,7 @@ class STAR(Procedure):
         :type       airspace:  Aerospace
         """
         a = []
+        last = ""
         for v in self.route.values():
             fid = v.param(PROC_DATA.FIX_IDENT).strip()
             if len(fid) > 0:
@@ -403,7 +409,13 @@ class STAR(Procedure):
                 # logger.debug("STAR:getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location
-                    a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
+                    if vid.endswith(":Terminal"):
+                        logger.warning(f"STAR may use airport (Terminal) as a fix ({vid}), should not be added to STAR")
+                    if last != vtxs[0]:
+                        a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
+                        last = vtxs[0]
+                    else:
+                        logger.debug("STAR:vertex duplicated %s" % (vtxs[0]))
                 elif len(vtxs) > 2:
                     logger.warning("STAR:vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
                 else:
@@ -564,6 +576,7 @@ class APPCH(Procedure):
         """
         interrupted = False
         a = []
+        last = ""
         for v in self.route.values():
             # print("route", v.seq())
             code_raw = v.param(PROC_DATA.DESC_CODE)
@@ -575,7 +588,11 @@ class APPCH(Procedure):
                 # logger.debug("APPCH:getRoute: %s" % vid)
                 vtxs = list(filter(lambda x: x.startswith(vid), airspace.vert_dict.keys()))
                 if len(vtxs) > 0 and len(vtxs) < 3:  # there often is both a VOR and a DME at same location
-                    a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
+                    if last != vtxs[0]:  # sometimes, same waypoint gets repeated with new instructions list turn dir, path termination, etc.
+                        a.append(self.getNamedPointWithRestriction(airspace=airspace, vertex=vtxs[0], restriction=v.getRestriction()))
+                        last = vtxs[0]
+                    else:
+                        logger.debug("APPCH:vertex duplicated %s" % (vtxs[0]))
                 elif len(vtxs) > 2:
                     logger.warning("APPCH:vertex ambiguous %s (%d, %s)" % (vid, len(vtxs), vtxs))
                 else:
