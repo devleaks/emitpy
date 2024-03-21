@@ -626,6 +626,7 @@ class Flight(Messages):
                 if self.is_departure():
                     self.setRWY(rwydep)
                 waypoints = rwydep.getRoute()
+                sid_route = waypoints.copy()
                 waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_TYPE, FLIGHT_SEGMENT.RWYDEP.value)
                 waypoints[0].setProp(FEATPROP.PLAN_SEGMENT_NAME, depapt.icao + "/" + rwydep.name)
                 self.procedures[FLIGHT_SEGMENT.RWYDEP.value] = rwydep
@@ -664,9 +665,12 @@ class Flight(Messages):
         #
         if len(waypoints) > 1:  # if SID added
             departure_airport = waypoints[0]  # departure airport
+            start_of_sid = waypoints[1]
+            sidstartdist = distance(departure_airport, start_of_sid)
+            logger.debug(f"SID starts at {round(sidstartdist)}km from airport, {len(waypoints)-1} waypoints total")
             end_of_sid = waypoints[-1]
             sidenddist = distance(departure_airport, end_of_sid)
-            logger.debug(f"SID ends at {round(sidenddist)}km")
+            logger.debug(f"SID ends at {round(sidenddist)}km from airport")
             end = 1
             while distance(departure_airport, route[end]) < sidenddist and end < len(route):
                 logger.debug(f"removed cruise point {end} because closer than SID end ({round(distance(departure_airport, route[end]))}km)")
@@ -726,13 +730,19 @@ class Flight(Messages):
             if star is not None:
                 logger.debug(f"{arrapt.icao} using STAR {star.name}{forced}")
                 ret = arrapt.procedures.getRoute(star, self.managedAirport.airport.airspace)
+                star_route = ret.copy()
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_TYPE.value, FLIGHT_SEGMENT.STAR.value)
                 Flight.setProp(ret, FEATPROP.PLAN_SEGMENT_NAME.value, star.name)
                 #
                 # should may be remove more than last point?
                 #
                 starstart = distance(ret[0], arrival_airport)
-                logger.debug(f"STAR begins at {round(starstart)}km, {len(waypoints)} waypoints total")
+                logger.debug(f"STAR begins at {round(starstart)}km from airport, {len(ret)} waypoints total")
+
+                end_of_star = ret[-1]
+                starenddist = distance(arrival_airport, end_of_star)
+                logger.debug(f"STAR ends at {round(starenddist)}km from airport")
+
                 end = len(waypoints) - 1
                 while distance(waypoints[end], arrival_airport) < starstart and end > 0:
                     logger.debug(f"removed cruise point {end} because closer than STAR ({round(distance(waypoints[end], waypoints[-1]))}km)")
@@ -744,7 +754,6 @@ class Flight(Messages):
                 waypoints = waypoints[:-1] + ret + [waypoints[-1]]  # insert STAR before airport, which is last point only (len=1)
                 self.procedures[FLIGHT_SEGMENT.STAR.value] = star
                 self.meta["arrival"]["procedure"] = (rwyarr.name, star.name)
-                star_route = ret
             else:
                 logger.warning(f"arrival airport {arrapt.icao} has no STAR for runway {rwyarr.name}")
         else:  # no star, we are done, we arrive in a straight line

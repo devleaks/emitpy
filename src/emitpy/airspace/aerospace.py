@@ -380,6 +380,7 @@ class Aerospace(Graph, ABC):
     def new(cls, load_airways: bool, cache: str, redis):
         airspace = None
         airspace_cache = os.path.join(cache, "aerospace.pickle")
+        airspace_geojson = os.path.join(cache, "aerospace.geojson")
         if os.path.exists(airspace_cache):
             logger.debug("loading aerospace from pickle..")
             with open(airspace_cache, "rb") as fp:
@@ -397,6 +398,8 @@ class Aerospace(Graph, ABC):
                 logger.debug("..pickling aerospace..")
                 with open(airspace_cache, "wb") as fp:
                     pickle.dump(airspace, fp)
+                with open(airspace_geojson, "w") as fp:
+                    json.dump(airspace.to_geojson(), fp)
             logger.debug("..done")
         return airspace
 
