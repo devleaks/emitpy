@@ -20,9 +20,13 @@ from emitpy.parameters import MANAGED_AIRPORT_ICAO
 FORMAT = "%(levelname)1.1s%(module)22s:%(funcName)-25s%(lineno)4s| %(message)s"
 logging.basicConfig(level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger("emit_flights")
+logger_error = logging.getLogger("emit_flights_errors")
+handler = logging.FileHandler("emit_flights_errors.log")
+logger_error.addHandler(handler)
 
+datafile = "flight_table.csv"
 
-filename = os.path.join("..", "..", "data", "managedairport", MANAGED_AIRPORT_ICAO, "flights", "flight_table.csv")
+filename = os.path.join("..", "..", "data", "managedairport", MANAGED_AIRPORT_ICAO, "flights", datafile)
 file = open(filename, "r")
 csvdata = csv.DictReader(file)
 # flights = sorted(csvdata, key=lambda x: (x['FLIGHT ACTUAL TIME']))  # sorted by actual movement time
@@ -33,17 +37,20 @@ e = EmitApp(MANAGED_AIRPORT_ICAO)
 
 # Parameters
 #
-DO_SERVICE = False
 queue = "raw"
 rate = [15, 10]
+DO_SERVICE = False
 
-NUM_FLIGHTS = 1  # len(flights)
-cnt = 0
-cnt_begin = random.randint(0, len(flights) - 1)
-cnt_end = min(cnt_begin + NUM_FLIGHTS, len(flights))
-idx = cnt_begin - 1
+
+# NUM_FLIGHTS, cnt_begin = len(flights), 0  # run them all
+NUM_FLIGHTS, cnt_begin = 1, random.randint(0, len(flights) - 1)  # run 1, random
+
+procedures = None
+
 # Here we go..
 #
+cnt_end = min(cnt_begin + NUM_FLIGHTS, len(flights))
+idx = cnt_begin - 1
 logger.info(f"File contains {len(flights)} flights. Generating from from {cnt_begin} to {cnt_end}.")
 
 # Internal global vars
@@ -62,6 +69,8 @@ for r in flights[cnt_begin:cnt_end]:
     REGISTRATION NO;AC TYPE;AC TYPE IATA;RAMP
     """
     idx = idx + 1
+    logger.info("\n\n\n+" + "-" * 10 + f"DOING {idx}\n\n")
+
     ret = None
 
     if r["REGISTRATION NO"] not in icao.keys():
@@ -100,11 +109,14 @@ for r in flights[cnt_begin:cnt_end]:
             runway="RW16L",
             do_services=DO_SERVICE,
             actual_datetime=dtnow.isoformat(),
-            comment=f"index {idx}",
+            comment=f"{datafile}:{idx}",
+            forced_procedures=procedures,
         )
     except:
         failed.append(idx)
         logger.error(f"item {r} failed", exc_info=True)
+        logger_error.error(f"{datafile}:{idx} forced={procedures}")
+        logger_error.error(f"item {r} failed (idx={idx})", exc_info=True)
     finally:
         logger.info(f"{idx}:{ret}")
 
