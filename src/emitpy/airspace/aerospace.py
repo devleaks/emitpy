@@ -18,8 +18,10 @@ from emitpy.geo.turf import Point, LineString
 from emitpy.geo.turf import distance
 
 from emitpy.graph import Vertex, Edge, Graph
-from emitpy.geo import FeatureWithProps
+from emitpy.geo import FeatureWithProps, GeoAlt
 from emitpy.utils import key_path
+
+from emitpy.parameters import XPLANE_DIR
 
 logger = logging.getLogger("Airspace")
 
@@ -376,6 +378,8 @@ class Aerospace(Graph, ABC):
         self.holds: Dict[str, "Hold"] = {}
         self.airspaces: Dict[str, "ControlledAirspace"] = {}
 
+        self.geoalt = GeoAlt(globe_location=os.path.join(XPLANE_DIR, "globe"))
+
     @classmethod
     def new(cls, load_airways: bool, cache: str, redis):
         airspace = None
@@ -402,6 +406,15 @@ class Aerospace(Graph, ABC):
                     json.dump(airspace.to_geojson(), fp)
             logger.debug("..done")
         return airspace
+
+    def ground_altitude(self, lat: float, lon: float) -> float:
+        return self.geoalt.altitude_at_geographic_coordinates(lat=lat, lon=lon)
+
+    def ground_altitude_point(self, point: Point) -> float:
+        return self.ground_altitude(lat=point.coordinates[1], lon=point.coordinates[0])
+
+    def ground_altitude_feature(self, feature: FeatureWithProps) -> float:
+        return self.ground_altitude_point(point=feature.geometry)
 
     def load(self, redis=None):
         if redis is not None and not self.load_airways:
