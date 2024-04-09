@@ -8,3 +8,4 @@ from .lst import toLST
 from .movement import MovePoint, Movement
 from .traffic import toTraffic
 from .so6 import toSO6
+from .geoalt import GeoAlt
