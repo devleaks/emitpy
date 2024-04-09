@@ -439,7 +439,7 @@ class EmitApp(ManagedAirport):
         logger.debug("forced procedures:" + flight.force_string())  # to use above if you want to replay same flight
         logger_file.debug(f"{EmitApp.do_flight.__qualname__}({', '.join([f'{k}={v}' for k, v in local_locals.items()])})")
         logger_file.debug("procedures:" + flight.force_string() + "\n\n")  # to use above if you want to replay same flight
-        # logger.debug(f"route: {flight.printFlightRoute()}")
+        logger.debug(f"route: {flight.printFlightRoute()}")
         # logger.debug(f"plan : {flight.printFlightPlan()}")
         # logger.debug(f"route: {flight.tabulateFlightRoute()}")
         logger.info(str(flight))

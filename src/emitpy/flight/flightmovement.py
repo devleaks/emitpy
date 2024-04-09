@@ -1,6 +1,7 @@
 """
 A succession of positions where the aircraft passes. Includes taxi and takeoff or landing and taxi.
 """
+
 import os
 import io
 import json
@@ -365,7 +366,7 @@ class FlightMovement(Movement):
         logger.debug(f"saved {self.flight_id}")
         return (True, "Movement::save saved")
 
-    def load(self):
+    def load(self, ident):
         """
         Load flight paths from 3 files for flight plan, detailed movement, and taxi path.
         File must be saved by above saveFile() function.
@@ -616,7 +617,14 @@ class FlightMovement(Movement):
 
             if target_altitude < (current_altitude - 10):  # issue with rounding
                 logger.debug(f"climb to alt: need to descend ({target_altitude}<{current_altitude})")
-                return descend_to_alt(start_idx, current_altitude, target_altitude, target_index, do_it, expedite)
+                return descend_to_alt(
+                    current_index=start_idx,
+                    current_altitude=current_altitude,
+                    target_altitude=target_altitude,
+                    target_index=target_index,
+                    expedite=expedite,
+                    comment=comment,
+                )
 
             if target_altitude == current_altitude:
                 logger.debug("same altitude, no need to climb")

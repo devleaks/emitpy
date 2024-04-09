@@ -4,28 +4,105 @@ Miscellanerous general functions
 
 import logging
 from datetime import datetime, timedelta
+import pytz
 
 from emitpy.constants import FLIGHT_PHASE
 
 logger = logging.getLogger("Utils/Time")
 
 
-class EstimatedTime:
-    def __init__(
-        self, estimated: datetime, timestamp: datetime, reason: str, estimator: str
-    ):
-        self.estimated = estimated
-        self.timestamp = timestamp
-        self.reason = reason
-        self.estimator = estimator
+def validate_args(valid: list, **kwargs) -> list:
+    """Helper function to validate keyword arguments"""
+    return [f for f in kwargs if f not in valid]
 
-    def getInfo(self):
-        return {
-            "estimated": self.estimated,
-            "timestamp": self.timestamp,
-            "reason": self.reason,
-            "estimator": self.estimator,
-        }
+
+class Time:
+    """Collects all three scheduled, estimated and actual times for entities that need those timing collection.
+
+    Keeps a history of estimated time updates.
+
+    """
+
+    def __init__(self, scheduled: datetime, **kwargs):
+        self._scheduled = scheduled
+        self._estimated: datetime = kwargs.get("estimated", scheduled)
+        self._actual: datetime | None = kwargs.get("actual")
+        self._estimate_history: Dict[datetime, str] = {}  # new schedule: reason for change
+        self.add_estimated_history("init")
+
+    def add_estimated_history(self, reason: str = ""):
+        self._estimate_history[self._estimated] = reason
+
+    def get_estimated_history(self):
+        return self._estimate_history
+
+    @property
+    def scheduled(self) -> datetime:
+        return self._scheduled
+
+    @property
+    def scheduled_fmt(self, utc: bool = False) -> str:
+        if utc:
+            return self._scheduled.astimezone(pytz.utc).isoformat()
+        return self._scheduled.isoformat()
+
+    @scheduled.setter
+    def scheduled(self, dt: datetime) -> None:
+        self._scheduled = dt
+
+    @scheduled_fmt.setter
+    def scheduled_fmt(self, dt: str) -> None:
+        self._scheduled = datetime.fromisoformat(dt)
+
+    @property
+    def estimated(self) -> datetime:
+        return self._estimated
+
+    @property
+    def estimated_fmt(self, utc: bool = False) -> str:
+        if utc:
+            return self._estimated.astimezone(pytz.utc).isoformat()
+        return self._estimated.isoformat()
+
+    @estimated.setter
+    def estimated(self, value: datetime | tuple) -> None:
+        dt = datetime.now()
+        reason = ""
+        if type(value) is tuple:
+            dt, reason = value
+        else:
+            dt = value
+        self._estimated = dt
+        self.add_estimated_history(reason=reason)
+
+    @estimated_fmt.setter
+    def estimated_fmt(self, value: str | tuple) -> None:
+        dt = datetime.now().isoformat()
+        reason = ""
+        if type(value) is tuple:
+            dt, reason = value
+        else:
+            dt = value
+        self._estimated = datetime.fromisoformat(dt)
+        self.add_estimated_history(reason=reason)
+
+    @property
+    def actual(self) -> datetime | None:
+        return self._actual
+
+    @property
+    def actual_fmt(self, utc: bool = False) -> str | None:
+        if utc and self._actual is not None:
+            return self._actual.astimezone(pytz.utc).isoformat()
+        return self._actual.isoformat() if self._actual is not None else None
+
+    @actual.setter
+    def actual(self, dt: datetime) -> None:
+        self._actual = dt
+
+    @actual_fmt.setter
+    def actual_fmt(self, dt: str) -> None:
+        self._actual = datetime.fromisoformat(dt)
 
 
 def roundTime(dt: datetime, roundTo: int = 300, seconds: int = 0, minutes: int = 0):

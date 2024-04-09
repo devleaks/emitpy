@@ -65,6 +65,7 @@ class XPAerospace(Aerospace):
         Attempts to find Airac Cycle from either navdata cycle_info.txt file
         or X-Plane earth_nav.dat I line (information)
 
+        XPLANE 11
         earth_awy.dat:1100 Version - data cycle 1802, build 20200426, metadata AwyXP1100. Copyright (c) 2020 Navigraph, Datasource Jeppesen
         earth_fix.dat:1101 Version - data cycle 1802, build 20200426, metadata FixXP1101. Copyright (c) 2020 Navigraph, Datasource Jeppesen
         earth_hold.dat:1140 Version - data cycle 1802, build 20200426, metadata HoldXP1140. Copyright (c) 2020 Navigraph, Datasource Jeppesen
@@ -72,6 +73,14 @@ class XPAerospace(Aerospace):
         earth_msa.dat:1150 Version - data cycle 1802, build 20200426, metadata MSAXP1150. Copyright (c) 2020 Navigraph, Datasource Jeppesen
         earth_nav.dat:1150 Version - data cycle 1802, build 20200623, metadata NavXP1150. Copyright (c) 2020 Navigraph, Datasource Jeppesen
 
+
+        XPLANE 12
+        earth_awy.dat:1100 Version - data cycle 2112, build 20211207, metadata AwyXP1100. Copyright (c) 2021 Navigraph, Datasource Jeppesen
+        earth_fix.dat:1200 Version - data cycle 2112, build 20211207, metadata FixXP1200. Copyright (c) 2021 Navigraph, Datasource Jeppesen
+        earth_hold.dat:1140 Version - data cycle 2112, build 20211207, metadata HoldXP1140. Copyright (c) 2021 Navigraph, Datasource Jeppesen
+        earth_mora.dat:1150 Version - data cycle 2112, build 20211207, metadata MORAXP1150. Copyright (c) 2021 Navigraph, Datasource Jeppesen
+        earth_msa.dat:1150 Version - data cycle 2112, build 20211207, metadata MSAXP1150. Copyright (c) 2021 Navigraph, Datasource Jeppesen
+        earth_nav.dat:1200 Version - data cycle 2112, build 20211207, metadata NavXP1200. Copyright (c) 2021 Navigraph, Datasource Jeppesen
         """
         cycle = str_in.strip()
         if len(str_in) > 4:
@@ -493,21 +502,21 @@ class XPAerospace(Aerospace):
             ss = time.perf_counter()
             self._cached_vectex_ids = {}
             self._cached_vectex_idents = {}
-            self._cached_vectex_ids["Fix"] = 0
-            self._cached_vectex_ids["VHF"] = 0
-            self._cached_vectex_ids["IDENT"] = 0
+            self._cached_vectex_ids["Fix"] = 0  # fixes, code=11
+            self._cached_vectex_ids["VHF"] = 0  # enrt ndb, code=2
+            self._cached_vectex_ids["IDENT"] = 0  # vhf, code=3
             for v in self.vert_dict.keys():
                 a = NamedPoint.parseId(ident=v)
                 if not a[CPIDENT.REGION] in self._cached_vectex_ids.keys():
                     self._cached_vectex_ids[a[CPIDENT.REGION]] = {}
                 if not a[CPIDENT.IDENT] in self._cached_vectex_ids[a[CPIDENT.REGION]].keys():
                     self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]] = {}
-                if a[CPIDENT.POINTTYPE] == "Fix":
                     self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["Fix"] = []
+                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["VHF"] = []
+                if a[CPIDENT.POINTTYPE] == "Fix":
                     self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["Fix"].append(v)
                     self._cached_vectex_ids["Fix"] = self._cached_vectex_ids["Fix"] + 1
                 else:
-                    self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["VHF"] = []
                     self._cached_vectex_ids[a[CPIDENT.REGION]][a[CPIDENT.IDENT]]["VHF"].append(v)
                     self._cached_vectex_ids["VHF"] = self._cached_vectex_ids["VHF"] + 1
 

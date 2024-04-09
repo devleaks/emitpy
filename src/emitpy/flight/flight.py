@@ -1,12 +1,9 @@
 # Everything Flight
 import logging
-import re
-import traceback
 import io
 import os
 import json
 from typing import Tuple
-from enum import Enum
 from datetime import datetime, timedelta, timezone
 
 from tabulate import tabulate
@@ -155,7 +152,7 @@ class Flight(Messages):
             "is_arrival": self.is_arrival(),  # simply useful denormalisation...
             "comment": self.comment,
             "summary": str(self),
-            "procedures": self.force_string()
+            "procedures": self.force_string(),
             # "meta": self.meta
         }
 
@@ -698,7 +695,7 @@ class Flight(Messages):
 
         # ###########################
         # ARRIVAL
-        #
+
         arrapt = self.arrival
         rwyarr = None
         # RWY
