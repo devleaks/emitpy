@@ -3,6 +3,18 @@ import os
 
 from osgeo import gdal, gdalconst
 
+# from ..parameters import XPLANE_DIR
+XPLANE_DIR = "/Users/pierre/Developer/aero/emit/emitpy/data/x-plane"
+
+# DATA:
+# source_url='http://www.ngdc.noaa.gov/mgg/topo/DATATILES/elev/',
+# header_url='http://www.ngdc.noaa.gov/mgg/topo/elev/esri/hdr/',
+# dem_files='a10g,b10g,c10g,d10g,e10g,f10g,g10g,h10g,i10g,j10g,k10g,l10g,m10g,n10g,o10g,p10g',
+#
+# for emitpy, files are located in x-plane folder, globe subfolder.
+# files are shared/used by little navmap to estimate ground profile.
+#
+
 
 class GeoAlt:
     def __init__(self, globe_location) -> None:
@@ -101,8 +113,8 @@ class GeoAlt:
 
 # TEST
 
-coord_list = [[50.5, 6.1], [50.81, 4.33], [51.26, 3.0]]
-g = GeoAlt(globe_location="./all10")
+# coord_list = [[50.5, 6.1], [50.81, 4.33], [51.26, 3.0]]  # ~ 625m, 88m, 3m.
+# g = GeoAlt(globe_location=os.path.join(XPLANE_DIR, "globe"))
 
-for coords in coord_list:
-    print(coords, f"{g.altitude_at_geographic_coordinates(lat=coords[0], lon=coords[1])} m")
+# for coords in coord_list:
+#     print(coords, f"{g.altitude_at_geographic_coordinates(lat=coords[0], lon=coords[1])} m")

@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 from tabulate import tabulate
 
+from emitpy import airspace
 from emitpy.geo.turf import LineString, FeatureCollection, Feature, saveGeoJSON
 from emitpy.airspace import Restriction, NamedPoint
 from emitpy.geo.turf import distance, destination, bearing
@@ -1023,6 +1024,7 @@ class FlightMovement(Movement):
         #
         # For take off, altitude is AGL.
         #
+        airspace = self.flight.managedAirport.airport.airspace
         movelenghth = 50
         logger.debug(f"departure from {self.flight.departure.icao} " + "=" * movelenghth)
         TOH_BLASTOFF = 0.2  # km, distance of take-off hold position from runway threshold
@@ -1046,10 +1048,11 @@ class FlightMovement(Movement):
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
             if alt is None:
-                logger.warning(f"departure airport has no altitude: {rwy_threshold}")
-                depapt_alt.in_m = 0
+                depapt_alt.in_m = airspace.ground_altitude_feature(rwy_threshold)
+                logger.warning(f"departure airport has no altitude: {rwy_threshold}, GLOBE altitude: {depapt_alt.in_m}m")
             else:
                 depapt_alt.in_m = float(alt)
+                logger.debug(f"departure airport at altitude: {round(depapt_alt.in_m, 1)}m, GLOBE: {airspace.ground_altitude_feature(rwy_threshold)}m")
 
             brg = bearing(rwy_threshold, rwy.end.getPoint())
             takeoff_hold = destination(rwy_threshold, TOH_BLASTOFF, brg)
@@ -1640,11 +1643,11 @@ class FlightMovement(Movement):
             rwy_threshold = rwy.getPoint()
             alt = rwy_threshold.altitude()
             if alt is None:
-                logger.warning(f"(rev) departure airport has no altitude: {rwy_threshold}")
-                arrapt_alt.in_m = 0
+                arrapt_alt.in_m = airspace.ground_altitude_feature(rwy_threshold)
+                logger.warning(f"(rev) arrival airport has no altitude: {rwy_threshold}, GLOBE altitude: {arrapt_alt.in_m}m")
             else:
                 arrapt_alt.in_m = float(alt)
-                logger.debug(f"arrival airport at altitude {round(arrapt_alt.in_m,1)}m")
+                logger.debug(f"arrival airport at altitude: {round(arrapt_alt.in_m, 1)}m, GLOBE: {airspace.ground_altitude_feature(rwy_threshold)}m")
 
             brg = bearing(rwy_threshold, rwy.end.getPoint())
             touch_down = destination(rwy_threshold, LAND_TOUCH_DOWN, brg)
