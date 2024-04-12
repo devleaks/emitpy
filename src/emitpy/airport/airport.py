@@ -2,10 +2,11 @@
 Different types of airports, depending on their status in the simulation.
 
 - Airport: Simple, regular terminal.
-- ManagedAirportBase: Augmented terminal location with additional information such as runways, procedures, etc.
-- ManagedAirport: An ManagedAirportBase with yet additional information such as taxiway network, road service network, etc.
-  for the study of airport ground operations.
+- AirportWithProcedures: Airport completed with CIFP procedures
+- ManagedAirportBase: Augmented terminal location with additional information such as runways, taxiways, ramps, etc.
+- ManagedAirport: An ManagedAirportBase for the study of airport ground operations.
 """
+
 from __future__ import annotations
 
 import os
@@ -15,6 +16,8 @@ import logging
 import pickle
 import random
 import operator
+import airportsdata
+
 from typing import Dict, List
 from abc import abstractmethod
 
@@ -73,54 +76,44 @@ class Airport(Location):
         Loads all known airports from a global airport list file.
         Currently, the data file used returns the follwing information:
 
-        - id
-        - ident
-        - type
-        - name
-        - latitude_deg
-        - longitude_deg
-        - elevation_ft
-        - continent
-        - iso_country
-        - iso_region
-        - municipality
-        - scheduled_service
-        - gps_code
-        - iata_code
-        - local_code
-        - home_link
-        - wikipedia_link
-        - keywords
+        {
+            "icao": "OTHH",
+            "iata": "DOH",
+            "name": "Hamad International Airport",
+            "city": "Doha",
+            "subd": "Baladiyat-ad-Dawḩah",
+            "country": "QA",
+            "elevation": 13.0,
+            "lat": 25.26059,
+            "lon": 51.61377,
+            "tz": "Asia/Qatar",
+            "lid": "",
+        }
 
         """
-        filename = os.path.join(DATA_DIR, AIRPORT_DATABASE, "airports.csv")
-        file = open(filename, "r")
-        csvdata = csv.DictReader(file)
-        for row in csvdata:
-            lat = float(row["latitude_deg"]) if row["latitude_deg"] != "" else 0.0
-            lon = float(row["longitude_deg"]) if row["longitude_deg"] != "" else 0.0
+        airports = airportsdata.load()
+        for row in airports.values():
+            lat = row["lat"]
+            lon = row["lon"]
             if lat != 0.0 or lon != 0.0:
-                alt = 0
-                if "elevation_ft" in row and row["elevation_ft"] != "":
-                    alt = convert.feet_to_meters(float(row["elevation_ft"]))
+                alt = row["elevation"]
                 apt = Airport(
-                    icao=row["ident"],
-                    iata=row["iata_code"],
+                    icao=row["icao"],
+                    iata=row["iata"],
                     name=row["name"],
-                    city=row["municipality"],
-                    country=row["iso_country"],
-                    region=row["iso_region"],
+                    city=row["city"],
+                    country=row["country"],
+                    region="",
                     lat=lat,
                     lon=lon,
                     alt=alt,
                 )
                 apt.display_name = row["name"]
-                Airport._DB[row["ident"]] = apt
-                Airport._DB_IATA[row["iata_code"]] = apt
+                Airport._DB[row["icao"]] = apt
+                Airport._DB_IATA[row["iata"]] = apt
             else:
                 logger.warning("invalid airport data %s.", row)
 
-        file.close()
         logger.debug(f"loaded {len(Airport._DB)} airports")
 
     @staticmethod
@@ -372,7 +365,7 @@ class AirportWithProcedures(Airport):
     """
     An AirportWithProcedures is an airport with CIFP procedures.
     AirportWithProcedures can be used as departure and/or arrival airport in flight plan.
-    AirportWithProcedures also is the parent of BaseAirport.
+    AirportWithProcedures also is the parent of ManagedAirportBase.
     """
 
     def __init__(self, icao: str, iata: str, name: str, city: str, country: str, region: str, lat: float, lon: float, alt: float):
@@ -546,7 +539,7 @@ class AirportWithProcedures(Airport):
     def selectSID(self, runway: "Runway", apt: "Airport" = None, airspace: "Airspace" = None):
         """
         Randomly select a SID for supplied runway if no airport supplied.
-        Otherwise, get SID that roughly makes shortest flight from end of SID to airport
+        Otherwise, get SID that roughly(!) makes shortest flight from end of SID to airport
 
         :param      runway:  The runway
         :type       runway:  { type_description }
@@ -566,7 +559,7 @@ class AirportWithProcedures(Airport):
                         d = distance(route[-1], apt)  # last point of SID is closest to (arrival) airport
                         logger.debug(f"sid {sid.name} terminates at {round(d)}km from arrival")
                         if d < best_dist:
-                            d = best_dist
+                            best_dist = d
                             best = sid
                 if best is not None:
                     logger.debug(f"..selected best SID {best.name}")
@@ -594,10 +587,11 @@ class AirportWithProcedures(Airport):
                 best = None
                 best_dist = 100000
                 for star in stars:
-                    d = distance(star.getRoute(airspace=airspace)[0], apt)  # first point of STAR is closest to (departure) airport
+                    route = star.getRoute(airspace=airspace)
+                    d = distance(route[0], apt)  # first point of STAR is closest to (departure) airport
                     logger.debug(f"sid {star.name} starts at {round(d)}km from departure")
                     if d < best_dist:
-                        d = best_dist
+                        best_dist = d
                         best = star
                 logger.debug(f"..selected best STAR {best.name}")
                 return best
