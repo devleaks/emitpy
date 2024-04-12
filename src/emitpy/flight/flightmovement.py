@@ -1705,7 +1705,9 @@ class FlightMovement(Movement):
             logger.debug(f"index {len(fpln)+last_point_idx} at {round(last_point_distance,3)}km")
             logger.debug(f"final fix at {round(final_fix_distance,3)}km from touchdown, last point of flight plan at {round(last_point_distance,3)}km")
             if final_fix_distance > last_point_distance:
-                logger.warning(f"no artificial final fix added, will flight straight from last point of flight plan to touch down, kiss landing not guaranteed")
+                logger.warning(
+                    f"no artificial final fix added since final_fix_distance > last_point_distance, will flight straight from last point of flight plan to touch down, kiss landing not guaranteed"
+                )
             else:
                 logger.debug("adding artificial final fix after last point of flight plan")
 
@@ -2491,6 +2493,7 @@ class FlightMovement(Movement):
         idx = 0
         for f in self._premoves:
             f.setProp(FEATPROP.PREMOVE_INDEX, idx)
+            f.setProp(FEATPROP.GROUND_ALT, airspace.ground_altitude_feature(f))
             idx = idx + 1
 
         logger.debug(f"doing speed control..")

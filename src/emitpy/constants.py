@@ -510,6 +510,7 @@ class FEATPROP(Enum):
     FLIGHT_MOVE_INDEX = "move-index"
     FLIGHT_PLAN_INDEX = "plan-index"
     FLIGHT_PLAN_TIME = "plan-time"
+    GROUND_ALT = "GLOBE-ground-altitude"
     TAXI_INDEX = "taxi-index"
     JETWAY = "jetway"
     GROUNDED = "grounded"

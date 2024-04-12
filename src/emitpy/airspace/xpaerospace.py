@@ -7,11 +7,14 @@ import time
 import csv
 import json
 from typing import Dict
+from datetime import datetime
 from importlib_resources import files
 
 from math import inf
-from emitpy.geo.turf import distance
 
+import airportsdata
+
+from emitpy.geo.turf import distance
 from emitpy.geo import FeatureWithProps
 from emitpy.constants import REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
@@ -145,53 +148,21 @@ class XPAerospace(Aerospace):
         Source can be changed as needed.
         """
         startLen = len(self.vert_dict.keys())
-        count = 0
-        filename = os.path.join(DATA_DIR, "airports", "airports.csv")
-        file = open(filename, "r")
-        logger.info("from %s.", show_path(filename))
-        self.setAiracCycle(filename)
-        csvdata = csv.DictReader(file)
-
-        for r in csvdata:
-            # Our Airport:
-            # {
-            #     "id": 2155,
-            #     "ident": "EBBR",
-            #     "type": "large_airport",
-            #     "name": "Brussels Airport",
-            #     "latitude_deg": 50.901401519800004,
-            #     "longitude_deg": 4.48443984985,
-            #     "elevation_ft": 184,
-            #     "continent": "EU",
-            #     "iso_country": "BE",
-            #     "iso_region": "BE-BRU",
-            #     "municipality": "Brussels",
-            #     "scheduled_service": "yes",
-            #     "gps_code": "EBBR",
-            #     "iata_code": "BRU",
-            #     "local_code": "",
-            #     "home_link": "http://www.brusselsairport.be/en/",
-            #     "wikipedia_link": "https://en.wikipedia.org/wiki/Brussels_Airport",
-            #     "keywords": ""
-            # }
-            #
-            lat = float(r["latitude_deg"]) if r["latitude_deg"] != "" else 0.0
-            lon = float(r["longitude_deg"]) if r["longitude_deg"] != "" else 0.0
+        self.setAiracCycle(datetime.now().isoformat())
+        airports = airportsdata.load()
+        for r in airports.values():
+            lat = r["lat"]
+            lon = r["lon"]
             if lat != 0.0 or lon != 0.0:
-                alt = convert.feet_to_meters(float(r["elevation_ft"])) if r["elevation_ft"] != "" else None
-                apt = Terminal(
-                    name=r["ident"], lat=lat, lon=lon, alt=alt, iata=r["iata_code"], longname=r["name"], country=r["iso_country"], city=r["municipality"]
-                )
-                self.airports_iata[r["iata_code"]] = apt
-                self.airports_icao[r["ident"]] = apt
+                alt = r["elevation"]
+
+                apt = Terminal(name=r["icao"], lat=lat, lon=lon, alt=alt, iata=r["iata"], longname=r["name"], country=r["country"], city=r["city"])
+                self.airports_iata[r["iata"]] = apt
+                self.airports_icao[r["icao"]] = apt
                 self.add_vertex(apt)
-                count += 1
             else:
-                logger.warning("invalid airport data %s.", line)
-
-        file.close()
-
-        logger.debug("%d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, count)
+                logger.warning("invalid airport data %s.", r)
+        logger.debug("%d/%d airports loaded.", len(self.vert_dict.keys()) - startLen, len(airports))
         return [True, "XPAerospace::Airport loaded"]
 
     def checkFile(self, filename):

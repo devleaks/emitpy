@@ -102,15 +102,18 @@ class RWY_DATA(Enum):
 #
 class ProcedureData:
     """
-    Represent one line of more of procedure data from CIFP file.
+    Represent one line of more (if "extras" or "continuation") of procedure data from CIFP file.
     If the line of instruction has more lines of data, they get collected in this instance.
-    """
 
+    ```
     # CIFP line for this airport. Example line:
     # APPCH:030,A,I25RZ,KERKY,CF25R,EB,P,C,EE B,R,   ,CF,Y,IBR,EB,P,I,      ,0644,0130,2140,0085,+,02000,     ,     , ,   ,    ,   , , , , , ,0,D,S;
     # PROC :[params]                                   ↑
     #       params[PROC_DATA.PATH_TERM] = param[11]----+  (CF, Course to Fix)
     #
+    ```
+    """
+
     def __init__(self, line):
         self.procedure: str | None = None
         self.data: List[ProcedureData] = []
@@ -209,6 +212,7 @@ class Procedure(ABC):
         self.name = name
         self.runway: str | None = None
         self.route: Dict[int, ProcedureData] = {}  # list of CIFP lines
+        self._airspace_route = None
         self._valid = True
 
     def add(self, line: ProcedureData) -> None:
@@ -221,6 +225,8 @@ class Procedure(ABC):
         if len(self.route) == 0:  # First time, sets runway CIFP name
             self.runway = line.runway()
         self.route[line.seq()] = line
+        # Route modified, invalidate cache
+        self._airspace_route = None
 
     def getNamedPointWithRestriction(self, airspace, vertex, restriction: Restriction) -> NamedPointWithRestriction | None:
         p = airspace.getNamedPoint(vertex)
@@ -264,6 +270,9 @@ class SID(Procedure):
         :param      airspace:  The airspace
         :type       airspace:  Aerospace
         """
+        if self._airspace_route is not None:  # cached
+            return self._airspace_route
+
         a = []
         last = ""
         for v in self.route.values():
@@ -284,6 +293,7 @@ class SID(Procedure):
                     logger.warning("SID:vertex not found %s", vid)
 
         self.prepareRestrictions(a)
+        self._airspace_route = a
         return a
 
     def prepareRestrictions(self, route):
@@ -400,6 +410,9 @@ class STAR(Procedure):
         :param      airspace:  The airspace
         :type       airspace:  Aerospace
         """
+        if self._airspace_route is not None:  # cached
+            return self._airspace_route
+
         a = []
         last = ""
         for v in self.route.values():
@@ -422,6 +435,7 @@ class STAR(Procedure):
                     logger.warning("STAR:vertex not found %s", vid)
 
         self.prepareRestrictions(a)
+        self._airspace_route = a
         return a
 
     def prepareRestrictions(self, route):
@@ -574,6 +588,9 @@ class APPCH(Procedure):
         :param      airspace:  The airspace
         :type       airspace:  Aerospace
         """
+        if self._airspace_route is not None:  # cached
+            return self._airspace_route
+
         interrupted = False
         a = []
         last = ""
@@ -605,6 +622,7 @@ class APPCH(Procedure):
                 interrupted = True
 
         self.prepareRestrictions(a)
+        self._airspace_route = a
         return a
 
     def prepareRestrictions(self, route):
@@ -742,6 +760,7 @@ class RWY(Procedure):
         """
         Returns runway threshold point
         """
+        # warning: do not cache! self._airspace_route = self.point # NO!
         return [self.point]
 
     def both(self):
