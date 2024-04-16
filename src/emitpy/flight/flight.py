@@ -153,6 +153,7 @@ class Flight(Messages):
             "comment": self.comment,
             "summary": str(self),
             "procedures": self.force_string(),
+            # "route": self.printFlightRoute(),  # that's big, especially if replicated numerous times...
             # "meta": self.meta
         }
 
@@ -439,10 +440,10 @@ class Flight(Messages):
         logger.debug(f"loaded {fplen} waypoints")
         return True
 
-    def printFlightRoute(self):
+    def printFlightRoute(self) -> str:
         if self.flightroute is None or not self.flightroute.has_route():
             logger.warning("no flight route")
-            return
+            return ""
         return self.flightroute.print()
 
     def tabulateFlightRoute(self):
@@ -513,11 +514,13 @@ class Flight(Messages):
             return "{}"
         return "{" + ", ".join([f"'{i.value}': {nvl(i)}" for i in FLIGHT_SEGMENT]) + "}"
 
-    def has_imposed_procedures(self) -> bool:
-        return self.forced_procedures is not None and len(self.forced_procedures) > 1
+    def has_imposed_procedures(self, proctype: str = "") -> bool:
+        if str == "":
+            return self.forced_procedures is not None and len(self.forced_procedures) > 1
+        return self.forced_procedures is not None and self.forced_procedures.get(proctype) is not None
 
     def plan_get_rwydep(self):
-        if self.has_imposed_procedures():
+        if self.has_imposed_procedures("rwydep"):
             return self.forced_procedures.get(FLIGHT_SEGMENT.RWYDEP.value)
         rwy = self.procedures.get(FLIGHT_SEGMENT.RWYDEP.value)
         if rwy is not None:
@@ -530,7 +533,7 @@ class Flight(Messages):
         return None
 
     def plan_get_sid(self, rwydep):
-        if self.has_imposed_procedures():
+        if self.has_imposed_procedures("sid"):
             return self.forced_procedures.get(FLIGHT_SEGMENT.SID.value)
         sid = self.procedures.get(FLIGHT_SEGMENT.SID.value)
         if sid is not None:
@@ -546,7 +549,7 @@ class Flight(Messages):
         return None
 
     def plan_get_rwyarr(self):
-        if self.has_imposed_procedures():
+        if self.has_imposed_procedures("rwyarr"):
             return self.forced_procedures.get(FLIGHT_SEGMENT.RWYARR.value)
         rwy = self.procedures.get(FLIGHT_SEGMENT.RWYARR.value)
         if rwy is not None:
@@ -559,7 +562,7 @@ class Flight(Messages):
         return None
 
     def plan_get_star(self, rwyarr):
-        if self.has_imposed_procedures():
+        if self.has_imposed_procedures("star"):
             return self.forced_procedures.get(FLIGHT_SEGMENT.STAR.value)
         star = self.procedures.get(FLIGHT_SEGMENT.STAR.value)
         if star is not None:
@@ -575,7 +578,7 @@ class Flight(Messages):
         return None
 
     def plan_get_appch(self, star, rwyarr):
-        if self.has_imposed_procedures():
+        if self.has_imposed_procedures("appch"):
             return self.forced_procedures.get(FLIGHT_SEGMENT.APPCH.value)
         appch = self.procedures.get(FLIGHT_SEGMENT.APPCH.value)
         if appch is not None:

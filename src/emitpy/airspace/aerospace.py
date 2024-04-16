@@ -405,7 +405,16 @@ class Aerospace(Graph, ABC):
                 with open(airspace_geojson, "w") as fp:
                     json.dump(airspace.to_geojson(), fp)
             logger.debug("..done")
+        status = airspace.init()
+        if not status[0]:
+            logger.warning(status[1])
         return airspace
+
+    def init(self):
+        status = self.mk_rtree_index()
+        if not status[0]:
+            return status
+        return [True, f"Airspace inited ({type(self).__name__})"]
 
     def ground_altitude(self, lat: float, lon: float) -> float:
         return self.geoalt.altitude_at_geographic_coordinates(lat=lat, lon=lon)

@@ -335,7 +335,7 @@ class FlightRoute:
             return copy.deepcopy(self.flight_route.get_great_arc())
         return copy.deepcopy(self.waypoints)
 
-    def print(self):
+    def print(self) -> str:
         """
         Print flight route in "flight plan" format
         """

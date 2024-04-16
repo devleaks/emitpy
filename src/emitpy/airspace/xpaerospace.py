@@ -13,10 +13,11 @@ from importlib_resources import files
 from math import inf
 
 import airportsdata
+from rtree import index as RtreeIndex
 
-from emitpy.geo.turf import distance
+from emitpy.geo.turf import distance, FeatureCollection
 from emitpy.geo import FeatureWithProps
-from emitpy.constants import REDIS_PREFIX, REDIS_DB
+from emitpy.constants import FEATPROP, REDIS_PREFIX, REDIS_DB
 from emitpy.utils import key_path
 from emitpy.parameters import XPLANE_DIR, DATA_DIR
 from emitpy.utils import convert, show_path
@@ -789,47 +790,48 @@ class XPAerospace(Aerospace):
 
     def loadAirspaces(self):
         """
-        Load all airspaces from Little Navmap.
+        Load all airspaces from Little Navmap (table boundary)
         {
-        "type": "Feature",
-        "geometry": {
-        "type": "Polygon",
-        "coordinates": [ [ [0, 0], .. ,[0, 0] ] ]
-        },
-        "properties": {
-        "boundary_id": 29386,
-        "file_id": 1,
-        "type": "FIR",
-        "name": "HONIARA",
-        "description": null,
-        "restrictive_designation": null,
-        "restrictive_type": null,
-        "multiple_code": "",
-        "time_code": "U",
-        "com_type": "CTR",
-        "com_frequency": 118100,
-        "com_name": "HONIARA",
-        "min_altitude_type": "MSL",
-        "max_altitude_type": "UL",
-        "min_altitude": 0,
-        "max_altitude": 100000,
-        "max_lonx": 166.875,
-        "max_laty": -4.833333492279053,
-        "min_lonx": 155,
-        "min_laty": -14
-        }
+            "type": "Feature",
+            "geometry": {
+                "type": "Polygon",
+                "coordinates": [ [ [0, 0], .. ,[0, 0] ] ]
+            },
+            "properties": {
+                "boundary_id": 29386,
+                "file_id": 1,
+                "type": "FIR",
+                "name": "HONIARA",
+                "description": None,
+                "restrictive_designation": None,
+                "restrictive_type": None,
+                "multiple_code": "",
+                "time_code": "U",
+                "com_type": "CTR",
+                "com_frequency": 118100,
+                "com_name": "HONIARA",
+                "min_altitude_type": "MSL",
+                "max_altitude_type": "UL",
+                "min_altitude": 0,
+                "max_altitude": 100000,
+                "max_lonx": 166.875,
+                "max_laty": -4.833333492279053,
+                "min_lonx": 155,
+                "min_laty": -14
+            }
         }
         List of values:
         --------------
         type: ["AL","C","CA","CB","CC","CD","CE","CF","CG","CN","DA","FIR","GCA","M","MCTR","P","R","RD","T","TR","TRSA","UIR","W"]
-        restrictive_type: [null,"A","C","D","M","P","R","T","W"]
-        multiple_code: [null,"A", .. ,"Z"]
-        time_code: [null,"C","H","N","U"]
-        comm_type: [null,"CTR"]
-
+        restrictive_type: [None,"A","C","D","M","P","R","T","W"]
+        multiple_code: [None,"A", .. ,"Z"]
+        time_code: [None,"C","H","N","U"]
+        comm_type: [None,"CTR"]
+        *_altitude_type: ["MSL","AGL","UL",None]
         """
         airspaces = files("data.airspaces").joinpath("boundaries.geojson").read_text()
         fc = json.loads(airspaces)
+
         for f in fc["features"]:
             props = f["properties"]
             ca = ControlledAirspace(
@@ -844,9 +846,48 @@ class XPAerospace(Aerospace):
             )
             for p in props:
                 ca.setProp(p, props[p])
-            ca.setId(props["boundary_id"])
-            self.airspaces[props["boundary_id"]] = ca
-
+            bid = int(props["boundary_id"])
+            ca.setId(bid)
+            self.airspaces[bid] = ca
         logger.debug(f"loaded {len(self.airspaces)} boundaries")
-
         return [True, "XPAerospace::loadAirspaces aispace loaded"]
+
+    def mk_rtree_index(self):
+        self.boundaries_index = RtreeIndex.Index()
+        bad = []
+        for bid, ca in self.airspaces.items():
+            props = ca.properties
+            name = props["name"]
+
+            left = props.get("min_lonx")
+            right = props.get("max_lonx")
+            if left > right and left > 0 and right < 0:  # invert left<>right across the greenwich or dayline
+                temp = left
+                left = right
+                right = temp
+            if left > right:
+                logger.debug(f"invalid boundaries(greenwich or dayline?): {bid}, {name}: {left} > {right}")
+                bad.append(f)
+            else:
+                bottom = props.get("min_laty")
+                top = props.get("max_laty")
+                if bottom > top:
+                    logger.debug(f"invalid boundaries(equator?): {bid}, {name}: {bottom} > {top}")
+                    bad.append(f)
+                else:
+                    self.boundaries_index.insert(id=bid, coordinates=(left, bottom, right, top), obj=ca)
+
+        if len(bad) > 0:
+            logger.debug(f"errors: boundary ids, {[(f['properties']['boundary_id'],f['properties']['name']) for f in bad]}")
+            with open("boundaries_with_issues.geojson", "w") as fp:
+                json.dump(FeatureCollection(bad).to_geojson(), fp)
+
+        logger.debug(f"indexed {len(self.airspaces)} boundaries, {len(self.boundaries_index)} indexed, {len(bad)} non indexed")
+        return [True, "XPAerospace::loadAirspaces aispace indexed"]
+
+    def get_airspaces(self, feature: FeatureWithProps) -> list:
+        return (
+            [i.id for i in self.boundaries_index.intersection(coordinates=(feature.lon(), feature.lat(), feature.lon(), feature.lat()), objects=True)]
+            if self.boundaries_index is not None
+            else []
+        )

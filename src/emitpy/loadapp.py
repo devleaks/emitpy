@@ -203,10 +203,10 @@ class LoadApp(ManagedAirport):
         #     if not status[0]:
         #         return status
 
-        # if "*" in what or "airspace" in what:
-        #     status = self.loadAirspaces()
-        #     if not status[0]:
-        #         return status
+        if "*" in what or "airspace" in what:
+            status = self.loadAirspaces()
+            if not status[0]:
+                return status
 
         # #############################
         # AIRPORT MANAGER
@@ -760,13 +760,11 @@ class LoadApp(ManagedAirport):
             # self.redis.set(key_path(kn, e.getKey()), json.dumps(e))
 
     def loadAirspaces(self):
-        # Never tested, hence not implemented
         cnt = 0
         for v in self.airport.airspace.airspaces.values():
             if isinstance(v, ControlledAirspace):
-                self.redis.json().set(
-                    key_path(REDIS_PREFIX.AIRSPACE_CONTROLLED.value, v.getProp("type"), str(v.getKey())), Path.root_path(), FeatureWithProps.convert(v)
-                )
+                payload = FeatureWithProps.convert(v).to_geojson()
+                self.redis.json().set(key_path(REDIS_PREFIX.AIRSPACE_CONTROLLED.value, v.getProp("type"), str(v.getKey())), Path.root_path(), payload)
                 cnt = cnt + 1
         logger.debug(f"loaded {cnt}")
         return (True, f"LoadApp::loadAirspaces: loaded controlled airspaces")

@@ -488,6 +488,7 @@ class DEPARTURE_DELAY(IntEnum):
 #
 class FEATPROP(Enum):
     # Feature property names
+    AIRSPACES = "airspaces"
     ALTITUDE = "altitude"
     BROADCAST = "broadcast"
     CITY = "city"
